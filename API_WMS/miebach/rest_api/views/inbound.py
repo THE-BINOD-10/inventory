@@ -2058,97 +2058,99 @@ def add_po(request, user=''):
     return HttpResponse(status)
 
 
-
-def findLastLevelToApprove(user, pr_number, totalAmt):
-    finalLevel = 'level0'
-    reqConfigName = findReqConfigName(user, totalAmt)
-    configQs = list(PRApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
-    if configQs:
-        finalLevel = configQs[0]
-    return reqConfigName, finalLevel
-
-
-def sendingApprovalMail(request, user, reqConfigName, level, pr_number, urlPath, isFinal=False, isReject=False):
+def createPRApproval(user, reqConfigName, level, pr_number):
     mailsList = []
-    apprConfQs = PRApprovalConfig.objects.filter(user=user, name=reqConfigName)
-    if not isReject:
-        apprConfQs = apprConfQs.filter(level=level)
-
-    for apprConfObj in apprConfQs:
-        apprConfObjId = apprConfObj.id
-        mails = MasterEmailMapping.objects.filter(user=user, 
+    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
+    if apprConfObj:
+        apprConfObjId = apprConfObj[0].id
+        mailsList = MasterEmailMapping.objects.filter(user=user, 
                                 master_id=apprConfObjId, 
                                 master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
-        mailsList.extend(mails)
     if mailsList:
-        mailsList = list(set(mailsList))
-        validated_by = ', '.join(mailsList)
+        validated_by = ", ".join(mailsList)
     else:
         validated_by = ''
-    for eachMail in mailsList:
-        prQs = PRApprovals.objects.filter(openpr_number=pr_number, pr_user=user, level=level, configName=reqConfigName)
-        if prQs.exists():
-            prObj = prQs[0]
-            if not isReject:
-                hash_code = hashlib.md5(b'%s:%s' % (prObj.id, eachMail)).hexdigest()
-                prApprovalMailsMap = {
-                                'pr_approval': prObj, 
-                                'email': eachMail, 
-                                'hash_code': hash_code,
-                            }
-                mailObj = PRApprovalMails(**prApprovalMailsMap)
-                mailObj.save()
-                if isFinal:
-                    subject = "Need to Confirm PO Number : %s" %(pr_number)
-                    body = "<p> Following user requested Approval for </p>  \
-                            <p> NAME : %s </p> \
-                            Please click on the below link to validate.\
-                            Link: %s/#/pr_request?hash_code=%s " % (user.username, urlPath, hash_code)
-                else:
-                    subject = "Request Approval for PO Number : %s at Level:%s" %(pr_number,level)
-                    body = "<p> Following user requested Approval for </p>  \
-                            <p> NAME : %s </p> \
-                            Please click on the below link to validate.\
-                            Link: %s/#/pr_request?hash_code=%s " % (request.user.username, urlPath, hash_code)
-            else:
-                subject = "PO Number %s got rejected at Level:%s" %(pr_number, level)
-                body = "%s has rejected the PO Number %s at level %s" %(request.user.username, pr_number, level)
-            send_mail([eachMail], subject, body)
+    prApprovalsMap = {
+                        'openpr_number': pr_number, 
+                        'pr_user': user, 
+                        'level': level,
+                        'validated_by': validated_by,
+                        'configName': reqConfigName
+                    }
+    prObj = PRApprovals(**prApprovalsMap)
+    prObj.save()
+    return prObj, mailsList
 
 
-def updateOrCreatePRApprovals(request, pr_number, user, level, validated_by, reqConfigName, validation_type, remarks, urlPath, updateFlag=True):
-    if updateFlag:
-        apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
-                                                pr_user=user, 
-                                                level=level, 
-                                                validated_by__icontains=validated_by)
-        if apprQs:
-            apprQs.update(status=validation_type)
-            apprQs.update(remarks=remarks)
-            apprQs.update(validated_by=validated_by)
-    else:
-        mailsList = []
-        apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
-        if apprConfObj:
-            apprConfObjId = apprConfObj[0].id
-            mailsList = MasterEmailMapping.objects.filter(user=user, 
-                                    master_id=apprConfObjId, 
-                                    master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
-        if mailsList:
-            validated_by = ', '.join(mailsList)
-        else:
-            validated_by = ''
-        prApprovalsMap = {
-                            'openpr_number': pr_number, 
-                            'pr_user': user, 
-                            'level': level,
-                            'validated_by': validated_by,
-                            'configName': reqConfigName,
-                            'status': validation_type,
-                            'remarks': '',
-                        }
-        prObj = PRApprovals(**prApprovalsMap)
-        prObj.save()
+def updatePRApproval(pr_number, user, level, validated_by, validation_type, remarks):
+    apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
+                                            pr_user=user, 
+                                            level=level, 
+                                            validated_by__icontains=validated_by)
+    if apprQs:
+        apprQs.update(status=validation_type)
+        apprQs.update(remarks=remarks)
+        apprQs.update(validated_by=validated_by)
+
+
+def generateHashCodeForMail(prObj, mailId):
+    hash_code = hashlib.md5(b'%s:%s' % (prObj.id, mailId)).hexdigest()
+    prApprovalMailsMap = {
+                    'pr_approval': prObj, 
+                    'email': mailId, 
+                    'hash_code': hash_code,
+                }
+    mailObj = PRApprovalMails(**prApprovalMailsMap)
+    mailObj.save()
+    return hash_code
+
+
+def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None):
+    from mail_server import send_mail
+    openPRQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
+    if openPRQs.exists():
+        result = openPRQs[0]
+        dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result.prefix, dateforPo, result.po_number)
+        creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
+        delivery_date = result.delivery_date.strftime('%d-%m-%Y')
+        validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
+        requestedBy = result.requested_user.first_name
+        warehouseName = user.first_name
+        pendingLevel = result.pending_level
+        totalAmt = openPRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+        skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
+        lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
+        reqUserMailID = result.requested_user.email
+        mailRecepients = [reqUserMailID]
+        if mailId:
+            mailRecepients.append(mailId)
+        if subjectType == 'po_created':
+            subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
+        elif subjectType == 'po_approval_at_last_level':
+            if result.final_status == 'approved':
+                subject = "Your PO %s for %s (%s INR) got approved in All Levels, Need to Confirm PO" %(po_reference, requestedBy, totalAmt)
+            elif result.final_status == 'rejected':
+                subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)    
+        elif subjectType == 'po_rejected':
+            subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)
+        elif subjectType == 'po_approval_pending':
+            subject = "Action Required: Pending PO %s for %s (%s INR) At Level %s" %(po_reference, requestedBy, totalAmt, pendingLevel)
+
+        body = "<p> Pending PO Details </p>  \
+        <p>PO Number: %s</p> \
+        <p>Order Value : %s </p> \
+        <p>Warehouse NAME : %s </p> \
+        <p>PO Raised By : %s </p> \
+        <p>PO Approval Request To : %s </p> \
+        <p>PO Created Date: %s</p> \
+        <p>Need By Date : %s </p> \
+        <p>Pending Level : %s </p> \
+        <p>Line Items(Item with Qty): %s</p> \
+        <p>Please click on the below link to validate.</p>\
+        Link: %s" % (po_reference, totalAmt, warehouseName, requestedBy, mailId, creation_date, delivery_date, 
+                    pendingLevel, lineItemDetails, validationLink)    
+        send_mail(mailRecepients, subject, body) 
 
 
 @csrf_exempt
@@ -2184,103 +2186,41 @@ def approve_pr(request, user=''):
                     master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
-    if pending_level == lastLevel:
+    requestedUserEmail = PRQs[0].requested_user.email
+    if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
-        updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
-                                    validation_type, remarks, urlPath)
-        sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
+        # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
+        #                             validation_type, remarks, urlPath)
+        # updatePRApproval(pr_number, user, pending_level, validated_by)
+        updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
+
+        # if mailsList:
+            # for eachMail in mailsList:
+                # hash_code = generateHashCodeForMail(prObj, eachMail)
+        sendMailforPendingPO(pr_number, user, pending_level, 'po_approval_at_last_level', requestedUserEmail)
+        # sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
-                                        validation_type, remarks, urlPath)
-            sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isReject=True)
+            # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
+            #                             validation_type, remarks, urlPath)
+            updatePRApproval(pr_number, user, pending_level, validated_by)
+            updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
+            sendMailforPendingPO(pr_number, user, pending_level, 'po_rejected', requestedUserEmail)
+            # sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isReject=True)
         else:
             PRQs.update(pending_level=nextLevel)
-            updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
-                                        validation_type, remarks, urlPath)
-            updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, 
-                                        '', remarks, urlPath, updateFlag=False)
-            sendingApprovalMail(request, user, reqConfigName, nextLevel, pr_number, urlPath)
+            # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
+            #                             validation_type, remarks, urlPath)
+            # updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, 
+            #                             '', remarks, urlPath, updateFlag=False)
+            updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
+            createPRApproval(user, reqConfigName, nextLevel, pr_number)
+            sendMailforPendingPO(pr_number, user, nextLevel, 'po_approval_pending', requestedUserEmail)
+            # sendingApprovalMail(request, user, reqConfigName, nextLevel, pr_number, urlPath)
     status = 'Approved Successfully'
     return HttpResponse(status)
-
-
-def findReqConfigName(user, totalAmt):
-    reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user)
-    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-        min_Amt, max_Amt = priceRanges
-        if totalAmt <= min_Amt:
-            reqConfigName = confName
-            break
-        elif min_Amt <= totalAmt <= max_Amt:
-            reqConfigName = confName
-            break
-    else:
-        reqConfigName = confName
-    return reqConfigName
-
-
-def createPRApproval(user, reqConfigName, level, pr_number):
-    mailsList = []
-    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
-    if apprConfObj:
-        apprConfObjId = apprConfObj[0].id
-        mailsList = MasterEmailMapping.objects.filter(user=user, 
-                                master_id=apprConfObjId, 
-                                master_type='pr_approvals_conf_data').values_list('email_id', flat=True)
-    if mailsList:
-        validated_by = ", ".join(mailsList)
-    else:
-        validated_by = ''
-    prApprovalsMap = {
-                        'openpr_number': pr_number, 
-                        'pr_user': user, 
-                        'level': level,
-                        'validated_by': validated_by,
-                        'configName': reqConfigName
-                    }
-    prObj = PRApprovals(**prApprovalsMap)
-    prObj.save()
-    return prObj, mailsList
-
-def generateHashCodeForMail(prObj, mailId):
-    hash_code = hashlib.md5(b'%s:%s' % (prObj.id, mailId)).hexdigest()
-    prApprovalMailsMap = {
-                    'pr_approval': prObj, 
-                    'email': mailId, 
-                    'hash_code': hash_code,
-                }
-    mailObj = PRApprovalMails(**prApprovalMailsMap)
-    mailObj.save()
-    return hash_code
-
-def sendMailforPendingPO(pr_number, user, level, subjectType, mailId, urlPath=None, hash_code=None):
-    from mail_server import send_mail
-    openPRQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
-    if openPRQs.exists():
-        result = openPRQs[0]
-        dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result.prefix, dateforPo, result.po_number)
-        creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
-        validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
-        requestedBy = result.requested_user.first_name
-        totalAmt = openPRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-        skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
-        lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
-        reqUserMailID = result.requested_user.email
-        mailRecepients = [mailId, reqUserMailID]
-        if subjectType == 'po_created':
-            subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
-            body = "<p> Pending PO Details </p>  \
-            <p>NAME : %s </p> \
-            <p>Line Items(Item with Qty): %s</p> \
-            <p>PO Created Date: %s</p> \
-            Please click on the below link to validate.\
-            Link: %s" % (requestedBy, lineItemDetails, creation_date, validationLink)    
-        send_mail(mailRecepients, subject, body)
 
 
 @csrf_exempt

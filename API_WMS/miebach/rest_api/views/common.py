@@ -804,6 +804,32 @@ def add_extra_permissions(user):
             if key in add_permissions:
                 user.groups.add(group)
 
+
+def findReqConfigName(user, totalAmt):
+    reqConfigName = ''
+    configNameRangesMap = fetchConfigNameRangesMap(user)
+    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+        min_Amt, max_Amt = priceRanges
+        if totalAmt <= min_Amt:
+            reqConfigName = confName
+            break
+        elif min_Amt <= totalAmt <= max_Amt:
+            reqConfigName = confName
+            break
+    else:
+        reqConfigName = confName
+    return reqConfigName
+
+
+def findLastLevelToApprove(user, pr_number, totalAmt):
+    finalLevel = 'level0'
+    reqConfigName = findReqConfigName(user, totalAmt)
+    configQs = list(PRApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
+    if configQs:
+        finalLevel = configQs[0]
+    return reqConfigName, finalLevel
+
+
 def pr_request(request):
     response_data = {'data': {}, 'message': 'Fail'}
     hash_code = request.GET.get('hash_code', '')
@@ -836,92 +862,89 @@ def pr_request(request):
 
     requested_user = parentUser
     openpr_number = prApprObj[0].openpr_number
-    '''
-    record = OpenPR.objects.filter(requested_user__username=requested_user, pr_number=openpr_number)
-    ser_data = []
-    for rec in record:
-        ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
-                                    'order_quantity': rec.quantity, 'price': rec.price, 
-                                    'remarks': rec.remarks, 
-                                    }, 'pk': rec.id})
-    '''
     response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': openpr_number}})
     #Data Table Data
     temp_data = {'aaData':[]}
     user = parentUser
     filtersMap = {'sku__user':user.id, 'open_po_id': None, 'pr_number': openpr_number}
-    if request.user.id != user.id:
-        currentUserLevel = ''
-        currentUserEmailId = request.user.email
-        memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
-        for memObj in memQs:
-            master_id = memObj.master_id
-            prApprObj = PRApprovalConfig.objects.filter(id=master_id)
-            if prApprObj.exists():
-                currentUserLevel = prApprObj[0].level
-                configName = prApprObj[0].name
-                pr_numbers = list(PRApprovals.objects.filter(pr_user=user,
-                                configName=configName,
-                                level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
-            else:
-                pr_numbers = []
-            filtersMap.setdefault('pr_number__in', [])
-            filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
-    # sku_master, sku_master_ids = get_sku_master(user, user)
-    # lis = ['pr_number', 'total_qty', 'total_amt']
-    # search_params = get_filtered_params(filters, lis)
-    # order_data = lis[col_num]
-    # if order_term == 'desc':
-    #     order_data = '-%s' % order_data
-    values_list = ['requested_user__username', 'pr_number', 'final_status', 'pending_level', 'remarks']
+    # if request.user.id != user.id:
+    #     currentUserLevel = ''
+    #     currentUserEmailId = request.user.email
+    #     memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
+    #     for memObj in memQs:
+    #         master_id = memObj.master_id
+    #         prApprObj = PRApprovalConfig.objects.filter(id=master_id)
+    #         if prApprObj.exists():
+    #             currentUserLevel = prApprObj[0].level
+    #             configName = prApprObj[0].name
+    #             pr_numbers = list(PRApprovals.objects.filter(pr_user=user,
+    #                             configName=configName,
+    #                             level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
+    #         else:
+    #             pr_numbers = []
+    #         filtersMap.setdefault('pr_number__in', [])
+    #         filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
+    values_list = ['requested_user', 'requested_user__first_name','requested_user__username', 'pr_number', 
+                    'po_number', 'final_status', 'pending_level', 'remarks', 'supplier_id', 'supplier__name', 
+                    'prefix', 'delivery_date']
 
     results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
-    # if search_term:
-    #     results = results.filter(Q(pr_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
-    #                     Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term))
-    # elif order_term:
-    #     results = results.order_by(order_data)
 
+    resultsWithDate = dict(results.values_list('pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
-
-    configMap = fetchConfigNameRangesMap(user)
-    reqConfigName = ''
     for result in results:
+        warehouse = user.first_name
+        po_created_date = resultsWithDate.get(result['pr_number'])
+        po_date = po_created_date.strftime('%d-%m-%Y')
+        po_delivery_date = result['delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
+        reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-        if prApprQs.exists():
-            validated_by = prApprQs[0].validated_by
-        else:
-            validated_by = ''
-        if result['pending_level'] != 'level0' and result['final_status'] == 'pending':
+        if not prApprQs.exists():
+            continue
+
+        last_updated_by = ''
+        last_updated_time = ''
+        last_updated_remarks = ''
+        validated_by = prApprQs[0].validated_by
+        if result['pending_level'] != 'level0':
             prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
             prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
-        elif result['pending_level'] == 'level0' and result['final_status'] == 'approved':
-            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-            last_updated_by = prApprQs[0].validated_by
-            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-            last_updated_remarks = prApprQs[0].remarks
-        else:
-            last_updated_by = ''
-            last_updated_time = ''
-            last_updated_remarks = ''
+        elif result['pending_level'] == 'level0':
+            if result['final_status'] == 'pending':
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                last_updated_remarks = result['remarks']
+            else:
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                last_updated_by = prApprQs[0].validated_by
+                last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
+                                                ('PO Number', po_reference),
+                                                ('Supplier ID', result['supplier_id']),
+                                                ('Supplier Name', result['supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
+                                                ('PO Created Date', po_date),
+                                                ('PO Delivery Date', po_delivery_date),
+                                                ('Warehouse', warehouse),
+                                                ('PO Raise By', result['requested_user__first_name']),
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
-                                                ('Pending Level', result['pending_level']),
+                                                ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
                                                 ('To Be Validated By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
-                                                ('DT_RowClass', 'results'))))
+                                                ('DT_RowClass', 'results'))))    
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 

@@ -105,6 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
         DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('Updated CustomerName').withTitle('Updated CustomerName'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('Allocated Quantity').withTitle('Allocated Quantity'),

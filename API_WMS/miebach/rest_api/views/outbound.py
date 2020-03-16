@@ -16469,7 +16469,7 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
     if 'sku_code' in filters:
         search_params['sku__sku_code'] = filters['sku_code'].upper()
     if 'customer_id' in filters:
-        search_params['customer_id'] = filters['customer_id']
+        search_params['customer_id'] = filters['customer_id'].split(':')[0]
 
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -16481,6 +16481,8 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
     orders_data = OrderDetail.objects.filter(id__in=order_data_ids).values('customer_id', 'customer_name',
                                                                            'sku__sku_code', 'sku__sku_desc').distinct().\
                         annotate(orig_qty = Sum('original_quantity'))
+    updated_customer_dict = dict(CustomerMaster.objects.filter(user =user.id,customer_id__in=list(orders_data.values_list('customer_id',flat=True)))
+                                 .values_list('customer_id','name'))
     if order_term:
         orders = orders.order_by(order_data)
 
@@ -16504,14 +16506,13 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
         data_id = count
         temp_data['aaData'].append(OrderedDict((('data_id', data_id),
                                                 ('Customer ID', order['customer_id']),
+                                                ('Updated CustomerName', updated_customer_dict.get(order['customer_id'])),
                                                 ('Customer Name', order['customer_name']),
                                                 ('SKU Code', order['sku__sku_code']),
                                                 ('SKU Description', order['sku__sku_desc']),
                                                 ('Allocated Quantity', quantity),
                                                 ('Deallocation Quantity',
-                                                 '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(data_id), str(data_id), str(count), str(data_id))
-
-                                                 ),
+                                                 '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(data_id), str(data_id), str(count), str(data_id))),
                                                 ('', '<button type="button" name="submit" value="Save" class="btn btn-primary" ng-click="showCase.save_dealloc_qty(%s, %s)">Save</button>' % (str(count), str(data_id))),
                                                 ('id', count),
                                                 ('DT_RowClass', 'results'),

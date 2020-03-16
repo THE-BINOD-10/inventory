@@ -2122,9 +2122,9 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
         lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
         reqUserMailID = result.requested_user.email
-        mailRecepients = [reqUserMailID]
-        if mailId:
-            mailRecepients.append(mailId)
+        # mailRecepients = [reqUserMailID]
+        # if mailId:
+        #     mailRecepients.append(mailId)
         if subjectType == 'po_created':
             subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
         elif subjectType == 'po_approval_at_last_level':
@@ -2152,7 +2152,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             Link: %s"%(validationLink)
         else:
             body = podetails_string
-        send_mail(mailRecepients, subject, body) 
+        send_mail(mailId, subject, body) 
 
 
 @csrf_exempt

@@ -347,6 +347,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "add_pricemaster",
                  },
+                 {
+                   title: "Order Allocation Download/ Upload",
+                   download: "Order Allocation Download Form",
+                   upload: "Order Allocation Upload Form",
+                   durl: "order_allocation_form/",
+                   uurl: "order_allocation_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "display_parts_allocation",
+                 },
                 ]
 
   $scope.download = function(data) {

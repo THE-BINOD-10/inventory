@@ -8070,3 +8070,15 @@ def supplier_sku_attributes_upload(request, user=''):
             data_dict['user'] = user.id
             SKUSupplier.objects.create(**data_dict)
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_allocation_form(request, user=''):
+    label_file = request.GET['download-file']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('Order Labels', ORDER_ALLOCATION_EXCEL_HEADERS)
+    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.username))

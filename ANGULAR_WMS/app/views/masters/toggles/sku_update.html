@@ -247,7 +247,12 @@
             <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
               <div class="form-group">
                 <label class="control-label"> {{ attr.attribute_name }} </label>
-                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value">
+                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value" ng-if="attr.attribute_type!='Dropdown'">
+                <select name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value" ng-if="attr.attribute_type =='Dropdown'">
+                  <option ng-repeat="type in showCase.attribute_options[attr.attribute_name]" value="{{type}}"
+                          track by $index
+                          ng-selected="attr.attribute_value == type">{{type}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

@@ -164,6 +164,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.filters['datatable'] = 'OrderAllocations';
       }
     }
+    vm.get_customer_types  = function()
+      {
+        vm.service.apiCall("get_customer_types/").then(function(data){
+          if(data.message) {
+            vm.customer_types = data.data.data;
+          }
+
+        })
+      }
+      vm.get_customer_types();
 
     vm.saveFilters = function(filters){
       Data.rtv_filters = filters;

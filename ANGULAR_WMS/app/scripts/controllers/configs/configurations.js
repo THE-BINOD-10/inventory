@@ -799,7 +799,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}};
+      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': false};
       if (vm.model_data['selected_pr_config_data'].length != 0) {
         var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
         if (check_last_record['name'] == '') {
@@ -938,16 +938,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         angular.forEach(data.data.prefix_dc_data, function(data){
           vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
         })
-        angular.forEach(data.data.pr_approvals_conf_data, function(data){
-          var data_dict = {}
-          data_dict['name'] = data.name;
-          data_dict['min_Amt'] = data.min_Amt;
-          data_dict['max_Amt'] = data.max_Amt;
-          data_dict['mail_id'] = data.mail_id;
-          vm.model_data.total_pr_config_ranges.push(data_dict)
-          vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
-        })
-
+        if (data.data.pr_approvals_conf_data.length > 0) {
+          var temp_length = data.data.pr_approvals_conf_data.length;
+          angular.forEach(data.data.pr_approvals_conf_data, function(data, index){
+            var data_dict = {}
+            data_dict['name'] = data.name;
+            data_dict['min_Amt'] = data.min_Amt;
+            data_dict['max_Amt'] = data.max_Amt;
+            data_dict['mail_id'] = data.mail_id;
+            temp_length == (index+1) ? data_dict['remove'] = true : data_dict['remove'] = false;
+            vm.model_data.total_pr_config_ranges.push(data_dict)
+            vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+          })
+        }
         angular.forEach(vm.model_data, function(value, key) {
           if (value == "true") {
             vm.model_data[key] = Boolean(true);

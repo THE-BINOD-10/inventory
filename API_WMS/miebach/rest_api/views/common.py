@@ -1034,10 +1034,10 @@ def fetchConfigNameRangesMap(user):
     return confMap
 
 def get_pr_approvals_configuration_data(user):
-    pr_conf_obj = PRApprovalConfig.objects.filter(user=user)
+    pr_conf_obj = PRApprovalConfig.objects.filter(user=user).order_by('creation_date')
     pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
-    totalConfigData = {}
+    totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
         sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'], 

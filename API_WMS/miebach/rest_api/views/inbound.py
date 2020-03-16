@@ -2136,8 +2136,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)
         elif subjectType == 'po_approval_pending':
             subject = "Action Required: Pending PO %s for %s (%s INR) At Level %s" %(po_reference, requestedBy, totalAmt, pendingLevel)
-
-        body = "<p> Pending PO Details </p>  \
+        podetails_string = "<p> Pending PO Details </p>  \
         <p>PO Number: %s</p> \
         <p>Order Value : %s </p> \
         <p>Warehouse NAME : %s </p> \
@@ -2146,10 +2145,13 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         <p>PO Created Date: %s</p> \
         <p>Need By Date : %s </p> \
         <p>Pending Level : %s </p> \
-        <p>Line Items(Item with Qty): %s</p> \
-        <p>Please click on the below link to validate.</p>\
-        Link: %s" % (po_reference, totalAmt, warehouseName, requestedBy, mailId, creation_date, delivery_date, 
-                    pendingLevel, lineItemDetails, validationLink)    
+        <p>Line Items(Item with Qty): %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy, mailId, 
+                                                creation_date, delivery_date, pendingLevel, lineItemDetails)
+        if hash_code:
+            body = podetails_string+ "<p>Please click on the below link to validate.</p>\
+            Link: %s"%(validationLink)
+        else:
+            body = podetails_string
         send_mail(mailRecepients, subject, body) 
 
 
@@ -2189,26 +2191,14 @@ def approve_pr(request, user=''):
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
-        # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
-        #                             validation_type, remarks, urlPath)
-        # updatePRApproval(pr_number, user, pending_level, validated_by)
         updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
-
-        # if mailsList:
-            # for eachMail in mailsList:
-                # hash_code = generateHashCodeForMail(prObj, eachMail)
         sendMailforPendingPO(pr_number, user, pending_level, 'po_approval_at_last_level', requestedUserEmail)
-        # sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isFinal=True)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
-            #                             validation_type, remarks, urlPath)
-            updatePRApproval(pr_number, user, pending_level, validated_by)
             updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
             sendMailforPendingPO(pr_number, user, pending_level, 'po_rejected', requestedUserEmail)
-            # sendingApprovalMail(request, user, reqConfigName, pending_level, pr_number, urlPath, isReject=True)
         else:
             PRQs.update(pending_level=nextLevel)
             # updateOrCreatePRApprovals(request, pr_number, user, pending_level, currentUserEmailId, reqConfigName, 
@@ -2216,8 +2206,10 @@ def approve_pr(request, user=''):
             # updateOrCreatePRApprovals(request, pr_number, user, nextLevel, currentUserEmailId, reqConfigName, 
             #                             '', remarks, urlPath, updateFlag=False)
             updatePRApproval(pr_number, user, pending_level, validated_by, validation_type, remarks)
-            createPRApproval(user, reqConfigName, nextLevel, pr_number)
-            sendMailforPendingPO(pr_number, user, nextLevel, 'po_approval_pending', requestedUserEmail)
+            prObj, mailsList = createPRApproval(user, reqConfigName, nextLevel, pr_number)
+            for eachMail in mailsList:
+                hash_code = generateHashCodeForMail(prObj, eachMail)
+                sendMailforPendingPO(pr_number, user, nextLevel, 'po_approval_pending', eachMail, urlPath, hash_code)
             # sendingApprovalMail(request, user, reqConfigName, nextLevel, pr_number, urlPath)
     status = 'Approved Successfully'
     return HttpResponse(status)

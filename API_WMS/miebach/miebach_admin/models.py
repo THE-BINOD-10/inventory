@@ -973,6 +973,8 @@ class CustomerMaster(models.Model):
     lead_time = models.PositiveIntegerField(blank=True, default=0)
     role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
     spoc_name = models.CharField(max_length=256, default='')
+    chassis_number = models.CharField(max_length=256, default='')
+    customer_reference = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'

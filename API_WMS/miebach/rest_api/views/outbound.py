@@ -7410,6 +7410,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id':str(data.customer_id), 'name': data.name, 'phone_number': str(data.phone_number),
+                           'chassis_number': data.chassis_number, 'customer_reference': data.customer_reference,
                            'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 
@@ -16597,3 +16598,10 @@ def get_previous_order_data(request, user=''):
      sku_code = request.GET.get('wms_code','')
      previous_order_data = get_previous_order(user,sku_code)
      return HttpResponse(json.dumps({'previous_order_data': previous_order_data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_customer_types(request, user=''):
+    customer_types = get_unique_customer_types(user)
+    return HttpResponse(json.dumps({'data': customer_types}))

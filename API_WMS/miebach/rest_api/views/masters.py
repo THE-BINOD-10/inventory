@@ -424,9 +424,9 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
     search_params = get_filtered_params(filters, lis)
     if 'status__icontains' in search_params.keys():
-        if (str(search_params['status__icontains']).lower() in "active"):
+        if str(search_params['status__icontains']).lower() in "active":
             search_params["status__icontains"] = 1
-        elif (str(search_params['status__icontains']).lower() in "inactive"):
+        elif str(search_params['status__icontains']).lower() in "inactive":
             search_params["status__icontains"] = 0
         else:
             search_params["status__icontains"] = "none"
@@ -489,9 +489,9 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('pan_number', data.pan_number), ('customer_type', data.customer_type),
                          ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                          ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
-                         ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
+                         ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),('customer_reference',data.customer_reference),
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
-                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
+                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
                          ('role', data.role), ('spoc_name', data.spoc_name))))
 
 

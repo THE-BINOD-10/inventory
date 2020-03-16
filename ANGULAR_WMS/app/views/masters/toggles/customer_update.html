@@ -158,6 +158,18 @@
                   <input type="text" name="spoc_name" class="form-control" ng-model="showCase.model_data.spoc_name" maxlength="256">
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Chassis Number </label>
+                  <input type="text" name="chassis_number" class="form-control" ng-model="showCase.model_data.chassis_number" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Customer Reference </label>
+                  <input type="text" name="customer_reference" class="form-control" ng-model="showCase.model_data.customer_reference" maxlength="256">
+                </div>
+            </div>
             <div class="col-md-4" ng-if="permissions.user_type == 'distributor'">
               <div class="form-group">
                 <label class="control-label"> Lead Time </label>

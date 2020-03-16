@@ -1938,7 +1938,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                  values_list('member_sku__sku_code', 'quantity'))
             confirm_qty = []
             for key1, val in value.iteritems():
-                confirm_qty.append(val/sku_relation_qtys.get(key1, 1))
+                confirm_qty.append(round(val/sku_relation_qtys.get(key1, 1),2))
             if len(set(confirm_qty)) > 1:
                 combo_status.append({str(combo_order_id): value.keys()})
     return combo_status, final_data_list

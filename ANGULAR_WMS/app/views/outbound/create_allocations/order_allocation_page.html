@@ -97,7 +97,7 @@
                       <option value="">Select  From Below</option>
                       <option ng-repeat="order_option in showCase.extra_order_options[attribute] track by $index" value="{{order_option}}">{{order_option}}</option>
                     </select>
-                    <input name="order_field_{{attribute}}" ng-model="data[attribute]" class="form-control" type="text" ng-if = 'showCase.extra_order_options[attribute][0] == "" || !showCase.extra_order_options[attribute]'>
+                    <input name="order_field_{{attribute}}" ng-model="data[attribute]" class="form-control" type="text" ng-readonly="1" ng-if = 'showCase.extra_order_options[attribute][0] == "" || !showCase.extra_order_options[attribute]'>
               </td>
               <td ng-if="showCase.permissions.use_imei">
                 <input type="text" class="form-control" ng-model="data.serial" ng-keydown="showCase.serial_scan($event, data.serial, data)" ng-readonly="!data.enable_serial">

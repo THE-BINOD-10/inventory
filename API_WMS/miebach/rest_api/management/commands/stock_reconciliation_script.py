@@ -15,6 +15,7 @@ django.setup()
 from itertools import chain
 from miebach_admin.models import *
 from rest_api.views.common import get_sku_weight, get_utc_start_date
+from rest_api.views.mail_server import send_mail
 from rest_api.views.miebach_utils import MILKBASKET_USERS
 from django.db.models import Count
 from datetime import datetime, date, timedelta
@@ -389,6 +390,7 @@ class Command(BaseCommand):
         today_start = get_utc_start_date(today)
         today_end = today_start + timedelta(1)
         print today
+        mail_ids = ['sreekanth@mieone.com', 'avadhani@mieone.com']
         #stock_rec_field_objs = []
         stock_rec_obj_ids = []
         for user in users:
@@ -554,9 +556,19 @@ class Command(BaseCommand):
                     except Exception as e:
                         import traceback
                         log.debug(traceback.format_exc())
-                        log.info('Stock Reconciliation Fields creation failed for user %s' % (str(user.username)))
-                log.info("Stock Reconciliation Report Creation Ended for user %s" % (user.username))
+                        failure_message = 'Stock Reconciliation Fields creation failed for user %s' % (str(user.username))
+                        log.info(failure_message)
+                        mail_message = '%s for Date: %s' % (failure_message, str(today.date()))
+                        send_mail(mail_ids, mail_message, traceback.format_exc())
+                success_massage = "Stock Reconciliation Report Creation Ended for user %s" % (user.username)
+                log.info(success_massage)
+                mail_message = 'Stock Reconciliation Report Created Successfully for user %s for Date: %s' %\
+                               (str(user.username), str(today.date()))
+                send_mail(mail_ids, mail_message, mail_message)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info('Stock Reconciliation report creation failed for user %s' % (str(user.username)))
+                failure_message = 'Stock Reconciliation report creation failed for user %s' % (str(user.username))
+                log.info(failure_message)
+                mail_message = '%s for Date: %s' % (failure_message, str(today.date()))
+                send_mail(mail_ids, mail_message, traceback.format_exc())

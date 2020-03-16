@@ -130,18 +130,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.update = false;
     vm.model_data = {};
-    vm.bank_names = {'abc': 'abc',
-                     'xyz': 'xyz',
-                     'pqr': 'pqr'};
+    vm.bank_names = '';
+    if (vm.permissions.bank_option_fields != '' && vm.permissions.bank_option_fields) {
+            vm.bank_names = vm.permissions.bank_option_fields.split(',');
+          }
     vm.payment_modes = {'cheque': 'cheque',
-                        'NEFT': 'NEFT'};
-    vm.default_bank = "abc";
-    vm.default_mode = "cheque";
+                        'NEFT': 'NEFT',
+                        'cash':'Cash',
+                        'online':'Online'};
+    vm.default_bank = vm.bank_names[0];
+    vm.default_mode = "cash";
 
   vm.invoice_update = function(form){
 
     var elem = angular.element($('form'));
-    elem = elem[2];
+    elem = elem[1];
     elem = $(elem).serializeArray();
     elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
 
@@ -211,7 +214,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.close = close;
     function close() {
       vm.model_data = {};
-      $state.go('app.PaymentTrackerInvBased');
+      $state.go('app.POPaymentTrackerInvBased');
       vm.reloadData();
     }
 

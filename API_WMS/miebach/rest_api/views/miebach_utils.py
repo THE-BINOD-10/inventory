@@ -5048,7 +5048,8 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('Stock item', data['sku__sku_desc']),
                               ('Qty', quantity),
                               ('Rate', float(data['unit_price'])),
-                              ('Disc%', round(discount_percent)),
+                              ('Disc%', discount_percent),
+                              ('Discount Amount', float(discount)),
                               ('Sales Ledger', 'Sales'),
                               ('Sales Amount', float(taxable_amount)),
                               ('Sgst Ledger', 'SGST'),
@@ -5077,9 +5078,9 @@ def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_qua
                 total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
                 total_procurement_price += 0
-        if total_procurement_price > 0 and inv_quantity > 0:  
+        if total_procurement_price > 0 and inv_quantity > 0:
             procurement_price = total_procurement_price/inv_quantity
-            margin = (unit_price * inv_quantity) - total_procurement_price  
+            margin = (unit_price * inv_quantity) - total_procurement_price
     else:
         total_procurement_price, procurement_price, margin = 0, 0, 0
     return round(total_procurement_price, 2), round(procurement_price, 2), round(margin, 2)
@@ -8152,7 +8153,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     lis = ['creation_date','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax',
            'st_po__open_st__igst_tax','st_po__open_st__price','status','st_po__open_st__igst_tax','st_po__open_st__price','status']
-    status_map = ['Pick List Generated','Pending','Accepted']
+    status_map = {0: 'Pick List Generated', 1: 'Pending', 2: 'Accepted', 3: 'Cancelled'}
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)
@@ -8190,7 +8191,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     for data in  (stock_transfer_data[start_index:stop_index]):
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id = data.st_po.open_st.sku.user)
-        status = status_map[data.status]
+        status = status_map.get(data.status, '')
         destination = destination.username
         cgst = data.st_po.open_st.cgst_tax
         sgst = data.st_po.open_st.sgst_tax

@@ -1922,6 +1922,8 @@ class PaymentSummary(models.Model):
 
 class POPaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
+    payment_id = models.CharField(max_length=60, default='')
+    invoice_number = models.CharField(max_length=128, default='')
     order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     payment_received = models.FloatField(default=0)
     bank = models.CharField(max_length=64, default='')
@@ -2163,6 +2165,7 @@ class SellerOrderSummary(models.Model):
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
+    full_invoice_number = models.CharField(max_length=64, default='')
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
@@ -2785,6 +2788,7 @@ class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     opening_stock = models.FloatField(default=0)
+    opening_stock_value = models.FloatField(default=0)
     receipt_qty = models.FloatField(default=0)
     uploaded_qty = models.FloatField(default=0)
     produced_qty = models.FloatField(default=0)
@@ -2794,6 +2798,7 @@ class StockStats(models.Model):
     consumed_qty = models.FloatField(default=0)
     rtv_quantity = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
+    closing_stock_value = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

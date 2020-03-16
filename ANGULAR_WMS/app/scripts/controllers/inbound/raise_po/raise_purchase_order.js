@@ -238,7 +238,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
     vm.base();
-
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
@@ -246,12 +245,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
-          vm.model_data.seller_supplier_map = data.data.seller_supplier_map
-          vm.model_data.terms_condition = data.data.raise_po_terms_conditions
-          vm.model_data.ship_addr_names = data.data.shipment_add_names
-          vm.model_data.shipment_addresses = data.data.shipment_addresses
-          vm.model_data.warehouse_names = data.data.warehouse
+          vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+          vm.model_data.ship_addr_names = data.data.shipment_add_names;
+          vm.model_data.shipment_addresses = data.data.shipment_addresses;
+          vm.model_data.warehouse_names = data.data.warehouse;
           vm.model_data["receipt_types"] = data.data.receipt_types;
+          vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
@@ -465,9 +464,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
       if (vm.wh_purchase_order){
         elem.push({name:'wh_purchase_order', value:true})
-      }
-      if (vm.model_data.terms_condition) {
-        elem.push({name: "terms_condition", value:vm.model_data.terms_condition});
       }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {

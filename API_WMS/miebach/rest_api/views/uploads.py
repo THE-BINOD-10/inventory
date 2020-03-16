@@ -2380,7 +2380,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     supplier_ids = []
     temp1 = ''
     supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
-    auto_po_switch = get_misc_value('auto_po_switch', user.id)
+    auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)

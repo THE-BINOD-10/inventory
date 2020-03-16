@@ -1938,7 +1938,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                  values_list('member_sku__sku_code', 'quantity'))
             confirm_qty = []
             for key1, val in value.iteritems():
-                confirm_qty.append(val/sku_relation_qtys.get(key1, 1))
+                confirm_qty.append(round(val/sku_relation_qtys.get(key1, 1),2))
             if len(set(confirm_qty)) > 1:
                 combo_status.append({str(combo_order_id): value.keys()})
     return combo_status, final_data_list
@@ -4427,6 +4427,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_summary_dict[key] = value
         elif key == 'tax_type':
             order_summary_dict['tax_type'] = inter_state_dict.get(value, 2)
+            order_summary_dict['inter_state'] = inter_state_dict.get(value, 2)
         elif key == 'order_taken_by':
             order_summary_dict['order_taken_by'] = value
         elif key == 'shipment_time_slot':
@@ -6225,6 +6226,7 @@ def insert_st_shipment_info(request, user=''):
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = STOrder.objects.filter(stock_transfer__order_id=order_id, stock_transfer__sku__user=user.id)
+                picklist_ids = order_detail.values_list('picklist_id',flat=True)
                 if order_detail:
                     order_detail = order_detail[0]
                 for key, value in myDict.iteritems():
@@ -6247,8 +6249,7 @@ def insert_st_shipment_info(request, user=''):
                     data.save()
                 else:
                     data = order_pack_instance[0]
-                picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
-                                                        order__user=user.id)
+                picked_orders = Picklist.objects.filter(id__in=picklist_ids)
                 order_quantity = 0
                 stock_transfer_id = order_detail.stock_transfer_id
                 if stock_transfer_id:
@@ -6299,7 +6300,7 @@ def insert_st_shipment_info(request, user=''):
                 # Until Here
 
                 log.info('Shipemnt Info dict is ' + str(shipment_data))
-                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id). \
+                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id, order_shipment__user=user.id). \
                     aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
                 if ship_quantity >= int(order_quantity):
                     stock_transfer = StockTransfer.objects.filter(order_id=order_id, sku__user=user.id)
@@ -7979,39 +7980,49 @@ def payment_tracker(request, user=''):
     total_payment_received = 0
     total_invoice_amount = 0
     total_payment_receivable = 0
+    data_dict = OrderedDict()
     status_filter = request.GET.get('filter', '')
-    all_picklists = Picklist.objects.filter(order__user=user.id)
-    invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
-        values_list('order__order_id', flat=True).distinct()
-    partial_invoiced = all_picklists.filter(order__user=user.id, picked_quantity__gt=0,
-                                            status__icontains='open').values_list('order__order_id',
-                                                                                  flat=True).distinct()
-    total_data = OrderDetail.objects.filter(user=user.id, marketplace__iexact='offline').annotate(
-        total_invoice=Sum('invoice_amount'),
-        total_received=Sum('payment_received')).filter(total_received__lt=F('total_invoice'))
-    if status_filter == 'Partially Invoiced':
-        total_data = total_data.filter(order_id__in=partial_invoiced)
-    if status_filter == 'Invoiced':
-        total_data = total_data.filter(order_id__in=invoiced)
-    if status_filter == 'Order Created':
-        total_data = total_data.exclude(order_id__in=list(chain(invoiced, partial_invoiced)))
-
-    orders = total_data.values('order_id', 'order_code', 'original_order_id', 'payment_mode').distinct()
-    total_customer_data = total_data.values('customer_id', 'customer_name', 'marketplace').distinct()
+    user_filter = {'order__user': user.id, 'order_status_flag':'customer_invoices'}
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'order__marketplace',
+                        'order__order_id', 'order__original_order_id', 'order__order_code', 'full_invoice_number']
+    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(full_invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
     customer_data = []
-    for data in total_customer_data:
-        sum_data = total_data.filter(customer_id=data['customer_id'], customer_name=data['customer_name']).aggregate(
-            Sum('payment_received'),
-            Sum('invoice_amount'))
-        receivable = sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']
-        total_payment_received += sum_data['payment_received__sum']
-        total_invoice_amount += sum_data['invoice_amount__sum']
-        total_payment_receivable += receivable
-        customer_data.append({'channel': data['marketplace'], 'customer_id': data['customer_id'],
-                              'customer_name': data['customer_name'],
-                              'payment_received': "%.2f" % sum_data['payment_received__sum'],
-                              'payment_receivable': "%.2f" % receivable,
-                              'invoice_amount': "%.2f" % sum_data['invoice_amount__sum']})
+    master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    for data in master_data:
+        seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
+                                      .filter(full_invoice_number=data['full_invoice_number'])
+        picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                        .distinct().annotate(pic_qty=Sum('quantity'))\
+                                        .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                        .aggregate(Sum('cur_amt'))['cur_amt__sum']
+        payment_received = float(data['payment_received'])
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['full_invoice_number'], order__user = user.id)
+        if payment_obj:
+            payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
+        if round(picked_amount) > round(float(payment_received)):
+            receivable = picked_amount - data['payment_received']
+            total_payment_received += payment_received
+            total_invoice_amount += picked_amount
+            total_payment_receivable += receivable
+            grouping_key = data['order__customer_id']
+            data_dict.setdefault(grouping_key, {'channel': data['order__marketplace'],
+                                                'customer_name':data['order__customer_name'],
+                                                'customer_id': data['order__customer_id'],
+                                                'invoice_amount': 0,
+                                                'payment_received': 0,
+                                                'payment_receivable': 0
+                                                })
+            data_dict[grouping_key]['invoice_amount'] +=round(picked_amount)
+            data_dict[grouping_key]['payment_received'] +=round(payment_received)
+            data_dict[grouping_key]['payment_receivable'] +=round(receivable)
+
+    order_data_loop = data_dict.values()
+    data_append = []
+    for data1 in order_data_loop:
+        customer_data.append(data1)
     response["data"] = customer_data
     response.update({'total_payment_received': "%.2f" % total_payment_received,
                      'total_invoice_amount': "%.2f" % total_invoice_amount,
@@ -8058,7 +8069,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     admin_user = get_priceband_admin_user(user)
     lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number','invoice_number', 'invoice_number', 'creation_date', 'invoice_number']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id', 'full_invoice_number']#to make distinct grouping
     cust_ids = request.POST.get("customer_ids", '')
     if cust_ids:
         cust_ids = cust_ids.split(',')
@@ -8098,17 +8109,14 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     for data in master_data:
         credit_period, due_date, invoice_date = 0, '', ''
         seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
-                                      .filter(invoice_number=data['invoice_number'])
+                                      .filter(full_invoice_number=data['full_invoice_number'])
         order_ids = seller_ord_summary.values_list('order__id', flat= True)
         picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
                                         .distinct().annotate(pic_qty=Sum('quantity'))\
                                         .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                         .aggregate(Sum('cur_amt'))['cur_amt__sum']
         order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
-        invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
-                                           .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
-        if not invoice_date:
-            invoice_date = seller_ord_summary.order_by('-updation_date')[0].updation_date
+        invoice_date = seller_ord_summary[0].creation_date
         customer_order_sum = CustomerOrderSummary.objects.filter()
         customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
         if customer_master_obj:
@@ -8117,7 +8125,7 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
             due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
             invoice_date = invoice_date.strftime("%d %b %Y")
         payment_received = 0
-        payment_obj = PaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__user = user.id)
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['full_invoice_number'], order__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
         payment_receivable = round(picked_amount) - round(payment_received)
@@ -8230,59 +8238,59 @@ def get_customer_payment_tracker(request, user=''):
     response = {}
     customer_id = request.GET['id']
     customer_name = request.GET['name']
-    channel = request.GET['channel']
+    # channel = request.GET['channel']
     status_filter = request.GET.get('filter', '')
-    all_picklists = Picklist.objects.filter(order__user=user.id)
-    invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']). \
-        values_list('order__order_id', flat=True).distinct()
-    partial_invoiced = all_picklists.filter(order__user=user.id, picked_quantity__gt=0,
-                                            status__icontains='open').values_list('order__order_id',
-                                                                                  flat=True).distinct()
-    total_data1 = OrderDetail.objects.filter(user=user.id, customer_id=customer_id, customer_name=customer_name,
-                                             marketplace=channel).annotate(total_invoice=Sum('invoice_amount'),
-                                                                           total_received=Sum('payment_received'))
-    total_data = total_data1.filter(total_received__lt=F('total_invoice'))
-    if status_filter == 'Partially Invoiced':
-        total_data = total_data.filter(order_id__in=partial_invoiced)
-    if status_filter == 'Invoiced':
-        total_data = total_data.filter(order_id__in=invoiced)
-    if status_filter == 'Order Created':
-        total_data = total_data.exclude(order_id__in=list(chain(invoiced, partial_invoiced)))
-    orders = total_data.values('order_id', 'order_code', 'original_order_id', 'payment_mode', 'customer_id',
-                               'customer_name').distinct()
+    data_dict = OrderedDict()
+    user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices', 
+                    'order__customer_name':customer_name, 'order__customer_id':customer_id}
+    result_values = ['invoice_number', 'full_invoice_number','order__customer_name', 'order__customer_id', 'order__order_id', 'order__original_order_id', 'order__order_code']
+    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(full_invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum(F('order__invoice_amount')))
+    master_data = master_data.exclude(invoice_amount=F('payment_received'))
     order_data = []
-    for data in orders:
-        order_status = 'Order Created'
-        expected_date = ''
-        if data['order_id'] in invoiced:
-            order_status = 'Invoiced'
-        if data['order_id'] in partial_invoiced:
-            order_status = 'Partially Invoiced'
-        order_id = str(data['order_code']) + str(data['order_id'])
-        if data['original_order_id']:
-            order_id = data['original_order_id']
-
-        if order_status == 'Invoiced':
-            picklist = all_picklists.filter(order__order_id=data['order_id'], order__order_code=data['order_code']). \
-                order_by('-updation_date')
-            picked_date = get_local_date(user, picklist[0].updation_date, send_date=True)
-            customer_master = CustomerMaster.objects.filter(customer_id=data['customer_id'], name=data['customer_name'],
-                                                            user=user.id)
-            if customer_master:
-                if customer_master[0].credit_period:
-                    expected_date = picked_date + datetime.timedelta(days=customer_master[0].credit_period)
-                    expected_date = expected_date.strftime("%d %b, %Y")
-            if not expected_date:
-                expected_date = picked_date.strftime("%d %b, %Y")
-
-        sum_data = total_data1.filter(order_id=data['order_id']).aggregate(Sum('invoice_amount'),
-                                                                           Sum('payment_received'))
-        order_data.append(
-            {'order_id': str(data['order_id']), 'display_order': order_id, 'account': data['payment_mode'],
-             'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
-             'receivable': "%.2f" % (sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']),
-             'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': order_status,
-             'expected_date': expected_date})
+    for data in master_data:
+        credit_period, due_date, invoice_date = 0, '', ''
+        seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
+                                      .filter(full_invoice_number=data['full_invoice_number'])
+        order_ids = seller_ord_summary.values_list('order__id', flat= True)
+        picked_amount = seller_ord_summary.values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                        .distinct().annotate(pic_qty=Sum('quantity'))\
+                                        .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                        .aggregate(Sum('cur_amt'))['cur_amt__sum']
+        order_amt_cal = OrderDetail.objects.filter(id__in=order_ids).aggregate(invoice_amount = Sum('invoice_amount'), payment_received=Sum('payment_received'))
+        invoice_date = seller_ord_summary[0].creation_date
+        customer_order_sum = CustomerOrderSummary.objects.filter()
+        customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
+        if customer_master_obj:
+            credit_period = customer_master_obj[0].credit_period
+        if invoice_date:
+            due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
+            invoice_date = invoice_date.strftime("%d %b %Y")
+        payment_received = float(data['payment_received'])
+        payment_obj = PaymentSummary.objects.filter(invoice_number=data['full_invoice_number'], order__user = user.id)
+        if payment_obj:
+            payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
+        payment_receivable = round(picked_amount) - round(payment_received)
+        order_id = str(data['order__order_code']) + str(data['order__order_id'])
+        grouping_key = data['full_invoice_number']
+        data_dict.setdefault(grouping_key, {'expected_date': due_date,
+                                            'order_id': str(data['order__order_id']),
+                                            'display_order': order_id,
+                                            'invoicee_date': invoice_date,
+                                            'invoice_number': data['full_invoice_number'],
+                                            'customer_name':data['order__customer_name'],
+                                            'customer_id': data['order__customer_id'],
+                                            'inv_amount': round(picked_amount),
+                                            'received': round(payment_received),
+                                            'receivable': round(payment_receivable)
+                                            })
+    order_data_loop = data_dict.values()
+    data_append = []
+    for data1 in order_data_loop:
+        if round(data1['inv_amount']) > round(float(data1['received'])):
+            order_data.append(data1)
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
 
@@ -8315,7 +8323,7 @@ def get_customer_master_id(request, user=''):
 def get_order_ids(user, invoice_number):
     sell_ids = {}
     sell_ids['order__user'] = user.id
-    sell_ids['invoice_number'] = invoice_number
+    sell_ids['full_invoice_number'] = invoice_number
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     order_id_list = list(set(seller_summary.values_list('order__order_id', flat=True)))
     order_id_list = map(lambda x: str(x), order_id_list)
@@ -8367,7 +8375,7 @@ def update_payment_status(request, user=''):
         # for i in range(0, len(data_dict['order_id'])):
         order_details = OrderDetail.objects.filter(order_id__in=data_dict['order_id'], user=user.id,
                                                    payment_received__lt=F('invoice_amount'))
-        picked_amount = SellerOrderSummary.objects.filter(invoice_number=invoice_number, order__user=user.id).values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+        picked_amount = SellerOrderSummary.objects.filter(full_invoice_number=invoice_number, order__user=user.id).values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
                                                   .distinct().annotate(pic_qty=Sum('quantity'))\
                                                   .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                   .aggregate(Sum('cur_amt'), payment_received=Sum('order__payment_received'))
@@ -8468,13 +8476,15 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
                             .values(*result_values).distinct()\
                             .annotate(payments_received = Sum('payment_received'))
     for data in master_data:
-        seller_order_summary = SellerOrderSummary.objects.filter(invoice_number=data['invoice_number'], order__user=user.id)
+        seller_order_summary = SellerOrderSummary.objects.filter(full_invoice_number=data['invoice_number'], order__user=user.id)
         picked_amount = seller_order_summary.values('order__invoice_amount', 'order__quantity')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
         grouping_key = data['payment_id']
         payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
+        if not picked_amount:
+            picked_amount = 0
         data_dict.setdefault(grouping_key, {'payment_id': data['payment_id'],
                                             'payment_date': payment_date,
                                             'invoicee_number': data['invoice_number'],
@@ -11121,7 +11131,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                    'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity',
                    'quantity', 'date_only', 'invoice_number']
             user_filter = {'seller_order__seller__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'seller_order__seller__name',
+            result_values = ['invoice_number', 'full_invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id', 'financial_year', 'seller_order__order__customer_name']
             field_mapping = {'order_quantity_field': 'seller_order__quantity',
                              'date_only': 'seller_order__order__creation_date'}
@@ -11130,7 +11140,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'date_only', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
+            result_values = ['invoice_number', 'full_invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'creation_date'}
             is_marketplace = False
 
@@ -11149,14 +11159,14 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                     annotate(total_quantity=Sum('quantity'),
                              ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
-                    filter(Q(invoice_number__icontains=search_term)|search_query)
+                    filter(Q(full_invoice_number__icontains=search_term)|search_query)
             else:
                 master_data = SellerOrderSummary.objects.filter(**user_filter).values(
                     *result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
                              ordered_quantity=Sum(field_mapping['order_quantity_field'], distinct=True),
                              date_only=Cast(field_mapping['date_only'], DateField())).\
-                        filter(Q(invoice_number__icontains=search_term)|
+                        filter(Q(full_invoice_number__icontains=search_term)|
                                                                 search_query)
 
         elif order_term:
@@ -11245,7 +11255,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
             if is_marketplace:
-                data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
+                data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
                                          ('Seller ID', summary.seller_order.seller.seller_id),
                                          ('id', str(data['invoice_number']) + \
                                           ":" + str(data.get('pick_number', '')) + ":" + data['seller_order__seller__name'] + \
@@ -11254,7 +11264,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                          ))
                 customer_name = data['seller_order__order__customer__name']
             else:
-                data_dict = OrderedDict((("Invoice ID", data['invoice_number']), ('Order ID', order_id),
+                data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('Order ID', order_id),
                                          ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', '')) + ':' + data['financial_year']),
                                          ('check_field', 'Order ID')))
                 customer_name = data['order__customer_name']
@@ -11711,6 +11721,7 @@ def move_to_inv(request, user=''):
     else:
         sell_ids = construct_sell_ids(request, user)
         #del sell_ids['pick_number__in']
+    user_type = user.userprofile.user_type
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     if is_sample_option == 'true':
         for data in seller_summary:
@@ -11722,7 +11733,7 @@ def move_to_inv(request, user=''):
                     if received_quantity != 0:
                         data.quantity = data.quantity - received_quantity
     if cancel_flag != 'true':
-        if user.userprofile.user_type == 'marketplace_user':
+        if user_type == 'marketplace_user':
             marketplace = seller_summary[0].seller_order.order.marketplace
         else:
             marketplace = seller_summary[0].order.marketplace
@@ -11741,6 +11752,12 @@ def move_to_inv(request, user=''):
             for sel_obj in seller_summary:
                 if not sel_obj.invoice_number:
                     sel_obj.invoice_number = order_no
+                    if user_type == 'marketplace_user':
+                        order_obj = sel_obj.seller_order.order
+                    else:
+                        order_obj = sel_obj.order
+                    full_invoice_number = get_full_invoice_number(user, order_no, order_obj, invoice_date='', pick_number=sel_obj.pick_number)
+                    sel_obj.full_invoice_number = full_invoice_number
                     sel_obj.creation_date=date
                     sel_obj.save()
                     is_inv_num_added = True

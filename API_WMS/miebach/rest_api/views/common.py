@@ -254,6 +254,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
+                                             'wh_address': user_profile.wh_address,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,

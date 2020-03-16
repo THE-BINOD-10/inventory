@@ -748,15 +748,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.add_empty_index('', 'save');
       console.log(vm.model_data['selected_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_pr_config_data'];
-      vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
-        if(data.message) {
-          msg = data.data;
-          $scope.showNoty();
-          Auth.status();
-          vm.baseFunction()
-          vm.pr_selected = "";
-        }
-      });
+      if (!toBeUpdateData[0].name) {
+        Service.showNoty('Enter Configuration name');
+      } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
+        Service.showNoty('Min Amt Should not Exceed Max Amt');
+      } else if (!toBeUpdateData[0]['mail_id']['level0']) {
+        Service.showNoty('Email required !');
+      } else {
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
+          if(data.message) {
+            msg = data.data;
+            $scope.showNoty();
+            Auth.status();
+            vm.baseFunction()
+            vm.pr_selected = "";
+          }
+        });
+      }
     } else {
       console.log(type)
       var toBeDeleteData = vm.model_data['selected_pr_config_data'];
@@ -799,7 +807,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': false};
+      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
       if (vm.model_data['selected_pr_config_data'].length != 0) {
         var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
         if (check_last_record['name'] == '') {
@@ -946,7 +954,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
-            temp_length == (index+1) ? data_dict['remove'] = true : data_dict['remove'] = false;
+            temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
             vm.model_data.total_pr_config_ranges.push(data_dict)
             vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
           })

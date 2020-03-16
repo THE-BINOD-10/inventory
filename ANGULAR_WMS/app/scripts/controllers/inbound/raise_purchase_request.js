@@ -127,7 +127,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                                    "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "",
                                    "utgst_tax": "", "tax": ""}}
                       ],
-                      "company": Session.user_profile.company_name
+                      "company": Session.user_profile.company_name,
+                      "wh_address": Session.user_profile.wh_address
                      };
 
     vm.model_data = {};
@@ -293,7 +294,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.isFloat = function(n) {
     return n != "" && !isNaN(n) && Math.round(n) != n;
-  }
+    }
     vm.sku_pack_validation = function(data) {
       for (var j = 0; j < data.length; j++) {
         if (data[j]["fields"]['sku']['skuPack_quantity']) {

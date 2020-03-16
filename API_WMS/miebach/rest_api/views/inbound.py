@@ -2129,7 +2129,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
         elif subjectType == 'po_approval_at_last_level':
             if result.final_status == 'approved':
-                subject = "Your PO %s for %s (%s INR) got approved in All Levels, Need to Confirm PO" %(po_reference, requestedBy, totalAmt)
+                subject = "Your PO %s for %s (%s INR) got approved in All Levels, PO Ready to be confirmed." %(po_reference, requestedBy, totalAmt)
             elif result.final_status == 'rejected':
                 subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)    
         elif subjectType == 'po_rejected':
@@ -2152,7 +2152,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             Link: %s"%(validationLink)
         else:
             body = podetails_string
-        send_mail(mailId, subject, body) 
+        send_mail([mailId], subject, body) 
 
 
 @csrf_exempt

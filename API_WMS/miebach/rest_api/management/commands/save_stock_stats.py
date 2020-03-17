@@ -40,14 +40,17 @@ class Command(BaseCommand):
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True)
+        users = User.objects.filter(is_staff=True).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)
             if not userprofile.exists():
                 continue
             non_transact_process = get_misc_value('non_transacted_skus', user.id)
-            log.info(get_local_date(user, datetime.datetime.now()))
+            try:
+                log.info(get_local_date(user, datetime.datetime.now()))
+            except Exception as e:
+                log.info(datetime.datetime.now())
             sku_obj = SKUMaster.objects.filter(user=user.id)
             for sku in sku_obj:
                 if SKUDetailStats.objects.filter(creation_date__startswith=today, sku__user=user.id, sku_id=sku.id).exists():
@@ -85,7 +88,7 @@ class Command(BaseCommand):
                     consumed = rm_picklist_objs.get(sku.id, 0)
                     rtv_quantity = rtv_objs.get(sku.id,0)
                     # stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
-                    stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
+                    stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
                     if stock_stat_objects.exists():
                         lat_rec = stock_stat_objects.latest('creation_date')
                         openinig_stock = lat_rec.closing_stock
@@ -114,7 +117,7 @@ class Command(BaseCommand):
                     if non_transact_process == 'true':
                         stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
                         current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
-                        stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id)
+                        stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
                         if stock_object.exists():
                             lat_re = stock_object.latest('creation_date')
                             data_dict = {'opening_stock': lat_re.closing_stock, 'closing_stock': lat_re.closing_stock, 'sku_id':sku.id,

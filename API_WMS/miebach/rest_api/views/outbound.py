@@ -11129,7 +11129,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__original_order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
                    'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity',
-                   'quantity', 'date_only', 'invoice_number']
+                   'quantity', 'date_only', 'invoice_number','invoice_number','invoice_number']
             user_filter = {'seller_order__seller__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number', 'full_invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id', 'financial_year', 'seller_order__order__customer_name']
@@ -11138,7 +11138,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             is_marketplace = True
         else:
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
-                   'date_only', 'invoice_number', 'invoice_number']
+                   'date_only', 'invoice_number', 'invoice_number','invoice_number','invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number', 'full_invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'creation_date'}
@@ -11198,7 +11198,11 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         #    orders = dict(OrderDetail.objects.filter(id__in=master_data.values_list('order_id', flat=True)). \
         #                  values_list('original_order_id').distinct().annotate(tsum=Sum('quantity')))
         for data in master_data[start_index:stop_index]:
+            invoice_amount = 0
+            picked_amount = 0
+            tax_amount = 0
             invoice_date = ''
+            total_inv_dict = {}
             if is_marketplace:
                 summary = order_summaries.filter(invoice_number=data['invoice_number'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]
@@ -11220,6 +11224,20 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'],
                                                                 financial_year=data['financial_year'], order__marketplace=data['order__marketplace'])
                 order_ids = seller_order_summaries.values_list('order__id', flat= True)
+                picked_dict = seller_order_summaries.annotate(pic_qty=Sum('quantity'))\
+                                .values_list('order__id','pic_qty')
+                invoice_dict = OrderDetail.objects.filter(id__in=order_ids)\
+                                                  .annotate(cur_amt=((F('unit_price')* F('original_quantity'))-F('customerordersummary__discount')))\
+                                                  .annotate(tax_amt=((F('cur_amt')*(F('customerordersummary__cgst_tax')+F('customerordersummary__sgst_tax')+F('customerordersummary__igst_tax'))*0.01)))\
+                                                  .values('tax_amt','cur_amt','id','original_quantity')
+                for obj in invoice_dict:
+                    order_id=obj.get('id')
+                    total_inv_dict[order_id]=obj
+                for value in picked_dict:
+                    if value:
+                        invoice_amount+=(total_inv_dict[value[0]].get('cur_amt',0)*(value[1]/total_inv_dict[value[0]].get('original_quantity',1)))
+                        tax_amount +=(total_inv_dict[value[0]].get('tax_amt',0)*(value[1]/total_inv_dict[value[0]].get('original_quantity',1)))
+                        picked_amount =invoice_amount+tax_amount
                 order = seller_order_summaries[0].order
                 original_order_id = order.original_order_id
                 #invoice_date = seller_order_summaries[0].order.customerordersummary_set.filter()[0].invoice_date
@@ -11229,28 +11247,9 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 invoice_date = seller_order_summaries[0].creation_date
                 data['ordered_quantity'] = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id).\
 						only('original_quantity').aggregate(Sum('original_quantity'))['original_quantity__sum']
+
                 if not data['ordered_quantity']:
                     data['ordered_quantity'] = 0
-                #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
-                #invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
-                #if invoice_number:
-                    #invoice_number = invoice_number[0]
-                #else:
-                    #invoice_number = ''
-                #ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
-                                         #.exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
-                picked_amount = order_summaries.filter(invoice_number=data['invoice_number'],
-                                                financial_year=data['financial_year'])\
-                                               .values('order__sku_id', 'order__invoice_amount', 'order__original_quantity')\
-                                               .distinct().annotate(pic_qty=Sum('quantity'))\
-                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__original_quantity'))* F('pic_qty'))\
-                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
-            order_id = order.order_code + str(order.order_id)
-            if order.original_order_id:
-                order_id = order.original_order_id
-
-            if not data['ordered_quantity']:
-                data['ordered_quantity'] = 0
 
             order_date = get_local_date(user, order.creation_date)
             invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
@@ -11266,11 +11265,11 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             else:
                 data_dict = OrderedDict((("Invoice ID", data['full_invoice_number']), ('Order ID', order_id),
                                          ('id', str(data['invoice_number']) + ":" + str(data.get('pick_number', '')) + ':' + data['financial_year']),
-                                         ('check_field', 'Order ID')))
+                                         ('check_field', 'Order ID'),('Invoice Amount(w/o tax)', "%.2f" %invoice_amount),('Tax Amount', "%.2f" %tax_amount)))
                 customer_name = data['order__customer_name']
             data_dict.update(OrderedDict((('Financial Year', data['financial_year']), ('Customer Name', customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', "%.2f" %picked_amount),
+                                          ('Total Amount', round(picked_amount,2)),
                                           ('Invoice Date&Time', invoice_date), ('Invoice Number', ''), ('Marketplace', order.marketplace)
                                           )))
             temp_data['aaData'].append(data_dict)

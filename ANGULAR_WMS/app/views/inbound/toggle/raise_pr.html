@@ -134,7 +134,7 @@
                     <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
-                             ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()" size="12">
+                             ng-readonly="!showCase.permissions.is_staff" ng-keyup="showCase.getTotals()" size="12">
                     </td>
                     <!-- <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
                       <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
@@ -204,6 +204,7 @@
       </div>
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+          <!-- <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form)">Save</button> -->
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form)">Send For Approval</button>
         </div>
       </div>

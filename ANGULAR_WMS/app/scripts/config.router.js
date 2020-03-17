@@ -763,7 +763,7 @@ var app = angular.module('urbanApp')
 
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
-          permission: 'add_openpo|change_openpo|add_intransitorders',
+          permission: 'add_openpo|change_openpo|add_intransitorders|add_openpr|change_openpr|view_openpr',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

@@ -1775,6 +1775,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Returns Putaway", "add_returnslocation"),
                        ("RTV", "add_returntovendor"), ("Seller Invoices", "add_sellerpo"),
                        ("Supplier Invoices", "change_sellerposummary"), ("GRN Edit", "delete_sellerposummary"),
+                       ("View PendingPO", "view_openpr"), ("Add PendingPO", "add_openpr"),
+                       ("Change PendingPO", "change_openpr"),
                        )),
 
     # Production

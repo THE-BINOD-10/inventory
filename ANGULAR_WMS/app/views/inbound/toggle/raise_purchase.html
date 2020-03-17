@@ -151,6 +151,11 @@
                        ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
+            <div class="form-group">
+              <label class="control-label"> PO Number </label>
+              <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
                 <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
                 <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
@@ -301,7 +306,7 @@
 
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)" ng-if="!showCase.model_data.is_approval"></i></td>
                   </tr>
                 </tbody>
               </table>
@@ -372,11 +377,17 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && !(showCase.is_purchase_request)">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        </div>
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && (showCase.is_purchase_request)">
+          <!-- <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button> -->
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_openpr" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
+          <!-- <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button> -->
         </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

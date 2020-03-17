@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     var columns = [ "Supplier ID", "Supplier Name", "PO Number", "Total Quantity", "Total Amount", 
                     "PO Created Date", "PO Delivery Date", "Warehouse",
-                     "PO Raise By",  "Validation Status", "Pending Level", "To Be Validated By",
+                     "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')

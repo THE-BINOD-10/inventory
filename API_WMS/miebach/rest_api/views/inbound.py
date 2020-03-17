@@ -94,7 +94,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
         if not prApprQs.exists():
             continue
@@ -132,7 +132,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
-                                                ('To Be Validated By', validated_by),
+                                                ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
@@ -2152,7 +2152,10 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             Link: %s"%(validationLink)
         else:
             body = podetails_string
-        send_mail([mailId], subject, body) 
+        send_mail([mailId], subject, body)
+        if reqUserMailID !=  mailId:
+            send_mail([reqUserMailID], subject, podetails_string)
+
 
 
 @csrf_exempt
@@ -5845,6 +5848,7 @@ def confirm_add_po(request, sales_data='', user=''):
             po_order_id = int(sales_data['po_order_id'])
 
     po_creation_date = ''
+    delivery_date = ''
     is_purchase_request = request.POST.get('is_purchase_request', '')
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
@@ -5854,6 +5858,8 @@ def confirm_add_po(request, sales_data='', user=''):
             po_creation_date = prObj.creation_date
             po_id = prObj.po_number
             po_order_id = prObj.po_number
+            delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
+
     ids_dict = {}
     po_data = []
     total = 0
@@ -6134,7 +6140,7 @@ def confirm_add_po(request, sales_data='', user=''):
             terms_condition= terms_condition.replace("%^PO_DATE^%", '')
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
-                     'name': name, 'order_date': order_date, 'total': round(total), 'po_number': po_number ,
+                     'name': name, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
                      'po_reference':po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,

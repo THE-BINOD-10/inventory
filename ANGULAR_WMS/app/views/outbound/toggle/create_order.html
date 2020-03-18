@@ -53,7 +53,7 @@
             <table>
               <thead>
                 <tr class="field">
-                  <th>SKU Code/WMS Code *</th>
+                  <th>SKU Code *</th>
                   <th>Quantity</th>
                   <th>Invoice Amount</th>
                 </tr>
@@ -62,7 +62,7 @@
                 <tr class="field" ng-repeat="data in pop.model_data.data">
                   <td>
                     <!--<input type="text" name="sku_id" class="form-control" ng-model="data.sku_id" ng-required="(!($last) || $first)">-->
-                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event)" ng-required="(!($last) || $first)">
+                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event)" ng-required="(!($last) || $first)">
                   </td>
                   <td>
                     <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-required="(!($last) || $first)"> </div>

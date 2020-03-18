@@ -91,7 +91,7 @@
                           <tbody>
                             <tr ng-repeat="data in showCase.model_data.data">
                               <td>
-                                <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-required="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];">
+                                <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-required="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];">
                               </td>
                               <td>
                                 <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.quantity"  ng-required="$first" ng-class="service.get_decimal_perm()">

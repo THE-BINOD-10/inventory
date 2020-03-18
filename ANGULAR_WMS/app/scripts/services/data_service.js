@@ -35,7 +35,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.stock_summary = {
                          stock_2d: false,
                          view: 'StockSummary',
-                         tb_headers: {'StockSummary': ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
+                         tb_headers: {'StockSummary': ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
                                                        'Reserved Quantity', 'Total Quantity', 'Open Order Quantity', 'Unit of Measurement', 'Stock Value'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'
@@ -168,18 +168,18 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'WMS MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
     } else {
       self.dispatch_summary_report = {
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'WMS Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
-                                           'serialView': ['Order ID', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'WMS MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                                           'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
     }
 

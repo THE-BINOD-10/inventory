@@ -188,7 +188,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
-        temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
                                                 ('Available Quantity', quantity),
@@ -1299,6 +1299,7 @@ def insert_move_inventory(request, user=''):
 
 @csrf_exempt
 def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    import pdb;pdb.set_trace()
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_params = {}
     lis = ['sku__wms_code', 'location__zone__zone', 'location__location', 'total']
@@ -1592,7 +1593,7 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
-            OrderedDict((('Vendor Name', data['vendor__name']), ('WMS Code', data['sku__wms_code']),
+            OrderedDict((('Vendor Name', data['vendor__name']), ('SKU Code', data['sku__wms_code']),
                          ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
                          ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
                          )))

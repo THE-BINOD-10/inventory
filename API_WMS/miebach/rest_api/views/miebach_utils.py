@@ -721,8 +721,8 @@ STOCK_COVER_REPORT_DICT = {
            {'label': 'SKU Type', 'name': 'sku_type', 'type': 'input'},
            {'label': 'Sub category', 'name': 'sub_category', 'type': 'input'},
            {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},],
-       'dt_headers': ['SKU', 'SKU Description','SKU Category','Sub Category','SKU Brand', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
-       'mk_dt_headers': ['SKU', 'SKU Description','SKU Category','Sub Category','SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
+       'dt_headers': ['SKU Code', 'SKU Description','SKU Category','Sub Category','SKU Brand', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
+       'mk_dt_headers': ['SKU Code', 'SKU Description','SKU Category','Sub Category','SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'SKU Type', 'SKU class','Current Stock In Hand','PO Pending','Total Stock including PO','Avg Last 30days','Avg Last 7 days','Stock Cover Days (30-day)','Stock Cover Days including PO stock (30-day)','Stock Cover Days (7-day)','Stock Cover Days including PO stock (7-day)'],
        'dt_url': 'get_stock_cover_report', 'excel_name': 'get_stock_cover_report',
        'print_url': 'print_stock_cover_report',
     }
@@ -1218,7 +1218,7 @@ SKU_EXCEL = (
 
 PICKLIST_FIELDS = {'order_id': '', 'picklist_number': '', 'reserved_quantity': '', 'picked_quantity': 0, 'remarks': '',
                    'status': 'open'}
-PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
+PICKLIST_HEADER = ('ORDER ID', 'SKU Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PRINT_OUTBOUND_PICKLIST_HEADERS = (
 'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
@@ -1228,7 +1228,7 @@ PRINT_OUTBOUND_PICKLIST_HEADERS_FMCG = (
 
 
 PRINT_PICKLIST_HEADERS = (
-'WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', 'Units Of Measurement')
+'SKU Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', 'Units Of Measurement')
 
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
@@ -1285,7 +1285,7 @@ PUT_AWAY = OrderedDict(
      ('Supplier Name', 'open_po_id__supplier_id__name')])
 
 SKU_MASTER_HEADERS = OrderedDict(
-    [('WMS SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
+    [('SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
      ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'),
      ('Color', 'color'), ('Zone', 'zone_id'), ('Creation Date', 'creation_date'), ('Updation Date', 'updation_date'),
      ('Combo Flag', 'relation_type'), ('Status', 'status'), ('MRP', 'mrp'), ('HSN Code', 'hsn_code'), ('Tax Type', 'product_type')])
@@ -1504,7 +1504,7 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
                        'split_order_id': 1}
 
 # SKU Master Upload Templates
-SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 'sku_desc'),
+SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'),
                                   ('Product Type', 'product_type'), ('SKU Group', 'sku_group'),
                                   ('SKU Type(Options: FG, RM)', 'sku_type'), ('SKU Category', 'sku_category'),
                                   ('Primary Category', 'primary_category'), ('SKU Class', 'sku_class'),
@@ -3003,7 +3003,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
             ord_dict = OrderedDict((('Customer ID', data['order__customer_id']),
                                                     ('Customer Name', data['order__customer_name']),
-                                                    ('WMS Code', data['order__sku__wms_code']),
+                                                    ('SKU Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('SKU Category', data['order__sku__sku_category']),
                                                     ('Sub Category', data['order__sku__sub_category']),
@@ -3066,7 +3066,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     if data.order_type == 'combo':
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
-                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
@@ -3112,7 +3112,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         cost_price = '%.2f' %(data.stock.batch_detail.buy_price)
                         cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
-                    ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                    ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.sku_code),
                                                             ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
@@ -3146,7 +3146,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 if data.po_imei:
                     serial_number = data.po_imei.imei_number
                 date = get_local_date(user, data.updation_date).split(' ')
-                ord_dict = OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
+                ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.wms_code),
                                                         ('Description', data.order.sku.sku_desc),
                                                         ('SKU Category', data.order.sku.sku_category),
                                                         ('Sub Category',data.order.sku.sub_category),
@@ -3160,7 +3160,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     ord_dict['Searchable'] = searchable
                     ord_dict['Bundle'] = bundle
                 temp_data['aaData'].append(ord_dict)
-
     return temp_data
 
 
@@ -7833,7 +7832,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
                 avg_seven = total_stock_available / picked_quantity_seven_days
                 avg_seven_po = total_with_po / picked_quantity_seven_days
 
-            ord_dict = OrderedDict((('SKU',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),
+            ord_dict = OrderedDict((('SKU Code',wms_code ),('SKU Description',sku.sku_desc),('SKU Category',sku.sku_category),
                                                    ('Sub Category',sku.sub_category),('SKU Brand',sku.sku_brand),
                                                    ('SKU Type',sku.sku_type),('SKU class',sku.sku_class),
                                                    ('Current Stock In Hand',total_stock_available),('PO Pending',po_quantity),
@@ -8131,7 +8130,7 @@ def print_sku_wise_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        ord_dict = OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
+        ord_dict = OrderedDict((('SKU Code', data.sku_code), ('SKU Code', data.wms_code),
                                                 ('Product Description', data.sku_desc),
                                                 ('SKU Category', data.sku_category),
                                                 ('SKU Sub Category', data.sub_category),

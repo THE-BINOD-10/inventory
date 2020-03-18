@@ -949,6 +949,8 @@ def get_skus(request):
             warehouse = request_data['warehouse']
             if warehouse.lower() in sister_whs:
                 user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
         search_params = {'user': user.id}
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
@@ -1359,7 +1361,25 @@ def get_orders(request):
     record = []
     limit = request.POST.get('limit', '')
     search_parameters = {}
-    headers, search_params, filter_params = get_search_params(request)
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    try:
+        search_params = json.loads(request.body)
+        if search_params.has_key('from_date'):
+            search_params['from_date'] = parser.parse(search_params['from_date'])
+        if search_params.has_key('to_date'):
+            search_params['to_date'] = parser.parse(search_params['to_date'])
+    except:
+        headers, search_params, filter_params = get_search_params(request)
+    if 'warehouse' in search_params:
+        warehouse = search_params['warehouse']
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -1368,40 +1388,70 @@ def get_orders(request):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'order_id' in search_params:
-        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
+        try:
+            search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
+        except:
+            search_parameters['original_order_id__in'] = search_params['order_id']
+    if 'order_reference' in search_params:
+        try:
+            search_parameters['order_reference__in'] = search_params['order_reference'].split(',')
+        except:
+            search_parameters['order_reference__in'] = search_params['order_reference']
     search_parameters['user'] = request.user.id
-    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
+    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, order_records, limit=limit)
     for order in page_info['data']:
         data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
+                                                  .values('order__sku_id', 'invoice_number', 'order__quantity')\
+                                                  .distinct().annotate(pic_qty=Sum('quantity'))
+        picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
+        order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
         discount_amount = 0
         item_dict = {}
+        order_status = ''
+        if data_dict[0].status == '0':
+            if picked_quantity == order_quantity:
+                order_status = 'Picked'
+            else:
+                order_status = 'Partially Picked'
+        elif data_dict[0].status == '1':
+            order_status = 'Open'
+        elif data_dict[0].status == '2':
+            order_status = 'Dispatched'
+        elif data_dict[0].status == '3':
+            order_status = 'Cancelled'
+        order_summary = CustomerOrderSummary.objects.filter(order_id=data_dict[0].id,order__user=user.id)
         for data in data_dict:
-            tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
             if charge:
                 charge_amount = charge[0]
-            if tax_data.exists():
-                discount_amount = tax_data[0].discount
-                if tax_data[0].cgst_tax:
-                    item_dict['tax_percent'] = {'CGST': tax_data[0].cgst_tax, 'SGST': tax_data[0].sgst_tax}
-                elif tax_data[0].igst_tax:
-                    item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
+            if order_summary.exists():
+                discount_amount = order_summary[0].discount
+                if order_summary[0].cgst_tax:
+                    item_dict['tax_percent'] = {'CGST': order_summary[0].cgst_tax, 'SGST': order_summary[0].sgst_tax}
+                elif order_summary[0].igst_tax:
+                    item_dict['tax_percent'] = {'IGST': order_summary[0].igst_tax}
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
             items.append(item_dict)       
-        billing_address = {"customer_id": data_dict[0].customer_id,
-               "name": data_dict[0].customer_name,
+        billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
                "phone_number": data_dict[0].telephone,
                "address": data_dict[0].address,
                "city": data_dict[0].city,
                "state": data_dict[0].state,
                "pincode": data_dict[0].pin_code}
-        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),('order_date',created),('shipment_date',shipment),('source',data_dict[0].marketplace),('billing_address',billing_address ),('items',items))))
+        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
+                                    ('order_date',created),('shipment_date',shipment),
+                                    ('order_status',order_status),
+                                    ('order_reference',data_dict[0].order_reference),
+                                    ('source',data_dict[0].marketplace),
+                                    ('customer_id', data_dict[0].customer_id),
+                                    ('billing_address',billing_address ),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))

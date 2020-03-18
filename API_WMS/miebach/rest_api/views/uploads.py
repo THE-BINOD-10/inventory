@@ -3648,7 +3648,6 @@ def move_inventory_upload(request, user=''):
             dest_loc = data_dict['destination']
             quantity = data_dict['quantity']
             reason = data_dict.get('reason', '')
-            price = data_dict.get('price', '')
             seller_id = ''
             if data_dict.get('seller_id', ''):
                 extra_dict['seller_id'] = data_dict['seller_id']
@@ -3659,6 +3658,8 @@ def move_inventory_upload(request, user=''):
                 extra_dict['mrp'] = data_dict['mrp']
             if data_dict.get('weight', ''):
                 extra_dict['weight'] = data_dict['weight']
+            if data_dict.get('price', ''):
+                extra_dict['price'] = data_dict['price']
             if user.userprofile.user_type == 'marketplace_user':
                 if str(seller_id) in seller_receipt_dict.keys():
                     receipt_number = seller_receipt_dict[str(seller_id)]
@@ -3668,7 +3669,7 @@ def move_inventory_upload(request, user=''):
             extra_dict['receipt_type'] = 'move-inventory'
             extra_dict['receipt_number'] = receipt_number
             extra_dict['reason'] = reason
-            response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, price, **extra_dict)
+            response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
             if response == 'Added Successfully':
                 count+=1
             mod_locations.append(source_loc)

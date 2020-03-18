@@ -1892,9 +1892,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 if cell_data >=0:
                     if user.userprofile.industry_type == 'FMCG':
                         data_dict['batch_detail__buy_price'] = cell_data
-                        data_dict['price_type'] = "User Input Type"
                     data_dict['unit_price'] = cell_data
-                    data_dict['price_type'] = "User Input Type"
                 else:
                     if not index_status:
                         custom_price = SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price']
@@ -3558,11 +3556,9 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         stock_dict['batch_detail__buy_price'] = price
                         reserved_dict["stock__batch_detail__buy_price"] = price
                         raw_reserved_dict['stock__batch_detail__buy_price'] = price
-                        stock_dict['price_type'] = "User Input Type"
                     stock_dict['unit_price'] = price
                     reserved_dict["stock__unit_price"] = price
                     raw_reserved_dict['stock__unit_price'] = price
-                    stock_dict['price_type'] = "User Input Type"
                 else:
                     custom_price = float(SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price'])
                     if user.userprofile.industry_type == 'FMCG':
@@ -3652,6 +3648,7 @@ def move_inventory_upload(request, user=''):
             dest_loc = data_dict['destination']
             quantity = data_dict['quantity']
             reason = data_dict.get('reason', '')
+            price = data_dict.get('price', '')
             seller_id = ''
             if data_dict.get('seller_id', ''):
                 extra_dict['seller_id'] = data_dict['seller_id']
@@ -3671,7 +3668,7 @@ def move_inventory_upload(request, user=''):
             extra_dict['receipt_type'] = 'move-inventory'
             extra_dict['receipt_number'] = receipt_number
             extra_dict['reason'] = reason
-            response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+            response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, price, **extra_dict)
             if response == 'Added Successfully':
                 count+=1
             mod_locations.append(source_loc)

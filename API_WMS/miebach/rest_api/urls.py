@@ -211,6 +211,7 @@ urlpatterns = [
     url(r'^generated_pr_data/$', generated_pr_data),
     url(r'^approve_pr/$', approve_pr),
     url(r'^print_pending_po_form/$', print_pending_po_form),
+    url(r'^cancel_pr/$', cancel_pr),
 
 
 

@@ -672,6 +672,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
    }
 
+   vm.cancel_pr = function cancel_pr() {
+      vm.bt_disable = true;
+      var that = vm;
+      var data = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+          data.push({name: 'pr_number', value: temp['_aData']["PR Number"]});
+          data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+        }
+      });
+      vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
+        if(data.message) {
+           vm.bt_disable = true;
+           vm.selectAll = false;
+           vm.service.refresh(vm.dtInstance);
+        }
+      });
+   }
+
    vm.get_supplier_sku_prices = function(sku) {
      vm.cleared_data = true;
      var d = $q.defer();

@@ -43,7 +43,7 @@ def get_filtered_params(filters, data_list):
 
 @csrf_exempt
 def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'sku__user':user.id, 'open_po_id': None}
+    filtersMap = {'sku__user':user.id, 'open_po_id': None}  #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -2107,6 +2107,8 @@ def generateHashCodeForMail(prObj, mailId):
 
 def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None):
     from mail_server import send_mail
+    desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
+        Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     openPRQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
     if openPRQs.exists():
         result = openPRQs[0]
@@ -2122,9 +2124,6 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
         lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
         reqUserMailID = result.requested_user.email
-        # mailRecepients = [reqUserMailID]
-        # if mailId:
-        #     mailRecepients.append(mailId)
         if subjectType == 'po_created':
             subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
         elif subjectType == 'po_approval_at_last_level':
@@ -2150,6 +2149,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         if hash_code:
             body = podetails_string+ "<p>Please click on the below link to validate.</p>\
             Link: %s"%(validationLink)
+            body = body + desclaimer
         else:
             body = podetails_string
         send_mail([mailId], subject, body)
@@ -2292,6 +2292,19 @@ def add_pr(request, user=''):
         return HttpResponse('Update Failed')
     return HttpResponse('Added Successfully')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def cancel_pr(request, user=''):
+    pr_number = request.POST.get('pr_number', '')
+    supplier_id = request.POST.get('supplier_id', '')
+    if not pr_number:
+        return HttpResponse("Please Select PO to Delete")
+    prQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
+    if prQs.exists():
+        prQs.update(final_status='cancelled')
+    return HttpResponse("Deleted Successfully")
 
 @csrf_exempt
 @login_required

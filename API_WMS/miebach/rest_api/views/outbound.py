@@ -11890,6 +11890,10 @@ def generate_customer_invoice_tab(request, user=''):
         invoice_data['invoice_date'] = invoice_date
         invoice_data['dc_display']  = get_misc_value('display_dc_invoice', user.id)
         order_reference_display = get_misc_value('display_order_reference', user.id)
+        invoice_data['sale_signature'] = ''
+        master_docs_obj = MasterDocs.objects.filter(master_type='sales_invoice_sign', user_id=user.id).order_by('-creation_date')
+        if master_docs_obj.exists():
+            invoice_data['sale_signature'] = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')+'/'+master_docs_obj[0].uploaded_file.url
         if order_reference_display == 'false':
             invoice_data['order_reference'] = ''
         if delivery_challan == "true":

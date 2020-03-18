@@ -271,7 +271,11 @@
                       {% endif %}
                     </td>
                     <td colspan='{{html_data.hsn_summary_span}}'>
+                      {% if sale_signature %}
+                      <img src="{{sale_signature}}" style="width: 120px;">
+                      {% else %}
                       <p align="center"><b class="fs16 m0">{{company_name}}</b></p>
+                      {% endif %}
                       </br></br>
                       <p align="center" class="fs14 m0">Authorised Signatory</p>
                     </td>

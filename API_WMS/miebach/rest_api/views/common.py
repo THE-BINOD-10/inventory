@@ -7846,6 +7846,10 @@ def get_user_profile_data(request, user=''):
     data['wh_phone_number'] = main_user.wh_phone_number
     data['pan_number'] = main_user.pan_number
     data['phone_number'] = main_user.phone_number
+    data['sign_signature'] = None
+    master_docs_obj = MasterDocs.objects.filter(master_type='sales_invoice_sign', user_id=user.id).order_by('-creation_date')
+    if master_docs_obj.exists():
+        data['sign_signature'] = master_docs_obj[0].uploaded_file.url
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 @login_required
@@ -7917,8 +7921,8 @@ def change_user_password(request, user=''):
 @login_required
 @get_admin_user
 def update_profile_data(request, user=''):
+    from masters import upload_master_file
     ''' will update profile data '''
-
     address = request.POST.get('address', '')
     gst_number = request.POST.get('gst_number', '')
     company_name = request.POST.get('company_name', '')
@@ -7928,6 +7932,7 @@ def update_profile_data(request, user=''):
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
     phone_number = request.POST.get('phone_number', '')
+    sign_file = request.FILES.get('signature_logo', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
@@ -7940,7 +7945,13 @@ def update_profile_data(request, user=''):
     main_user.save()
     user.email = email
     user.save()
-    return HttpResponse('Success')
+    response_dict = {'msg':1, 'data': 'Success', 'sign_signature': None}
+    if sign_file:
+        response = upload_master_file(request, user, user.id, 'sales_invoice_sign', master_file=sign_file)
+        master_docs_obj = MasterDocs.objects.filter(master_type='sales_invoice_sign', user_id=user.id).order_by('-creation_date')
+        if master_docs_obj.exists():
+            response_dict['sign_signature'] = master_docs_obj[0].uploaded_file.url
+    return HttpResponse(json.dumps(response_dict))
 
 @csrf_exempt
 @login_required

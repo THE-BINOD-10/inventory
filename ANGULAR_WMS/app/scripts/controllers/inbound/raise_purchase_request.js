@@ -228,6 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Validated By']
+          vm.pending_status = aData['Validation Status']
           // vm.update = true;
           if (aData['Validation Status'] == 'approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');

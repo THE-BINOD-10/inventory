@@ -96,28 +96,26 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-        if not prApprQs.exists():
-            continue
 
         last_updated_by = ''
         last_updated_time = ''
         last_updated_remarks = ''
-        validated_by = prApprQs[0].validated_by
-        if result['pending_level'] != 'level0':
-            prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
-            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
-            last_updated_by = prApprQs[0].validated_by
-            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-            last_updated_remarks = prApprQs[0].remarks
-        elif result['pending_level'] == 'level0':
-            if result['final_status'] == 'pending':
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
-                last_updated_remarks = result['remarks']
-            else:
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+        validated_by = ''
+        last_updated_remarks = result['remarks']
+        if prApprQs.exists():
+            validated_by = prApprQs[0].validated_by
+            if result['pending_level'] != 'level0':
+                prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
+            elif result['pending_level'] == 'level0':
+                if result['final_status'] not in ['pending', 'saved']:
+                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                    last_updated_by = prApprQs[0].validated_by
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                    last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
                                                 ('PO Number', po_reference),
@@ -1860,6 +1858,7 @@ def get_raisepo_group_data(user, myDict):
         seller_po_id = ''
         supplier_id = ''
         po_delivery_date = ''
+        pr_delivery_date = ''
         order_type = 'SR'
         sgst_tax = 0
         mrp = 0
@@ -1880,6 +1879,8 @@ def get_raisepo_group_data(user, myDict):
             po_name = myDict['po_name'][0]
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
             po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
+        if 'pr_delivery_date' in myDict.keys() and myDict['pr_delivery_date'][0]:
+            pr_delivery_date = datetime.datetime.strptime(str(myDict['pr_delivery_date'][0]), "%d-%m-%Y")
         if 'ship_to' in myDict.keys():
             ship_to = myDict['ship_to'][0]
         if 'measurement_unit' in myDict.keys():
@@ -1944,7 +1945,7 @@ def get_raisepo_group_data(user, myDict):
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax, 'apmc_tax': apmc_tax, 'po_delivery_date': po_delivery_date,
-                                   'approval_remarks': approval_remarks})
+                                   'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -2218,6 +2219,76 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
+def createPRObjandRertunOrderAmt(request, all_data, user, pr_number, po_number, baseLevel, orderStatus='pending'):
+    totalAmt = 0
+    for key, value in all_data.iteritems():
+        wms_code = key
+        if not wms_code:
+            continue
+        if wms_code.isdigit():
+            sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
+        else:
+            sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
+        if not sku_id:
+            status = 'Invalid WMS CODE'
+            return HttpResponse(status)
+        
+        data_id = value['data_id']
+        if data_id:
+            record = OpenPR.objects.get(id=data_id, sku__user=user.id)
+            setattr(record, 'quantity', value['order_quantity'])
+            setattr(record, 'price', value['price'])
+            setattr(record, 'sgst_tax', value['sgst_tax'])
+            setattr(record, 'cgst_tax', value['cgst_tax'])
+            setattr(record, 'igst_tax', value['igst_tax'])
+            setattr(record, 'remarks', value['approval_remarks'])
+            if value['pr_delivery_date']:
+                setattr(record, 'delivery_date', value['pr_delivery_date'])
+            if value['measurement_unit']:
+                setattr(record, 'measurement_unit', value['measurement_unit'])
+            setattr(record, 'final_status', orderStatus)
+            record.save()
+            totalAmt += (float(value['order_quantity']) * float(value['price']))
+            continue
+
+        pr_suggestions = {}
+        pr_suggestions['sku_id'] = sku_id[0].id
+        pr_suggestions['supplier_id'] = value['supplier_id']
+        try:
+            pr_suggestions['quantity'] = float(value['order_quantity'])
+        except:
+            pr_suggestions['quantity'] = 0
+
+        try:
+            pr_suggestions['price'] = float(value['price'])
+        except:
+            pr_suggestions['price'] = 0
+        user_profile = UserProfile.objects.filter(user_id=user.id)
+        if user_profile:
+            pr_suggestions['prefix'] = user_profile[0].prefix
+        pr_suggestions['remarks'] = value['approval_remarks']
+        pr_suggestions['requested_user'] = request.user
+        pr_suggestions['pr_number'] = pr_number
+        pr_suggestions['po_number'] = po_number
+        pr_suggestions['pending_level'] = baseLevel
+        pr_suggestions['final_status'] = orderStatus
+        pr_suggestions['sgst_tax'] = value['sgst_tax']
+        pr_suggestions['cgst_tax'] = value['cgst_tax']
+        pr_suggestions['igst_tax'] = value['igst_tax']
+        pr_suggestions['utgst_tax'] = value['utgst_tax']
+        pr_suggestions['ship_to'] = value['ship_to']            
+        if value['pr_delivery_date']:
+            pr_suggestions['delivery_date'] = value['pr_delivery_date']
+        pr_suggestions['measurement_unit'] = "UNITS"
+        if value['measurement_unit']:
+            if value['measurement_unit'] != "":
+                pr_suggestions['measurement_unit'] = value['measurement_unit']            
+
+        openPRObj = OpenPR.objects.create(**pr_suggestions)
+        totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
+    return totalAmt
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2226,59 +2297,20 @@ def add_pr(request, user=''):
     try:
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
-        pr_number = get_incremental(user, 'PurchaseRequest')
+        if myDict.get('pr_number'):
+            pr_number = int(myDict.get('pr_number')[0])
+            prQs = OpenPR.objects.filter(pr_number=pr_number)
+            po_number = prQs[0].po_number
+        else:
+            pr_number = get_incremental(user, 'PurchaseRequest')
+            po_number = get_purchase_order_id(user)
+
+        # pr_number = get_incremental(user, 'PurchaseRequest')
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
-        totalAmt = 0
         mailsList = []
-        po_number = get_purchase_order_id(user)
-        for key, value in all_data.iteritems():
-            wms_code = key
-            if not wms_code:
-                continue
-            if wms_code.isdigit():
-                sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
-            else:
-                sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
-            if not sku_id:
-                status = 'Invalid WMS CODE'
-                return HttpResponse(status)
-            pr_suggestions = {}
-            pr_suggestions['sku_id'] = sku_id[0].id
-            pr_suggestions['supplier_id'] = value['supplier_id']
-            try:
-                pr_suggestions['quantity'] = float(value['order_quantity'])
-            except:
-                pr_suggestions['quantity'] = 0
-
-            try:
-                pr_suggestions['price'] = float(value['price'])
-            except:
-                pr_suggestions['price'] = 0
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            if user_profile:
-                pr_suggestions['prefix'] = user_profile[0].prefix
-            pr_suggestions['remarks'] = value['approval_remarks']
-            pr_suggestions['requested_user'] = request.user
-            pr_suggestions['pr_number'] = pr_number
-            pr_suggestions['po_number'] = po_number
-            pr_suggestions['pending_level'] = baseLevel
-            pr_suggestions['final_status'] = 'pending'
-            pr_suggestions['sgst_tax'] = value['sgst_tax']
-            pr_suggestions['cgst_tax'] = value['cgst_tax']
-            pr_suggestions['igst_tax'] = value['igst_tax']
-            pr_suggestions['utgst_tax'] = value['utgst_tax']
-            pr_suggestions['ship_to'] = value['ship_to']            
-            if value['po_delivery_date']:
-                pr_suggestions['delivery_date'] = value['po_delivery_date']
-            pr_suggestions['measurement_unit'] = "UNITS"
-            if value['measurement_unit']:
-                if value['measurement_unit'] != "":
-                    pr_suggestions['measurement_unit'] = value['measurement_unit']            
-
-            openPRObj = OpenPR.objects.create(**pr_suggestions)
-            totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
-
+        # po_number = get_purchase_order_id(user)
+        totalAmt = createPRObjandRertunOrderAmt(request, all_data, user, pr_number, po_number, baseLevel)
         reqConfigName = findReqConfigName(user, totalAmt)
         prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number)
         if mailsList:
@@ -2292,6 +2324,31 @@ def add_pr(request, user=''):
         return HttpResponse('Update Failed')
     return HttpResponse('Added Successfully')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_pr(request, user=''):
+    try:
+        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
+        myDict = dict(request.POST.iterlists())
+        if myDict.get('pr_number'):
+            pr_number = int(myDict.get('pr_number')[0])
+            prQs = OpenPR.objects.filter(pr_number=pr_number)
+            po_number = prQs[0].po_number
+        else:
+            pr_number = get_incremental(user, 'PurchaseRequest')
+            po_number = get_purchase_order_id(user)
+        
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = 'level0'
+        orderStatus = 'saved'
+        createPRObjandRertunOrderAmt(request, all_data, user, pr_number, po_number, baseLevel, orderStatus=orderStatus)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Save PR data failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
+        return HttpResponse('Save PR Failed')
+    return HttpResponse("Saved Successfully")
 
 @csrf_exempt
 @login_required

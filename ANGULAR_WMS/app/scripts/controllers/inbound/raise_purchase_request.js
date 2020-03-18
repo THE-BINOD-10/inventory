@@ -223,16 +223,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
+          vm.model_data['pr_number'] = aData['PR Number'];
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Validated By']
           vm.pending_status = aData['Validation Status']
-          // vm.update = true;
           if (aData['Validation Status'] == 'approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else{
+          } else if (aData['Validation Status'] == 'saved'){
+            vm.update = true;
+            $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
+          } else {
             $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');
           }
         }
@@ -402,12 +405,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-    vm.save_raise_pr = function(data) {
+    vm.save_raise_pr = function(data, type) {
       if (data.$valid) {
-        if(vm.update) {
+        if (type == 'save'){
           vm.update_raise_pr();
         } else {
-          if (data.supplier_id.$viewValue && data.po_delivery_date.$viewValue && data.ship_to.$viewValue) {
+          if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
             var elem = angular.element($('form'));
             elem = elem[0];
             elem = $(elem).serializeArray();
@@ -415,7 +418,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
              confirm_api ? vm.add_raise_pr(elem) : '';
           } else {
             data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
-            typeof(data.po_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
+            typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
             vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
           }
         }
@@ -516,12 +519,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('modify_po_update/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('save_pr/', 'POST', elem, true).then(function(data){
               if(data.message){
-                if(data.data == 'Updated Successfully') {
+                if(data.data == 'Saved Successfully') {
                   vm.close();
                   vm.service.refresh(vm.dtInstance);
                 } else {
@@ -572,9 +578,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }
-      if (vm.pr_number){
-        elem.push({name:'pr_number', value:vm.pr_number})
-      }
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {

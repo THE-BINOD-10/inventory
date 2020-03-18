@@ -816,6 +816,10 @@ var app = angular.module('urbanApp')
           url: '/ApprovePR',
           templateUrl: 'views/inbound/toggle/approve_pr.html'
           })
+          .state('app.inbound.RaisePo.SavedPurchaseRequest', {
+          url: '/SavedPR',
+          templateUrl: 'views/inbound/toggle/saved_pr.html'
+          })
 
 
         .state('app.inbound.RevceivePo', {

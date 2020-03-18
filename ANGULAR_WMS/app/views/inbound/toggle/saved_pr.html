@@ -29,6 +29,19 @@
         </div>
         <div class="modal-body">
           <div class="row">
+            <div class="col-md-2 col-sm-2 col-xs-3">
+            <div class="form-group">
+              <label class="control-label"> PO Number </label>
+              <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
+              <!-- <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="hide"> </div> -->
+              <input type="text" name="pr_number" ng-model="showCase.model_data.pr_number" class="hide" ng-if="showCase.update">
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">PO Date</label>
+                <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
@@ -36,7 +49,7 @@
                   typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
                   typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id_name); showCase.update_wms_records()"
                   ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');"
-                  ng-keyup="$event.keyCode == 13 ? showCase.checkSupplierExist(showCase.model_data.supplier_id) : null"
+                  ng-readonly="true"
                 >
                 <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
                 <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update">
@@ -44,9 +57,8 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date *</label>
-                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date *</label>
-                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+                <label class="control-label">PO Delivery Date *</label>
+                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">

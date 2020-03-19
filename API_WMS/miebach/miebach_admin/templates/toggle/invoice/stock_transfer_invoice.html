@@ -1,10 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% load tag_extras %}
 
-</body>
-</html>
+      {% for title in titles %}
+        <!-- <div class="invoice_titles" style="padding-bottom: 70px" ng-repeat="title in showCase.pdf_data.titles"> -->
+        <div class="invoice_titles" ng-repeat="title in showCase.pdf_data.titles">
+         <!-- invoice -->
+          <div class="print-invoice2 mb20" style="height: auto;" ng-repeat="page in showCase.pdf_data.data">
+            <div class="invoice-body">
+                {% include "toggle/invoice/stock_transfer_details.html" %}
+
+              <table class="table table-bordered table-responsive bl br cal-table m0">
+                <thead>
+                  <tr class="fs14">
+                    <th><center>SKU Code</center></th>
+                    <th class="w7"><center>HSN</center></th>
+                    <th><center>Description</center></th>
+                    <th><center>Unit</br>Rate</center></th>
+                    <th><center>Qty</center></th>
+                    {% if show_disc_invoice == 'true' %}
+                    <th><center>Disc</center></th>
+                    {% endif %}
+                    <!--<th class="w9"><center>Base</br>Price</center></th>-->
+                    <th><center>Taxable</br>Value</center></th>
+                    <th><center>CGST</center></th>
+                    <th><center>SGST</center></th>
+                    <th><center>IGST</center></th>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <th><center>CESS</center></th>
+                    {% endif%}
+                    <th><center>Total</center></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for record in data.0.data %}
+                  {% if not record.continue %}
+                  <tr ng-repeat="record in page.resp" class="fs14 rm-border">
+                    <td class="text-left">
+                      <div>{{record.sku_code}}
+                    </td>
+                    <td class="text-left">{{record.hsn_code}}</td>
+                    <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+                    <td class="text-right">{{record.unit_price}}</td>
+
+                    <td class="text-right">{{record.picked_quantity}} {{record.measurement_type}}</td>
+
+                    {% if show_disc_invoice == 'true' %}
+                    <td class="text-right">{{record.discount}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
+                    {% endif %}
+                    <!--<td class="text-right">{{record.base_price}}</td>-->
+                    <td class="text-right"> {{record.price}} </td>
+                    <td class="text-right">{{record.cgst_amt}}<br><span class="tax-percentage">@{{record.cgst_tax}}%</span></td>
+                    <td class="text-right">{{record.sgst_amt}}<br><span class="tax-percentage">@{{record.sgst_tax}}%</span></td>
+                    <td class="text-right">{{record.igst_amt}}<br><span class="tax-percentage">@{{record.igst_tax}}%</span></td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td class="text-right">{{record.taxes.cess_amt}}<br><span class="tax-percentage">@{{record.taxes.cess_tax}}%</span></td>
+                    {% endif %}
+                    <td class="text-right">{{record.amount}}</td>
+                  </tr>
+                  {% endif %}
+                 <!-- {% if record.imeis %}
+                  <tr class="fs14">
+                    <td></td>
+                    <td></td>
+                    <td>
+                       <div style="font-size: 13px;line-height:16px;">
+                        <span class="pull-left"><b>IMEI List: </b></span></br>
+                        {% for imei in record.imeis %}
+                        <div {% if not forloop.counter|divisibleby:2 %} style="display: block;float: left;" {% else %} style="display: block;float: right;" {% endif %}>
+                          <i>{{imei}}</i>
+                        </div> -->
+                          <!-- {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
+                        {% endfor %}
+                      </div>
+                    </td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                  </tr>
+                  {% endif %} -->
+                  {% endfor %}
+                   {% for empty in data.0.empty_data %}
+                      <tr class="rm-border" style="height: 38px;" ng-repeat="empty in data[0].empty_data">
+                        {% for i in empty_td %}
+                        <td><p style="height:10px"></p></td>
+                        {% endfor %}
+                      </tr>
+                  {% endfor %}
+                  {% if forloop.last %}
+                  <tr style="border-top: 1px solid black;font-weight: bold;" class="fs14 text-right" ng-if="$last">
+                      <td colspan="3" style="text-align:left"><b>Total: </b></td>
+                    <td></td>
+                    <td>{{total_quantity}}</td>
+                    {% if show_disc_invoice == 'true' %}
+                    <td class="text-right">{{record.discount}}</td>
+                    {% endif %}
+                    <!--<td></td>-->
+                    <td>{{total_taxable_amount}}</td>
+                    <td>{{total_cgst_amt}}</td>
+                    <td>{{total_sgst_amt}}</td>
+                    <td>{{total_igst_amt}}</td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td>{{total_taxes.cess_amt}}</td>
+                    {% endif %}
+                    <td>{{total_invoice_amount}}</td>
+                  </tr>
+                  <tr ng-if="$last">
+                    <td colspan='10' class="fs14">
+                      <div class="row no-margin" style="position:relative">
+                        {% if invoice_remarks != 'false' %}
+                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black !important;"></div>
+                        <div class="col-xs-3 no-padding">
+                          <p class="pre-custom fs14">{{invoice_remarks}}</p>
+                        </div>
+                        <div class="col-xs-9 no-padding" style="border-left: 1px solid black; padding-left:4px !important;">
+                        {% else %}
+                        <div class="col-xs-12 no-padding">
+                        {% endif %}
+                          <div class="row">
+                            <div class="col-xs-6">
+                              Taxable Amount
+                            </div>
+                            <div class="col-xs-6 text-right">
+                             Rs {{total_taxable_amount}}
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-6">
+                              Total Tax
+                            </div>
+                            <div class="col-xs-6 text-right">
+                              Rs {{total_tax}}
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-6">
+                            Total Tax(In Words)
+                            </div>
+                            <div class="col-xs-6 text-right" style="text-transform: capitalize;">
+                              {{total_tax_words}} Only
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-6">
+                            Invoice Total
+                            </div>
+                            <div class="col-xs-6 text-right">
+                              Rs {{total_invoice_amount}}
+                            </div>
+                          </div>
+                          <div class="row" style="font-weight:bold">
+                            <div class="col-xs-6">
+                              Invoice Total (After rounding)
+                            </div>
+                            <div class="col-xs-6 text-right">
+                            Rs {{rounded_invoice_amount}}
+                            </div>
+                          </div>
+                          <div class="row" style="font-weight:bold">
+                            <div class="col-xs-6">
+                              Invoice Total(In Words)
+                            </div>
+                            <div class="col-xs-6 text-right" style="text-transform: capitalize;">
+                              {{price_in_words}} Only
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr ng-if="$last">
+                      <td colspan='8' style="text-align:left;" class="fs14">
+                      <span><b class="fs16">DECLARATION:</b></span><br>
+                      <p class="pre-custom fs14" style ="display:inline; word-wrap: break-word;">{{declaration}}</p>
+                      {% if invoice_remarks != 'false' %}
+                      <p  style ="display:inline; word-wrap: break-word;">{{invoice_declaration|safe}}</p>
+                      {% endif %}
+                    </td>
+                    <td colspan='2'>
+                      <p align="center"><b class="fs16 m0">{{company_name}}</b></p>
+                      </br></br>
+                      <p align="center" class="fs14 m0">Authorised Signatory</p>
+                    </td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endfor %}

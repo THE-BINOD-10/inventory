@@ -1675,7 +1675,11 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/outbound/customer_invoices/customer_invoices.js'
                     ])
-                  });
+                  }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                });
               }]
           },
           data: {
@@ -1754,6 +1758,11 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+          .state('app.outbound.CustomerInvoices.StockTransferInvoiceE', {
+            url: '/StockInvoice',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
+
 
       // Upload route
       .state('app.uploads', {

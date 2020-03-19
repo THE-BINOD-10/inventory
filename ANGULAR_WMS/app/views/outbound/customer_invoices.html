@@ -14,6 +14,9 @@
       <tab heading="Customer Invoices"  ng-controller="CustomerInvoicesTabCtrl as showCase" ng-click="showCase.loadjs()">
         <div ng-if="showCase.CustomerInvoicesTabCtrl_enable" ng-include="'views/outbound/customer_invoices/customer_invoices.html'"></div>
       </tab>
+      <tab heading="Stock Transfer Invoices"  ng-controller="StockTransferInvoiceCtrl as showCase" ng-click="showCase.loadjs()">
+        <div  ng-include="'views/outbound/customer_invoices_tab2.html'"></div>
+      </tab>
     </tabset>
   </div>
 </div>

@@ -6152,11 +6152,12 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-def build_invoice(invoice_data, user, css=False):
+def build_invoice(invoice_data, user, css=False, stock_transfer=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
-    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
-        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+    if not stock_transfer:
+        if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+            return json.dumps(invoice_data, cls=DjangoJSONEncoder)
     titles = ['']
     import math
     if not (invoice_data.get("customer_invoice", "") == True):
@@ -6168,7 +6169,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['titles'] = titles
     perm_hsn_summary = get_misc_value('hsn_summary', user.id)
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
-    if len(invoice_data['hsn_summary'].keys()) == 0:
+    if len(invoice_data.get('hsn_summary',{}).keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     # invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
@@ -6186,7 +6187,7 @@ def build_invoice(invoice_data, user, css=False):
     inv_summary = 47  # invoice summary headers height
     inv_total = 27  # total display height
     inv_charges = 20  # height of other charges
-    inv_totals = inv_totals + len(invoice_data['order_charges']) * inv_charges
+    inv_totals = inv_totals + len(invoice_data.get('order_charges',[])) * inv_charges
     '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142
@@ -6203,8 +6204,8 @@ def build_invoice(invoice_data, user, css=False):
     '''
     render_data = []
     render_space = 0
-    hsn_summary_length = len(invoice_data['hsn_summary'].keys()) * inv_total
-    if (perm_hsn_summary == 'true'):
+    hsn_summary_length = len(invoice_data.get('hsn_summary',{}).keys()) * inv_total
+    if perm_hsn_summary == 'true':
         render_space = inv_height - (
         inv_details + inv_footer + inv_totals + inv_header + inv_summary + inv_total + hsn_summary_length)
     else:
@@ -6217,7 +6218,7 @@ def build_invoice(invoice_data, user, css=False):
         invoice_data['imei_data'] = []
         for data in invoice_data['data']:
             data['imeis'] = []
-    if invoice_data['imei_data']:
+    if invoice_data.get('imei_data',''):
         count = 0
         for imei in invoice_data['imei_data']:
             for imei_count in range(len(imei)+1):
@@ -6280,11 +6281,16 @@ def build_invoice(invoice_data, user, css=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+
     if css:
         c = {'name': 'invoice'}
         top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
         top = top.render(c)
-    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    if stock_transfer:
+        invoice_data['empty_td'] = [0]*10
+        html = loader.get_template('../miebach_admin/templates/toggle/invoice/stock_transfer_invoice.html')
+    else:
+        html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
     return top + html
 
@@ -6360,7 +6366,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     render_data = []
     render_space = 0
     hsn_summary_length = len(invoice_data['hsn_summary'].keys()) * inv_total
-    if (perm_hsn_summary == 'true'):
+    if perm_hsn_summary == 'true':
         render_space = inv_height - (
         inv_details + inv_footer + inv_totals + inv_header + inv_summary + inv_total + hsn_summary_length)
     else:
@@ -6382,11 +6388,11 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     # preparing pages
     for index, data in enumerate(invoice_data['data']):
         sku_height = get_sku_height(data, row_items)
-        if (space2 < sku_height):
-            if (space2 > 100):
+        if space2 < sku_height:
+            if space2 > 100:
                 arr_index = (int(math.ceil(
                     (float(sku_height - space2) / 16))) * row_items) * -1  # ((sku_height - space2)/20)*row_items
-                if (len(temp_sku_data['data']) == 0):
+                if len(temp_sku_data['data']) == 0:
                     arr_index = 114
                 temp_data = copy.deepcopy(data)
                 temp_data['imeis'] = temp_data['imeis'][:arr_index]
@@ -6401,7 +6407,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
             space2 = render_space2
 
             imei_limit = 114
-            if (len(data['imeis']) > imei_limit):
+            if len(data['imeis']) > imei_limit:
                 temp_imeis = data['imeis']
                 if data.get('continue', ''):
                     imei_limit = 120
@@ -6431,7 +6437,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     # checking last page have enough space
     for index, data in enumerate(render_data[last]['data']):
         sku_height = get_sku_height(data, row_items)
-        if (space1 < sku_height):
+        if space1 < sku_height:
             if len(render_data[last]['data'][index:]) == 1:
                 temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
                 # temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
@@ -10619,3 +10625,12 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
+
+def get_stocktransfer_picknumber(user , picklist):
+    summary = StockTransferSummary.objects.filter(picklist_id=picklist.id).only('pick_number').\
+                                aggregate(Max('pick_number'))['pick_number__max']
+    if summary:
+        return int(summary)+1
+    else:
+        return 1
+

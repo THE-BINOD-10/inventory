@@ -407,20 +407,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.save_raise_pr = function(data, type) {
       if (data.$valid) {
-        if (type == 'save'){
-          vm.update_raise_pr();
-        } else {
-          if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
-            var elem = angular.element($('form'));
-            elem = elem[0];
-            elem = $(elem).serializeArray();
-            var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-             confirm_api ? vm.add_raise_pr(elem) : '';
+        if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+          var elem = angular.element($('form'));
+          elem = elem[0];
+          elem = $(elem).serializeArray();
+          var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
+          if (type == 'save'){
+            confirm_api ? vm.update_raise_pr() : '';
           } else {
-            data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
-            typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-            vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
+            confirm_api ? vm.add_raise_pr(elem) : '';
           }
+        } else {
+          data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
+          typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
+          vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
         }
       }
     }

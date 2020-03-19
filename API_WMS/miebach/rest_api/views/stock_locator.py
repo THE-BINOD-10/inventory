@@ -1299,7 +1299,6 @@ def insert_move_inventory(request, user=''):
 
 @csrf_exempt
 def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    import pdb;pdb.set_trace()
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_params = {}
     lis = ['sku__wms_code', 'location__zone__zone', 'location__location', 'total']

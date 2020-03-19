@@ -868,23 +868,6 @@ def pr_request(request):
     temp_data = {'aaData':[]}
     user = parentUser
     filtersMap = {'sku__user':user.id, 'open_po_id': None, 'pr_number': openpr_number}
-    # if request.user.id != user.id:
-    #     currentUserLevel = ''
-    #     currentUserEmailId = request.user.email
-    #     memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
-    #     for memObj in memQs:
-    #         master_id = memObj.master_id
-    #         prApprObj = PRApprovalConfig.objects.filter(id=master_id)
-    #         if prApprObj.exists():
-    #             currentUserLevel = prApprObj[0].level
-    #             configName = prApprObj[0].name
-    #             pr_numbers = list(PRApprovals.objects.filter(pr_user=user,
-    #                             configName=configName,
-    #                             level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
-    #         else:
-    #             pr_numbers = []
-    #         filtersMap.setdefault('pr_number__in', [])
-    #         filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
     values_list = ['requested_user', 'requested_user__first_name','requested_user__username', 'pr_number', 
                     'po_number', 'final_status', 'pending_level', 'remarks', 'supplier_id', 'supplier__name', 
                     'prefix', 'delivery_date']
@@ -903,7 +886,7 @@ def pr_request(request):
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(result['requested_user'], result['pr_number'], result['total_amt'])
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pr_number'], result['total_amt'])
         prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
         if not prApprQs.exists():
             continue

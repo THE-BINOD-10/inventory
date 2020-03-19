@@ -1397,11 +1397,11 @@ def get_orders(request):
             search_parameters['order_reference__in'] = search_params['order_reference'].split(',')
         except:
             search_parameters['order_reference__in'] = search_params['order_reference']
-    search_parameters['user'] = request.user.id
+    search_parameters['user'] = user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, order_records, limit=limit)
     for order in page_info['data']:
-        data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
+        data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
         seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\

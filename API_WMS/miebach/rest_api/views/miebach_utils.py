@@ -5077,7 +5077,7 @@ def get_margin_price_details(invoice_qty_filter, order_data, unit_price, inv_qua
     pick_obj = SellerOrderSummary.objects.filter(**invoice_qty_filter).values('picklist__stock__unit_price', 'quantity')
     if pick_obj:
         for picklist in pick_obj:
-            if picklist.has_key('picklist__stock__unit_price') and picklist.has_key('quantity'):
+            if picklist.get('picklist__stock__unit_price','') and picklist.has_key('quantity'):
                 total_procurement_price += (picklist['picklist__stock__unit_price'] * picklist['quantity'])
             else:
                 total_procurement_price += 0

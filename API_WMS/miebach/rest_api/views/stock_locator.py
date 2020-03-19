@@ -15,6 +15,8 @@ from common import *
 from miebach_utils import *
 from utils import *
 from datetime import timedelta
+from rest_api.views.stock_operations import *
+
 
 log = init_logger('logs/stock_locator.log')
 
@@ -2055,59 +2057,67 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
 @get_admin_user
 def confirm_sku_substitution(request, user=''):
     ''' Moving stock from one location to other location with SKU substitution '''
-
     data_dict = dict(request.POST.iterlists())
-    src_sku = request.POST.get('src_sku_code', '')
-    src_qty = request.POST.get('src_quantity', '')
-    src_loc = request.POST.get('src_location', '')
-    src_batch_no = request.POST.get('src_batch_number', '')
-    src_mrp = request.POST.get('src_mrp', 0)
+    src_list = []
     seller_id = request.POST.get('seller_id', '')
-    weight = request.POST.get('src_weight', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
-    if user.username in MILKBASKET_USERS:
-        if not src_mrp or not weight:
-            return HttpResponse('MRP and Weight are Mandatory')
-    if not src_sku and not dest_sku and not src_qty and not src_loc:
-        return HttpResponse('Please Send Required Field')
     if seller_id:
         seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller:
             return HttpResponse('Invalid Seller Id')
         else:
             seller_id = seller[0].id
-    src_sku = SKUMaster.objects.filter(user=user.id, sku_code=src_sku)
-    if not src_sku:
-        return HttpResponse('Source SKU Code Not Found')
-    source_sku = src_sku[0]
-    src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
-    if not src_loc:
-        return HttpResponse('Source Location Not Found')
-    source_location = src_loc[0]
-    try:
-        src_qty = float(src_qty)
-    except ValueError:
-        log.info("Substitution: Source Quantity Should Be Number ," + src_qty)
-        return HttpResponse('Source Quantity Should Be Number')
-    if float(src_qty) <= 0:
-        return HttpResponse('Source Quantity Should Greater Than Zero')
-    stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
-                  "sku__user": user.id, "quantity__gt": 0}
-    if seller_id:
-        stock_dict['sellerstock__seller_id'] = seller_id
-    if src_batch_no:
-        stock_dict['batch_detail__batch_no'] = src_batch_no
-    if src_mrp:
-        stock_dict['batch_detail__mrp'] = src_mrp
-    if weight:
-        stock_dict['batch_detail__weight'] = weight
-    src_stocks = StockDetail.objects.filter(**stock_dict)
-    src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
-    if not src_stock_count:
-        return HttpResponse('Source SKU Code Don\'t Have Stock')
-    elif src_stock_count < src_qty:
-        return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+
+    for i in range(0, len(data_dict['src_sku_code'])):
+        src_mrp = data_dict.get('src_mrp', '')
+        if src_mrp:
+            src_mrp = src_mrp[i]
+        weight = data_dict.get('src_weight', '')
+        if weight:
+            weight = weight[i]
+        if user.username in MILKBASKET_USERS:
+            if not src_mrp or not weight:
+                return HttpResponse('MRP and Weight are Mandatory')
+        src_sku = data_dict.get('src_sku_code')[i] if data_dict.get('src_sku_code', '') else ''
+        src_qty = data_dict.get('src_quantity')[i] if data_dict.get('src_quantity', '') else ''
+        src_loc = data_dict.get('src_location')[i] if data_dict.get('src_quantity', '') else ''
+        src_batch_no = data_dict.get('src_batch_number')[i] if data_dict.get('src_batch_number', '') else ''
+        if not src_sku and not src_qty and not src_loc:
+            return HttpResponse('Please Send Required Fields')
+        src_sku = SKUMaster.objects.filter(user=user.id, sku_code=src_sku)
+        if not src_sku:
+            return HttpResponse('Source SKU Code Not Found')
+        source_sku = src_sku[0]
+        src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
+        if not src_loc:
+            return HttpResponse('Source Location Not Found')
+        source_location = src_loc[0]
+        try:
+            src_qty = float(src_qty)
+        except ValueError:
+            log.info("Substitution: Source Quantity Should Be Number ," + src_qty)
+            return HttpResponse('Source Quantity Should Be Number')
+        if float(src_qty) <= 0:
+            return HttpResponse('Source Quantity Should Greater Than Zero')
+        stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
+                      "sku__user": user.id, "quantity__gt": 0}
+        if seller_id:
+            stock_dict['sellerstock__seller_id'] = seller_id
+        if src_batch_no:
+            stock_dict['batch_detail__batch_no'] = src_batch_no
+        if src_mrp:
+            stock_dict['batch_detail__mrp'] = src_mrp
+        if weight:
+            stock_dict['batch_detail__weight'] = weight
+        src_stocks = StockDetail.objects.filter(**stock_dict)
+        src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if not src_stock_count:
+            return HttpResponse('Source SKU Code Don\'t Have Stock')
+        elif src_stock_count < src_qty:
+            return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+        src_details = {'src_stocks': src_stocks, 'src_sku': source_sku, 'src_qty': src_qty, 'src_location': source_location}
+        src_list.append(src_details)
 
     dest_list = []
     for ind in range(0, len(data_dict['dest_sku_code'])):
@@ -2150,11 +2160,19 @@ def confirm_sku_substitution(request, user=''):
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
     source_updated = False
     transact_number = get_max_substitute_allocation_id(user)
-    for dest_dict in dest_list:
-        update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
-                                 dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id,
-                                 source_updated, dest_dict['mrp_dict'], transact_number)
-        source_updated = True
+    dest_updated = False
+    for src in src_list:
+        src_stocks = src.get('src_stocks')
+        source_sku = src.get('src_sku')
+        source_location = src.get('src_location')
+        src_qty = src.get('src_qty')
+        source_updated = reduce_stock(user, src_stocks, src_qty, receipt_type='substitute', receipt_number=transact_number)
+        for dest_dict in dest_list:
+            update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty,
+                                    dest_dict['dest_sku'],dest_dict['dest_loc'], dest_dict['dest_qty'],
+                                    user, seller_id,source_updated, dest_dict['mrp_dict'], transact_number, dest_updated)
+        dest_updated = True
+
     return HttpResponse('Successfully Updated')
 
 

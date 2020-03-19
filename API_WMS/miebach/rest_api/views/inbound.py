@@ -1059,7 +1059,7 @@ def print_pending_po_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
-    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -1104,7 +1104,7 @@ def print_pending_po_form(request, user=''):
         'show_cess_tax': 'show_cess_tax',
         'company_name': profile.company_name,
         'location': profile.location,
-        'po_reference': po_reference,
+        'po_number': po_number,
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
         'company_address': company_address,

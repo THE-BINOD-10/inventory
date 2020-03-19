@@ -33,7 +33,6 @@ function Profile($scope, Session, Service, $modal) {
       vm.marginData = selectedItem;
     })
   }
-
   vm.base = function(){
     vm.orig_model_data = {};
     Service.apiCall('get_user_profile_data/').then(function(data){
@@ -110,8 +109,6 @@ function Profile($scope, Session, Service, $modal) {
           if(data.data == 'Success') {
             vm.emptyData();
             Service.showNoty('Successfully Updated');
-          } else {
-            Service.showNoty(data.data);
           }
         }
       });

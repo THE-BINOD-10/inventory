@@ -7847,7 +7847,7 @@ def get_user_profile_data(request, user=''):
     data['pan_number'] = main_user.pan_number
     data['phone_number'] = main_user.phone_number
     data['sign_signature'] = None
-    master_docs_obj = MasterDocs.objects.filter(master_type='sales_invoice_sign', user_id=user.id).order_by('-creation_date')
+    master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
     if master_docs_obj.exists():
         data['sign_signature'] = master_docs_obj[0].uploaded_file.url
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
@@ -7945,12 +7945,9 @@ def update_profile_data(request, user=''):
     main_user.save()
     user.email = email
     user.save()
-    response_dict = {'msg':1, 'data': 'Success', 'sign_signature': None}
+    response_dict = {'msg':1, 'data': 'Success'}
     if sign_file:
-        response = upload_master_file(request, user, user.id, 'sales_invoice_sign', master_file=sign_file)
-        master_docs_obj = MasterDocs.objects.filter(master_type='sales_invoice_sign', user_id=user.id).order_by('-creation_date')
-        if master_docs_obj.exists():
-            response_dict['sign_signature'] = master_docs_obj[0].uploaded_file.url
+        response = upload_master_file(request, user, user.id, 'auth_sign_copy', master_file=sign_file)
     return HttpResponse(json.dumps(response_dict))
 
 @csrf_exempt

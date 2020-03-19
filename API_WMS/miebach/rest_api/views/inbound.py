@@ -61,8 +61,12 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                 pr_numbers = []
             filtersMap.setdefault('pr_number__in', [])
             filtersMap['pr_number__in'] = list(chain(filtersMap['pr_number__in'], pr_numbers))
+        if not memQs.exists(): # Creator Sub Users
+            filtersMap['requested_user'] = request.user.id
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['pr_number', 'total_qty', 'total_amt']
+    lis = ['-pr_number','supplier_id', 'supplier__name', 'po_number', 'total_qty', 'total_amt', 'creation_date', 
+            'delivery_date', 'sku__user', 'requested_user__username', 'final_status', 'pending_level',
+            'pr_number', 'pr_number', 'pr_number', 'remarks']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -78,7 +82,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                         Q(final_status__icontains=search_term) | Q(pending_level__icontains=search_term) |
                         Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
                         Q(sku__sku_code__icontains=search_term))
-    elif order_term:
+    if order_term:
         results = results.order_by(order_data)
 
     resultsWithDate = dict(results.values_list('pr_number', 'creation_date'))
@@ -2115,7 +2119,8 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         result = openPRQs[0]
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (result.prefix, dateforPo, result.po_number)
-        creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
+        # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
+        creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
         requestedBy = result.requested_user.first_name

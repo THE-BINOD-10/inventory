@@ -99,7 +99,8 @@
                 <label class="control-label">EwayBill Number
                 <span ng-if="showCase.parent_username =='ola_admin'" ng-required="showCase.parent_username =='ola_admin'" >*</span>
                 </label>
-                <input name="ewaybill_number" class="form-control" type="text" ng-model="showCase.model_data.ewaybill_number">
+                  <input name="ewaybill_number" ng-if="showCase.parent_username =='ola_admin'"  class="form-control" type="text" ng-model="showCase.model_data.ewaybill_number" required>
+                  <input name="ewaybill_number" ng-if="showCase.parent_username !='ola_admin'" class="form-control" type="text" ng-model="showCase.model_data.ewaybill_number" >
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">

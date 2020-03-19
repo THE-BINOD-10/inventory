@@ -15,12 +15,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.checked_items = {};
     vm.title = "Payments";
+    vm.bank_names ='';
     vm.model_data = {'payment':'', 'balance':'', 'date':'', 'update_tds':'', 'bank_name':'', 'mode_of_pay':'', 'neft_cheque':''};
-    vm.bank_names = {'abc': 'abc',
-                     'xyz': 'xyz',
-                     'pqr': 'pqr'};
+    if (vm.permissions.bank_option_fields != '' && vm.permissions.bank_option_fields) {
+            vm.bank_names = vm.permissions.bank_option_fields.split(',');
+          }
+    // vm.bank_names = {'abc': 'abc',
+    //                  'xyz': 'xyz',
+    //                  'pqr': 'pqr'};
 
-    vm.mode_of_pay = ['NEFT', 'CHEQUE'];
+    vm.mode_of_pay = ['NEFT', 'Cheque', 'Cash'];
 
     $timeout(function () {
         $('.selectpicker').selectpicker();

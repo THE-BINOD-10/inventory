@@ -1,0 +1,94 @@
+<div ng-controller="barcodeConfig as showCase">
+  <div class="row">
+    <div class="col-lg-2 col-md-2 col-sm-6 col-xs-6" align="center">
+      <offscreen class="visible-xs fa fa-bars pull-left" style="font-size: 22px;padding: 8px 12px 0px 5px;"></offscreen>
+      <h4>Barcode Settings</h4>
+    </div>
+  </div>
+  <div class="row" align="center" style="padding-top: 25px;">
+    <div class="col-lg-4 col-md-4" align="right"><strong>Configuration Title * : </strong></div>
+    <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 mbalign">
+      <input type="text" class="form-control" ng-model="showCase.model_data.configuration_title" placeholder="CONFIGURATION TITLE" style="border-color: #2ecc71" required>
+    </div>
+  </div>
+  <div class="row" align="center" style="padding-top: 25px;">
+    <div class="col-lg-4 col-md-4" align="right"><strong>Scanning Type * : </strong></div>
+    <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" align="left">
+      <input type="radio" class="form-check-input" ng-model="showCase.model_data.scanning_type" value="sku_based"> 
+      <label class="form-check-label">SKU Based</label>
+    </div>
+    <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" align="left">
+      <input type="radio" class="form-check-input" ng-model="showCase.model_data.scanning_type" value="ean_based">
+      <label class="form-check-label">EAN Based</label>
+    </div>
+  </div>
+  <div class="row" align="center" style="padding-top: 25px;">
+    <div class="col-lg-4 col-md-4" align="right"><strong>Remove After Spaces : </strong></div>
+    <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" align="left">
+      <label class="switch switch-sm square">
+        <div>
+          <input type="checkbox" ng-model="showCase.model_data.remove_after_spaces">
+          <span>
+            <i class="handle"></i>
+          </span>
+        </div>
+      </label>
+    </div>
+  </div>
+  <div class="row" align="center" style="padding-top: 25px;">
+    <div class="col-lg-4 col-md-4" align="right">
+      <input type="text" class="form-control" ng-model="showCase.model_data.condition1" placeholder="Enter the Index of the Number" style="width: 200px;border-color: #ccc02e;">
+    </div>
+    <div class="col-lg-4 col-md-4" align="left">
+      <input type="text" class="form-control" ng-model="showCase.model_data.expression1" placeholder="Enter the Index to Delete" style="width: 200px;border-color: #ccc02e;">
+    </div>
+  </div>
+  <div class="row" align="center" style="padding-top: 25px;">
+    <div class="col-lg-4 col-md-4" align="right">
+      <input type="text" class="form-control" ng-model="showCase.model_data.condition2" placeholder="Enter the Index of the Character" style="width: 200px;border-color: #ccc02e;">
+    </div>
+    <div class="col-lg-4 col-md-4" align="left">
+      <input type="text" class="form-control" ng-model="showCase.model_data.expression2" placeholder="Enter the Index to Delete" style="width: 200px;border-color: #ccc02e;">
+    </div>
+  </div>
+  <div class="row" align="right" style="padding-top: 25px;">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+      <button type="button" class="btn btn-danger btn-outline pull-right mr10" ng-click="showCase.emptyData()">CANCEL</button>
+      <button type="button" class="btn btn-success btn-outline pull-right mr10" ng-click="showCase.updateBarCodeConfiguration()">SAVE</button>
+    </div>
+  </div>
+  <div class="row" align="center" style="cursor: pointer;margin: 50px;">
+    <accordion close-others="oneAtATime">
+    <accordion-group>
+      <accordion-heading>
+        <div class="row">
+          <div class="col-lg-4 col-md-4"></div>
+          <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" ng-click="showCase.get_saved_barcodes()"><label><i class="fa fa-list">VIEW CONFIGURATIONS</i></label>
+          </div>
+        </div>
+      </accordion-heading>
+      <div class="over-x" ng-if = "showCase.model_barcode_config_data.data">
+        <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12" ng-repeat="configDetails in showCase.model_barcode_config_data.data" style="background: #f7f7f7;">
+          <div class="widget widget-weather bg-format">
+            <span class="label label-success mb15">{{configDetails.title}}</span>
+            <div>Scanning_Type: {{configDetails.scanning_type}}</div>
+            <span class="mb15">Remove After Sapces: {{configDetails.remove_after_spaces}}</span> 
+            <div ng-if="configDetails.condition1">Condition1: If {{configDetails.condition1}} Characater is NUMBER Delete after {{configDetails.expression1}} Character</div>
+            <div ng-if="configDetails.condition2">Condition2: If {{configDetails.condition2}} Characater is Alphabet Delete after {{configDetails.expression2}} Character</div>
+          </div>
+        </div>
+      </div>
+      <div class="over-x" ng-if = "showCase.model_shipment_data.data == 'null'">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <div class="widget bg-format mb15">
+            <div class="widget-icon bg-success pull-left fa fa-map-marker">
+            </div> <div class="overflow-hidden">
+              <span>Oh Snap! Please create New Configurations ..</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </accordion-group>
+    </accordion>
+  </div>
+</div>

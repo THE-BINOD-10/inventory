@@ -45,6 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
+                vm.message = "";
                 vm.service.apiCall('get_received_orders/', 'GET', {supplier_id: aData.DT_RowAttr["data-id"]}).then(function(data){
                   if(data.message) {
                     
@@ -99,6 +100,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
 
     vm.submit = function() {
       var elem = angular.element($('form'));
+      vm.model_data.data.forEach(function(item){
+           item.wrong_sku = false;
+       });
       elem = elem[0];
       elem = $(elem).serializeArray();
       vm.service.apiCall('putaway_data/', 'POST', elem, true).then(function(data){
@@ -107,18 +111,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
             vm.close();
             reloadData();
           } else {
-            pop_msg(data.data);
+            $state.go('app.inbound.PutAwayConfirmation.confirmation');
+            vm.model_data.data.forEach(function(item){
+              if (data.data.wrong_skus.indexOf(item.wms_code) != -1) {
+                    item.wrong_sku = true;
+              }
+             });
+            pop_msg(data.data.status);
           }
         }
       }); 
     }
 
     function pop_msg(msg) {
+      vm.message = "";
       vm.message = msg;
-      $timeout(function () {
-        vm.message = "";
-      }, 2000);
-    }
+     }
 
   vm.isLast = isLast;
   function isLast(check) {

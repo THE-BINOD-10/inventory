@@ -136,7 +136,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
     }
 
-    vm.invoideSampleCheck = function(data){
+    vm.invoiceSelectionCheck = function(data){
       var multiple_check = []
       angular.forEach(data, function(key, val){
         if (key){

@@ -519,7 +519,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    log.info("order upload started")
+    log.info("order upload started for %s" % str(user.username))
     order_code_prefix = get_order_prefix(user.id)
     st_time = datetime.datetime.now()
     index_status = {}
@@ -894,6 +894,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     if len(collect_order_obj_list):
         collect_order_obj_list = list(set(collect_order_obj_list))
         create_order_pos(user, collect_order_obj_list)
+    log.info("order upload ended for %s" % str(user.username))
     return 'success'
 
 
@@ -945,7 +946,7 @@ def order_form(request, user=''):
     for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_form.xls' % str(user.username))
 
 
 def xls_to_response(xls, fname):
@@ -978,7 +979,7 @@ def sku_form(request, user=''):
 	headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
-    return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -992,7 +993,7 @@ def sales_returns_form(request, user=''):
     if user.userprofile.user_type == 'marketplace_user':
         sales_retun_mapping.append('SOR ID')
     wb, ws = get_work_sheet('returns', sales_retun_mapping)
-    return xls_to_response(wb, '%s.returns_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.returns_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1004,7 +1005,7 @@ def inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1017,7 +1018,7 @@ def supplier_form(request, user=''):
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         supplier_headers.append('EP Supplier(yes/no)')
     wb, ws = get_work_sheet('supplier', supplier_headers)
-    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1027,7 +1028,7 @@ def supplier_sku_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1038,7 +1039,7 @@ def location_form(request, user=''):
         return error_file_download(loc_file)
 
     wb, ws = get_work_sheet('Locations', LOCATION_HEADERS)
-    return xls_to_response(wb, '%s.location_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.location_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1055,7 +1056,7 @@ def purchase_order_form(request, user=''):
     for count, header in enumerate(excel_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1067,7 +1068,7 @@ def move_inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_move_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers)
-    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1086,7 +1087,7 @@ def marketplace_sku_form(request, user=''):
     market_list = market_list + market_sku + market_desc
 
     wb, ws = get_work_sheet('supplier', market_list)
-    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1097,7 +1098,7 @@ def bom_form(request, user=''):
     if bom_file:
         return error_file_download(bom_file)
     wb, ws = get_work_sheet('BOM', BOM_UPLOAD_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.bom_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.bom_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1108,7 +1109,7 @@ def combo_sku_form(request, user=''):
     if combo_sku_file:
         return error_file_download(combo_sku_file)
     wb, ws = get_work_sheet('COMBO_SKU', COMBO_SKU_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1120,7 +1121,7 @@ def inventory_adjust_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_adjustment_excel_upload_headers(user)
     wb, ws = get_work_sheet('INVENTORY_ADJUST', excel_headers)
-    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1131,7 +1132,7 @@ def vendor_form(request, user=''):
         return error_file_download(vendor_file)
 
     wb, ws = get_work_sheet('vendor', VENDOR_HEADERS)
-    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1142,7 +1143,7 @@ def pricing_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Prices', PRICING_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1153,7 +1154,7 @@ def network_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Network', NETWORK_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1164,7 +1165,7 @@ def order_label_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Labels', ORDER_LABEL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1175,7 +1176,7 @@ def order_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1186,7 +1187,7 @@ def po_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('PO Serials', PO_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1197,7 +1198,7 @@ def job_order_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Job Order', JOB_ORDER_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1208,7 +1209,7 @@ def marketplace_serial_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Marketplace Serial', MARKETPLACE_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1219,7 +1220,7 @@ def orderid_awb_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Awb Map', ORDER_ID_AWB_MAP_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.username))
 
 
 def get_orderid_awb_mapping(reader, file_type):
@@ -1807,6 +1808,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     index_status = {}
     location = {}
     inv_mapping = get_inventory_excel_upload_headers(user)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -1884,9 +1886,11 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 except:
                     index_status.setdefault(row_idx, set()).add('Seller ID Should be number')
             elif key == 'weight':
+                if user.username in MILKBASKET_USERS:
+                    cell_data = mb_weight_correction(cell_data)
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
                 data_dict['weight'] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             elif key == 'mrp':
                 data_dict['mrp'] = cell_data
                 if user.username in MILKBASKET_USERS and not cell_data:
@@ -1903,12 +1907,19 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        if user.userprofile.industry_type == 'FMCG' and data_dict['sku_id']:
-            if not data_dict.get('manufactured_date', ''):
-                data_dict['manufactured_date'] = datetime.datetime.now()
-            if not data_dict.get('expiry_date', ''):
-                sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-                data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
+        if not index_status:
+            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                data_dict['sku_code'] = sku_master.sku_code
+                data_dict['location'] = location_obj[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
+            if user.userprofile.industry_type == 'FMCG' :
+                if not data_dict.get('manufactured_date', ''):
+                    data_dict['manufactured_date'] = datetime.datetime.now()
+                if not data_dict.get('expiry_date', ''):
+                    data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -2373,6 +2384,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     supplier_ids = []
     temp1 = ''
     supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
@@ -2408,10 +2420,11 @@ def validate_supplier_sku_form(open_sheet, user_id):
                         index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                     wms_code1 = cell_data
             if col_idx == 3:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Missing Preference')
-                else:
-                    preference1 = int(cell_data)
+                if auto_po_switch == 'true':
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Missing Preference')
+                    else:
+                        preference1 = int(cell_data)
             if col_idx == 6:
                 if cell_data :
                     if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
@@ -2446,7 +2459,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
 
 
 
-        if wms_code1 and preference1 and row_idx > 0:
+        if wms_code1 and preference1 and row_idx > 0 and  auto_po_switch == 'true':
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
                 temp1 = SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1),
@@ -2511,6 +2524,8 @@ def supplier_sku_upload(request, user=''):
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.supplier_code = cell_data
                     elif col_idx == 3:
+                        if not cell_data:
+                            cell_data = 0
                         supplier_data['preference'] = str(int(cell_data))
                         if supplier_data['preference'] and supplier_sku_instance:
                             supplier_sku_instance.preference = supplier_data['preference']
@@ -3399,162 +3414,192 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     index_status = {}
     location = {}
     data_list = []
-    inv_mapping = get_move_inventory_excel_upload_headers(user)
-    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
-    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
-                                                 inv_mapping)
-    excel_check_list = ['wms_code', 'source', 'destination', 'quantity']
-    if user.userprofile.user_type == 'marketplace_user':
-        excel_check_list.append('seller_id')
-    if user.userprofile.industry_type == 'FMCG':
-        excel_check_list.append('mrp')
-        excel_check_list.append('weight')
-    if not set(excel_check_list).issubset(excel_mapping.keys()):
-        return 'Invalid File', None
-    fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
-    number_fields = ['quantity']
-    for row_idx in range(1, no_of_rows):
-        data_dict = {}
-        for key, value in excel_mapping.iteritems():
-            cell_data = get_cell_data(row_idx, value, reader, file_type)
-            if key == 'wms_code':
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
-                cell_data = str(cell_data)
-                sku_id = check_and_return_mapping_id(cell_data, "", user, False)
-                if not sku_id:
-                    index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
-                else:
-                    data_dict['sku_id'] = sku_id
-                    data_dict['wms_code'] = SKUMaster.objects.get(id=sku_id, user=user.id).wms_code
-            elif key == 'source':
-                if cell_data:
-                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
-                    if not location_master:
-                        index_status.setdefault(row_idx, set()).add('Invalid Source Location')
+    try:
+        inv_mapping = get_move_inventory_excel_upload_headers(user)
+        unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+        inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+        excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                     inv_mapping)
+        excel_check_list = ['wms_code', 'source', 'destination', 'quantity']
+        if user.userprofile.user_type == 'marketplace_user':
+            excel_check_list.append('seller_id')
+        if user.userprofile.industry_type == 'FMCG':
+            excel_check_list.append('mrp')
+            excel_check_list.append('weight')
+        if not set(excel_check_list).issubset(excel_mapping.keys()):
+            return 'Invalid File', None
+        fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
+        number_fields = ['quantity']
+        for row_idx in range(1, no_of_rows):
+            data_dict = {}
+            for key, value in excel_mapping.iteritems():
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if key == 'wms_code':
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
+                    sku_id = check_and_return_mapping_id(cell_data, "", user, False)
+                    if not sku_id:
+                        index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                     else:
-                        data_dict[key] = location_master[0].location
-                        data_dict['source_id'] = location_master[0].id
-                    if location_master and sku_id:
-                        source_stock = StockDetail.objects.filter(sku__user=user.id, location__location=cell_data,
-                                                                  sku_id=sku_id)
-                        if not source_stock:
-                            index_status.setdefault(row_idx, set()).add('location not have the stock of wms code')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Source Location should not be empty')
-            elif key == 'destination':
-                if cell_data:
-                    dest_location = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
-                    if not dest_location:
-                        index_status.setdefault(row_idx, set()).add('Invalid Destination Location')
+                        data_dict['sku_id'] = sku_id
+                        data_dict['wms_code'] = SKUMaster.objects.get(id=sku_id, user=user.id).wms_code
+                elif key == 'source':
+                    if cell_data:
+                        location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
+                        if not location_master:
+                            index_status.setdefault(row_idx, set()).add('Invalid Source Location')
+                        else:
+                            data_dict[key] = location_master[0].location
+                            data_dict['source_id'] = location_master[0].id
+                        if location_master and sku_id:
+                            source_stock = StockDetail.objects.filter(sku__user=user.id, location__location=cell_data,
+                                                                      sku_id=sku_id)
+                            if not source_stock:
+                                index_status.setdefault(row_idx, set()).add('location not have the stock of wms code')
                     else:
-                        data_dict[key] = dest_location[0].location
-                        data_dict['destination_id'] = dest_location[0].id
-                else:
-                    index_status.setdefault(row_idx, set()).add('Destination Location should not be empty')
-            elif key == 'seller_id':
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
-                try:
-                    seller_id = int(cell_data)
-                    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
-                    if not seller_master:
+                        index_status.setdefault(row_idx, set()).add('Source Location should not be empty')
+                elif key == 'destination':
+                    if cell_data:
+                        dest_location = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
+                        if not dest_location:
+                            index_status.setdefault(row_idx, set()).add('Invalid Destination Location')
+                        else:
+                            data_dict[key] = dest_location[0].location
+                            data_dict['destination_id'] = dest_location[0].id
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Destination Location should not be empty')
+                elif key == 'seller_id':
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
+                    try:
+                        seller_id = int(cell_data)
+                        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+                        if not seller_master:
+                            index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                        else:
+                            data_dict[key] = seller_master[0].seller_id
+                            data_dict['seller_master_id'] = seller_master[0].id
+                    except:
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                elif key == 'batch_no':
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                        data_dict[key] = cell_data
+                elif key == 'weight':
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+
+                    if user.username in MILKBASKET_USERS :
+                        if not cell_data:
+                            index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+                        cell_data = mb_weight_correction(cell_data)
+                    data_dict[key] = cell_data
+
+                elif key == 'mrp':
+                    if not isinstance(cell_data, (int, float)):
+                       index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
                     else:
-                        data_dict[key] = seller_master[0].seller_id
-                        data_dict['seller_master_id'] = seller_master[0].id
-                except:
-                    index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
-            elif key == 'batch_no':
-                if isinstance(cell_data, float):
-                    cell_data = str(int(cell_data))
-                    data_dict[key] = cell_data
-            elif key == 'weight':
-                if isinstance(cell_data, float):
-                    cell_data = str(int(cell_data))
-                data_dict[key] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
-            elif key == 'mrp':
-                if not isinstance(cell_data, (int, float)):
-                   index_status.setdefault(row_idx, set()).add('Invalid Entry for MRP Value')
+                        data_dict[key] = cell_data
+                    if user.username in MILKBASKET_USERS and not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
+                elif key == 'reason':
+                    move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
+                    if move_inventory_reasons != 'false':
+                        move_inventory_reasons = move_inventory_reasons.split(',')
+                    else:
+                        move_inventory_reasons = []
+                    move_inventory_reasons = [str(x).lower() for x in move_inventory_reasons]
+                    if len(move_inventory_reasons) > 0 and str(cell_data).lower() not in map(str.lower,
+                                                                                             move_inventory_reasons):
+                        index_status.setdefault(row_idx, set()).add('Enter only Configured Move Inventory Reasons')
+                    else:
+                        data_dict[key] = cell_data
+                elif key in number_fields:
+                    if isinstance(cell_data, float):
+                        get_decimal_data(cell_data, index_status, row_idx, user)
+                    if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
+                    else:
+                        data_dict[key] = cell_data
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+                data_dict['sku_code'] = data_dict['wms_code']
+                data_dict['location'] = dest_location[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
+
+            if row_idx not in index_status:
+                stock_dict = {"sku_id": data_dict['sku_id'],
+                              "location_id": data_dict['source_id'],
+                              "sku__user": user.id, "quantity__gt": 0}
+                reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                                 'status': 1,
+                                 'stock__location_id': data_dict['source_id']}
+                raw_reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                                 'status': 1,
+                                 'stock__location_id': data_dict['source_id']}
+                if data_dict.get('batch_no', ''):
+                    stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
+                    reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
+                    raw_reserved_dict['stock__batch_detail__batch_no'] = data_dict['batch_no']
+                if data_dict.get('mrp', ''):
+                    try:
+                        mrp = data_dict['mrp']
+                    except:
+                        mrp = 0
+                    stock_dict["batch_detail__mrp"] = mrp
+                    reserved_dict["stock__batch_detail__mrp"] = mrp
+                    raw_reserved_dict["stock__batch_detail__mrp"] = mrp
+                if data_dict.get('weight', ''):
+                    weight = data_dict['weight']
+                    stock_dict["batch_detail__weight"] = weight
+                    reserved_dict["stock__batch_detail__weight"] = weight
+                    raw_reserved_dict["stock__batch_detail__weight"] = weight
+                if data_dict.get('seller_master_id', ''):
+                    stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
+                    stock_dict['sellerstock__quantity__gt'] = 0
+                    reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                    raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+                stocks = StockDetail.objects.filter(**stock_dict)
+                if not stocks:
+                    index_status.setdefault(row_idx, set()).add('No Stocks Found')
                 else:
-                    data_dict[key] = cell_data
-                if user.username in MILKBASKET_USERS and not cell_data:
-                    index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
-            elif key in number_fields:
-                if isinstance(cell_data, float):
-                    get_decimal_data(cell_data, index_status, row_idx, user)
-                if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
-                    index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
-                else:
-                    data_dict[key] = cell_data
-        if row_idx not in index_status:
-            stock_dict = {"sku_id": data_dict['sku_id'],
-                          "location_id": data_dict['source_id'],
-                          "sku__user": user.id, "quantity__gt": 0}
-            reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
-                             'status': 1,
-                             'stock__location_id': data_dict['source_id']}
-            raw_reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
-                             'status': 1,
-                             'stock__location_id': data_dict['source_id']}
-            if data_dict.get('batch_no', ''):
-                stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
-                reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
-                raw_reserved_dict['stock__batch_detail__batch_no'] = data_dict['batch_no']
-            if data_dict.get('mrp', ''):
-                try:
-                    mrp = data_dict['mrp']
-                except:
-                    mrp = 0
-                stock_dict["batch_detail__mrp"] = mrp
-                reserved_dict["stock__batch_detail__mrp"] = mrp
-                raw_reserved_dict["stock__batch_detail__mrp"] = mrp
-            if data_dict.get('weight', ''):
-                weight = data_dict['weight']
-                stock_dict["batch_detail__weight"] = weight
-                reserved_dict["stock__batch_detail__weight"] = weight
-                raw_reserved_dict["stock__batch_detail__weight"] = weight
-            if data_dict.get('seller_master_id', ''):
-                stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
-                stock_dict['sellerstock__quantity__gt'] = 0
-                reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
-                raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
-            stocks = StockDetail.objects.filter(**stock_dict)
-            if not stocks:
-                index_status.setdefault(row_idx, set()).add('No Stocks Found')
-            else:
-                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
-                reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
-                                        aggregate(Sum('reserved'))['reserved__sum']
-                raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict).\
-                                        aggregate(Sum('reserved'))['reserved__sum']
-                if not reserved_quantity:
-                    reserved_quantity = 0
-                if not raw_reserved_quantity:
-                    raw_reserved_quantity = 0
-                avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
-                if avail_stock < float(data_dict['quantity']):
-                    index_status.setdefault(row_idx, set()).add('Quantity Exceeding available quantity')
-        data_list.append(data_dict)
+                    stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                    reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
+                                            aggregate(Sum('reserved'))['reserved__sum']
+                    raw_reserved_quantity = RMLocation.objects.exclude(stock=None).filter(**raw_reserved_dict).\
+                                            aggregate(Sum('reserved'))['reserved__sum']
+                    if not reserved_quantity:
+                        reserved_quantity = 0
+                    if not raw_reserved_quantity:
+                        raw_reserved_quantity = 0
+                    avail_stock = stock_count - reserved_quantity - raw_reserved_quantity
+                    if avail_stock < float(data_dict['quantity']):
+                        index_status.setdefault(row_idx, set()).add('Quantity Exceeding available quantity')
+            data_list.append(data_dict)
 
-    if not index_status:
-        return 'Success', data_list
+        if not index_status:
+            return 'Success', data_list
 
-    if index_status and file_type == 'csv':
-        f_name = fname.name.replace(' ', '_')
-        file_path = rewrite_csv_file(f_name, index_status, reader)
-        if file_path:
-            f_name = file_path
-        return f_name, data_list
+        if index_status and file_type == 'csv':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_csv_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
 
-    elif index_status and file_type == 'xls':
-        f_name = fname.name.replace(' ', '_')
-        file_path = rewrite_excel_file(f_name, index_status, reader)
-        if file_path:
-            f_name = file_path
-        return f_name, data_list
+        elif index_status and file_type == 'xls':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_excel_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('validation of move inventory failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
 
 
 @csrf_exempt
@@ -3572,53 +3617,63 @@ def move_inventory_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-    status, data_list = validate_move_inventory_form(request, reader, user, no_of_rows,
-                                                     no_of_cols, fname, file_type)
-    if status != 'Success':
-        return HttpResponse(status)
-    # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    # if not cycle_count:
-    #     cycle_id = 1
-    # else:
-    #     cycle_id = cycle_count[0].cycle + 1
-    mod_locations = []
-    seller_receipt_dict = {}
-    sku_codes = []
-    receipt_number = get_stock_receipt_number(user)
-    count=0
-    for data_dict in data_list:
-        extra_dict = OrderedDict()
-        wms_code = data_dict['wms_code']
-        sku_codes.append(wms_code)
-        source_loc = data_dict['source']
-        dest_loc = data_dict['destination']
-        quantity = data_dict['quantity']
-        seller_id = ''
-        if data_dict.get('seller_id', ''):
-            extra_dict['seller_id'] = data_dict['seller_id']
-            seller_id = data_dict['seller_id']
-        if data_dict.get('batch_no', ''):
-            extra_dict['batch_no'] = data_dict['batch_no']
-        if data_dict.get('mrp', ''):
-            extra_dict['mrp'] = data_dict['mrp']
-        if data_dict.get('weight', ''):
-            extra_dict['weight'] = data_dict['weight']
-        if user.userprofile.user_type == 'marketplace_user':
-            if str(seller_id) in seller_receipt_dict.keys():
-                receipt_number = seller_receipt_dict[str(seller_id)]
-            else:
-                receipt_number = get_stock_receipt_number(user)
-                seller_receipt_dict[str(seller_id)] = receipt_number
-        extra_dict['receipt_type'] = 'move-inventory'
-        extra_dict['receipt_number'] = receipt_number
-        response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
-        if response == 'Added Successfully':
-            count+=1
-        mod_locations.append(source_loc)
-        mod_locations.append(dest_loc)
-    update_filled_capacity(list(set(mod_locations)), user.id)
-    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
-    return HttpResponse('Successfully moved {} items'.format(count))
+    try:
+        status, data_list = validate_move_inventory_form(request, reader, user, no_of_rows,
+                                                         no_of_cols, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        # cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        # if not cycle_count:
+        #     cycle_id = 1
+        # else:
+        #     cycle_id = cycle_count[0].cycle + 1
+        mod_locations = []
+        seller_receipt_dict = {}
+        sku_codes = []
+        receipt_number = get_stock_receipt_number(user)
+        count=0
+        for data_dict in data_list:
+            extra_dict = OrderedDict()
+            wms_code = data_dict['wms_code']
+            sku_codes.append(wms_code)
+            source_loc = data_dict['source']
+            dest_loc = data_dict['destination']
+            quantity = data_dict['quantity']
+            reason = data_dict.get('reason', '')
+            seller_id = ''
+            if data_dict.get('seller_id', ''):
+                extra_dict['seller_id'] = data_dict['seller_id']
+                seller_id = data_dict['seller_id']
+            if data_dict.get('batch_no', ''):
+                extra_dict['batch_no'] = data_dict['batch_no']
+            if data_dict.get('mrp', ''):
+                extra_dict['mrp'] = data_dict['mrp']
+            if data_dict.get('weight', ''):
+                extra_dict['weight'] = data_dict['weight']
+            if user.userprofile.user_type == 'marketplace_user':
+                if str(seller_id) in seller_receipt_dict.keys():
+                    receipt_number = seller_receipt_dict[str(seller_id)]
+                else:
+                    receipt_number = get_stock_receipt_number(user)
+                    seller_receipt_dict[str(seller_id)] = receipt_number
+            extra_dict['receipt_type'] = 'move-inventory'
+            extra_dict['receipt_number'] = receipt_number
+            extra_dict['reason'] = reason
+            response=move_stock_location(wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
+            if response == 'Added Successfully':
+                count+=1
+            mod_locations.append(source_loc)
+            mod_locations.append(dest_loc)
+        update_filled_capacity(list(set(mod_locations)), user.id)
+        if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
+        return HttpResponse('Successfully moved {} items'.format(count))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('move inventory failed for %s  and error statement is %s' % (
+            str(user.username), str(e)))
+        return HttpResponse('Failed to Upload')
+
 
 
 def get_marketplace_headers(row_idx, open_sheet):
@@ -3917,6 +3972,7 @@ def combo_sku_upload(request, user=''):
 def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -3980,13 +4036,21 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                     except:
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
+                if user.username in MILKBASKET_USERS:
+                    cell_data = mb_weight_correction(cell_data)
                 data_dict[key] = cell_data
-                #if user.username in MILKBASKET_USERS and not cell_data:
+
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
             else:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+            data_dict['sku_code'] = sku_master[0].sku_code
+            data_dict['location'] = location_master[0].location
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         data_list.append(data_dict)
 
     if not index_status:
@@ -4085,7 +4149,7 @@ def customer_form(request, user=''):
         return error_file_download(customer_file)
 
     wb, ws = get_work_sheet('customer', CUSTOMER_HEADERS)
-    return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.customer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -5573,7 +5637,7 @@ def seller_transfer_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = get_seller_transfer_excel_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -6133,7 +6197,7 @@ def stock_transfer_order_form(request, user=''):
     if error_file:
         return error_file_download(error_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
-    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
 def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create=False,
                               order_fields_objs=None):
@@ -6817,7 +6881,7 @@ def skupack_master_download(request, user=''):
     if sku_file:
         return error_file_download(sku_file)
     wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
-    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -7786,7 +7850,7 @@ def brand_level_pricing_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
     wb, ws = get_work_sheet('Brand Level Pricing', excel_headers)
-    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -7884,7 +7948,7 @@ def supplier_sku_attributes_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_ATTRIBUTE_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.username))
 
 @csrf_exempt
 def validate_supplier_sku_attributes_form(open_sheet, user_id):

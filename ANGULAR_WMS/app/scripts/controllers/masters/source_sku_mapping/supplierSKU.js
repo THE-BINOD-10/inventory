@@ -31,6 +31,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('supplier_id').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('wms_code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('supplier_code').withTitle("Supplier's SKU Code"),
+        DTColumnBuilder.newColumn('costing_type').withTitle("Costing Type"),
+        DTColumnBuilder.newColumn('price').withTitle("Price"),
+        DTColumnBuilder.newColumn('margin_percentage').withTitle("Margin Percentage"),
+        DTColumnBuilder.newColumn('markup_percentage').withTitle("Mark Up Percentage"),
+        DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
         DTColumnBuilder.newColumn('preference').withTitle('Priority'),
         DTColumnBuilder.newColumn('moq').withTitle('MOQ'),
     ];

@@ -92,7 +92,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         SKUFields.objects.filter(sku__user=user.id, field_type='hot_release').values_list('sku_id', 'field_value'))
     file_type = 'xls'
     wb, ws = get_work_sheet('skus', excel_headers)
-    file_name = "%s.%s" % (user.id, 'SKU Master')
+    file_name = "%s.%s" % (user.username, 'SKU Master')
     folder_path = 'static/excel_files/'
     folder_check(folder_path)
     if sku_master.count() > 65535:
@@ -232,7 +232,7 @@ def central_orders_excel_download(filter_params, user, request):
     status_index = len(CENTRAL_ORDER_EXCEL)
     excel_headers['status'] = status_index
     wb, ws = get_work_sheet('central_orders', excel_headers)
-    file_name = "%s.%s" % (user.id, 'Central_Orders')
+    file_name = "%s.%s" % (user.username, 'Central_Orders')
     folder_path = 'static/excel_files/'
     folder_check(folder_path)
     if all_orders.count() > 65535:
@@ -363,7 +363,7 @@ def easyops_stock_excel_download(search_params, temp_data, headers, user, reques
         ws.write(data_count, 2, data[0])
         ws.write(data_count, 3, data[2])
 
-    file_name = "%s.%s" % (user.id, 'Stock Custom Format-1')
+    file_name = "%s.%s" % (user.username, 'Stock Custom Format-1')
     path = 'static/excel_files/' + file_name + '.xls'
     wb.save(path)
     path_to_file = '../' + path

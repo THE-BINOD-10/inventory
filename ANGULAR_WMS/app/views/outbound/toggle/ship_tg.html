@@ -94,6 +94,14 @@
                 <input type="text" name="courier_name" ng-model="showCase.model_data.courier_name" class="form-control">
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">EwayBill Number
+                <span ng-if="showCase.parent_username =='ola_admin'" ng-required="showCase.parent_username =='ola_admin'" >*</span>
+                </label>
+                <input name="ewaybill_number" class="form-control" type="text" ng-model="showCase.model_data.ewaybill_number">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">
               <div class="form-group">
                 <label class="control-label"> Selected Carton code </label>

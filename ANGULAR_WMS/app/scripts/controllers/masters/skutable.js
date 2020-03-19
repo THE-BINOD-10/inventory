@@ -264,6 +264,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       $('.bootstrap-tagsinput').find('input').attr("autocomplete", "off");
     }
+    vm.readonly_permission = function(){
+      if(!vm.permissions.change_skumaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
 
     vm.close = function() {
       angular.copy(empty_data, vm.model_data);

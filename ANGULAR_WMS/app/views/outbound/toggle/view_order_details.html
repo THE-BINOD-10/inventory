@@ -258,7 +258,7 @@
               <input type="text" ng-if="data.brand" class="form-control" name="sku_brand" ng-model="data.brand" readonly title="{{data.brand}}">
             </td>
             <td ng-repeat="sku_headers in showCase.extra_headers">
-              <label ng-if="sku_headers">{{data.order_sku_attributes[sku_headers]}}</label>
+              <label ng-if="sku_headers" title="{{data.order_sku_attributes[sku_headers]}}">{{data.order_sku_attributes[sku_headers]}}</label>
             </td>
             <td>
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
@@ -267,7 +267,7 @@
               <input type="text" class="form-control" name="mrp" ng-model="data.mrp" readonly title="{{data.mrp}}" style="width: 100%">
             </td>
             <td>
-              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status" title="{{data.unit_price}}">
             </td>
             <td>
               <input type="text" class="form-control" ng-model="data.discount_per" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status" discount-number="99.99">

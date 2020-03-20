@@ -4549,3 +4549,72 @@ def insert_supplier_attribute(request, user=''):
     else:
         data = 'Error Case'
     return HttpResponse(data)
+
+
+# @csrf_exempt
+# def get_vehicle_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+#     lis = ['customer_id', 'name', 'customer_type', 'city', 'status']
+#
+#     search_params = get_filtered_params(filters, lis)
+#     if 'status__icontains' in search_params.keys():
+#         if (str(search_params['status__icontains']).lower() in "active"):
+#             search_params["status__icontains"] = 1
+#         elif (str(search_params['status__icontains']).lower() in "inactive"):
+#             search_params["status__icontains"] = 0
+#         else:
+#             search_params["status__icontains"] = "none"
+#     order_data = lis[col_num]
+#     if order_term == 'desc':
+#         order_data = '-%s' % order_data
+#     if search_term:
+#         search_dict = {'active': 1, 'inactive': 0}
+#         if search_term.lower() in search_dict:
+#             search_terms = search_dict[search_term.lower()]
+#             master_data = CustomerMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+#                 order_data)
+#
+#         else:
+#             master_data = CustomerMaster.objects.filter(
+#                 Q(name__icontains=search_term) | Q(address__icontains=search_term) |
+#                 Q(phone_number__icontains=search_term) | Q(email_id__icontains=search_term),
+#                 user=user.id, **search_params).order_by(order_data)
+#
+#     else:
+#         master_data = CustomerMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+#
+#     temp_data['recordsTotal'] = len(master_data)
+#     temp_data['recordsFiltered'] = len(master_data)
+#     for data in master_data[start_index: stop_index]:
+#         status = 'Inactive'
+#         if data.status:
+#             status = 'Active'
+#
+#         if data.phone_number:
+#             try:
+#                 data.phone_number = int(float(data.phone_number))
+#             except:
+#                 data.phone_number = ''
+#         login_created = False
+#         customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
+#         user_name = ""
+#         price_type = ""
+#         if customer_login:
+#             login_created = True
+#             # user = customer_login[0].user
+#             user_name = customer_login[0].user.username
+#
+#         price_band_flag = get_misc_value('priceband_sync', user.id)
+#         if price_band_flag == 'true':
+#             user = get_admin(data.user)
+#
+#         price_types = get_distinct_price_types(user)
+#         price_type = data.price_type
+#         phone_number = ''
+#         if data.phone_number and data.phone_number != '0':
+#             phone_number = data.phone_number
+#         temp_data['aaData'].append(
+#             OrderedDict((('vehicle_id', data.customer_id), ('vehicle_number', data.name), ('status', status),
+#                          ('customer_type', data.customer_type),
+#                          ('city', data.city), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
+#                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results')
+#                        )))

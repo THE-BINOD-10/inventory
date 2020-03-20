@@ -1901,9 +1901,9 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                         custom_price = SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price']
                         if user.userprofile.industry_type == 'FMCG':
                             data_dict['batch_detail__buy_price'] = custom_price
-                            data_dict['price_type'] = "Custom Input Type"
+                            data_dict['price_type'] = "Cost Price"
                         data_dict['unit_price'] = custom_price
-                        data_dict['price_type'] = "Custom Input Type"
+                        data_dict['price_type'] = "Cost Price"
             elif key in number_fields:
                 try:
                     if key == 'quantity':
@@ -2026,7 +2026,7 @@ def inventory_excel_upload(request, user, data_list):
                 if weight:
                     batch_dict['weight'] = weight
                 if buy_price:
-                    batch_dict["buy_price"] = int(buy_price)
+                    batch_dict["buy_price"] = float(buy_price)
                 add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
@@ -3591,11 +3591,11 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         stock_dict['batch_detail__buy_price'] = custom_price
                         reserved_dict["stock__batch_detail__buy_price"] = custom_price
                         raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price
-                        stock_dict['price_type'] = "Custom Input Type"
+                        stock_dict['price_type'] = "Cost Price"
                     stock_dict['unit_price'] = custom_price
                     reserved_dict["stock__unit_price"] = custom_price
                     raw_reserved_dict['stock__unit_price'] = custom_price
-                    stock_dict['price_type'] = "Custom Input Type"
+                    stock_dict['price_type'] = "Cost Price"
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -4171,7 +4171,7 @@ def inventory_adjust_upload(request, user=''):
             if user.userprofile.industry_type =='FMCG':
                 price = custom_price
             price = custom_price
-            price_type = "Custom Input Type"
+            price_type = "Cost Price"
 
         if str(seller_master_id) in seller_receipt_dict.keys():
             receipt_number = seller_receipt_dict[str(seller_master_id)]

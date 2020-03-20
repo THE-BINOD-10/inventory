@@ -1368,6 +1368,7 @@ def get_orders(request):
         sister_whs.append(str(sister_wh1).lower())
     try:
         search_params = json.loads(request.body)
+        limit = search_params.get('limit', '')
         if search_params.has_key('from_date'):
             search_params['from_date'] = parser.parse(search_params['from_date'])
         if search_params.has_key('to_date'):

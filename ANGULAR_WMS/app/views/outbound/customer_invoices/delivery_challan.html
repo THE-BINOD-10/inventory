@@ -7,8 +7,8 @@
 	</div>
 	<div class="panel-footer">
 		<button type="button" class="btn btn-primary pull-left" ng-click="showCase.excel()" ng-disabled="showCase.apply_filters.download_load"><i class="fa fa-download"></i>  Download Excel</button>
-		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('cancel_dc')">Cancel DC</button>
-		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.edit_dc()">Edit DC</button>
+		<!--<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('cancel_dc')">Cancel DC</button>
+		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.edit_dc()">Edit DC</button>-->
 		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate', true)" ng-disabled="showCase.bt_disable">Delivery Challan</button>
 		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_inv')">Move to Invoice</button>
 	</div>

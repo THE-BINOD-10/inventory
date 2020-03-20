@@ -5,7 +5,7 @@ FUN = {};
 'use strict';
 
 var stockone = angular.module('urbanApp', ['datatables'])
-stockone.controller('OutboundPaymentReportCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
+stockone.controller('InboundPaymentReportCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
     var vm = this;
@@ -72,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.g_data = Data.payment_based_invoice;
 
     var sort_no = 1;
-    vm.filters = {'datatable': 'OutboundPaymentReport', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+    vm.filters = {'datatable': 'InboundPaymentReport', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': '', 'search6': '', 'search7': ''/*, 'search8': ''*/};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -108,7 +108,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('payment_id').withTitle('Payment ID'),
         DTColumnBuilder.newColumn('payment_date').withTitle('Payment Date'),
         DTColumnBuilder.newColumn('invoicee_number').withTitle('Invoice Number'),
-        DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('supplier_name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
         DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
         // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
@@ -150,57 +150,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     vm.loadjs = function () {
-      vm.OutboundPaymentReportCtrl_enable = true;
+      vm.InboundPaymentReportCtrl_enable = true;
     }
 
-    // vm.addRowData = function(event, data) {
-    //   Data.invoice_data = data;
-    //   var elem = event.target;
-    //   var data_tr = angular.element(elem).parent().parent();
-    //   if ($(elem).hasClass('invoice_data_show')) {
-    //     var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
-    //     data_tr.after(html);
-    //     data_tr.next().toggle(1000);
-        
-    //     $(elem).removeClass();
-    //     $(elem).addClass('invoice_data_hide');
-    //   } else {
-    //     $(elem).removeClass('invoice_data_hide');
-    //     $(elem).addClass('invoice_data_show');
-    //     data_tr.next().remove();
-    //   }
-    // }
-
-    // function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-    //     $(row_click_bind, nRow).unbind('click');
-    //     $(row_click_bind, nRow).bind('click', function() {
-    //         $scope.$apply(function() {
-    //             vm.service.apiCall('po_get_invoice_payment_tracker/', 'GET', aData).then(function(data){
-    //               if(data.message) {
-    //                 vm.serial_numbers = [];
-    //                 angular.copy(data.data, vm.model_data);
-    //                 vm.title = "Invoice Based Payment";
-    //                 vm.update = true;
-
-    //                 $state.go('app.PaymentTrackerInvBased.Inv_Details');
-    //                 $timeout(function () {
-    //                   $(".customer_status").val(vm.model_data.status);
-    //                 }, 500);
-    //               }
-    //             });
-    //         });
-    //     });
-    //     return nRow;
-    // }
-
-    // vm.update = false;
     vm.model_data = {};
 
   vm.resetFilters = function(filters){
 
     filters.from_date = '';
     filters.to_date = '';
-    filters.customer = '';
+    filters.supplier_name = '';
     filters.invoice_number = '';
   }
 

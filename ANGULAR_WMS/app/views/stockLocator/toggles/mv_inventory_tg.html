@@ -55,11 +55,11 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Reason</label>
-                  <select class="form-control" ng-if = "showCase.move_inventory_reasons[0]"name="reason" ng-model="showCase.model_data.reason">
+                  <select class="form-control" ng-if = "showCase.reasons_available" name="reason" ng-model="showCase.model_data.reason">
                     <option value="">Select Reason</option>
                     <option ng-repeat="reason in showCase.move_inventory_reasons" value="{{reason}}">{{reason}}</option>
                   </select>
-                  <input ng-model="showCase.model_data.reason" ng-if = "showCase.move_inventory_reasons[0] == ''" type="text" name="reason" class="form-control">
+                  <input ng-model="showCase.model_data.reason" ng-if = "!showCase.reasons_available" type="text" name="reason" class="form-control">
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">

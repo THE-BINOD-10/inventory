@@ -155,6 +155,7 @@
         vm.service.apiCall('get_move_inventory_reasons/').then(function(data){
           if(data) {
            vm.move_inventory_reasons = data.data.move_inventory_reasons
+           vm.reasons_available = data.data.reasons_available
           }});
         $state.go('app.stockLocator.MoveInventory.Inventory');
       }

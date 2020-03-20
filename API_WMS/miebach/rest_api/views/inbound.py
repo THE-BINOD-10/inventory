@@ -108,18 +108,23 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         last_updated_remarks = result['remarks']
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
-            if result['pending_level'] != 'level0':
-                prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
+            if result['final_status'] not in ['pending', 'saved']:
+                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
-            elif result['pending_level'] == 'level0':
-                if result['final_status'] not in ['pending', 'saved']:
-                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+            else:
+                if result['pending_level'] != 'level0':
+                    prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
+                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
+                else:
+                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                    # last_updated_by = prApprQs[0].validated_by
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                    # last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pr_number']),
                                                 ('PO Number', po_reference),

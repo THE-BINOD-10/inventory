@@ -39,6 +39,8 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     vm.model_data["customer_id"] = item.customer_id;
     vm.model_data["customer_name"] = item.name;
     vm.model_data["tax_type"] = item.tax_type;
+    vm.model_data['chassis_number'] = item.chassis_number
+    vm.model_data['customer_reference'] = item.customer_reference
   }
   // Fill Customer Info Code Ends
 
@@ -96,6 +98,16 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
         })
       }
       vm.get_extra_order_options();
+      vm.get_customer_types  = function()
+      {
+        vm.service.apiCall("get_customer_types/").then(function(data){
+          if(data.message) {
+            vm.customer_types = data.data.data;
+          }
+
+        })
+      }
+      vm.get_customer_types();
 
       vm.get_sku_additional_data  = function(record, item, index)
       {

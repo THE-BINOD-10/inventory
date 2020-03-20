@@ -5,7 +5,7 @@ function AttributesPOP($scope, $http, $state, $timeout, Session, colFilters, Ser
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
-  vm.input_types = ['Input', 'Number', 'Textarea'];
+  vm.input_types = ['Input', 'Number', 'Textarea', 'Dropdown'];
 
   vm.empty_data = {'id': '', 'attribute_name': '', 'attribute_type': 'Input'}
 

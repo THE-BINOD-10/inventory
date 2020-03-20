@@ -105,6 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
         DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('Updated CustomerName').withTitle('Updated CustomerName'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('Allocated Quantity').withTitle('Allocated Quantity'),
@@ -163,6 +164,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.filters['datatable'] = 'OrderAllocations';
       }
     }
+    vm.get_customer_types  = function()
+      {
+        vm.service.apiCall("get_customer_types/").then(function(data){
+          if(data.message) {
+            vm.customer_types = data.data.data;
+          }
+
+        })
+      }
+      vm.get_customer_types();
 
     vm.saveFilters = function(filters){
       Data.rtv_filters = filters;

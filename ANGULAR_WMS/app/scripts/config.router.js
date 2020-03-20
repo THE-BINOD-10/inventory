@@ -414,9 +414,17 @@ var app = angular.module('urbanApp')
           permission: 'show_vehiclemaster',
           templateUrl: 'views/masters/vehicle_datatable.html',
           resolve: {
+//            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+//                return $ocLazyLoad.load('scripts/controllers/masters/vehicleMaster.js');
+//                    }]
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/masters/vehicleMaster.js');
-                    }]
+                return $ocLazyLoad.load(['scripts/controllers/masters/vehicleMaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+              }]
           },
           data: {
             title: 'Vehicle Master',

@@ -8529,7 +8529,7 @@ def get_user_attributes(user, attr_model):
 @get_admin_user
 def get_user_attributes_list(request, user=''):
     attr_model = request.GET.get('attr_model')
-    attributes = get_user_attributes(user, 'sku')
+    attributes = get_user_attributes(user, attr_model)
     return HttpResponse(json.dumps({'data': list(attributes), 'status': 1}))
 
 

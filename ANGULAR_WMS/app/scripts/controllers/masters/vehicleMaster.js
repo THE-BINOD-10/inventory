@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('VehicleMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('VehicleMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$modal',ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $modal) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -107,6 +107,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.base();
     vm.get_customer_id();
+    vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'customer'}).then(function(data){
+      vm.attributes = data.data.data;
+    });
+    debugger;
     $state.go('app.masters.VehicleMaster.vehicle');
   }
 
@@ -124,7 +128,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.refresh(vm.dtInstance);
           vm.close();
         } else {
-          vm.service.pop_msg(data.data);
+          vm.service.pop_msg(data.data.replace('Customer', 'Vehicle'));
         }
       }
     });
@@ -149,6 +153,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.pop_msg('Please fill required fields');
     }
   }
+
+  vm.addAttributes = function() {
+    var send_data = {}
+    angular.copy(vm.attr_model_data, send_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/masters/toggles/attributes.html',
+      controller: 'AttributesPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      //windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (result_dat) {
+      vm.model_data.attributes = result_dat;
+    });
+  }
+
+//    vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'customer'}).then(function(data){
+//      vm.attributes = data.data.data;
+//    });
+
 
 }
 

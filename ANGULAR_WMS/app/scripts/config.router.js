@@ -933,6 +933,10 @@ var app = angular.module('urbanApp')
             url: '/Confirmation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
+          .state('app.stockLocator.StockDetail.batch_detail', {
+            url: '/Confirmation',
+            templateUrl: 'views/stockLocator/toggles/batch_details.html'
+          })
         .state('app.inbound.rtv', {
           url: '/rtv',
           // permission: 'add_polocation',
@@ -1918,13 +1922,25 @@ var app = angular.module('urbanApp')
       // Track Orders
       .state('app.PaymentTracker', {
           url: '/PaymentTracker',
-          templateUrl: 'views/payment_tracker/payment_tracker.html',
+          templateUrl: 'views/payment_tracker/alternative_payment_tab.html',
           authRequired: true,
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/payment_tracker/payment_tracker.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/payment_tracker_inbound.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/inbound_payment_report.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -1942,11 +1958,15 @@ var app = angular.module('urbanApp')
                   'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
                     'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
                 }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                    'scripts/controllers/payment_tracker/inbound_payment_report.js'
                   ])
                 }).then( function() {
                     return $ocLazyLoad.load([{

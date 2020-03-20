@@ -16341,10 +16341,13 @@ def get_auth_signature(request, user, inv_date):
     auth_signature = ''
     master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
     if master_docs_obj.exists():
+        url = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')+'/'
         if len(master_docs_obj) > 1:
             for auth_sign in master_docs_obj:
                 if inv_date > auth_sign.creation_date:
-                    auth_signature = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')+'/'+auth_sign.uploaded_file.url
+                    auth_signature = url+auth_sign.uploaded_file.url
+                else:
+                    auth_signature = url+auth_sign.uploaded_file.url
         if len(master_docs_obj) == 1 or (not auth_signature):
-            auth_signature = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')+'/'+master_docs_obj[0].uploaded_file.url
+            auth_signature = url+master_docs_obj[0].uploaded_file.url
     return auth_signature

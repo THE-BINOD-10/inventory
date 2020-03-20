@@ -16346,6 +16346,7 @@ def get_auth_signature(request, user, inv_date):
             for auth_sign in master_docs_obj:
                 if inv_date > auth_sign.creation_date:
                     auth_signature = url+auth_sign.uploaded_file.url
+                    break
                 else:
                     auth_signature = url+auth_sign.uploaded_file.url
         if len(master_docs_obj) == 1 or (not auth_signature):

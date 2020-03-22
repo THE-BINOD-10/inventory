@@ -259,20 +259,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var status = false;
       var field_name = "";
       var checkbox_valid = []
+      var inv_check = []
       var data_dict = {}
   	  var key = 0
       var flag = 1
   	  angular.forEach(vm.selected, function(obj, idx) {
     		if (obj) {
     		  var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Stock Transfer ID'];
+    		  var invoice = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Invoice Number'];
     		  var pick_number = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['pick_number'];
     		  if(checkbox_valid.length < 1){
     		      checkbox_valid.push(temp)
+    		      inv_check.push(invoice)
     		      data_dict['order_id'] =temp
                   data_dict['pick_number'] = [pick_number]
     		  } else {
-    		      if(checkbox_valid.indexOf(temp) == -1){
-    		          vm.service.showNoty("Please select only one Order");
+    		      if(checkbox_valid.indexOf(temp) == -1 || inv_check.indexOf(invoice) == -1){
+    		          vm.service.showNoty("Please select only one Order or Invoice ");
                       flag = 0
     			     return false;
     		      } else {

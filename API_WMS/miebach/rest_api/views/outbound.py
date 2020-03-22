@@ -10934,7 +10934,7 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
         if warehouse.exists():
             warehouse_name = warehouse[0].username
 
-        old_list.append({'Stock Transfer ID' :  obj['order_id'],'Order Quantity':obj['quantity'],'Picked Quantity' : obj['pic_qty'],
+        old_list.append({'Stock Transfer ID' :  obj['order_id'],'Order Quantity':obj['quantity'],'Picked Quantity' : obj['pic_qty'],'Invoice Number':'',
             'Total Amount' :total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse_name,'pick_number':'','id':''})
     for obj in stock_transfer_summary:
         tax_value = 0
@@ -10957,17 +10957,19 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
         if warehouse.exists():
             warehouse_name = warehouse[0].username
         group_key = '%s:%s:%s' % (obj.stock_transfer.order_id,obj.pick_number,obj.invoice_number)
-        new_data.setdefault(group_key,{'order_id':obj.stock_transfer.order_id,'total_quantity':0,
+        new_data.setdefault(group_key,{'order_id':obj.stock_transfer.order_id,'total_quantity':0,'full_invoice_number':'',
                                        'picked_quantity':0,'price':0,'pick_number':'','warehouse_name':warehouse_name,'shipment_date':shipment_date})
 
         new_data[group_key]['picked_quantity']+=obj.quantity
         new_data[group_key]['total_quantity']+=obj.stock_transfer.quantity
         new_data[group_key]['pick_number'] = pick_number
         new_data[group_key]['price']+=sku_price
+        new_data[group_key]['full_invoice_number'] = obj.full_invoice_number
     for key,value in  new_data.iteritems():
         new_list.append(
             {'Stock Transfer ID': value['order_id'], 'Order Quantity': value['total_quantity'], 'Picked Quantity': value['picked_quantity'],
              'Total Amount': value['price'], 'Stock Transfer Date&Time': value['shipment_date'],'pick_number':value['pick_number'],
+             'Invoice Number':value['full_invoice_number'],
              'Warehouse Name': value['warehouse_name'],})
 
     if order_term == 'desc':

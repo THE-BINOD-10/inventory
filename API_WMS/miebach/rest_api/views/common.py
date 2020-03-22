@@ -850,6 +850,10 @@ def configurations(request, user=''):
     config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
                                             type_name='credit_note_sequence').exclude(type_value=''). \
                                       values('prefix').annotate(marketplace=F('type_value')))
+    config_dict['prefix_st_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
+                                                                         type_name='stock_transfer_invoice').exclude(
+                                                                          type_value=''). \
+                                         values('prefix').annotate(marketplace=F('type_value')))
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
     order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')

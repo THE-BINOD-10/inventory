@@ -753,7 +753,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
     }
   }
-<<<<<<< HEAD
   vm.pr_save = function (data, type) {
     if(type =='save') {
       vm.add_empty_index('', 'save');
@@ -786,10 +785,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           Auth.status();
           vm.baseFunction()
           vm.pr_selected = "";
-=======
-
+        }
+      });
+    }
+  }
   vm.input_fields = ['Input', 'Textarea'];
-
   vm.service.apiCall("configurations/").then(function(data){
     if(data.message) {
       angular.copy(data.data, vm.model_data);
@@ -812,11 +812,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           vm.model_data[key] = Boolean(true);
         } else if (value == "false") {
           vm.model_data[key] = Boolean(false);
->>>>>>> a779220d42c80b90b506e36ad2c7006f928d8923
         }
       });
     }
-  }
+  });
+
   vm.add_empty_index = function(data, operation) {
     if (operation == 'delete') {
       angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){

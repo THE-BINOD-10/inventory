@@ -26,33 +26,37 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
       if(window.location.href.includes('pr_request')){
         if(window.location.href.split('pr_request')[1].includes('hash_code')) {
-          //Auth.external_link(window.location.href.split('pr_request')[1]);
           Session.unset();
+          $rootScope.$redirect = 'pr_request';
           var data = window.location.href.split('pr_request')[1];
+          swal2({
+            title: 'Redirecting to Validate PO',
+            text: 'User Authentication in Progress..',
+            imageUrl: 'images/default_loader.gif',
+            imageWidth: 150,
+            imageHeight: 150,
+            imageAlt: 'Custom image',
+            showConfirmButton:false,
+          })
           $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
            if (resp) {
             resp = resp.data;
             $rootScope.$current_pr = resp.aaData['aaData'][0]
             localStorage.clear();
-            Auth.update_manifest(resp.data);
             if (resp.message != "Fail") {
               Session.set(resp.data)
-              $rootScope.$redirect = 'pr_request';
+              swal2.close()
               $state.go("app.inbound.RaisePo");
               }
             }
         });
         }
-      }  else {
-
-      var skipAsync = false;
-      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
-
-            $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
-
+      } else {
+        var skipAsync = false;
+        var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
+          $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
               var prms = toPrms;
               if(next.name == from.name) {
-
                 return;
               } else if ((states.indexOf(next.name) > -1) && Session.userName) {
                 if ($rootScope.$redirect) {
@@ -66,13 +70,10 @@ var app = angular.module('urbanApp')
                  }
                }
               }
-
               if (skipAsync) {
-
                 skipAsync = false;
                 return;
               }
-
               if (states.indexOf(next.name) == -1) {
 
                 event.preventDefault();

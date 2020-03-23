@@ -1364,10 +1364,12 @@ def get_orders(request):
     user = request.user
     sister_whs = []
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    request_type = 'POST'
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
     try:
         search_params = json.loads(request.body)
+        request_type = 'body'
         limit = search_params.get('limit', '')
         if search_params.has_key('from_date'):
             search_params['from_date'] = parser.parse(search_params['from_date'])
@@ -1401,7 +1403,7 @@ def get_orders(request):
             search_parameters['order_reference__in'] = search_params['order_reference']
     search_parameters['user'] = user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
-    page_info = scroll_data(request, order_records, limit=limit)
+    page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')

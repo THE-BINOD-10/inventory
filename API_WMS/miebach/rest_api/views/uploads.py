@@ -4028,6 +4028,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
                 if user.username in MILKBASKET_USERS:
+                    if isinstance(cell_data, (float)):
+                        cell_data = str(int(cell_data))
                     cell_data = mb_weight_correction(cell_data)
                 data_dict[key] = cell_data
 

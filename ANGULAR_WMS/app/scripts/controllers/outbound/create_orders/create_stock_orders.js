@@ -115,15 +115,23 @@ vm.changeUnitPrice = function(data){
           if(!(record.price)) {
             record.price = data.mrp;
           }
-          if(data.igst_tax && vm.igst_enable){
+          if(vm.igst_enable){
+            if(data.igst_tax){
             record.igst = data.igst_tax;
+            }else{
+            record.igst = data.sgst_tax+data.cgst_tax;
+            }
+          }else {
+           if(data.igst_tax){
+            record.sgst_tax = data.igst_tax / 2;
+            record.cgst_tax = data.igst_tax / 2 ;
+            }else{
+            record.sgst_tax = data.sgst_tax;
+            record.cgst_tax = data.cgst_tax;
+            }
+
           }
-          if(data.sgst_tax && vm.tax_cg_sg){
-            record.sgst = data.sgst_tax;
-          }
-          if(data.cgst_tax && vm.tax_cg_sg){
-            record.cgst = data.cgst_tax;
-          }
+
 
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         vm.update_availabe_stock(record)

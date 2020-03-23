@@ -1393,6 +1393,7 @@ def get_orders(request):
             search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
         except:
             search_parameters['original_order_id__in'] = search_params['order_id']
+        limit = len(search_parameters['original_order_id__in'])
     if 'order_reference' in search_params:
         try:
             search_parameters['order_reference__in'] = search_params['order_reference'].split(',')

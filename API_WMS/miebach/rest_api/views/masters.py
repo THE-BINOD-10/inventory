@@ -479,20 +479,23 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        temp_data['aaData'].append(
-            OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                         ('shipping_address', data.shipping_address),
-                         ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
-                         ('tin_number', data.tin_number), ('credit_period', data.credit_period),
-                         ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                         ('price_type', price_type), ('cst_number', data.cst_number),
-                         ('pan_number', data.pan_number), ('customer_type', data.customer_type),
-                         ('pincode', data.pincode), ('city', data.city), ('state', data.state),
-                         ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
-                         ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),('customer_reference',data.customer_reference),
-                         ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
-                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
-                         ('role', data.role), ('spoc_name', data.spoc_name))))
+        data_dict = OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
+                                 ('shipping_address', data.shipping_address),
+                                 ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
+                                 ('tin_number', data.tin_number), ('credit_period', data.credit_period),
+                                 ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
+                                 ('price_type', price_type), ('cst_number', data.cst_number),
+                                 ('pan_number', data.pan_number), ('customer_type', data.customer_type),
+                                 ('pincode', data.pincode), ('city', data.city), ('state', data.state),
+                                 ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
+                                 ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),('customer_reference',data.customer_reference),
+                                 ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
+                                 ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
+                                 ('role', data.role), ('spoc_name', data.spoc_name)))
+        data_dict['customer_attributes'] = dict(MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
+                                                            attribute_model='customer_master').\
+                            values_list('attribute_name', 'attribute_value'))
+        temp_data['aaData'].append(data_dict)
 
 
 @csrf_exempt
@@ -1550,6 +1553,7 @@ def update_customer_values(request, user=''):
                 setattr(data, key, value)
 
         data.save()
+        update_master_attributes(data, request, user, 'customer_master')
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='customer')
@@ -1708,6 +1712,8 @@ def insert_customer(request, user=''):
             for key, value in request.POST.iteritems():
                 if key in loop_exclude_list:
                     continue
+                if 'attr_' in key:
+                    continue
                 if key == 'status':
                     if value == 'Active':
                         value = 1
@@ -1721,6 +1727,7 @@ def insert_customer(request, user=''):
             customer_master = CustomerMaster(**data_dict)
             customer_master.save()
 
+            update_master_attributes(customer_master, request, user, 'customer_master')
             # Level 2 price type creation
             create_level_wise_price_type(2, level_2_price_type, customer_master, user)
             status_msg = 'New Customer Added'

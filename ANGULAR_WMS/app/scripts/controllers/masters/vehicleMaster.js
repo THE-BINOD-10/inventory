@@ -56,6 +56,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.update = true;
                 vm.title = "Update Vehicle";
                 vm.message ="";
+                vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'customer'}).then(function(data){
+                  vm.model_data.attributes = data.data.data;
+                  angular.forEach(vm.model_data.attributes, function(attr_dat){
+                  if(vm.model_data.customer_attributes[attr_dat.attribute_name])
+                  {
+                    attr_dat.attribute_value = vm.model_data.customer_attributes[attr_dat.attribute_name];
+                  }
+                  });
+                });
                 $state.go('app.masters.VehicleMaster.vehicle');
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
@@ -108,9 +117,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.base();
     vm.get_customer_id();
     vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'customer'}).then(function(data){
-      vm.attributes = data.data.data;
+      vm.model_data.attributes = data.data.data;
     });
-    debugger;
     $state.go('app.masters.VehicleMaster.vehicle');
   }
 

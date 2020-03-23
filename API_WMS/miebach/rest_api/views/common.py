@@ -8707,6 +8707,28 @@ def update_sku_attributes(data, request):
         update_sku_attributes_data(data, key, value)
 
 
+def update_master_attributes_data(user, data, key, value, attribute_model):
+    if not value == '':
+        master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
+                                                          attribute_model=attribute_model,
+                                                       attribute_name=key)
+        if not master_attr_obj and value:
+                MasterAttributes.objects.create(user_id=user.id, attribute_id=data.id, attribute_model=attribute_model,
+                                                attribute_name=key, attribute_value=value,
+                                                creation_date=datetime.datetime.now())
+        elif master_attr_obj and master_attr_obj[0].attribute_value != value:
+            master_attr_obj.update(attribute_value=value)
+    return 'Success'
+
+
+def update_master_attributes(data, request, user, attribute_model):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        update_master_attributes_data(user, data, key, value, attribute_model)
+
+
 def get_invoice_sequence_obj(user, marketplace):
     invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=marketplace)
     if not invoice_sequence:

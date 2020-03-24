@@ -23,7 +23,7 @@ def validate_(df, file_split,file_name):
     df['mrp_status'] = df['mrp_status'].replace(price_dict)
 
     if len(set(df['error_status'])) > 1 or len(set(df['mrp_status'])) > 1 or  len(set(df['price_status'])) >1 :
-        send_mail(mail_id, 'FTP file Upload', wrapper %("SKU Upload Failed for the file "+file_split[0]))
+        send_mail(mail_id, 'FTP file Upload', wrapper %("SKU Upload Failed for the file "+file_name))
         if 'xl' in file_split[1]:
             _file_name = file_split[0]+'_error.xlsx'
             df.to_excel(_file_name)
@@ -81,7 +81,7 @@ def make_df_from_excel(file_name, nrows):
     else:
         df_header = pd.read_csv(file_path, nrows=1)
         df = pd.read_csv(file_path)
-    st = validate_(df,file_split[0],file_name)
+    st = validate_(df,file_split,file_name)
     if not st:
         return False
     gomech_users = ['gomechanic_admin','gomechanic_gurgaon', 'gomechanic_mumbai', 'gomechanic_bangalore']

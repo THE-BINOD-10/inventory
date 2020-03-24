@@ -285,6 +285,10 @@ CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Per
                     'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
+VEHICLE_EXCEL_MAPPING = OrderedDict(( ('Type', 'customer_type'), ('Current City of Operations', 'city'),
+                                      ('Perm Registration No.', 'name')
+                                   ))
+
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('customer_code', 2), ('credit_period', 3), ('cst_number', 4), ('tin_number', 5),
      ('pan_number', 6), ('email_id', 7), ('phone_number', 8), ('city', 9), ('state', 10), ('country', 11),

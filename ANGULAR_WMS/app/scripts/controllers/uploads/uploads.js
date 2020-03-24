@@ -357,6 +357,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "display_parts_allocation",
                  },
+                 {
+                   title: "Vehicle Master Download/ Upload",
+                   download: "Download Vehicle Master Form",
+                   upload: "Upload Vehicle Master Form",
+                   durl: "vehiclemaster_form/",
+                   uurl: "vehiclemaster_upload/",
+                   dparam: "download-vehiclemaster-file",
+                   value: "",
+                   show: true,
+                   perm: "show_vehiclemaster"
+                 },
                 ]
 
   $scope.download = function(data) {

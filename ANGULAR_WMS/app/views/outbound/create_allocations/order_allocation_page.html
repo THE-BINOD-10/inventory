@@ -22,7 +22,7 @@
       <div class="row">
        <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
-              <label class="control-label"> Customer Type </label>
+              <label class="control-label"> Type </label>
               <select name="customer_type" class="form-control" ng-model="showCase.customer_type" ng-change="showCase.verifyTax()">
                 <option ng-repeat="wh in showCase.customer_types" value="{{wh}}">{{wh}}</option>
               </select>
@@ -30,7 +30,7 @@
           </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer ID *</label>
+            <label class="control-label">Vehicle ID *</label>
             <input type="text"
                    autocomplete="off" name="customer_id"
                    class="form-control"
@@ -40,7 +40,7 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer Name *</label>
+            <label class="control-label">Vehicle Registration No. *</label>
             <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" readonly required>
             <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
           </div>
@@ -48,13 +48,13 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Chassis Number</label>
-            <input name="customer_name" ng-model="showCase.model_data.chassis_number" class="form-control" type="text" readonly required>
+            <input name="customer_name" ng-model="showCase.model_data.chassis_number" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer Reference </label>
-            <input name="customer_name" ng-model="showCase.model_data.customer_reference" class="form-control" type="text" readonly required>
+            <label class="control-label">Reference </label>
+            <input name="customer_name" ng-model="showCase.model_data.customer_reference" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">

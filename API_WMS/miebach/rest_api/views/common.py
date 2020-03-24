@@ -10675,3 +10675,28 @@ def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock=
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     all_sku_stocks = stock_detail1 | stock_detail2
     return sku_combos, all_sku_stocks, switch_vals
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_customer_master_id(request, user=''):
+    customer_id = 1
+    reseller_price_type = ''
+    customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
+        '-customer_id')
+    if customer_master:
+        customer_id = customer_master[0] + 1
+
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    level_2_price_type = ''
+    admin_user = user
+    if price_band_flag == 'true':
+        admin_user = get_admin(user)
+        level_2_price_type = 'D1-R'
+    if user.userprofile.warehouse_type == 'DIST':
+        reseller_price_type = 'D-R'
+
+    price_types = get_distinct_price_types(admin_user)
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
+                                    'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))

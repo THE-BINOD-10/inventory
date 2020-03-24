@@ -2591,6 +2591,18 @@ var app = angular.module('urbanApp')
             title: 'Bulk Stock Update',
           }
         })
+        .state('app.reports.creditNoteForm', {
+          url: '/creditNoteForm',
+          templateUrl: 'views/reports/credit_note_form.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/credit_note_form.js');
+              }]
+          },
+          data: {
+            title: 'Credit Note Form (Oracle Upload File)',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

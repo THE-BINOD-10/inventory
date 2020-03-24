@@ -1131,6 +1131,47 @@ BULK_STOCK_UPDATE = {
     'dt_url': 'get_bulk_stock_update', 'excel_name': 'get_bulk_stock_update',
     'print_url': 'print_bulk_stock_update',
 }
+
+CREDIT_NOTE_FORM_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
+    ],
+    'dt_headers': ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
+                '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
+                'Payment Currency', 'Invoice Type', 'Description', 'Legal Entity Name', 'Payment Terms', 'Terms Date', 
+                'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
+                'Prepayment Number', 'Prepayment Line', 'Prepayment Application Amount', 'Prepayment Accounting Date', 
+                'Payment Method', 'Pay Group', 'Pay Alone', 'Conversion Rate Type', 'Conversion Date', 'Conversion Rate', 
+                'Payment Cross-Conversion Rate Type', 'Payment Cross-Conversion Date', 'Payment Cross-Conversion Rate', 
+                'Discountable Amount', 'Liability Distribution', 'Remit-to Supplier', 'Remit-to Supplier Number', 
+                'Remit-to Address Name', 'Remit-to Account Number', 'Document Category', 'Voucher Number', 
+                'First-Party Tax Registration Number', 'Supplier Tax Registration Number', 'Requester', 'Delivery Channel', 
+                'Bank Charge Bearer', 'Settlement Priority', 'Unique Remittance Identifier', 'Unique Remittance Identifier Check Digit', 
+                'Payment Reason', 'Payment Reason Comments', 'Remittance Message 1', 'Remittance Message 2', 'Remittance Message 3', 
+                'Taxation Country', 'Document Subtype', 'Invoice Internal Sequence', 'Tax Related Invoice', 'Supplier Tax Invoice Number', 
+                'Internal Recording Date', 'Supplier Tax Invoice Date', 'Supplier Tax Invoice Conversion Rate', 'Customs Location Code', 
+                'Correction Year', 'Correction Period', 'Tax Control Amount', 'Context Value', 'Additional Information', 
+                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount(wothout tax)', 'Invoiced Quantity', 
+                'Unit Price', 'UOM', 'Description', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
+                'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
+                'Consumption Advice Line Number', 'Landed Cost Enabled', 'Final Match', 'Distribution Combination', 
+                'Distribution Set', 'Accounting Date', 'Overlay Account Segment', 'Overlay Primary Balancing Segment', 
+                'Overlay Cost Center Segment', 'Budget Date', 'Tax Classification Code', 'Ship-to Location', 'Ship-from Location', 
+                'Location of Final Discharge', 'Regime Code', 'Tax Code', 'Jurisdiction Code', 'Tax Status Code', 'Rate Code', 'Rate', 
+                'Withholding Tax Group', 'Income Tax Type', 'Income Tax Region', 'Prorate Across All Item Lines', 'Line Group Number', 
+                'Transaction Business Category', 'Product Fiscal Classification', 'Intended Use', 'User-Defined Fiscal Classification', 
+                'Product Type', 'Assessable Value', 'Product Category', 'Tax Control Amount', 'Statistical Quantity', 
+                'Deferred Accounting Option', 'Multiperiod Accounting Start Date', 'Multiperiod Accounting End Date', 'Track as Asset', 
+                'Serial Number', 'Book', 'Asset Category', 'Manufacturer', 'Model', 'Requester', 'Item ID', 'Context Value', 
+                'Additional Information', 'Project Information', 'Fiscal Charge Type', 'Multiperiod Accounting Accrual Account', 
+                'OLA GSTIN', 'Customer GSTIN'],
+    'dt_url': 'get_credit_note_form_report', 'excel_name': 'get_credit_note_form_report',
+    'print_url': 'print_credit_note_form_report',
+}
+
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
@@ -1161,6 +1202,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
                      'financial_report': FINANCIAL_REPORT_DICT,
                      'bulk_stock_update': BULK_STOCK_UPDATE,
+                     'credit_note_form_report': CREDIT_NOTE_FORM_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1732,6 +1774,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_move_inventory_report':'get_move_inventory_report_data',
                         'get_financial_report':'get_financial_report_data',
                         'get_bulk_stock_update':'get_bulk_stock_update_data',
+                        'get_credit_note_form_report': 'get_credit_note_form_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -9373,3 +9416,280 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
                                             ('Quantity',data.source_quantity),
                                             ('Transaction Date', date))))
   return temp_data
+
+
+def get_credit_note_form_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    all_cols = ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
+                '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
+                'Payment Currency', 'Invoice Type', 'Description', 'Legal Entity Name', 'Payment Terms', 'Terms Date', 
+                'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
+                'Prepayment Number', 'Prepayment Line', 'Prepayment Application Amount', 'Prepayment Accounting Date', 
+                'Payment Method', 'Pay Group', 'Pay Alone', 'Conversion Rate Type', 'Conversion Date', 'Conversion Rate', 
+                'Payment Cross-Conversion Rate Type', 'Payment Cross-Conversion Date', 'Payment Cross-Conversion Rate', 
+                'Discountable Amount', 'Liability Distribution', 'Remit-to Supplier', 'Remit-to Supplier Number', 
+                'Remit-to Address Name', 'Remit-to Account Number', 'Document Category', 'Voucher Number', 
+                'First-Party Tax Registration Number', 'Supplier Tax Registration Number', 'Requester', 'Delivery Channel', 
+                'Bank Charge Bearer', 'Settlement Priority', 'Unique Remittance Identifier', 'Unique Remittance Identifier Check Digit', 
+                'Payment Reason', 'Payment Reason Comments', 'Remittance Message 1', 'Remittance Message 2', 'Remittance Message 3', 
+                'Taxation Country', 'Document Subtype', 'Invoice Internal Sequence', 'Tax Related Invoice', 'Supplier Tax Invoice Number', 
+                'Internal Recording Date', 'Supplier Tax Invoice Date', 'Supplier Tax Invoice Conversion Rate', 'Customs Location Code', 
+                'Correction Year', 'Correction Period', 'Tax Control Amount', 'Context Value', 'Additional Information', 
+                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount(wothout tax)', 'Invoiced Quantity', 
+                'Unit Price', 'UOM', 'Description', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
+                'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
+                'Consumption Advice Line Number', 'Landed Cost Enabled', 'Final Match', 'Distribution Combination', 
+                'Distribution Set', 'Accounting Date', 'Overlay Account Segment', 'Overlay Primary Balancing Segment', 
+                'Overlay Cost Center Segment', 'Budget Date', 'Tax Classification Code', 'Ship-to Location', 'Ship-from Location', 
+                'Location of Final Discharge', 'Regime Code', 'Tax Code', 'Jurisdiction Code', 'Tax Status Code', 'Rate Code', 'Rate', 
+                'Withholding Tax Group', 'Income Tax Type', 'Income Tax Region', 'Prorate Across All Item Lines', 'Line Group Number', 
+                'Transaction Business Category', 'Product Fiscal Classification', 'Intended Use', 'User-Defined Fiscal Classification', 
+                'Product Type', 'Assessable Value', 'Product Category', 'Tax Control Amount', 'Statistical Quantity', 
+                'Deferred Accounting Option', 'Multiperiod Accounting Start Date', 'Multiperiod Accounting End Date', 'Track as Asset', 
+                'Serial Number', 'Book', 'Asset Category', 'Manufacturer', 'Model', 'Requester', 'Item ID', 'Context Value', 
+                'Additional Information', 'Project Information', 'Fiscal Charge Type', 'Multiperiod Accounting Accrual Account', 
+                'OLA GSTIN', 'Customer GSTIN']
+
+    blankCols = ['Legal Entity Name', 'Payment Terms', 'Terms Date', 
+                'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
+                'Prepayment Number', 'Prepayment Line', 'Prepayment Application Amount', 'Prepayment Accounting Date', 
+                'Payment Method', 'Pay Group', 'Pay Alone', 'Conversion Rate Type', 'Conversion Date', 'Conversion Rate', 
+                'Payment Cross-Conversion Rate Type', 'Payment Cross-Conversion Date', 'Payment Cross-Conversion Rate', 
+                'Discountable Amount', 'Liability Distribution', 'Remit-to Supplier', 'Remit-to Supplier Number', 
+                'Remit-to Address Name', 'Remit-to Account Number', 'Document Category', 'Voucher Number', 
+                'First-Party Tax Registration Number', 'Supplier Tax Registration Number', 'Requester', 'Delivery Channel', 
+                'Bank Charge Bearer', 'Settlement Priority', 'Unique Remittance Identifier', 'Unique Remittance Identifier Check Digit', 
+                'Payment Reason', 'Payment Reason Comments', 'Remittance Message 1', 'Remittance Message 2', 'Remittance Message 3', 
+                'Taxation Country', 'Document Subtype', 'Invoice Internal Sequence', 'Tax Related Invoice', 'Supplier Tax Invoice Number', 
+                'Internal Recording Date', 'Supplier Tax Invoice Date', 'Supplier Tax Invoice Conversion Rate', 'Customs Location Code', 
+                'Correction Year', 'Correction Period', 'Tax Control Amount', 'Context Value', 'Additional Information', 
+                'Regional Context Value ', 'Regional Information ', 'Unit Price', 'UOM', 'Purchase Order', 'Purchase Order Line', 
+                'Purchase Order Schedule', 'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 
+                'Consumption Advice', 'Consumption Advice Line Number', 'Landed Cost Enabled', 'Final Match',
+                'Distribution Set', 'Accounting Date', 'Overlay Account Segment', 'Overlay Primary Balancing Segment', 
+                'Overlay Cost Center Segment', 'Budget Date', 'Tax Classification Code', 'Ship-from Location', 
+                'Location of Final Discharge', 'Regime Code', 'Tax Code', 'Jurisdiction Code', 'Tax Status Code', 'Rate Code', 'Rate', 
+                'Withholding Tax Group', 'Income Tax Type', 'Income Tax Region', 'Prorate Across All Item Lines', 'Line Group Number', 
+                'Transaction Business Category', 'Product Fiscal Classification', 'Intended Use', 'User-Defined Fiscal Classification', 
+                'Product Type', 'Assessable Value', 'Tax Control Amount', 'Statistical Quantity', 
+                'Deferred Accounting Option', 'Multiperiod Accounting Start Date', 'Multiperiod Accounting End Date', 'Track as Asset', 
+                'Serial Number', 'Book', 'Asset Category', 'Manufacturer', 'Model', 'Requester', 'Item ID', 'Context Value', 
+                'Additional Information', 'Project Information', 'Fiscal Charge Type', 'Multiperiod Accounting Accrual Account'
+                ]
+    todays_date = datetime.datetime.today().strftime('%d-%b-%y')
+    colsWithDefaultVals = {
+      '*Business Unit': 'Ola Fleet Technologies Pvt Ltd', 'Import Set': 'Parts Purchase_%s' %todays_date,
+      '*Invoice Currency': 'INR', 'Payment Currency': 'INR', '*Type': 'Item', 
+    }
+    locationDistMap = {
+        'RANCHI': ('1003.22.6005.7301.50002.1054401.9999.9999.9999.9999.9999', 'OFT-RANCHI'), 
+        'Varanasi': ('1003.22.6005.7301.50002.1001003.9999.9999.9999.9999.9999', 'OFT-VARANASI'), 
+        'Mysore': ('1003.22.6005.7301.50002.1048601.9999.9999.9999.9999.9999', 'OFT-MYSORE'), 
+        'Vadodara': ('1003.22.6005.7301.50002.1052601.9999.9999.9999.9999.9999', 'OFT-VADODARA'), 
+        'Raipur': ('1003.22.6005.7301.50002.1002502.9999.9999.9999.9999.9999', 'OFT-RAIPUR'), 
+        'JAMSHEDPUR': ('1003.22.6005.7301.50002.1054101.9999.9999.9999.9999.9999', 'OFT-JAMSHEDPUR'), 
+        'TRIVANDRUM': ('1003.22.6005.7301.50002.1051301.9999.9999.9999.9999.9999', 'OFT-TRIVANDRUM'), 
+        'Patna': ('1003.22.6005.7301.50002.1053601.9999.9999.9999.9999.9999', 'OFT - Patna'), 
+        'Kolkata': ('1003.22.6005.7301.50002.1000701.9999.9999.9999.9999.9999', 'OFT-KOLKATA-INFINITY'), 
+        'Bareilly': ('1003.22.6005.7301.50002.1044601.9999.9999.9999.9999.9999', 'OFT-BAREILLY'), 
+        'Bihar': ('1003.22.6005.7301.50002.1053601.9999.9999.9999.9999.9999', 'OFT - Bihar'), 
+        'Bhopal': ('1003.22.6005.7301.50002.1052701.9999.9999.9999.9999.9999', 'OFT - BHOPAL'), 
+        'AGRA': ('1003.22.6005.7301.50002.1044201.9999.9999.9999.9999.9999', 'OFT - Agra'), 
+        'Chandigarh': ('1003.22.6005.7301.50002.1002002.9999.9999.9999.9999.9999', 'OFT - Chandigarh'), 
+        'Gurgaon': ('1003.22.6005.7301.50002.1000801.9999.9999.9999.9999.9999', 'OFT-Gurgaon-Plot# 230'), 
+        'Chennai': ('1003.22.6005.7301.50002.1000501.9999.9999.9999.9999.9999', 'OFT - Chennai'), 
+        'Ludhiana': ('1003.22.6005.7301.50002.1001602.9999.9999.9999.9999.9999', 'OFT-LUDHIANA'), 
+        'JODHPUR': ('1003.22.6005.7301.50002.1002302.9999.9999.9999.9999.9999', 'OFT-JODHPUR'), 
+        'MUMBAI': ('1003.22.6005.7301.50002.1000101.9999.9999.9999.9999.9999', 'OFT-MUMBAI - HARI OM IT PARK'), 
+        'Delhi': ('1003.22.6005.7301.50002.1000401.9999.9999.9999.9999.9999', 'OFT - Delhi'), 
+        'MOHALI': ('1003.22.6005.7301.50002.1043701.9999.9999.9999.9999.9999', 'OFT-MOHALI'), 
+        'AMRITSAR': ('1003.22.6005.7301.50002.1043401.9999.9999.9999.9999.9999', 'OFT-AMRITSAR'), 
+        'Allahabad': ('1003.22.6005.7301.50002.1044101.9999.9999.9999.9999.9999', 'OFT-ALLAHABAD'), 
+        'Aurangabad': ('1003.22.6005.7301.50002.1001103.9999.9999.9999.9999.9999', 'OFT-AURANGABAD'), 
+        'Bangalore': ('1003.22.6005.7301.50002.1000201.9999.9999.9999.9999.9999', 'OFT-BANGALORE-HBR'), 
+        'Tamil Nadu': ('1003.22.6005.7301.50002.1000501.9999.9999.9999.9999.9999', 'OFT - Tamil Nadu'), 
+        'Ahmedabad': ('1003.22.6005.7301.50002.1052101.9999.9999.9999.9999.9999', 'OFT-AHMEDABAD'), 
+        'Kochi': ('1003.22.6005.7301.50002.1051201.9999.9999.9999.9999.9999', 'OFT-Cochin'), 
+        'Pune': ('1003.22.6005.7301.50002.1000601.9999.9999.9999.9999.9999', 'OFT-PUNE- SANGAMWADI'), 
+        'Lucknow': ('1003.22.6005.7301.50002.1001502.9999.9999.9999.9999.9999', 'OFT - Lucknow'), 
+        'Coimbatore': ('1003.22.6005.7301.50002.1049201.9999.9999.9999.9999.9999', 'OFT - Coimbatore'), 
+        'Tiruchirapalli': ('1003.22.6005.7301.50002.1050001.9999.9999.9999.9999.9999', 'OFT-Trichy'), 
+        'Nagpur': ('1003.22.6005.7301.50002.1001702.9999.9999.9999.9999.9999', 'OFT-NAGPUR'), 
+        'Jallandhar': ('1003.22.6005.7301.50002.1043501.9999.9999.9999.9999.9999', 'OFT-JALANDHAR'), 
+        'VIJAYAWADA': ('1003.22.6005.7301.50002.1050601.9999.9999.9999.9999.9999', 'OFT-Vijayawada'), 
+        'Surat': ('1003.22.6005.7301.50002.1052301.9999.9999.9999.9999.9999', 'OFT-SURAT'), 
+        'UDAIPUR': ('1003.22.6005.7301.50002.1001802.9999.9999.9999.9999.9999', 'OFT-UDAIPUR'), 
+        'Indore': ('1003.22.6005.7301.50002.1052801.9999.9999.9999.9999.9999', 'OFT - INDORE'), 
+        'Mangalore': ('1003.22.6005.7301.50002.1048501.9999.9999.9999.9999.9999', 'OFT - Mangalore'), 
+        'bhubaneswar': ('1003.22.6005.7301.50002.1053801.9999.9999.9999.9999.9999', 'OFT - Bhubaneshwar'), 
+        'Hyderabad': ('1003.22.6005.7301.50002.1000301.9999.9999.9999.9999.9999', 'OFT-HYDERABAD'), 
+        'Madurai': ('1003.22.6005.7301.50002.1049501.9999.9999.9999.9999.9999', 'OFT - Madurai'), 
+        'AJMER/RAJASTAN': ('1003.22.6005.7301.50002.1001902.9999.9999.9999.9999.9999', 'OFT-AJMER'), 
+        'Kanpur': ('1003.22.6005.7301.50002.1002402.9999.9999.9999.9999.9999', 'OFT - KANPUR'), 
+        'JAIPUR': ('1003.22.6005.7301.50002.1002202.9999.9999.9999.9999.9999', 'OFT-JAIPUR'), 
+        'Hyderbad': ('1003.22.6005.7301.50002.1000301.9999.9999.9999.9999.9999', 'OFT - Telangana'), 
+        'Dehradun': ('1003.22.6005.7301.50002.1044901.9999.9999.9999.9999.9999', 'OFT-DEHRADUN'), 
+        'Chattisgarh': ('1003.22.6005.7301.50002.1002502.9999.9999.9999.9999.9999', 'OFT - Chattisgarh'), 
+        'Nashik': ('1003.22.6005.7301.50002.1051501.9999.9999.9999.9999.9999', 'OFT-Nashik'), 
+        'Visakhapatnam': ('1003.22.6005.7301.50002.1050701.9999.9999.9999.9999.9999', 'OFT - Visakhapatnam'), 
+        'Kota': ('1003.22.6005.7301.50002.1001402.9999.9999.9999.9999.9999', 'OFT-KOTA')}
+    model_name = SellerPOSummary
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
+                     'order_id': 'purchase_order__order_id',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                     'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
+                     'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
+                     'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
+                     'user': 'purchase_order__open_po__sku__user',
+                     'sku_id__in': 'purchase_order__open_po__sku_id__in',
+                     'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
+                     'supplier_name': 'purchase_order__open_po__supplier__name',
+                     'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 
+                     'gst_num': 'purchase_order__open_po__supplier__tin_number'}
+
+    result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__city', 
+                     'purchase_order__open_po__supplier__name', 'purchase_order__open_po__po_name', 'purchase_order__open_po__cgst_tax', 
+                     'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax', 
+                     'purchase_order__prefix', 'seller_po__unit_price', 'seller_po__receipt_type', 'receipt_number', 'invoice_number', 
+                     'invoice_date', 'purchase_order__open_po__supplier__tin_number', 'purchase_order__open_po__supplier__tax_type']                  
+    excl_status = {'purchase_order__status': ''}
+
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    # if 'from_date' in search_params:
+    #     search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    # if 'to_date' in search_params:
+    #     search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+    #                                                          datetime.time())
+    #     search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+    # if 'open_po' in search_params and search_params['open_po']:
+    #     temp = re.findall('\d+', search_params['open_po'])
+    #     if temp:
+    #         search_parameters[field_mapping['order_id']] = temp[-1]
+    # if 'sku_code' in search_params:
+    #     search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    # if 'sku_category' in search_params:
+    #     search_parameters[field_mapping['sku_category']] = search_params['sku_category']
+    # if 'sub_category' in search_params:
+    #     search_parameters[field_mapping['sub_category']] = search_params['sub_category']
+    # if 'sku_brand' in search_params:
+    #     search_parameters[field_mapping['sku_brand']] = search_params['sku_brand']
+
+    # if 'invoice_number' in search_params:
+    #     search_parameters[field_mapping['invoice_number']] = search_params['invoice_number']
+    # if 'supplier' in search_params and ':' in search_params['supplier']:
+    #     search_parameters[field_mapping['supplier_id']] = \
+    #         search_params['supplier'].split(':')[0]
+    search_parameters[field_mapping['user']] = user.id
+    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('purchase_order__open_po__order_quantity') * F('purchase_order__open_po__price'))). \
+                    annotate(totalOrderQty=Sum('purchase_order__open_po__order_quantity'))
+    col_num = search_params.get('order_index', 0)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    lastPoNumber = ''
+    counter = 1
+    inv_header_cnt = start_index
+    for data in model_data:
+        result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
+        receipt_no = data['receipt_number']
+        if not receipt_no:
+            receipt_no = ''
+        po_order_id = data[field_mapping['order_id']]
+
+        po_number = '%s%s_%s' % (data[field_mapping['prefix']],
+                                 str(result.creation_date).split(' ')[0].replace('-', ''),
+                                 po_order_id)
+        if lastPoNumber == po_number:
+            counter += 1
+        else:
+            counter = 1
+            inv_header_cnt += 1
+        lastPoNumber = po_number
+        grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
+                                 str(result.creation_date).split(' ')[0].replace('-', ''),
+                                 po_order_id, str(receipt_no))
+        invAmtWithOutTax = truncate_float(data['totAmtWithOutTax'], 2)
+        if not data['purchase_order__open_po__cgst_tax']:
+            data['purchase_order__open_po__cgst_tax'] = 0
+        if not data['purchase_order__open_po__sgst_tax']:
+            data['purchase_order__open_po__sgst_tax'] = 0
+        if not data['purchase_order__open_po__igst_tax']:
+            data['purchase_order__open_po__igst_tax'] = 0
+        if not data['purchase_order__open_po__utgst_tax']:
+            data['purchase_order__open_po__utgst_tax'] = 0
+        tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
+                  float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+        invAmtWithTax = truncate_float(data['totAmtWithOutTax'] + (data['totAmtWithOutTax'] * tot_tax / 100), 2)
+        invoice_date, challan_date = '', ''
+        if data['invoice_date']:
+            invoice_date = data['invoice_date'].strftime("%d %b, %Y")
+        updated_user_name = user.username
+        supplierCity = data['purchase_order__open_po__supplier__city']
+        ordList = []
+        for col in all_cols:
+            if col in blankCols:
+                ordTuple = (col, '')
+            elif col in colsWithDefaultVals:
+                ordTuple = (col, colsWithDefaultVals[col])
+            else:
+                if col == '*Invoice Number':
+                    ordTuple = (col, data['invoice_number'])
+                elif col == '*Invoice Header Identifier':
+                    ordTuple = (col, inv_header_cnt)
+                elif col == '*Invoice Amount(with tax)':
+                    ordTuple = (col, invAmtWithTax)
+                elif col == '*Invoice Date':
+                    ordTuple = (col, invoice_date)
+                elif col == '**Supplier':
+                    ordTuple = (col, data['purchase_order__open_po__supplier__name'])
+                elif col == '**Supplier Number':
+                    ordTuple = (col, data['purchase_order__open_po__supplier_id'])
+                elif col == '*Supplier Site':
+                    ordTuple = (col, supplierCity)
+                elif col == 'Description':
+                    ordTuple = (col, 'Required Parts Purchase_PO No-%s_GRN No-%s' %(po_number, grn_number))
+                elif col == 'Distribution Combination':
+                    if supplierCity in locationDistMap:
+                        ordTuple = (col, locationDistMap[supplierCity][0])
+                    else:
+                        ordTuple = (col, 'CityMismatch')
+                elif col == 'Ship-to Location':
+                    if supplierCity in locationDistMap:
+                        ordTuple = (col, locationDistMap[supplierCity][1])
+                    else:
+                        ordTuple = (col, 'CityMismatch')
+                elif col == 'Invoice Type':
+                    ordTuple = (col, 'Standard')
+                elif col == '*Amount(wothout tax)':
+                    ordTuple = (col, invAmtWithOutTax)
+                elif col == 'Line':
+                    ordTuple = (col, counter)
+                elif col == 'Product Category':
+                    if data['purchase_order__open_po__supplier__tax_type'] == 'inter_state':
+                        ordTuple = (col, 'INTERSTATE_%s' %tot_tax + '%')
+                    else:
+                        taxSplitup = str(tot_tax/2)
+                        ordTuple = (col, 'SGST_%s' %taxSplitup + '%' + ' + ' + 'CGST_%s' %taxSplitup +'%')
+                elif col == 'Invoiced Quantity':
+                    ordTuple = (col, data['totalOrderQty'])
+                elif col == 'OLA GSTIN':
+                    ordTuple = (col, user.userprofile.gst_number)
+                elif col == 'Customer GSTIN':
+                    ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
+                else:
+                    ordTuple = (col, 'TODO')
+
+            ordList.append(ordTuple)
+        temp_data['aaData'].append(OrderedDict(tuple(ordList)))
+    return temp_data

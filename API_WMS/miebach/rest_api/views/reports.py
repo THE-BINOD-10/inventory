@@ -1326,6 +1326,28 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
+            squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number', 
+                'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ', 
+                'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
+                'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
+                'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location', 
+                'Ship-from Location', 'Location of Final Discharge', 'Context Value', 'Additional Information', 
+                'Project Information', 'Multiperiod Accounting Accrual Account'
+                ]
+            existingHeaders = report_data['aaData'][0].keys()
+            ordList = []
+            report_data['New_aaData'] = []
+            for row in report_data['aaData']:
+                for k, v in row.items():
+                    if k in squareBracketCols:
+                        ordList.append((k+'[..]', v),)
+                    else:
+                        ordList.append((k, v),)
+                report_data['New_aaData'].append(OrderedDict(tuple(ordList)))
+            report_data['aaData'] = report_data['New_aaData']
+            headers = report_data['aaData'][0].keys()
+
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -2166,3 +2188,13 @@ def print_basa_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_form_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_form_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+

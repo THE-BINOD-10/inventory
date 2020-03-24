@@ -10,7 +10,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.abspath(os.path.join(HERE))
 
 
-def validate_(df, file_split):
+def validate_(df, file_split,file_name):
     df['error_status'] = df.isna().dot(df.columns + '-should not be empty, ').str.rstrip(', ')
     price_check=pd.to_numeric(df.Price, errors='coerce')
     df['price_status'] = price_check.isna()
@@ -23,15 +23,19 @@ def validate_(df, file_split):
     df['mrp_status'] = df['mrp_status'].replace(price_dict)
 
     if len(set(df['error_status'])) > 1 or len(set(df['mrp_status'])) > 1 or  len(set(df['price_status'])) >1 :
+        send_mail(mail_id, 'FTP file Upload', wrapper %("SKU Upload Failed for the file "+file_split[0]))
         if 'xl' in file_split[1]:
-            file_name = file_split[0]+'error.xlsx'
-            df.to_excel(file_name)
+            _file_name = file_split[0]+'_error.xlsx'
+            df.to_excel(_file_name)
         else:
-            file_name = file_split[0]+'error.csv'
-            df.to_csv(file_name)
-        file = open(file_name,'rb')
+            _file_name = file_split[0]+'_error.csv'
+            df.to_csv(_file_name)
+        file = open(_file_name,'rb')
         ftp.cwd('Failed')
-        ftp.storbinary(('STOR %s')%file_name, file)
+        ftp.storbinary(('STOR %s')%_file_name, file)
+        ftp.cwd('..')
+        ftp.cwd('Processing')
+        ftp.delete(file_name)
         ftp.cwd('..')
         file.close()
         return False
@@ -56,6 +60,13 @@ def validate_sku_code(df):
             return sku_code
         else:
             return sku_code
+    elif df['Brand'].upper() == 'MGP':
+        if len(sku_code) >= 10:
+            sku_code = sku_code[:5]+'-'+sku_code[5:]
+            return sku_code
+        else:
+            sku_code = sku_code[:11]+'-'+sku_code[11:]
+            return sku_code
     else:
         return sku_code
 
@@ -70,7 +81,7 @@ def make_df_from_excel(file_name, nrows):
     else:
         df_header = pd.read_csv(file_path, nrows=1)
         df = pd.read_csv(file_path)
-    st = validate_(df,file_split[0])
+    st = validate_(df,file_split[0],file_name)
     if not st:
         return False
     gomech_users = ['gomechanic_admin','gomechanic_gurgaon', 'gomechanic_mumbai', 'gomechanic_bangalore']
@@ -88,7 +99,6 @@ def make_df_from_excel(file_name, nrows):
                 df_chunk = pd.read_excel(file_path,nrows=nrows, skiprows=skiprows, header=None)
             except:
                 df_chunk = pd.read_csv(file_path,nrows=nrows, skiprows=skiprows, header=None)
-            # df_chunk['sku_code']=df_chunk.apply(validate_sku_code,axis=1)
             skiprows += nrows
             if not df_chunk.shape[0]:
                 break
@@ -100,6 +110,7 @@ def make_df_from_excel(file_name, nrows):
             columns = {i: col for i, col in enumerate(df_header.columns.tolist())}
             df_chunks.rename(columns=columns, inplace=True)
             # df = pd.concat([df_header, df_chunks])
+            df_chunks['sku_code']=df_chunks.apply(validate_sku_code,axis=1)
             data_dict = {"user":user.id}
             for index,row in df_chunks.iterrows():
                 str_dict = {'hsn_code':'HSN Code', 'sku_desc':'Part Desc'}
@@ -161,7 +172,7 @@ wrapper = """<html>
     <body><p>%s</p></body>
     </html>"""
 names = ftp.nlst()
-mail_id = ['avinash@mieone.com']
+mail_id = ['avinash@mieone.com','imran@mieone.com']
 for name in names:
     ftp.retrbinary("RETR " + name, open(name, 'wb').write)
     existingFilepath = "Uploads/"+name

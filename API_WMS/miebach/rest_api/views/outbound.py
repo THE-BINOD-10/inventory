@@ -12038,11 +12038,11 @@ def generate_stock_transfer_invoice(request, user=''):
                         if prefix:
                             if date_type == 'financial':
                                 date_format = get_financial_year(invoice_date)
-                            full_invoice_number = '{}/{}/{}/{}'.format(interfix,prefix,
+                            full_invoice_number = '{}/{}/{}'.format(prefix,
                                                                        date_format,
                                                                        str(invoice_number).zfill(3))
                         else:
-                            full_invoice_number = '{}/{}/{}/{}'.format('STN', user_profile.prefix,
+                            full_invoice_number = '{}/{}/{}'.format(user_profile.prefix,
                                                                          date_format,
                                                                        str(invoice_number).zfill(3))
                         stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)

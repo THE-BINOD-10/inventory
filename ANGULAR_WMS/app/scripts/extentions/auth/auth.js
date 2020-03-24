@@ -14,7 +14,7 @@
                     .then(function (resp) {
           resp = resp.data;
 	  localStorage.clear();
-          //this.update_manifest(resp.data);
+          update_manifest(resp.data);
           if (resp.message != "Fail") {
              //setloginStatus(resp);
              Session.set(resp.data);
@@ -43,22 +43,6 @@
 
         return !!(session && session.userId);
       };
-/*      this.external_link = function (data) {
-        Session.unset();
-        deferredStatus = null;
-        return $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
-          if (resp) {
-            resp = resp.data;
-            localStorage.clear();
-            update_manifest(resp.data);
-            if (resp.message != "Fail") {
-              Session.set(resp.data)
-            }
-            return resp;
-            }
-        });
-      }
-*/
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
@@ -96,8 +80,7 @@
             })
           }
           resp = resp.data;
-          //this.update_manifest(resp.data);
-
+          update_manifest(resp.data);
           if ((resp.message != "Fail") && resp.data.userId) {
              //setloginStatus(resp);
              Session.set(resp.data);
@@ -109,11 +92,8 @@
           } else {
             $state.go("user.signin");
           }
-
           deferredStatus.resolve(resp.message);
-
         }).catch(function(err){
-
             /*getloginStatus().then(function(resp){
               if((resp.message != "Fail") && resp.data.userId) {
                  //TODO add the statusinto indexDb
@@ -133,7 +113,6 @@
                }
            });*/
        });
-
         return deferredStatus.promise;
       };
 
@@ -145,11 +124,10 @@
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 
           resp = resp.data;
-          //this.update_manifest(resp.data);
+          update_manifest(resp.data);
           if ((resp.message != "Fail") && resp.data.userId) {
              /*setloginStatus(resp);*/
              Session.set(resp.data);
-
           }
 
           deferredStatus.resolve(resp.message);
@@ -157,7 +135,7 @@
         return deferredStatus.promise;
       };
 
-      this.update_manifest = function(resp_data) {
+      function update_manifest(resp_data) {
         var temp_user_list = ["sagar_fab"];
         var manifest_json = {
             "name": "STOCKONE",

@@ -2456,7 +2456,7 @@ class SKUAttributes(models.Model):
 
     class Meta:
         db_table = 'SKU_ATTRIBUTES'
-        unique_together = ('sku', 'attribute_name')
+        #unique_together = ('sku', 'attribute_name')
         index_together = ('sku', 'attribute_name')
 
     def __unicode__(self):

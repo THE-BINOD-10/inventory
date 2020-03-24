@@ -884,7 +884,12 @@ def get_sku_data(request, user=''):
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
     attributes = get_user_attributes(user, 'sku')
-    sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+    sku_attribute_objs = data.skuattributes_set.filter()
+    sku_attributes = OrderedDict()
+    for sku_attribute_obj in sku_attribute_objs:
+        sku_attributes.setdefault(sku_attribute_obj.attribute_name, [])
+        sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
+    #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,

@@ -1550,6 +1550,8 @@ MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
 ITEM_MASTER_EXCEL = OrderedDict(
     (('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14)))
 
+PART_MASTER_EXCEL = OrderedDict((('Part Number', 'sku_code'),))
+
 SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
     (('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8)))
 

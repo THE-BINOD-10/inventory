@@ -8681,15 +8681,22 @@ def allocate_order_returns(user, sku_data, request):
     return data
 
 
-def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None, sku_attr_mapping=None):
+def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None,
+                               sku_attr_mapping=None, allow_multiple=False):
     if not value == '':
-        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+        sku_attr_filter = {'sku_id': data.id, 'attribute_name': key}
+        if allow_multiple:
+            sku_attr_filter['attribute_value'] = value
+        sku_attr_obj = SKUAttributes.objects.filter(**sku_attr_filter)
         if not sku_attr_obj and value:
             if not is_bulk_create:
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
                                              creation_date=datetime.datetime.now())
             else:
-                grp_key = '%s:%s' % (str(data.id), str(key))
+                if allow_multiple:
+                    grp_key = '%s:%s:%s' % (str(data.id), str(key), str(value))
+                else:
+                    grp_key = '%s:%s' % (str(data.id), str(key))
                 if grp_key not in sku_attr_mapping:
                     create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
                                                  'creation_date': datetime.datetime.now()}))
@@ -8704,7 +8711,8 @@ def update_sku_attributes(data, request):
         if 'attr_' not in key:
             continue
         key = key.replace('attr_', '')
-        update_sku_attributes_data(data, key, value)
+        for val in value.split(','):
+            update_sku_attributes_data(data, key, val, allow_multiple=True)
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):

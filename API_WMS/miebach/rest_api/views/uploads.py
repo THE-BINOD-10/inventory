@@ -1774,6 +1774,10 @@ def sku_upload(request, user=''):
             return HttpResponse(ex_status)
         user_attributes = get_user_attributes(user, 'sku')
         attributes = dict(user_attributes.values_list('attribute_name', 'attribute_type'))
+        if get_cell_data(0, 0, reader, file_type) == 'Part Number':
+            status = update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
+                         attributes=attributes)
+            return HttpResponse(status)
         status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
                                    attributes=attributes)
         if status != 'Success':
@@ -8220,3 +8224,64 @@ def vehiclemaster_upload(request, user=''):
         return HttpResponse("Vehicle Master Upload Failed")
 
     return HttpResponse('Success')
+
+
+def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes=None):
+    make_model_headers = []
+    index_status = {}
+    data_list = []
+    for col_idx in range(1, no_of_cols):
+        make_model_headers.append(get_cell_data(0, col_idx, reader, file_type))
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        sku_code = get_cell_data(row_idx, 0, reader, file_type)
+        make_model_map = []
+        for col_idx in range(1, no_of_cols):
+            if get_cell_data(row_idx, col_idx, reader, file_type):
+                make_model_map.append(make_model_headers[col_idx-1])
+        sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+        if not sku_master.exists():
+            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+        else:
+            sku_master = sku_master[0]
+            data_dict['sku_master'] = sku_master
+        data_dict['make_model_map'] = make_model_map
+        data_list.append(data_dict)
+    if index_status:
+        f_name = generate_error_excel(index_status, fname, reader, file_type)
+        return f_name
+    create_sku_attrs = []
+    sku_attr_mapping = []
+    for final_data in data_list:
+        exist_make_model_map = list(SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id,
+                                                                 attribute_name='make_model_map'). \
+                                    values_list('attribute_value', flat=True))
+        rem_list = set(exist_make_model_map) - set(final_data['make_model_map'])
+        if rem_list:
+            SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make_model_map',
+                                         attribute_value__in=rem_list).delete()
+            for rem_val in rem_list:
+                make_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
+                                                          attribute_value__startswith=rem_val.split('-')[0])
+                if not make_check.exists():
+                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
+                                                 attribute_value=rem_val.split('-')[0]).delete()
+                model_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
+                                                           attribute_value__startswith=rem_val.split('-')[1])
+                if not model_check.exists():
+                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
+                                                 attribute_value=rem_val.split('-')[1]).delete()
+        for attr_value in final_data['make_model_map']:
+            temp_data = attr_value.split('-')
+            attr_dict = {'make_model_map': attr_value, 'Make': temp_data[0], 'Model': temp_data[1]}
+            for attr_key, attr_val in attr_dict.items():
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(final_data['sku_master'], attr_key,
+                                                                                attr_val,
+                                                                                is_bulk_create=True,
+                                                                                create_sku_attrs=create_sku_attrs,
+                                                                                sku_attr_mapping=sku_attr_mapping,
+                                                                                allow_multiple=True)
+    #Bulk Create SKU Attributes
+    if create_sku_attrs:
+        SKUAttributes.objects.bulk_create(create_sku_attrs)
+    return 'Success'

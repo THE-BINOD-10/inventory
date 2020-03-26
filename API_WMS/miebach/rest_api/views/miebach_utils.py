@@ -9566,12 +9566,12 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
-    # if 'from_date' in search_params:
-    #     search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
-    # if 'to_date' in search_params:
-    #     search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-    #                                                          datetime.time())
-    #     search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
     # if 'open_po' in search_params and search_params['open_po']:
     #     temp = re.findall('\d+', search_params['open_po'])
     #     if temp:
@@ -9661,6 +9661,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         supplierCity = data['purchase_order__open_po__supplier__city']
         ordList = []
+        supplierNumber = ''.join(re.findall('\d+', data['purchase_order__open_po__supplier_id']))
         for col in all_cols:
             if col in blankCols:
                 ordTuple = (col, '')
@@ -9678,7 +9679,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                 elif col == '**Supplier':
                     ordTuple = (col, data['purchase_order__open_po__supplier__name'])
                 elif col == '**Supplier Number':
-                    ordTuple = (col, data['purchase_order__open_po__supplier_id'])
+                    ordTuple = (col, supplierNumber)
                 elif col == '*Supplier Site':
                     ordTuple = (col, supplierCity)
                 elif col == 'Description':

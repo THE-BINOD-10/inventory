@@ -196,9 +196,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	vm.save_dealloc_qty = function(id, data_id) {
         var row_data = vm.dtInstance.DataTable.context[0].aoData[id]._aData;
         var dealloc_dict = {};
+        if(!vm.model_data.location){
+          vm.service.showNoty("Please Select Location First");
+        }
 		if (vm['deallocation_qty_val_'+ data_id]) {
 		  dealloc_dict['allocation_ids'] = row_data['allocation_ids'];
 		  dealloc_dict['dealloc_qty'] = vm['deallocation_qty_val_'+ data_id]
+		  dealloc_dict['location'] = vm.model_data.location;
           vm.service.apiCall('insert_deallocation_data/', 'POST', dealloc_dict).then(function(resp) {
             if (resp.data == 'Success') {
               vm.service.refresh(vm.dtInstance);
@@ -207,7 +211,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 		}
 	}
 
+    vm.get_zones_list  = function()
+      {
+        vm.service.apiCall("get_zones_list/").then(function(data){
+          if(data.message) {
+            vm.zones_list = data.data.zones;
+          }
 
+        })
+      }
+      vm.get_zones_list();
 
 }
 

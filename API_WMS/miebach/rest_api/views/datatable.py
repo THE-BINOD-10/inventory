@@ -168,10 +168,14 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr_val,
                              file_type)'''
         att_data = data.skuattributes_set.filter(attribute_name__in=sku_attr_list).values('attribute_name', 'attribute_value')
+        attributes_data = OrderedDict()
         for attr in att_data:
             if excel_mapping.get(attr['attribute_name'], ''):
-                ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
-                                 file_type)
+                attributes_data.setdefault(attr['attribute_name'], [])
+                attributes_data[attr['attribute_name']].append(attr['attribute_value'])
+        for attr_key, attr_val in attributes_data.items():
+            ws = write_excel(ws, data_count, excel_mapping[attr_key], ','.join(attr_val),
+                             file_type)
         sku_types = data.marketplacemapping_set.exclude(sku_type='').filter().\
                                                 values_list('sku_type', flat=True).distinct()
         for sku_type in sku_types:

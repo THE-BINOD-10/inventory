@@ -1739,9 +1739,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if hot_release:
             hot_release = 1 if (hot_release == 'enable') else 0
             check_update_hot_release(sku_data, hot_release)
-        for attr_key, attr_val in attr_dict.iteritems():
-            create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
-                                       create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+        for attr_key, attr_value in attr_dict.iteritems():
+            if attributes[attr_key] == 'Multi Input':
+                attr_vals = attr_value.split(',')
+            else:
+                attr_vals = [attr_value]
+            for attr_val in attr_vals:
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping,
+                                            allow_multiple=True)
 
         if ean_numbers:
             update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)

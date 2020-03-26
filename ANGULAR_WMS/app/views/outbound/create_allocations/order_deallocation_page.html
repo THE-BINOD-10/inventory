@@ -58,6 +58,26 @@
         <div class="panel-header">
 <!--          <div ng-include="'views/common/excel.html'"></div>-->
         </div>
+        <div class="row" style="padding-left: 10%;padding-top: 2%;">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Zone *</label>
+              <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
+                <option ng-repeat="zone in showCase.zones_list" value="{{zone}}">{{zone}}</option>
+              </select>
+            </div>
+           </div>
+           <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Location *</label>
+              <input type="text"
+                       autocomplete="off" name="location"
+                       class="form-control"
+                       placeholder="Search Location"
+                       typeahead="address.location for address in showCase.service.getSearchValues($viewValue, 'search_location_data?',showCase.model_data.zone)" typeahead-loading="loadingLocations" ng-model="showCase.model_data.location" typeahead-on-select="showCase.get_location_data($item, $model, $label, $event)" required>
+            </div>
+          </div>
+        </div>
         <div ng-include="'views/common/datatable.html'"></div>
         <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
           <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>

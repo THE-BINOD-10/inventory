@@ -4285,6 +4285,40 @@ def search_wms_data(request, user=''):
     return HttpResponse(json.dumps(total_data))
 
 
+@get_admin_user
+def search_makemodel_wms_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_key = request.GET.get('q', '')
+    type = request.GET.get('type', '')
+    total_data = []
+    limit = 10
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+        values_list('sku_id', flat=True))
+    query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
+                                      status = 1,user=user.id, id__in=sku_ids)
+
+    master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
+    if master_data:
+        master_data = master_data[0]
+
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
+                           'measurement_unit': master_data.measurement_type,
+                           'load_unit_handle': master_data.load_unit_handle,
+                           'mrp': master_data.mrp,
+                           'enable_serial_based': master_data.enable_serial_based})
+
+    master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
+                                       user=user.id)
+    total_data = build_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_search_data(total_data, query_objects, limit)
+    return HttpResponse(json.dumps(total_data))
+
+
 def get_admin(user):
     is_admin_exists = UserGroups.objects.filter(user=user)
     if is_admin_exists:
@@ -10662,16 +10696,19 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     return sequence_number
 
 
-def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock=''):
+def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                    'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+    stock_filter_dict = {'sku__user': user.id, 'quantity__gt': 0}
+    if locations:
+        stock_filter_dict['location__location__in'] = locations
     if enable_damaged_stock == 'true':
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE'], **stock_filter_dict)
     else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(**stock_filter_dict)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
@@ -10708,3 +10745,37 @@ def get_customer_master_id(request, user=''):
     price_types = get_distinct_price_types(admin_user)
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
+
+
+@get_admin_user
+def search_location_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    type = request.GET.get('type' ,'')
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    filter_params  = {'zone__user':user.id,'status':1}
+    if type:
+        filter_params['zone__zone'] = type
+    master_data = LocationMaster.objects.filter(location__icontains=search_key, **filter_params)
+
+    for data in master_data[:30]:
+        total_data.append({'location': data.location})
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@get_admin_user
+def get_location_data(request, user=''):
+    data_id = request.GET['id']
+    try:
+        data_id = int(data_id)
+    except:
+        return HttpResponse('')
+    location = LocationMaster.objects.filter(location=data_id, user=user.id)
+    if location:
+        data = location[0]
+        return HttpResponse(json.dumps({'name': data.location}))
+    else:
+        return HttpResponse('')

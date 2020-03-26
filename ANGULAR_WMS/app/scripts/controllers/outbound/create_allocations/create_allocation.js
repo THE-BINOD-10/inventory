@@ -39,10 +39,27 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     vm.model_data["customer_id"] = item.customer_id;
     vm.model_data["customer_name"] = item.name;
     vm.model_data["tax_type"] = item.tax_type;
-    vm.model_data['chassis_number'] = item.chassis_number
-    vm.model_data['customer_reference'] = item.customer_reference
+    vm.model_data['chassis_number'] = item.chassis_number;
+    vm.model_data['customer_reference'] = item.customer_reference;
+    vm.model_data['make'] = item.make;
+    vm.model_data['model'] = item.model;
   }
   // Fill Customer Info Code Ends
+
+  // Get Available Quantity Code Starts
+  vm.update_availabe_stock = function(record, location) {
+     var send = {sku_code: record.sku_id, location: location}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      record["avail_qty"] = 0
+      if(data.message) {
+        if(data.data.available_quantity) {
+          record["avail_qty"] = data.data.available_quantity;
+        }
+      }
+    });
+  }
+  // Get Available Quantity Code Ends
+
 
   //Fill SKU Info Code Starts
   vm.get_sku_data = function(record, item, index) {
@@ -51,9 +68,9 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     if(!vm.model_data.blind_order && !(check_exist(record, index))){
       return false;
     }
-    if(!vm.model_data.customer_name){
+    if(!vm.model_data.customer_name || !vm.model_data.zone || !vm.model_data.location){
       record.sku_id = "";
-      colFilters.showNoty("Please Select Customer First");
+      colFilters.showNoty("Please Fill Required Details");
       return false;
     }
     angular.copy(empty_data.data[0], record);
@@ -65,6 +82,7 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
     if(!record.enable_serial) {
       record["quantity"] = 1;
     }
+    vm.update_availabe_stock(record, vm.model_data.location);
     $timeout(function() {
        vm.get_sku_additional_data(record, item, index);
      }, 1000);
@@ -108,6 +126,16 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
         })
       }
       vm.get_customer_types();
+      vm.get_zones_list  = function()
+      {
+        vm.service.apiCall("get_zones_list/").then(function(data){
+          if(data.message) {
+            vm.zones_list = data.data.zones;
+          }
+
+        })
+      }
+      vm.get_zones_list();
 
       vm.get_sku_additional_data  = function(record, item, index)
       {

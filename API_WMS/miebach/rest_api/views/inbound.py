@@ -3891,7 +3891,7 @@ def get_return_segregation_locations(order_returns, batch_dict, data, user):
 
 
 def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False,
-                          batch_dict=None):
+                          batch_dict=None, locations=''):
     order_returns = order_returns[0]
     zone = order_returns.sku.zone
     if zone:
@@ -3913,12 +3913,13 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
             continue
         if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
             data = get_return_segregation_locations(order_returns, batch_dict, data, user)
-        if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
-            locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
-            if not locations:
-                locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
-        else:
-            locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
+        if not locations:
+            if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
+                locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
+                if not locations:
+                    locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
+            else:
+                locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
 
         if not locations:
             return 'Locations not Found'

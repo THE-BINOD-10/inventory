@@ -7403,15 +7403,25 @@ def search_customer_data(request, user=''):
                                                 Q(customer_id__icontains=search_key), **filter_params)
 
     for data in master_data[:30]:
+        make, model = '', ''
         status = 'Inactive'
         if data.status:
             status = 'Active'
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        make_obj = MasterAttributes.objects.filter(attribute_id=data.id, attribute_model='customer',
+                                                   attribute_name='make')
+        if make_obj.exists():
+            make = make_obj[0].attribute_value
+        model_obj = MasterAttributes.objects.filter(attribute_id=data.id, attribute_model='customer',
+                                                   attribute_name='model')
+        if model_obj.exists():
+            model = model_obj[0].attribute_value
         total_data.append({'customer_id':str(data.customer_id), 'name': data.name, 'phone_number': str(data.phone_number),
                            'chassis_number': data.chassis_number, 'customer_reference': data.customer_reference,
-                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type,
+                           'ship_to': data.shipping_address, 'make': make, 'model': model})
     return HttpResponse(json.dumps(total_data))
 
 
@@ -16319,7 +16329,7 @@ def generate_dc(request , user = ''):
 @fn_timer
 def insert_allocation_data(request, user=''):
     myDict = dict(request.POST.iterlists())
-    single_key = ['customer_name', 'customer_id','customer_type','remarks']
+    single_key = ['customer_name', 'customer_id','customer_type','remarks', 'location']
     number_fields = ["quantity", "unit_price", "cgst_tax", "sgst_tax", "igst_tax"]
     error_dict = {'quantity': 'Quantity'}
     data_list = []
@@ -16350,7 +16360,8 @@ def insert_allocation_data(request, user=''):
             return HttpResponse("Invalid Customer %s" % data_dict['customer_id'])
         else:
             customer_master = customer_master[0]
-        stocks = StockDetail.objects.filter(sku_id=data_dict['sku_master_id'],quantity__gt=0).\
+        stocks = StockDetail.objects.filter(sku_id=data_dict['sku_master_id'],quantity__gt=0,
+                                            location__location=data_dict['location']).\
                         exclude(location__zone__zone__in=picklist_exclude_zones)
         stock_qty = check_stock_available_quantity(stocks, user)
         if stock_qty < data_dict['quantity']:
@@ -16400,7 +16411,7 @@ def insert_allocation_data(request, user=''):
                 if 'serials' in final_data.keys() and final_data['serials'] and final_data['serials'] != '[]':
                     serial_dict = {'imei': final_data['serials'], 'wms_code': final_data['sku_id']}
                     insert_order_serial(None, serial_dict, order)
-            sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones)
+            sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones, locations=[final_data['location']])
             stock_status, picklist_number = picklist_generation(created_orders, '',
                                                                 picklist_number, user,
                                                                 sku_combos, all_sku_stocks, switch_vals, 
@@ -16509,6 +16520,9 @@ def insert_deallocation_data(request, user=''):
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     allocation_ids = json.loads(request.POST.get('allocation_ids', ''))
     confirm_qty = int(request.POST.get('dealloc_qty', 0))
+    locations = LocationMaster.objects.filter(zone__user=user.id, location=request.POST['location'])
+    if not locations:
+        return HttpResponse("Invalid Location")
     if not (allocation_ids or confirm_qty):
         return HttpResponse("Required Fields Missing")
     orders = OrderDetail.objects.filter(id__in=allocation_ids, user=user.id)
@@ -16539,7 +16553,7 @@ def insert_deallocation_data(request, user=''):
             if not order_returns:
                 return HttpResponse("Failed")
             order_returns = order_returns[0]
-            save_return_locations([order_returns], [], 0, request, user)
+            save_return_locations([order_returns], [], 0, request, user, locations=locations)
             returns_order_tracking(order_returns, user, quantity, 'returned', imei='', invoice_no='')
             returns_location_data = ReturnsLocation.objects.filter(returns_id=order_returns.id, status=1)
             for returns_data in returns_location_data:

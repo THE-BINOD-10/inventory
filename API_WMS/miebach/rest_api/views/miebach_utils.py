@@ -4579,12 +4579,18 @@ def get_order_summary_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        if search_params.has_key('tally_report'):
+            search_parameters['sellerordersummary__creation_date__gt'] = search_params['from_date']
+        else:
+            search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        if search_params.has_key('tally_report'):
+            search_parameters['sellerordersummary__creation_date__lt'] = search_params['to_date']
+        else:
+            search_parameters['creation_date__lt'] = search_params['to_date']
     filter_dict = {'sku_code':'sku__sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',

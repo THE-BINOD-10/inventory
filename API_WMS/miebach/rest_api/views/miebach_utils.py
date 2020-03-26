@@ -9421,7 +9421,7 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
 def get_credit_note_form_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     all_cols = ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
                 '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
@@ -9554,7 +9554,9 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                      'purchase_order__open_po__supplier__name', 'purchase_order__open_po__po_name', 'purchase_order__open_po__cgst_tax', 
                      'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax', 
                      'purchase_order__prefix', 'seller_po__unit_price', 'seller_po__receipt_type', 'receipt_number', 'invoice_number', 
-                     'invoice_date', 'purchase_order__open_po__supplier__tin_number', 'purchase_order__open_po__supplier__tax_type']                  
+                     'invoice_date', 'purchase_order__open_po__supplier__tin_number', 'purchase_order__open_po__supplier__tax_type',
+                     'purchase_order__open_po__sku__user'
+                     ]                  
     excl_status = {'purchase_order__status': ''}
 
     search_parameters = {}
@@ -9586,7 +9588,21 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     # if 'supplier' in search_params and ':' in search_params['supplier']:
     #     search_parameters[field_mapping['supplier_id']] = \
     #         search_params['supplier'].split(':')[0]
-    search_parameters[field_mapping['user']] = user.id
+    if user.userprofile.warehouse_type == 'admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        search_parameters['purchase_order__open_po__sku__user__in'] = warehouses.values_list('user_id', flat=True)
+        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        sku_master_ids = sku_master.values_list('id', flat=True)
+    else:
+        search_parameters[field_mapping['user']] = user.id
+    # search_parameters['order__sku_id__in'] = sku_master_ids    
+    # search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('purchase_order__open_po__order_quantity') * F('purchase_order__open_po__price'))). \
@@ -9596,13 +9612,17 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     lastPoNumber = ''
     counter = 1
     inv_header_cnt = start_index
     for data in model_data:
-        result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
+        result = PurchaseOrder.objects.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=data['purchase_order__open_po__sku__user'])[0]
         receipt_no = data['receipt_number']
+        UpQs = UserProfile.objects.filter(user_id=data['purchase_order__open_po__sku__user'])
+        if UpQs.exists():
+            ola_gst_num = UpQs[0].gst_number
+        else:
+            ola_gst_num = ''
         if not receipt_no:
             receipt_no = ''
         po_order_id = data[field_mapping['order_id']]
@@ -9634,7 +9654,6 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         invoice_date, challan_date = '', ''
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
-        updated_user_name = user.username
         supplierCity = data['purchase_order__open_po__supplier__city']
         ordList = []
         for col in all_cols:
@@ -9684,7 +9703,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                 elif col == 'Invoiced Quantity':
                     ordTuple = (col, data['totalOrderQty'])
                 elif col == 'OLA GSTIN':
-                    ordTuple = (col, user.userprofile.gst_number)
+                    ordTuple = (col, ola_gst_num)
                 elif col == 'Customer GSTIN':
                     ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
                 else:

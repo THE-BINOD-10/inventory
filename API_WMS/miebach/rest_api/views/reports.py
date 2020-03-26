@@ -1330,12 +1330,11 @@ def excel_reports(request, user=''):
             squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number', 
                 'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ', 
                 'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
-                'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
+                'Purchase Order Distribution', 'Receipt', 'Receipt Line', 'Consumption Advice', 
                 'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location', 
-                'Ship-from Location', 'Location of Final Discharge', 'Context Value', 'Additional Information', 
+                'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1', 
                 'Project Information', 'Multiperiod Accounting Accrual Account'
                 ]
-            existingHeaders = report_data['aaData'][0].keys()
             ordList = []
             report_data['New_aaData'] = []
             for row in report_data['aaData']:
@@ -1344,7 +1343,7 @@ def excel_reports(request, user=''):
                         ordList.append((k+'[..]', v),)
                     else:
                         ordList.append((k, v),)
-                report_data['New_aaData'].append(OrderedDict(tuple(ordList)))
+                report_data['New_aaData'].append(OrderedDict(ordList))
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
 

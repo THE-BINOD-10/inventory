@@ -14,28 +14,34 @@
       $scope.customerUrl = urlService.mainUrl;
       $scope.stockoneUrl = urlService.stockoneUrl;
       $scope.user_data = urlService.userData;
+      urlService.returnsView = false;
+      $scope.returnsView = urlService.returnsView;
 //      $scope.sync_status = $rootScope.sync_status;
 //      $scope.sync_msg = "Not Synced !";
 //      $scope.$on('change_sync_status', function(){
 //        $scope.sync_status = $rootScope.sync_status;
 //      })
-      
-
       // Fullscreen
       $scope.goFullscreen = function () {
+        if (Fullscreen.isEnabled())
+         Fullscreen.cancel();
+        else
+         Fullscreen.all();
+      };
 
-          if (Fullscreen.isEnabled())
-           Fullscreen.cancel();
-          else
-           Fullscreen.all();
-       };
-
-	  $scope.isFullScreen = false;
-
-       $scope.goFullScreenViaWatcher = function() {
-          $scope.isFullScreen = !$scope.isFullScreen;
-       };
-
+      $scope.isFullScreen = false;
+      $scope.goFullScreenViaWatcher = function() {
+        $scope.isFullScreen = !$scope.isFullScreen;
+      };
+      $scope.returnsViewChange = function() {
+        if (urlService.returnsView) {
+          urlService.returnsView = false;
+          $scope.returnsView = false;
+        } else {
+          $scope.returnsView = true;
+          urlService.returnsView = true;
+        }
+      };
 	  //Synchronize DB
 //	  $scope.sync = function () {
 //		//$scope.is_disable = "true";

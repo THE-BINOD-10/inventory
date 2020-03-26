@@ -11,27 +11,23 @@
         self.tax_inclusive = true;
         self.mrp_discount = true;
         self.send_email = false;
-      self.simulateQuery = false;
-      self.isDisabled    = false;
-      $scope.onlyNumbers = /^\d+$/;
-
-      self.repos;
-      self.querySearch   = querySearch;
-      self.selectedItemChange = selectedItemChange;
-      self.searchTextChange   = searchTextChange;
-      self.searchText
-
-      self.table_headers = false;
-
-      self.submit_enable = false;
-      self.qty_switch;
-
-      self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
-      self.nw_status = "";
-      self.sku_data_filtered = [];
-      self.style_based_sku_data = [];
-      self.selected_skus = [];
-
+        self.simulateQuery = false;
+        self.isDisabled    = false;
+        $scope.onlyNumbers = /^\d+$/;
+        self.repos;
+        self.querySearch   = querySearch;
+        self.selectedItemChange = selectedItemChange;
+        self.searchTextChange   = searchTextChange;
+        self.searchText
+        self.table_headers = false;
+        self.submit_enable = false;
+        self.qty_switch;
+        self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
+        self.nw_status = "";
+        self.sku_data_filtered = [];
+        self.style_based_sku_data = [];
+        self.selected_skus = [];
+        self.urlService = urlService;
       // $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
       //      .then( function(data) {
       //         self.sku_data_filtered = data.data.file_content.slice(0,500);

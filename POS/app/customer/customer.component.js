@@ -8,23 +8,20 @@
            "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService",
                             "manageData", "$location", "$window",
   function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData, $location, $window) {
-
     var self = this;
-
     self.simulateQuery = false;
     self.isDisabled    = false;
     self.extra_fields_flag = false;
     self.extra_fields = {};
-
     self.repos;
     self.querySearch   = querySearch;
     self.selectedItemChange = selectedItemChange;
-    self.searchTextChange   = searchTextChange;
-
+    self.searchTextChange = searchTextChange;
     self.customer = {};
     self.searchText;
+    self.searchOrder;
+    self.urlservice = urlService;
     urlService.current_order.customer_extra = {};
-
     //get extra fields
     $http.get(urlService.mainUrl+'rest_api/get_extra_fields/?user='+urlService.userData.parent_id)
     .then( function(data) {
@@ -75,7 +72,6 @@
             self.extra_fields_flag = false;
         }
     });
-
     //on change text in customer extra fields, save it in urlService
     self.save_extra_fields = save_extra_fields;
     function save_extra_fields() {
@@ -87,57 +83,84 @@
 
     // Get data from backend to show below the search box
     self.get_user_data = get_user_data;
-   /*
-   function get_user_data(key) {
+    self.get_order_data = get_order_data;
+   
+    function get_order_data(key) {
+      self.search_term = key;
+      var deferred = $q.defer();
+      $http.get(urlService.mainUrl+'rest_api/search_pos_order_ids/?user='+urlService.userData.parent_id+'&key='+key)
+        .success( function(data) {
+          self.repos = data;
+          return self.repos.map( function (repo) {
+            return repo;
+          })
+        }).then(function() {
+          deferred.resolve(querySearch (key));
+        })
+      return deferred.promise;
+    }
 
+    self.searchOrderChange = searchOrderChange;
+    self.original_order_id = '';
+    function searchOrderChange(data) {
+      if (typeof(data) != "undefined") {
+        self.searchOrder = data['original_order_id'];
+        self.original_order_id = data['original_order_id'];
+        get_customer_data(data);
+        // load_order_Data(data);
+      }
+    }
+
+    self.searchOrderText = searchOrderText;
+    function searchOrderText(text) {
+      if (self.searchText != self.original_order_id) {
+        self.customer = {}
+      }
+    }
+
+    self.get_customer_data = get_customer_data;
+    function get_customer_data(customer) {
+      $http.get(urlService.mainUrl+'rest_api/get_pos_customer_data?user='+urlService.userData.parent_id+'&key='+customer.customer_id).then(function(data) {
+        data=data.data;
+        self.customer = urlService.current_order.customer_data = data;
+      })
+    }
+
+    // self.load_order_Data = load_order_Data;
+    // function load_order_Data(customer) {
+    //   $http.get(urlService.mainUrl+'rest_api/get_view_order_details?id=''&order_id='+customer.original_order_id).then(function(data) {
+    //     data=data.data;
+    //     self.customer = urlService.current_order.customer_data = data;
+    //   })
+    // }
+
+    function get_user_data(key) {
+      if (key.length > 1) {
         self.search_term = key;
         var deferred = $q.defer();
-        $http.get(urlService.mainUrl+'search_customer_data/?user='+urlService.userData.parent_id+'&key='+key)
-          .success( function(data) {
-            if (data.length==0 && self.search_term!=0) {
-                self.customerButton = true;
-            }
-            else { self.customerButton = false; }
-            self.repos = data;
-            return self.repos.map( function (repo) {
-              repo.value = repo.Number.toLowerCase();
-              return repo;
-            })
+        $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+          .then(function(data) {
+            data=data.data;
+            console.log($window);
+            if(data.message === "invalid user") {
+              $window.location.reload();
+            } else {
+              onLineUserData(data);
+            } 
+            deferred.resolve(querySearch (key)); 
+          },function(error){
+              console.log("activate offline");
+              getCustomerData(urlService.userData.parent_id,key).then(function(data){
+                offLineUserData(data);
+              }).then(function(){
+                deferred.resolve(querySearch (key));
+              });   
           }).then(function() {
-            deferred.resolve(querySearch (key));
-          })
+              /*deferred.resolve(querySearch (key));*/
+          });
         return deferred.promise;
-    }
-    */
-
-     function get_user_data(key) {
-        if (key.length > 1) {
-            self.search_term = key;
-            var deferred = $q.defer();
-
-            $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
-              .then(function(data) {
-                data=data.data;
-                console.log($window);
-                if(data.message === "invalid user") {
-                    $window.location.reload();
-                } else {
-                    onLineUserData(data);
-                } 
-                deferred.resolve(querySearch (key)); 
-              },function(error){
-                  console.log("activate offline");
-                  getCustomerData(urlService.userData.parent_id,key).then(function(data){
-                      offLineUserData(data);
-                  }).then(function(){
-                      deferred.resolve(querySearch (key));
-                  });   
-              }).then(function() {
-                  /*deferred.resolve(querySearch (key));*/
-              });
-            return deferred.promise;
-          }
-        return [];
+        }
+      return [];
     }
 
     //function online get user data process
@@ -199,6 +222,7 @@
     }
 
     function selectedItemChange(item) {
+      console.log(urlService)
       if (!(typeof(item) == "undefined")) {
         self.customer = urlService.current_order.customer_data = item;
         $log.info('Item changed to ' + JSON.stringify(item));

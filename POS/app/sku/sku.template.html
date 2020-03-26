@@ -1,9 +1,7 @@
 <div class="customer-box sku-box" style='padding-top: 10px;'>
-
-  <div>
-
+  <!-- {{$ctrl.urlService.returnsView}} -->
+  <div ng-if="!$ctrl.urlService.returnsView">
   <!-- <p style="float: left">{{$ctrl.nw_status}}</p> -->
-
   <p style="float: left">{{$ctrl.nw_status}}</p>
   <span style="float: left;margin:5px;">Return Mode : </span>
   <md-switch class="switch"

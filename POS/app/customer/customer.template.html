@@ -1,61 +1,102 @@
 <div class="customer-box row" style="width: 100%;margin-left: 0px;padding-top:0px;">
   <!--<h5>Customer Details</h5>-->
-  <div class="col-md-3">
-  <md-content layout-padding layout="column">
-    <form ng-submit="$event.preventDefault()">
-      <md-autocomplete
-          ng-disabled="$ctrl.isDisabled"
-          md-no-cache="$ctrl.noCache"
-          md-autoselect = "true"
-          md-selected-item="$ctrl.selectedItem"
-          md-search-text-change="$ctrl.searchTextChange($ctrl.searchText)"
-          md-search-text="$ctrl.searchText"
-          md-selected-item-change="$ctrl.selectedItemChange(item)"
-          md-items="item in $ctrl.get_user_data($ctrl.searchText)"
-          md-item-text="item.Number?item.Number:' ';"
-          md-min-length="0"
-          placeholder="Customer/ Mobile Number"
-          md-menu-class="autocomplete-custom-template"
-          ng-model = "$ctrl.cellNumber">
-        <md-item-template>
-          <span class="item-title">
-            <span> {{item.Number}} </span>
-          </span>
-          <span class="item-metadata">
-            <span class="item-metastat">
-              <strong>{{item.FirstName}}</strong>
-            </span>
-            <span class="item-metastat">
-              <strong>{{item.Email}}</strong>
-            </span>
-          </span>
-        </md-item-template>
-      </md-autocomplete>
-    </form>
-  </md-content>
+  <div ng-if="$ctrl.urlservice.returnsView">
+    <div class="col-md-4">
+      <md-content layout-padding layout="column">
+        <form ng-submit="$event.preventDefault()">
+          <md-autocomplete
+              ng-disabled="$ctrl.isDisabled"
+              md-no-cache="$ctrl.noCache"
+              md-autoselect = "true"
+              md-search-text="$ctrl.searchOrder"
+              md-search-text-change="$ctrl.searchOrderText($ctrl.searchOrder)"
+              md-selected-item-change="$ctrl.searchOrderChange(item)"
+              md-items="item in $ctrl.get_order_data($ctrl.searchOrder)"
+              md-item-text="item.original_order_id?item.original_order_id:' ';"
+              md-min-length="0"
+              placeholder="OrderId / ReturnId"
+              md-menu-class="autocomplete-custom-template"
+              ng-model = "$ctrl.original_order_id">
+            <md-item-template>
+              <span class="item-title">
+                <span> {{item.original_order_id}} </span>
+              </span>
+              <span class="item-metadata">
+                <span class="item-metastat">
+                  <strong>{{item.customer}}</strong>
+                </span>
+              </span>
+            </md-item-template>
+          </md-autocomplete>
+        </form>
+      </md-content>
+    </div>
+    <div class="col-md-2 customer-details">
+      <input type="text" class="custom-input" placeholder= "Mobile Number" ng-model="$ctrl.customer.Number" readonly style="width: 100% !important">
+    </div>
+    <div class="col-md-2 customer-details">
+      <input type="text" class="custom-input" placeholder= "First Name" ng-model="$ctrl.customer.FirstName" readonly style="width: 100% !important">
+    </div>
+    <div class="col-md-2 customer-details">
+      <input type="text" class="custom-input" placeholder="Last Name" ng-model="$ctrl.customer.LastName" readonly style="width: 100% !important">
+    </div>
+    <div class="col-md-2 customer-details">
+      <input type="text" class="custom-input" placeholder="Email" ng-model="$ctrl.customer.Email" readonly style="width: 100% !important">
+    </div>
   </div>
-  <div class="col-md-9 customer-details">
-     <input type="text" class="custom-input" placeholder= "First Name" ng-change="$ctrl.updateCustomer($ctrl.customer.FirstName, 'first_name')" ng-model="$ctrl.customer.FirstName">
-
-     <input type="text" class="custom-input" placeholder="Last Name" ng-model="$ctrl.customer.LastName" ng-change="$ctrl.updateCustomer($ctrl.customer.LastName, 'last_name')">
-
-     <input type="text" class="custom-input" placeholder="Email" ng-model="$ctrl.customer.Email" ng-change="$ctrl.updateCustomer($ctrl.customer.Email, 'email')">
-    <i ng-if="$ctrl.customer_status" style="float: right;" class="material-icons">done</i>
-    <md-button ng-if="$ctrl.customerButton" class="md-raised" ng-click = "$ctrl.addCustomer()">Add Customer</md-button>
-  </div>
-  <div class="col-md-12 extra_fields_row">
+  <div ng-if="!$ctrl.urlservice.returnsView">
+    <div class="col-md-3">
+      <md-content layout-padding layout="column">
+        <form ng-submit="$event.preventDefault()">
+          <md-autocomplete
+              ng-disabled="$ctrl.isDisabled"
+              md-no-cache="$ctrl.noCache"
+              md-autoselect = "true"
+              md-selected-item="$ctrl.selectedItem"
+              md-search-text-change="$ctrl.searchTextChange($ctrl.searchText)"
+              md-search-text="$ctrl.searchText"
+              md-selected-item-change="$ctrl.selectedItemChange(item)"
+              md-items="item in $ctrl.get_user_data($ctrl.searchText)"
+              md-item-text="item.Number?item.Number:' ';"
+              md-min-length="0"
+              placeholder="Customer/ Mobile Number"
+              md-menu-class="autocomplete-custom-template"
+              ng-model = "$ctrl.cellNumber">
+            <md-item-template>
+              <span class="item-title">
+                <span> {{item.Number}} </span>
+              </span>
+              <span class="item-metadata">
+                <span class="item-metastat">
+                  <strong>{{item.FirstName}}</strong>
+                </span>
+                <span class="item-metastat">
+                  <strong>{{item.Email}}</strong>
+                </span>
+              </span>
+            </md-item-template>
+          </md-autocomplete>
+        </form>
+      </md-content>
+    </div>
+    <div class="col-md-9 customer-details">
+      <input type="text" class="custom-input" placeholder= "First Name" ng-change="$ctrl.updateCustomer($ctrl.customer.FirstName, 'first_name')" ng-model="$ctrl.customer.FirstName">
+       <input type="text" class="custom-input" placeholder="Last Name" ng-model="$ctrl.customer.LastName" ng-change="$ctrl.updateCustomer($ctrl.customer.LastName, 'last_name')">
+       <input type="text" class="custom-input" placeholder="Email" ng-model="$ctrl.customer.Email" ng-change="$ctrl.updateCustomer($ctrl.customer.Email, 'email')">
+      <i ng-if="$ctrl.customer_status" style="float: right;" class="material-icons">done</i>
+      <md-button ng-if="$ctrl.customerButton" class="md-raised" ng-click = "$ctrl.addCustomer()">Add Customer</md-button>
+    </div>
+    <div class="col-md-12 extra_fields_row">
       <span ng-if="$ctrl.extra_fields_flag" ng-repeat="(typ, field) in $ctrl.extra_fields">
-          <span class="extra_fields" ng-repeat="item in field">
-              <input type="text" class="custom-input" placeholder= "{{item}}" ng-change="$ctrl.save_extra_fields()", ng-model="$ctrl.customer.extra_fields[item]"
-              ng-if="typ=='input'">
-              <textarea rows="2" ng-change="$ctrl.save_extra_fields()" placeholder= "{{item}}"
-              ng-model="$ctrl.customer.extra_fields[item]"
-              ng-if="typ=='textarea'"></textarea>
-          </span>
+        <span class="extra_fields" ng-repeat="item in field">
+          <input type="text" class="custom-input" placeholder= "{{item}}" ng-change="$ctrl.save_extra_fields()", ng-model="$ctrl.customer.extra_fields[item]"
+          ng-if="typ=='input'">
+          <textarea rows="2" ng-change="$ctrl.save_extra_fields()" placeholder= "{{item}}"
+          ng-model="$ctrl.customer.extra_fields[item]"
+          ng-if="typ=='textarea'"></textarea>
+        </span>
       </span>
+    </div>
   </div>
-
-
-</div>
 </div>
 

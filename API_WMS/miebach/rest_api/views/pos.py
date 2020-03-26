@@ -114,6 +114,34 @@ def search_pos_customer_data(request, user=''):
 
 @login_required
 @get_admin_user
+def get_pos_customer_data(request, user=''):
+    search_key = request.GET['key']
+    data_dict = {}
+    data = CustomerMaster.objects.get(customer_id=search_key, user=user.id)
+    if data:
+        data_dict = {'ID': data.id, 'FirstName': data.name,
+                        'LastName': data.last_name, 'Address': data.address,
+                        'Number': str(data.phone_number), 'Email': data.email_id}
+    return HttpResponse(json.dumps(data_dict))
+
+
+@login_required
+@get_admin_user
+def search_pos_order_ids(request, user=''):
+    search_key = request.GET['key']
+    total_data = []
+    if len(search_key) < 3:
+        return HttpResponse(json.dumps(total_data))
+    lis = ['original_order_id']
+    master_data = OrderDetail.objects.filter(Q(original_order_id__icontains=search_key) | \
+                                                Q(order_id__icontains=search_key), user=user.id)
+    for data in master_data[:20]:
+        total_data.append({ 'original_order_id': data.original_order_id, 'customer': data.customer_name, 'customer_id': data.customer_id })
+    return HttpResponse(json.dumps(total_data))
+
+
+@login_required
+@get_admin_user
 def search_product_data(request, user=''):
     search_key = request.GET['key']
     style_switch = True if request.GET['style_search']=='true' else False

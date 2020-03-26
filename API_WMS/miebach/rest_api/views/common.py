@@ -2741,10 +2741,16 @@ def get_order_id(user_id, is_pos=False):
     order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
                                           [order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
                                           reduce(operator.or_, (Q(order_code__icontains=x)\
-                                          for x in ['DC', 'PRE'])), user=user_id)\
-                                          .order_by(order_key)
+                                          for x in ['DC', 'PRE'])), user=user_id)
+    if order_detail_id.exists():
+        order_detail_id = order_detail_id.latest("creation_date")
+    # order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
+    #                                       [order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
+    #                                       reduce(operator.or_, (Q(order_code__icontains=x)\
+    #                                       for x in ['DC', 'PRE'])), user=user_id)\
+    #                                       .order_by(order_key)
     if order_detail_id:
-        order_id = int(order_detail_id[0].order_id) + 1
+        order_id = int(order_detail_id.order_id) + 1
     else:
         order_id = 1001
 

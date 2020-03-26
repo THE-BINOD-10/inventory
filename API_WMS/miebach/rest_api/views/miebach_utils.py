@@ -1141,7 +1141,7 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
         # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},        
     ],
     'dt_headers': ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
-                '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
+                '*Invoice Amount', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
                 'Payment Currency', 'Invoice Type', 'Description', 'Legal Entity Name', 'Payment Terms', 'Terms Date', 
                 'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
                 'Prepayment Number', 'Prepayment Line', 'Prepayment Application Amount', 'Prepayment Accounting Date', 
@@ -1155,8 +1155,8 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
                 'Taxation Country', 'Document Subtype', 'Invoice Internal Sequence', 'Tax Related Invoice', 'Supplier Tax Invoice Number', 
                 'Internal Recording Date', 'Supplier Tax Invoice Date', 'Supplier Tax Invoice Conversion Rate', 'Customs Location Code', 
                 'Correction Year', 'Correction Period', 'Tax Control Amount', 'Context Value', 'Additional Information', 
-                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount(wothout tax)', 'Invoiced Quantity', 
-                'Unit Price', 'UOM', 'Description', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
+                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount', 'Invoiced Quantity', 
+                'Unit Price', 'UOM', 'Description_1', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
                 'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
                 'Consumption Advice Line Number', 'Landed Cost Enabled', 'Final Match', 'Distribution Combination', 
                 'Distribution Set', 'Accounting Date', 'Overlay Account Segment', 'Overlay Primary Balancing Segment', 
@@ -1168,7 +1168,7 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
                 'Deferred Accounting Option', 'Multiperiod Accounting Start Date', 'Multiperiod Accounting End Date', 'Track as Asset', 
                 'Serial Number', 'Book', 'Asset Category', 'Manufacturer', 'Model', 'Requester', 'Item ID', 'Context Value', 
                 'Additional Information', 'Project Information', 'Fiscal Charge Type', 'Multiperiod Accounting Accrual Account', 
-                'OLA GSTIN', 'Customer GSTIN'],
+                'OLA GSTIN', 'Customer GSTIN', 'Warehouse'],
     'dt_url': 'get_credit_note_form_report', 'excel_name': 'get_credit_note_form_report',
     'print_url': 'print_credit_note_form_report',
 }
@@ -9426,7 +9426,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     all_cols = ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
-                '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
+                '*Invoice Amount', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
                 'Payment Currency', 'Invoice Type', 'Description', 'Legal Entity Name', 'Payment Terms', 'Terms Date', 
                 'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
                 'Prepayment Number', 'Prepayment Line', 'Prepayment Application Amount', 'Prepayment Accounting Date', 
@@ -9440,8 +9440,8 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                 'Taxation Country', 'Document Subtype', 'Invoice Internal Sequence', 'Tax Related Invoice', 'Supplier Tax Invoice Number', 
                 'Internal Recording Date', 'Supplier Tax Invoice Date', 'Supplier Tax Invoice Conversion Rate', 'Customs Location Code', 
                 'Correction Year', 'Correction Period', 'Tax Control Amount', 'Context Value', 'Additional Information', 
-                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount(wothout tax)', 'Invoiced Quantity', 
-                'Unit Price', 'UOM', 'Description', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
+                'Regional Context Value ', 'Regional Information ', 'Line', '*Type', '*Amount', 'Invoiced Quantity', 
+                'Unit Price', 'UOM', 'Description_1', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
                 'Purchase Order Distribution', 'Item Description', 'Receipt', 'Receipt Line', 'Consumption Advice', 
                 'Consumption Advice Line Number', 'Landed Cost Enabled', 'Final Match', 'Distribution Combination', 
                 'Distribution Set', 'Accounting Date', 'Overlay Account Segment', 'Overlay Primary Balancing Segment', 
@@ -9453,7 +9453,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                 'Deferred Accounting Option', 'Multiperiod Accounting Start Date', 'Multiperiod Accounting End Date', 'Track as Asset', 
                 'Serial Number', 'Book', 'Asset Category', 'Manufacturer', 'Model', 'Requester', 'Item ID', 'Context Value', 
                 'Additional Information', 'Project Information', 'Fiscal Charge Type', 'Multiperiod Accounting Accrual Account', 
-                'OLA GSTIN', 'Customer GSTIN']
+                'OLA GSTIN', 'Customer GSTIN', 'Warehouse']
 
     blankCols = ['Legal Entity Name', 'Payment Terms', 'Terms Date', 
                 'Goods Received Date', 'Invoice Received Date', 'Accounting Date', 'Budget Date', 'Invoice Includes Prepayment', 
@@ -9606,9 +9606,10 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     # search_parameters['order__sku_id__in'] = sku_master_ids    
     # search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    # search_parameters['purchase_order__order_id'] = 130
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters).values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + F('purchase_order__open_po__cgst_tax') + F('purchase_order__open_po__sgst_tax'))).order_by('-purchase_order__order_id', '-tot_tax')
-    model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('purchase_order__open_po__order_quantity') * F('purchase_order__open_po__price'))). \
-                    annotate(totalOrderQty=Sum('purchase_order__open_po__order_quantity'))
+    model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('putaway_quantity') * F('price'))). \
+                    annotate(totalOrderQty=Sum('price'))
     col_num = search_params.get('order_index', 0)
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -9623,8 +9624,10 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         UpQs = UserProfile.objects.filter(user_id=data['purchase_order__open_po__sku__user'])
         if UpQs.exists():
             ola_gst_num = UpQs[0].gst_number
+            wh_name = UpQs[0].user.first_name
         else:
             ola_gst_num = ''
+            wh_name = ''
         if not receipt_no:
             receipt_no = ''
         po_order_id = data[field_mapping['order_id']]
@@ -9668,7 +9671,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     ordTuple = (col, data['invoice_number'])
                 elif col == '*Invoice Header Identifier':
                     ordTuple = (col, inv_header_cnt)
-                elif col == '*Invoice Amount(with tax)':
+                elif col == '*Invoice Amount':
                     ordTuple = (col, invAmtWithTax)
                 elif col == '*Invoice Date':
                     ordTuple = (col, invoice_date)
@@ -9680,6 +9683,8 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     ordTuple = (col, supplierCity)
                 elif col == 'Description':
                     ordTuple = (col, 'Required Parts Purchase_PO No-%s_GRN No-%s' %(po_number, grn_number))
+                elif col == 'Description_1':
+                    ordTuple = (col, 'Required Parts Purchase@%s'%(tot_tax)+'_ PO No-%s _GRN No-%s' %(po_number, grn_number))
                 elif col == 'Distribution Combination':
                     if supplierCity in locationDistMap:
                         ordTuple = (col, locationDistMap[supplierCity][0])
@@ -9692,7 +9697,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                         ordTuple = (col, 'CityMismatch')
                 elif col == 'Invoice Type':
                     ordTuple = (col, 'Standard')
-                elif col == '*Amount(wothout tax)':
+                elif col == '*Amount':
                     ordTuple = (col, invAmtWithOutTax)
                 elif col == 'Line':
                     ordTuple = (col, counter)
@@ -9708,9 +9713,11 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     ordTuple = (col, ola_gst_num)
                 elif col == 'Customer GSTIN':
                     ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
+                elif col == 'Warehouse':
+                    ordTuple = (col, wh_name)
                 else:
                     ordTuple = (col, 'TODO')
 
             ordList.append(ordTuple)
-        temp_data['aaData'].append(OrderedDict(tuple(ordList)))
+        temp_data['aaData'].append(OrderedDict(ordList))
     return temp_data

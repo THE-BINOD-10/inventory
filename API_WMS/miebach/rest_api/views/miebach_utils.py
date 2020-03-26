@@ -1221,10 +1221,10 @@ PICKLIST_FIELDS = {'order_id': '', 'picklist_number': '', 'reserved_quantity': '
 PICKLIST_HEADER = ('ORDER ID', 'SKU Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PRINT_OUTBOUND_PICKLIST_HEADERS = (
-'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
+'SKU Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PRINT_OUTBOUND_PICKLIST_HEADERS_FMCG = (
-'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Batch No','MRP','Reserved Quantity', 'Picked Quantity')
+'SKU Code', 'Title', 'Category', 'Zone', 'Location', 'Batch No','MRP','Reserved Quantity', 'Picked Quantity')
 
 
 PRINT_PICKLIST_HEADERS = (
@@ -1275,7 +1275,7 @@ STOCK_DETAIL_HEADERS = OrderedDict(
      ('Quantity', 'quantity')])
 
 CYCLE_COUNT_HEADERS = OrderedDict(
-    [('WMS Code', 'sku_id__wms_code'), ('Zone', 'location_id__zone'), ('Location', 'location_id__location'),
+    [('SKU Code', 'sku_id__wms_code'), ('Zone', 'location_id__zone'), ('Location', 'location_id__location'),
      ('Quantity', 'quantity')])
 
 BATCH_DATA_HEADERS = OrderedDict([('SKU Code', 'sku__sku_code'), ('Title', 'title'), ('Total Quantity', 'quantity')])
@@ -1429,14 +1429,14 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
-                              ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('SKU Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
 
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
-                              ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('SKU Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),('Mfg Date','manufactured_date'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
@@ -2396,7 +2396,7 @@ CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
                                       ('City', 'city'), ('Pincode', 'pincode'),
                                       ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id'),
                                       ('Customer handset Model', 'sku_code')))
-SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'),
+SKU_PACK_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Pack ID', 'pack_id'),
                                       ('Pack Quantity', 'pack_quantity')))
 # SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'), ('Pack Quantity', 'pack_quantity')))
 BLOCK_STOCK_MAPPING = OrderedDict((

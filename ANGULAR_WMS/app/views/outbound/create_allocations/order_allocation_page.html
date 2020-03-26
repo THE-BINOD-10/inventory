@@ -20,17 +20,35 @@
         </div>
       </div>
       <div class="row">
+      <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Zone *</label>
+          <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
+            <option ng-repeat="zone in showCase.zones_list" value="{{zone}}">{{zone}}</option>
+          </select>
+        </div>
+       </div>
+       <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+          <label class="control-label">Location *</label>
+          <input type="text"
+                   autocomplete="off" name="location"
+                   class="form-control"
+                   placeholder="Search Location"
+                   typeahead="address.location for address in showCase.service.getSearchValues($viewValue, 'search_location_data?',showCase.model_data.zone)" typeahead-loading="loadingLocations" ng-model="showCase.model_data.location" typeahead-on-select="showCase.get_location_data($item, $model, $label, $event)" required>
+         </div>
+       </div>
        <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
-              <label class="control-label"> Customer Type </label>
+              <label class="control-label"> Type </label>
               <select name="customer_type" class="form-control" ng-model="showCase.customer_type" ng-change="showCase.verifyTax()">
                 <option ng-repeat="wh in showCase.customer_types" value="{{wh}}">{{wh}}</option>
               </select>
             </div>
-          </div>
+        </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer ID *</label>
+            <label class="control-label">Vehicle ID *</label>
             <input type="text"
                    autocomplete="off" name="customer_id"
                    class="form-control"
@@ -40,7 +58,7 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer Name *</label>
+            <label class="control-label">Vehicle Registration No. *</label>
             <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" readonly required>
             <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
           </div>
@@ -48,13 +66,25 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Chassis Number</label>
-            <input name="customer_name" ng-model="showCase.model_data.chassis_number" class="form-control" type="text" readonly required>
+            <input name="customer_name" ng-model="showCase.model_data.chassis_number" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer Reference </label>
-            <input name="customer_name" ng-model="showCase.model_data.customer_reference" class="form-control" type="text" readonly required>
+            <label class="control-label">Reference </label>
+            <input name="customer_name" ng-model="showCase.model_data.customer_reference" class="form-control" type="text" readonly>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Make </label>
+            <input name="make" ng-model="showCase.model_data.make" class="form-control" type="text" readonly>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Model </label>
+            <input name="model" ng-model="showCase.model_data.model" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -72,6 +102,7 @@
             <tr>
               <th>SKU Code *</th>
               <th> Description </th>
+              <th class="w10_">Available Quantity</th>
               <th class="w10_">Quantity</th>
               <th ng-repeat="data in showCase.order_extra_fields track by $index" ng-if ="showCase.extra_fields">
                 {{ data }}
@@ -83,10 +114,13 @@
           <tbody style="padding: 0px 0px">
             <tr ng-repeat="data in showCase.model_data.data">
               <td>
-                <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
+                <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_makemodel_wms_data?', showCase.model_data.make+'-'+showCase.model_data.model)" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
               </td>
               <td>
                 <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
+              </td>
+              <td>
+                <input type="text" class="form-control" ng-model="data.avail_qty" readonly>
               </td>
                <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"

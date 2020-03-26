@@ -409,6 +409,32 @@ var app = angular.module('urbanApp')
              templateUrl: 'views/masters/toggles/customer_update.html'
            })
 
+           .state('app.masters.VehicleMaster', {
+          url: '/VehicleMaster',
+          permission: 'show_vehiclemaster',
+          templateUrl: 'views/masters/vehicle_datatable.html',
+          resolve: {
+//            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+//                return $ocLazyLoad.load('scripts/controllers/masters/vehicleMaster.js');
+//                    }]
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/vehicleMaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+              }]
+          },
+          data: {
+            title: 'Vehicle Master',
+          }
+        })
+          .state('app.masters.VehicleMaster.vehicle', {
+             url: '/vehicle',
+             templateUrl: 'views/masters/toggles/vehicle_update.html'
+           })
+
            .state('app.masters.SkuPackMaster', {
              url: '/SkuPackMaster',
              // permission: 'sku_pack_config',

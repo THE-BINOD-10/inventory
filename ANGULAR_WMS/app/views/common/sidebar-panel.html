@@ -101,8 +101,13 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster')">
+          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster') && !show_tab('show_vehiclemaster')">
             <span>Customer Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.VehicleMaster" ng-show="show_tab('add_customermaster') && show_tab('show_vehiclemaster')">
+            <span>Vehicle Master</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('add_customersku')">

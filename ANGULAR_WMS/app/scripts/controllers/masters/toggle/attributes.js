@@ -5,16 +5,23 @@ function AttributesPOP($scope, $http, $state, $timeout, Session, colFilters, Ser
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
-  vm.input_types = ['Input', 'Number', 'Textarea', 'Dropdown'];
+  vm.input_types = ['Input', 'Number', 'Textarea', 'Dropdown', 'Multi Input'];
 
   vm.empty_data = {'id': '', 'attribute_name': '', 'attribute_type': 'Input'}
 
   vm.pop_data = {};
   vm.status_data = "";
   vm.status_data = [];
+  vm.attr_model = 'sku';
+  vm.title = 'Update SKU Attributes';
+  if(location.href.indexOf('VehicleMaster') != -1) {
+    vm.attr_model = 'customer';
+    vm.title = 'Update Vehicle Attributes';
+  }
+
 
   vm.getAttrData = function(){
-    vm.service.apiCall('get_user_attributes_list/', "GET", {attr_model: 'sku'}).then(function(data){
+    vm.service.apiCall('get_user_attributes_list/', "GET", {attr_model: vm.attr_model}).then(function(data){
       data = data.data;
       if(data.status && data.data.length) {
         vm.status_data = vm.status_data.concat(data.data);
@@ -38,7 +45,7 @@ function AttributesPOP($scope, $http, $state, $timeout, Session, colFilters, Ser
       var elem = angular.element($('form:visible'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      elem.push({name:"attr_model", value:"sku"})
+      elem.push({name:"attr_model", value: vm.attr_model})
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
       Service.apiCall("save_update_attribute/", "POST", elem, true).then(function(data){
         if(data.data.message == 'Updated Successfully') {

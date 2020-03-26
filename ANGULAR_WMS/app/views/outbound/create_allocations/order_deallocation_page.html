@@ -12,7 +12,7 @@
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">Customer Type</label>
+                  <label class="control-label">Type</label>
                    <select name="customer_type" class="form-control" ng-model="showCase.customer_type" ng-change="showCase.verifyTax()">
                 <option ng-repeat="wh in showCase.customer_types" value="{{wh}}">{{wh}}</option>
               </select>
@@ -20,7 +20,7 @@
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">Customer ID</label>
+                  <label class="control-label">Vehicle ID</label>
                   <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?',showCase.customer_type)" typeahead-loading="loadingLocations" ng-model="showCase.model_data.filters.customer_id" typeahead-on-select="showCase.model_data.customer_id = $item.customer_id">
                 </div>
               </div>
@@ -57,6 +57,26 @@
       <div class="panel">
         <div class="panel-header">
 <!--          <div ng-include="'views/common/excel.html'"></div>-->
+        </div>
+        <div class="row" style="padding-left: 10%;padding-top: 2%;">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Zone *</label>
+              <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
+                <option ng-repeat="zone in showCase.zones_list" value="{{zone}}">{{zone}}</option>
+              </select>
+            </div>
+           </div>
+           <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Location *</label>
+              <input type="text"
+                       autocomplete="off" name="location"
+                       class="form-control"
+                       placeholder="Search Location"
+                       typeahead="address.location for address in showCase.service.getSearchValues($viewValue, 'search_location_data?',showCase.model_data.zone)" typeahead-loading="loadingLocations" ng-model="showCase.model_data.location" typeahead-on-select="showCase.get_location_data($item, $model, $label, $event)" required>
+            </div>
+          </div>
         </div>
         <div ng-include="'views/common/datatable.html'"></div>
         <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">

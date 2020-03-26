@@ -293,6 +293,7 @@ urlpatterns = [
     url(r'^print_pdf_shipment_info/$',print_pdf_shipment_info),
     url('^marketplace_segregation/$', marketplace_segregation),
     url('^get_customer_data/$', get_customer_data),
+    url('^get_location_data/$', get_location_data),
     url('^insert_order_data/$', insert_order_data),
     url('^insert_allocation_data/$', insert_allocation_data),
     url('^insert_deallocation_data/$', insert_deallocation_data),
@@ -319,6 +320,7 @@ urlpatterns = [
     url(r'^create_custom_sku/$', create_custom_sku),
     url(r'^generate_order_jo_data/$', generate_order_jo_data),
     url(r'^search_customer_data/$', search_customer_data),
+    url(r'^search_location_data/$', search_location_data),
     url(r'^generate_order_po_data/$', generate_order_po_data),
     url(r'^get_view_order_details/$', get_view_order_details),
     url(r'^get_stock_location_quantity/$', get_stock_location_quantity),
@@ -328,6 +330,7 @@ urlpatterns = [
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
+    url(r'^search_makemodel_wms_data/$', search_makemodel_wms_data),
     url(r'^search_style_data/$', search_style_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
@@ -617,7 +620,8 @@ urlpatterns += [
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
-
+    url(r'^vehiclemaster_form/$', vehiclemaster_form),
+    url(r'^vehiclemaster_upload/$', vehiclemaster_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

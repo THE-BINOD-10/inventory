@@ -1739,9 +1739,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if hot_release:
             hot_release = 1 if (hot_release == 'enable') else 0
             check_update_hot_release(sku_data, hot_release)
-        for attr_key, attr_val in attr_dict.iteritems():
-            create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
-                                       create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+        for attr_key, attr_value in attr_dict.iteritems():
+            if attributes[attr_key] == 'Multi Input':
+                attr_vals = attr_value.split(',')
+            else:
+                attr_vals = [attr_value]
+            for attr_val in attr_vals:
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping,
+                                            allow_multiple=True)
 
         if ean_numbers:
             update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
@@ -1774,6 +1780,10 @@ def sku_upload(request, user=''):
             return HttpResponse(ex_status)
         user_attributes = get_user_attributes(user, 'sku')
         attributes = dict(user_attributes.values_list('attribute_name', 'attribute_type'))
+        if get_cell_data(0, 0, reader, file_type) == 'Part Number':
+            status = update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
+                         attributes=attributes)
+            return HttpResponse(status)
         status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
                                    attributes=attributes)
         if status != 'Success':
@@ -8082,3 +8092,202 @@ def order_allocation_form(request, user=''):
 
     wb, ws = get_work_sheet('Order Labels', ORDER_ALLOCATION_EXCEL_HEADERS)
     return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.username))
+
+
+
+@csrf_exempt
+@get_admin_user
+def vehiclemaster_form(request, user=''):
+    customer_file = request.GET['download-vehiclemaster-file']
+    if customer_file:
+        return error_file_download(customer_file)
+
+    excel_keys = copy.deepcopy(VEHICLE_EXCEL_MAPPING.keys())
+    customer_attributes = get_user_attributes(user, 'customer')
+    attribute_names = list(customer_attributes.values_list('attribute_name').distinct())
+    excel_keys = list(chain(excel_keys, attribute_names))
+    wb, ws = get_work_sheet('customer', excel_keys)
+    return xls_to_response(wb, '%s.customer_form.xls' % str(user.username))
+
+
+def get_vehiclemaster_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
+    excel_mapping = copy.deepcopy(VEHICLE_EXCEL_MAPPING)
+    user_attributes = get_user_attributes(user, 'customer')
+    attributes = user_attributes.values_list('attribute_name', flat=True)
+    excel_mapping.update(dict(zip(attributes, attributes)))
+    excel_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 excel_mapping)
+    return excel_file_mapping
+
+
+@csrf_exempt
+def validate_vehiclemaster_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    index_status = {}
+    customer_names = []
+    mapping_dict = get_vehiclemaster_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if not mapping_dict:
+        return "Headers not Matching", {}
+    number_fields = {}
+    data_list = []
+    customer_attributes = get_user_attributes(user, 'customer')
+    attr_names = list(customer_attributes.values_list('attribute_name', flat=True).distinct())
+    for row_idx in range(1, no_of_rows):
+        if not mapping_dict:
+            break
+        customer_master = None
+        data_dict = {}
+        for key, value in mapping_dict.iteritems():
+            cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
+            if key == 'name':
+                if not cell_data and not customer_master:
+                    index_status.setdefault(row_idx, set()).add('Missing Perm Registration No.')
+                elif cell_data:
+                    if str(cell_data).lower() in customer_names:
+                        index_status.setdefault(row_idx, set()).add('Duplicate Perm Registration No.')
+                    customer_master_obj = CustomerMaster.objects.filter(user=user.id, name=cell_data)
+                    if customer_master_obj:
+                        customer_master = customer_master_obj[0]
+                        data_dict['id'] = customer_master.id
+                    else:
+                        data_dict['name'] = cell_data
+                    customer_names.append(str(cell_data).lower())
+            elif key in attr_names:
+                try:
+                    cell_data = int(cell_data)
+                except:
+                    pass
+                data_dict.setdefault('attr_dict', {})
+                data_dict['attr_dict'].setdefault(key, '')
+                data_dict['attr_dict'][key] = cell_data
+            elif cell_data:
+                data_dict[key] = cell_data
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, {}
+
+
+def vehiclemaster_excel_upload(request, user, data_list):
+    for final_data in data_list:
+        if final_data['id']:
+            customer_master = [CustomerMaster.objects.get(id=final_data['id'])]
+        else:
+            customer_master = CustomerMaster.objects.filter(user=user.id, name=final_data['name'])
+        customer_data = copy.deepcopy(final_data)
+        del customer_data['attr_dict']
+        if customer_master:
+            customer_master = customer_master[0]
+            for key, value in customer_data.items():
+                if key == 'id':
+                    continue
+                setattr(customer_master, key, value)
+            customer_master.save()
+        else:
+            temp_data = json.loads(get_customer_master_id(request).content)
+            customer_data['customer_id'] = temp_data['customer_id']
+            customer_data['user'] = user.id
+            customer_master = CustomerMaster(**customer_data)
+            customer_master.save()
+        for attr_key, attr_val in final_data['attr_dict'].iteritems():
+            update_master_attributes_data(user, customer_master, attr_key, attr_val, 'customer')
+
+    return 'success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def vehiclemaster_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status, data_list = validate_vehiclemaster_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+
+        vehiclemaster_excel_upload(request, user, data_list)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Vehicle Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Vehicle Master Upload Failed")
+
+    return HttpResponse('Success')
+
+
+def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes=None):
+    make_model_headers = []
+    index_status = {}
+    data_list = []
+    for col_idx in range(1, no_of_cols):
+        make_model_headers.append(get_cell_data(0, col_idx, reader, file_type))
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        sku_code = get_cell_data(row_idx, 0, reader, file_type)
+        make_model_map = []
+        for col_idx in range(1, no_of_cols):
+            if get_cell_data(row_idx, col_idx, reader, file_type):
+                make_model_map.append(make_model_headers[col_idx-1])
+        sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+        if not sku_master.exists():
+            index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+        else:
+            sku_master = sku_master[0]
+            data_dict['sku_master'] = sku_master
+        data_dict['make_model_map'] = make_model_map
+        data_list.append(data_dict)
+    if index_status:
+        f_name = generate_error_excel(index_status, fname, reader, file_type)
+        return f_name
+    create_sku_attrs = []
+    sku_attr_mapping = []
+    for final_data in data_list:
+        exist_make_model_map = list(SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id,
+                                                                 attribute_name='make_model_map'). \
+                                    values_list('attribute_value', flat=True))
+        rem_list = set(exist_make_model_map) - set(final_data['make_model_map'])
+        if rem_list:
+            SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make_model_map',
+                                         attribute_value__in=rem_list).delete()
+            for rem_val in rem_list:
+                make_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
+                                                          attribute_value__startswith=rem_val.split('-')[0])
+                if not make_check.exists():
+                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
+                                                 attribute_value=rem_val.split('-')[0]).delete()
+                model_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
+                                                           attribute_value__startswith=rem_val.split('-')[1])
+                if not model_check.exists():
+                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
+                                                 attribute_value=rem_val.split('-')[1]).delete()
+        for attr_value in final_data['make_model_map']:
+            temp_data = attr_value.split('-')
+            attr_dict = {'make_model_map': attr_value, 'Make': temp_data[0], 'Model': temp_data[1]}
+            for attr_key, attr_val in attr_dict.items():
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(final_data['sku_master'], attr_key,
+                                                                                attr_val,
+                                                                                is_bulk_create=True,
+                                                                                create_sku_attrs=create_sku_attrs,
+                                                                                sku_attr_mapping=sku_attr_mapping,
+                                                                                allow_multiple=True)
+    #Bulk Create SKU Attributes
+    if create_sku_attrs:
+        SKUAttributes.objects.bulk_create(create_sku_attrs)
+    return 'Success'

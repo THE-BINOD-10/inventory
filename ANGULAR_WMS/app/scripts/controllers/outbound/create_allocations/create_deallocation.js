@@ -103,9 +103,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('Updated CustomerName').withTitle('Updated CustomerName'),
+        DTColumnBuilder.newColumn('Vehicle ID').withTitle('Vehicle ID'),
+        DTColumnBuilder.newColumn('Vehicle Number').withTitle('Vehicle Number'),
+        DTColumnBuilder.newColumn('Updated Vehicle Number').withTitle('Updated Vehicle Number'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('Allocated Quantity').withTitle('Allocated Quantity'),
@@ -196,9 +196,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	vm.save_dealloc_qty = function(id, data_id) {
         var row_data = vm.dtInstance.DataTable.context[0].aoData[id]._aData;
         var dealloc_dict = {};
+        if(!vm.model_data.location){
+          vm.service.showNoty("Please Select Location First");
+        }
 		if (vm['deallocation_qty_val_'+ data_id]) {
 		  dealloc_dict['allocation_ids'] = row_data['allocation_ids'];
 		  dealloc_dict['dealloc_qty'] = vm['deallocation_qty_val_'+ data_id]
+		  dealloc_dict['location'] = vm.model_data.location;
           vm.service.apiCall('insert_deallocation_data/', 'POST', dealloc_dict).then(function(resp) {
             if (resp.data == 'Success') {
               vm.service.refresh(vm.dtInstance);
@@ -207,7 +211,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 		}
 	}
 
+    vm.get_zones_list  = function()
+      {
+        vm.service.apiCall("get_zones_list/").then(function(data){
+          if(data.message) {
+            vm.zones_list = data.data.zones;
+          }
 
+        })
+      }
+      vm.get_zones_list();
 
 }
 

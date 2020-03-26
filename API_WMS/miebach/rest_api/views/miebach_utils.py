@@ -285,6 +285,11 @@ CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Per
                     'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
+VEHICLE_EXCEL_MAPPING = OrderedDict(( ('Type', 'customer_type'), ('Current City of Operations', 'city'),
+                                      ('Perm Registration No.', 'name'), ('Chassis Number', 'chassis_number'),
+                                      ('Reference', 'customer_reference')
+                                   ))
+
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('customer_code', 2), ('credit_period', 3), ('cst_number', 4), ('tin_number', 5),
      ('pan_number', 6), ('email_id', 7), ('phone_number', 8), ('city', 9), ('state', 10), ('country', 11),
@@ -1545,6 +1550,8 @@ MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
 
 ITEM_MASTER_EXCEL = OrderedDict(
     (('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14)))
+
+PART_MASTER_EXCEL = OrderedDict((('Part Number', 'sku_code'),))
 
 SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
     (('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8)))

@@ -1,0 +1,249 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <input type="hidden" name="data-id" value="{{showCase.model_data.data-id}}">
+          <div class="row">
+            <input name="login_created" type="hidden" value="{{showCase.model_data.login_created}}">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Vehicle ID * </label>
+                <input type="text" name="customer_id" class="form-control numvalid" ng-model="showCase.model_data.customer_id" maxlength="60" ng-readonly="showCase.update" required> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Vehicle Number * </label>
+                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
+            </div>
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Email * </label>-->
+<!--                <input type="email" ng-if="!showCase.update" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" required>-->
+<!--                <input type="text" ng-if="showCase.update" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" required> </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> GSTIN Number </label>-->
+<!--                <input type="text" name="tin_number" class="form-control" ng-model="showCase.model_data.tin_number" maxlength="256">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Credit Period </label>-->
+<!--                <input type="text" name="credit_period" class="form-control number" ng-model="showCase.model_data.credit_period" maxlength="256">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Phone No. * </label>-->
+<!--                <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" required> </div>-->
+<!--            </div>-->
+<!--            &lt;!&ndash;<div class="col-md-4">&ndash;&gt;-->
+<!--                 &lt;!&ndash;<div class="form-group">&ndash;&gt;-->
+<!--                   &lt;!&ndash;<label class="control-label"> CIN </label>&ndash;&gt;-->
+<!--                   &lt;!&ndash;<input type="text" name="cin_number" class="form-control" ng-model="showCase.model_data.cin_number" maxlength="64">&ndash;&gt;-->
+<!--                 &lt;!&ndash;</div>&ndash;&gt;-->
+<!--            &lt;!&ndash;</div>&ndash;&gt;-->
+<!--            <div class="col-md-4">-->
+<!--               <div class="form-group">-->
+<!--                 <label class="control-label"> PAN </label>-->
+<!--                 <input type="text" name="pan_number" class="form-control" ng-model="showCase.model_data.pan_number" maxlength="64">-->
+<!--               </div>-->
+<!--            </div>-->
+            <div class="col-md-4">
+               <div class="form-group">
+                 <label class="control-label"> City <span ng-if="showCase.priceband_sync='true'">*</span></label>
+                 <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city" maxlength="64" ng-required="showCase.priceband_sync='true'">
+               </div>
+            </div>
+<!--            <div class="col-md-4">-->
+<!--               <div class="form-group">-->
+<!--                 <label class="control-label"> State <span ng-if="showCase.priceband_sync='true'">*</span></label>-->
+<!--                 <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state" maxlength="64" ng-required="showCase.priceband_sync='true'">-->
+<!--               </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                 <label class="control-label"> Country</label>-->
+<!--                 <input type="text" name="country" class="form-control" ng-model="showCase.model_data.country" maxlength="64">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--               <div class="form-group">-->
+<!--                 <label class="control-label"> PIN Code <span ng-if="showCase.priceband_sync='true'">*</span></label>-->
+<!--                 <input type="text" name="pincode" class="form-control" ng-model="showCase.model_data.pincode" maxlength="10" ng-required="showCase.priceband_sync='true'">-->
+<!--               </div>-->
+<!--            </div>-->
+            <div class="col-md-4">
+               <div class="form-group">
+                 <label class="control-label"> Customer Type </label>
+                 <input type="text" name="customer_type" class="form-control" ng-model="showCase.model_data.customer_type" maxlength="64">
+               </div>
+            </div>
+
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
+              <div class="form-group">
+                <label class="control-label"> {{ attr.attribute_name }} </label>
+                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value" ng-if="attr.attribute_type!='Dropdown'">
+                <select name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value" ng-if="attr.attribute_type =='Dropdown'">
+                  <option ng-repeat="type in showCase.attribute_options[attr.attribute_name]" value="{{type}}"
+                          track by $index
+                          ng-selected="attr.attribute_value == type">{{type}}</option>
+                </select>
+              </div>
+            </div>
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Tax Type *</label>-->
+<!--                <select class="form-control" ng-model="showCase.model_data.tax_type" name="tax_type" required>-->
+<!--                  <option value=""> None </option>-->
+<!--                  <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_value}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4" ng-if="show_tab('add_pricemaster')">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Price Type </label>-->
+<!--                <select class="form-control" name="price_type" ng-model="showCase.model_data.price_type" name="status" ng-if="permissions.user_type!='distributor'">-->
+<!--                  <option ng-selected="showCase.model_data.price_type == ''" value="">None</option>-->
+<!--                  <option ng-repeat="status in showCase.model_data.price_type_list" ng-selected="showCase.model_data.price_type == status" value="{{status}}">{{status}}</option>-->
+<!--                </select>-->
+<!--                <input type="text" ng-model="showCase.model_data.price_type" ng-if="permissions.user_type=='distributor'" name="price_type" class="form-control" ng-readonly='true'>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4" ng-if="showCase.model_data.level_2_price_type">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Level 2 Price Type </label>-->
+<!--                <input type="text" name="level_2_price_type" class="form-control" ng-model="showCase.model_data.level_2_price_type" ng-readonly="true">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Markup Percentage </label>-->
+<!--                <input type="text" name="markup" class="form-control" ng-model="showCase.model_data.markup" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"> </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Discount Percentage </label>-->
+<!--                <input type="text" name="discount_percentage" class="form-control" ng-model="showCase.model_data.discount_percentage" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"> </div>-->
+<!--            </div>-->
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Chassis Number </label>
+                  <input type="text" name="chassis_number" class="form-control" ng-model="showCase.model_data.chassis_number" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Reference </label>
+                  <input type="text" name="customer_reference" class="form-control" ng-model="showCase.model_data.customer_reference" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Status </label>
+                <select class="form-control customer_status" ng-model="showCase.model_data.status" name="status">
+                  <option ng-repeat="status in showCase.status_data" ng-selected="status=='Active'" value="{{status}}">{{status}}</option>
+                </select>
+              </div>
+            </div>
+<!--            <div class="col-md-4" ng-if="showCase.display_sku_cust_mapping==true">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Role </label>-->
+<!--                <select class="form-control customer_role" ng-model="showCase.model_data.role" name="role">-->
+<!--                  <option ng-repeat="role in showCase.customer_roles" ng-selected="role==showCase.model_data.role" value="{{role}}">{{role}}</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--                <div class="form-group">-->
+<!--                  <label class="control-label"> SPOC Name </label>-->
+<!--                  <input type="text" name="spoc_name" class="form-control" ng-model="showCase.model_data.spoc_name" maxlength="256">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4" ng-if="permissions.user_type == 'distributor'">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Lead Time </label>-->
+<!--                <input type="text" name="lead_time" class="form-control" ng-model="showCase.model_data.lead_time">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--          <div class="row" ng-if="permissions.user_type == 'warehouse'">-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Distributor Flag </label>-->
+<!--                <select class="form-control is_distributor" ng-model="showCase.model_data.is_distributor" name="is_distributor">-->
+<!--                  <option ng-repeat="is_distributor in ['True', 'False']" ng-selected="showCase.model_data.is_distributor==is_distributor" value="{{is_distributor}}">{{is_distributor}}</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--          <div class="row">-->
+<!--            <div class="col-md-8">-->
+<!--              <div class="row">-->
+<!--                <div class="col-md-12">-->
+<!--                  <div class="form-group">-->
+<!--                    <label class="control-label"> Address * </label>-->
+<!--                    <textarea rows="5" class="form-control" cols="27" ng-model="showCase.model_data.address" name="address" required></textarea>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-8">-->
+<!--              <div class="row">-->
+<!--                <div class="col-md-12">-->
+<!--                  <div class="form-group">-->
+<!--                    <label class="control-label"> Shipping Address * </label>-->
+<!--                    <textarea rows="5" class="form-control" cols="27" ng-model="showCase.model_data.shipping_address" name="shipping_address" required></textarea>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-6" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">-->
+<!--              <div class="row">-->
+<!--                <div class="col-md-12">-->
+<!--                  <div class="form-group">-->
+<!--                    <a ng-click="showCase.model_data.create_login = true" style="color: #33cc66; text-decoration: underline;"> Change Password </a>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--          <div class="row" ng-if="showCase.model_data.create_login">-->
+<!--            <hr>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> username </label>-->
+<!--                <input type="text" name="username" class="form-control" ng-model="showCase.model_data.username" maxlength="256" ng-readonly="showCase.model_data.login_created" ng-required="!(showCase.model_data.login_created)">-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Password </label>-->
+<!--                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" maxlength="256" ng-required="!(showCase.model_data.login_created)">-->
+<!--              </div>-->
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.service.message}}</h4> </div>
+        </form>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

@@ -2456,7 +2456,7 @@ class SKUAttributes(models.Model):
 
     class Meta:
         db_table = 'SKU_ATTRIBUTES'
-        unique_together = ('sku', 'attribute_name')
+        #unique_together = ('sku', 'attribute_name')
         index_together = ('sku', 'attribute_name')
 
     def __unicode__(self):
@@ -3474,6 +3474,20 @@ class ProccessRunning(models.Model):
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
 
+
+class MasterAttributes(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_id = models.CharField(max_length=32, default='')
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
+        index_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
 
 
 @receiver(post_save, sender=OrderDetail)

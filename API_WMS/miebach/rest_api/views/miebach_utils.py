@@ -1136,7 +1136,9 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-        {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
+        # {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+        # {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+        # {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},        
     ],
     'dt_headers': ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
                 '*Invoice Amount(with tax)', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
@@ -9604,7 +9606,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     # search_parameters['order__sku_id__in'] = sku_master_ids    
     # search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
+    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters).values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + F('purchase_order__open_po__cgst_tax') + F('purchase_order__open_po__sgst_tax'))).order_by('-purchase_order__order_id', '-tot_tax')
     model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('purchase_order__open_po__order_quantity') * F('purchase_order__open_po__price'))). \
                     annotate(totalOrderQty=Sum('purchase_order__open_po__order_quantity'))
     col_num = search_params.get('order_index', 0)

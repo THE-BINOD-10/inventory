@@ -16480,9 +16480,9 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
             quantity -= order_returns
         data_id = count
         temp_data['aaData'].append(OrderedDict((('data_id', data_id),
-                                                ('Customer ID', order['customer_id']),
-                                                ('Updated CustomerName', updated_customer_dict.get(order['customer_id'])),
-                                                ('Customer Name', order['customer_name']),
+                                                ('Vehicle ID', order['customer_id']),
+                                                ('Updated Vehicle Number', updated_customer_dict.get(order['customer_id'])),
+                                                ('Vehicle Number', order['customer_name']),
                                                 ('SKU Code', order['sku__sku_code']),
                                                 ('SKU Description', order['sku__sku_desc']),
                                                 ('Allocated Quantity', quantity),

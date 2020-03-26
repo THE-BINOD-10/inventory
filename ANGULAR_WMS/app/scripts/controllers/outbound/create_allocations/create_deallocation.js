@@ -103,9 +103,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-        DTColumnBuilder.newColumn('Updated CustomerName').withTitle('Updated CustomerName'),
+        DTColumnBuilder.newColumn('Vehicle ID').withTitle('Vehicle ID'),
+        DTColumnBuilder.newColumn('Vehicle Number').withTitle('Vehicle Number'),
+        DTColumnBuilder.newColumn('Updated Vehicle Number').withTitle('Updated Vehicle Number'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
         DTColumnBuilder.newColumn('Allocated Quantity').withTitle('Allocated Quantity'),

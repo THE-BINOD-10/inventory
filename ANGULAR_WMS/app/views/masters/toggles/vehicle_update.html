@@ -133,6 +133,18 @@
 <!--                <input type="text" name="discount_percentage" class="form-control" ng-model="showCase.model_data.discount_percentage" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"> </div>-->
 <!--            </div>-->
             <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Chassis Number </label>
+                  <input type="text" name="chassis_number" class="form-control" ng-model="showCase.model_data.chassis_number" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Reference </label>
+                  <input type="text" name="customer_reference" class="form-control" ng-model="showCase.model_data.customer_reference" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Status </label>
                 <select class="form-control customer_status" ng-model="showCase.model_data.status" name="status">

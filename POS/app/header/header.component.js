@@ -15,6 +15,8 @@
       $scope.stockoneUrl = urlService.stockoneUrl;
       $scope.user_data = urlService.userData;
       urlService.returnsView = false;
+      urlService.current_returns_data = {};
+      urlService.returns_load = false;
       $scope.returnsView = urlService.returnsView;
 //      $scope.sync_status = $rootScope.sync_status;
 //      $scope.sync_msg = "Not Synced !";

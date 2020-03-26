@@ -28,6 +28,7 @@
         self.style_based_sku_data = [];
         self.selected_skus = [];
         self.urlService = urlService;
+        self.change_config;
       // $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
       //      .then( function(data) {
       //         self.sku_data_filtered = data.data.file_content.slice(0,500);
@@ -41,7 +42,32 @@
       //       });
 
       //get offline sku conntent
-
+      self.on_data_change = function(data){
+        if (data == 'remove') {
+          self.skus = [];
+          self.table_headers = false;
+        } else {
+          angular.forEach(urlService.current_returns_data, function(value) {
+          var temp_dict = {
+            'ProductDescription': value.product_title,
+            'igst': value.igst_tax,
+            'SKUCode': value.item_code,
+            'price': value.invoice_amount,
+            'discount': value.discount_percentage,
+            'selling_price': value.invoice_amount,
+            'search': value.product_title,
+            'url': value.image_url,
+            'sgst': value.sgst_tax,
+            'utgst': 0,
+            'style_name': value.sku_brand,
+            'stock_quantity': 100,
+            'cgst': value.cgst_tax,
+          }
+          update_search_results([temp_dict], temp_dict.SKUCode);
+          cal_total();
+        });
+        }
+      }
       function getOflfineSkuContent(){
         getData("").then(function(data){
                 if(data.length==0){
@@ -516,7 +542,6 @@
       //clear all fields
       self.clear_fields = clear_fields;
       function clear_fields() {
-
         self.searchText = '';
         self.table_headers = false;
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
@@ -868,7 +893,6 @@
       self.changeQuantity = changeQuantity;
       function changeQuantity(item) {
         console.log(item);
-
         if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
         item.quantity = item.stock_quantity;

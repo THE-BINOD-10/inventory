@@ -107,7 +107,7 @@
         self.searchOrder = data['original_order_id'];
         self.original_order_id = data['original_order_id'];
         get_customer_data(data);
-        // load_order_Data(data);
+        load_order_Data(data);
       }
     }
 
@@ -115,6 +115,21 @@
     function searchOrderText(text) {
       if (self.searchText != self.original_order_id) {
         self.customer = {}
+        urlService.current_order.sku_data=[];
+        urlService.current_returns_data = {};
+        urlService.returns_load = false;
+        urlService.current_order.summary = {
+          'total_quantity': 0,
+          'total_amount': 0,
+          'total_discount': 0,
+          'subtotal': 0,
+          'VAT': 0,
+          'unit_price': 0,
+          'cgst': 0,
+          'sgst': 0,
+          'igst': 0,
+          'utgst': 0
+        }
       }
     }
 
@@ -126,13 +141,14 @@
       })
     }
 
-    // self.load_order_Data = load_order_Data;
-    // function load_order_Data(customer) {
-    //   $http.get(urlService.mainUrl+'rest_api/get_view_order_details?id=''&order_id='+customer.original_order_id).then(function(data) {
-    //     data=data.data;
-    //     self.customer = urlService.current_order.customer_data = data;
-    //   })
-    // }
+    self.load_order_Data = load_order_Data;
+    function load_order_Data(cust) {
+      var id = ''
+      $http.get(urlService.mainUrl+'rest_api/get_view_order_details?id='+id+'&order_id='+cust.original_order_id).then(function(data) {
+        urlService.current_returns_data = data.data.data_dict[0].ord_data;
+        urlService.returns_load = true;
+      })
+    }
 
     function get_user_data(key) {
       if (key.length > 1) {

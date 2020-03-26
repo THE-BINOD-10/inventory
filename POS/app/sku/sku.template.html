@@ -63,6 +63,7 @@
   <!-- </p> -->
 
   </div>
+
   <div layout="column" style="display:block;" ng-cloak>
   <div class="row">
     <div class="col-md-10">
@@ -136,7 +137,13 @@
      <md-button class="button-color md-raised md-primary pull-right" ng-click="$ctrl.submit_data()" style="width:100px" ng-disabled="$ctrl.submit_enable">Submit</md-button>
    </div>
 </div>
-
+<div ng-if="$ctrl.urlService.returns_load">
+  <div ng-init="$ctrl.on_data_change('add')"></div>
+</div>
+<div ng-if="!$ctrl.urlService.returns_load">
+  <div ng-init="$ctrl.on_data_change('remove')"></div>
+</div>
+</div>
 <!-- Multi select Modal -->
 <div class="modal fade" id="skuModal" role="dialog">
     <div class="modal-dialog" style="width: 80%">

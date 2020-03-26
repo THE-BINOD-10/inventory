@@ -9607,7 +9607,11 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     # search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     # search_parameters['purchase_order__order_id'] = 130
-    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters).values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + F('purchase_order__open_po__cgst_tax') + F('purchase_order__open_po__sgst_tax'))).order_by('-purchase_order__order_id', '-tot_tax')
+    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters). \
+            values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + \
+                               F('purchase_order__open_po__cgst_tax') + \
+                               F('purchase_order__open_po__sgst_tax'))). \
+            order_by('purchase_order__open_po__sku__user', '-purchase_order__order_id', '-tot_tax')
     model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('quantity') * F('price'))). \
                     annotate(totalOrderQty=Sum('quantity'))
     col_num = search_params.get('order_index', 0)

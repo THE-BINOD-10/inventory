@@ -929,6 +929,7 @@ def get_supplier_data(request):
 def get_skus(request):
     data = []
     user = request.user
+    limit = 10
     attr_list = []
     error_status = []
     skus = []
@@ -1006,25 +1007,31 @@ def get_skus(request):
                 cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
-        price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
-        if request_data.has_key('customer_name'):
-            price_filter['price_type'] = request_data['customer_name']
-        price_master_objs = PriceMaster.objects.filter(**price_filter)
-        if price_master_objs.exists():
-            brand_level_discount = price_master_objs[0].discount
+        # price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
+        # if request_data.has_key('customer_name'):
+        #     price_filter['price_type'] = request_data['customer_name']
+        # price_master_objs = PriceMaster.objects.filter(**price_filter)
+        # if price_master_objs.exists():
+        #     brand_level_discount = price_master_objs[0].discount
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
+                                  ('sku_class',sku.sku_class),
                                   ('sub_category', sku.sub_category),
+                                  ('sku_type', sku.sku_type),
+                                  ('sku_group',sku.sku_group),
+                                  ('sku_size', sku.sku_size),
+                                  ('style_name',sku.style_name),
                                   ('price', str(sku.price)),
                                   ('mrp', str(sku.mrp)),
                                   ('cost_price', str(sku.cost_price)),
                                   ('product_type', sku.product_type),
-                                  ('hsn_code', sku.hsn_code),
-                                  ('brand_level_discount',brand_level_discount),
                                   ('cgst', cgst),
                                   ('sgst', sgst),
                                   ('igst', igst),
                                   ('cess', cess),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('mix_sku',sku.mix_sku),
+                                  ('color', sku.color),
                                   ('ean_number', sku.ean_number),
                                   ('zone',sku.zone),
                                   ('threshold_quantity',sku.threshold_quantity),
@@ -1046,6 +1053,7 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
 
 @csrf_exempt
 @login_required

@@ -1054,6 +1054,55 @@ def get_skus(request):
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
+@csrf_exempt
+@login_required
+def get_discount(request):
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    request_data = request.body
+    data_dict = OrderedDict()
+    page_info = {}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        price_filter = {'user': user.id, 'attribute_type':'Brand'}
+        if request_data.get('limit'):
+            limit = request_data['limit']
+        if request_data.get('sku_code'):
+            price_filter['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            price_filter['attribute_value'] = request_data['sku_brand']
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Brand name required'}), status=400)
+        if request_data.has_key('customer_id'):
+            customer_id = request_data['customer_id']
+            customer_obj = CustomerMaster.objects.filter(user=user.id,customer_id=customer_id)
+            if customer_obj.exists():
+                customer_name = customer_obj[0].name
+                price_filter['price_type'] = customer_name
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid customer name'}), status=400)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Customer ID required'}), status=400)
+        price_master_objs = PriceMaster.objects.filter(**price_filter)
+        if price_master_objs.exists():
+            data_dict = OrderedDict((('discount', price_master_objs[0].discount),
+                                     ('customer_name', customer_name),
+                                     ('sku_brand',price_master_objs[0].attribute_value)))
+        page_info['data'] = data_dict
+        page_info['message'] = "Success"
+        return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required

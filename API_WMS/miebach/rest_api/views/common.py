@@ -488,7 +488,7 @@ def get_search_params(request, user=''):
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
-                    'destination_sku_category': 'destination_sku_category',
+                    'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -6721,6 +6721,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 def update_order_dicts(orders, user='', company_name=''):
     from outbound import check_stocks
     trans_mapping = {}
+    orderId = []
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         if company_name == "storehippo":
@@ -6731,6 +6732,7 @@ def update_order_dicts(orders, user='', company_name=''):
             continue
         order_det_dict = order['order_details']
         original_order_id = order_det_dict.get('original_order_id', '')
+        orderId.append(original_order_id)
         if not order.get('order_detail_obj', None):
             order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
                                                    order_id=order_det_dict['order_id'],
@@ -6774,7 +6776,7 @@ def update_order_dicts(orders, user='', company_name=''):
         if company_name == "storehippo":
             for order_fields in order.get('order_fields_list', ''):
                 OrderFields.objects.create(**order_fields)
-        status = {'status': 1, 'messages': 'Success'}
+        status = {'status': 1, 'messages': 'Success', 'order_id':orderId}
     return status
 
 

@@ -4290,7 +4290,7 @@ def get_financial_report_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lte'] = search_params['to_date']
-        fields_parameters['stock_reconciliation__creation_date__lte'] = search_params['to_date']
+        fields_parameters['stock_reconciliation__creation_date__lt'] = search_params['to_date']
         stats_params['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
@@ -4316,6 +4316,7 @@ def get_financial_report_data(search_params, user, sub_user):
 
     search_parameters['sku__user'] = user.id
     fields_parameters['stock_reconciliation__sku__user'] = user.id
+
     if 'from_date' in search_params:
         stock_recs = StockReconciliation.objects.filter(**search_parameters).only('creation_date')
         if stock_recs.exists():

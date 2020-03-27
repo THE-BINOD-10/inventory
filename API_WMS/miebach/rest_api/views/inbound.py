@@ -5788,7 +5788,6 @@ def confirm_po1(request, user=''):
     industry_type = user.userprofile.industry_type
     show_cess_tax = False
     show_apmc_tax = False
-
     for key, value in myDict.iteritems():
         for val in value:
             open_pos = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],

@@ -493,7 +493,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                  ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
                                  ('role', data.role), ('spoc_name', data.spoc_name)))
         data_dict['customer_attributes'] = dict(MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
-                                                            attribute_model='customer_master').\
+                                                            attribute_model='customer').\
                             values_list('attribute_name', 'attribute_value'))
         temp_data['aaData'].append(data_dict)
 

@@ -928,7 +928,6 @@ def get_supplier_data(request):
 @login_required
 def get_skus(request):
     data = []
-    limit = 30
     user = request.user
     attr_list = []
     error_status = []
@@ -964,7 +963,7 @@ def get_skus(request):
         if skus:
             search_params['sku_code__in'] = skus
         if request_data.get('sku_search'):
-            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+            search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
@@ -992,6 +991,7 @@ def get_skus(request):
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:
+        price_filter = {}
         updated = ''
         cgst, sgst, igst, cess = '','','',''
         tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
@@ -1006,18 +1006,31 @@ def get_skus(request):
                 cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
+        if request_data.has_key('customer_name'):
+            price_filter['price_type'] = request_data['customer_name']
+        price_master_objs = PriceMaster.objects.filter(**price_filter)
+        if price_master_objs.exists():
+            brand_level_discount = price_master_objs[0].discount
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
-                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
+                                  ('sub_category', sku.sub_category),
+                                  ('price', str(sku.price)),
                                   ('mrp', str(sku.mrp)),
                                   ('cost_price', str(sku.cost_price)),
                                   ('product_type', sku.product_type),
                                   ('hsn_code', sku.hsn_code),
+                                  ('brand_level_discount',brand_level_discount),
                                   ('cgst', cgst),
                                   ('sgst', sgst),
                                   ('igst', igst),
                                   ('cess', cess),
                                   ('ean_number', sku.ean_number),
+                                  ('zone',sku.zone),
+                                  ('threshold_quantity',sku.threshold_quantity),
+                                  ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
+                                  ('image_url',sku.image_url),
                                   ('active', sku.status),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))

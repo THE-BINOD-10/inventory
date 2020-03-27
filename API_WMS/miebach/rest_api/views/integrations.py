@@ -2226,10 +2226,11 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        try:
+                        if sku_item.has_key('quantity'):
                             order_details['quantity'] = sku_item['quantity']
-                        except:
+                        else:
                             update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                            break
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)
@@ -2340,8 +2341,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 break
 
             customer_master = []
-            if order.has_key('customer_id'):
-                order_details['customer_id'] = order.get('customer_id', 0)
+            if order.has_key('billing_address'):
+                order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
                 if order_details['customer_id']:
                     try:
                         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
@@ -2361,7 +2362,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         error_message = 'Invalid Customer ID %s' % str(order_details['customer_id'])
                         update_error_message(failed_status, 5024, error_message, original_order_id)
                         break
-            if order.has_key('billing_address'):
                 order_details['customer_name'] = order['billing_address'].get('name', customer_name)
                 order_details['telephone'] = order['billing_address'].get('phone_number', customer_telephone)
                 order_details['email_id'] = order['billing_address'].get('email', customer_email)
@@ -2369,16 +2369,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                 order_details['address'] = order['billing_address'].get('address', customer_address)
                 try:
                     order_details['pin_code'] = int(order['billing_address'].get('pincode', customer_pincode))
-                except:
-                    order_details['pin_code'] = 0
-            else:
-                order_details['customer_name'] = customer_name
-                order_details['telephone'] = customer_telephone
-                order_details['email_id'] = customer_email
-                order_details['city'] = customer_city
-                order_details['address'] = customer_address
-                try:
-                    order_details['pin_code'] = customer_pincode
                 except:
                     order_details['pin_code'] = 0
             if order.has_key('shipping_address'):
@@ -2454,8 +2444,12 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     if unit_price == '':
                         unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
                         if discount_amount == '':
-                            order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
-                            #unit_price = sku_item.get('unit_price', sku_master[0].price)
+                            if sku_item.has_key('quantity'):
+                                order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                                #unit_price = sku_item.get('unit_price', sku_master[0].price)
+                            else:
+                                update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                                break
                     if not order_det:
                         order_det = order_det1
 
@@ -2499,10 +2493,11 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        try:
+                        if sku_item.has_key('quantity'):
                             order_details['quantity'] = sku_item['quantity']
-                        except:
+                        else:
                             update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                            break
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)

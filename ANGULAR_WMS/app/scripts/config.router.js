@@ -2495,6 +2495,18 @@ var app = angular.module('urbanApp')
             title: 'BASA Report',
           }
         })
+        .state('app.reports.DiscrepancyReport', {
+          url: '/DiscrepancyReport',
+          templateUrl: 'views/reports/discrepancy_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/discrepancy_report.js');
+              }]
+          },
+          data: {
+            title: 'Discrepancy Report',
+          }
+        })
         .state('app.reports.BulkStockUpdate', {
           url: '/BulkStockUpdate',
           templateUrl: 'views/reports/bulk_stock_update.html',

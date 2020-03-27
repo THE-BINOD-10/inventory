@@ -1076,6 +1076,18 @@ INVENTORY_VALUE_REPORT_DICT = {
     'print_url': 'print_inventory_value_report',
 }
 
+DISCREPANCY_REPORT_DICT = {
+    'filters': [
+        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
+        {'label': 'Supplier ID', 'name': 'supplier_name', 'type': 'input'},
+        {'label': 'Supplier Name', 'name': 'supplier_name', 'type': 'input'},
+    ],
+    'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
+    'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
+    'print_url': 'print_discrepancy_report',
+}
+
 BULK_TO_RETAIL_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1161,7 +1173,9 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'move_inventory_report' : MOVE_TO_INVENTORY_REPORT_DICT,
                      'financial_report': FINANCIAL_REPORT_DICT,
                      'bulk_stock_update': BULK_STOCK_UPDATE,
+                     'discrepancy_report':DISCREPANCY_REPORT_DICT,
                     }
+
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -2344,6 +2358,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      'sales_return_reasons': 'sales_return_reasons',
                      'rtv_prefix_code': 'rtv_prefix_code',
+                     'discrepency_prefix':'discrepency_prefix',
                      'weight_integration_name': 'weight_integration_name',
                      'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                      'order_prefix': 'order_prefix',
@@ -9369,3 +9384,41 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
                                             ('Quantity',data.source_quantity),
                                             ('Transaction Date', date))))
   return temp_data
+
+
+def get_discrepancy_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    lis = ['id','po_number','discrepancy_number']
+    col_num = search_params.get('order_index', 1)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lte'] = search_params['to_date']
+    search_parameters['user'] = user.id
+    master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\
+        .order_by(order_data).values('po_number','discrepancy_number','purchase_order__open_po__supplier__id','purchase_order__open_po__supplier__name').distinct()
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('PO Number', data['po_number']),
+                                                ('Discrepancy Number', data['discrepancy_number']),
+                                                ('Supplier ID', data['purchase_order__open_po__supplier__id']),
+                                                ('Supplier Name', data['purchase_order__open_po__supplier__name']),)))
+    return temp_data
+

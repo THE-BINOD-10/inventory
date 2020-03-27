@@ -46,6 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
                     'mandate_invoice_number':false,
+                    'discrepency_prefix':'',
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -80,6 +81,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
+                     105:'discrepency_prefix',
                      }
 
   vm.check_box_data = [

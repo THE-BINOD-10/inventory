@@ -3485,6 +3485,7 @@ def save_order_original_quantity(sender, instance, created, **kwargs):
 @reversion.register()
 class Discrepancy(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
     discrepancy_number = models.CharField(max_length=32, default='')
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     new_data = models.TextField(default='')
@@ -3492,6 +3493,7 @@ class Discrepancy(models.Model):
     status = models.IntegerField(default=1)
     return_reason = models.CharField(max_length=64, default='')
     return_type = models.CharField(max_length=32, default='Discrepancy')
+    po_number = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

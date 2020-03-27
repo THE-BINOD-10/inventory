@@ -2226,7 +2226,10 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        order_details['quantity'] = sku_item['quantity']
+                        try:
+                            order_details['quantity'] = sku_item['quantity']
+                        except:
+                            update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)
@@ -2496,7 +2499,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        order_details['quantity'] = sku_item['quantity']
+                        try:
+                            order_details['quantity'] = sku_item['quantity']
+                        except:
+                            update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)

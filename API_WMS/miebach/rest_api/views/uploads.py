@@ -1071,7 +1071,7 @@ def move_inventory_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def marketplace_sku_form(request, user=''):
-    market_list = ['WMS Code']
+    market_list = ['SKU Code']
     market_sku = []
     market_desc = []
     supplier_file = request.GET['download-marketplace-sku-file']

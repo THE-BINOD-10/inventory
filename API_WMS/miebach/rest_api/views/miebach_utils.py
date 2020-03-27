@@ -234,7 +234,7 @@ ADJUST_INVENTORY_FIELDS = ( (('SKU Code *','wms_code'),('Location *','location')
 
 #MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
-MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
+MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('SKU Code', 'wms_code'),
                                             ('Source Location', 'source'),
                                             ('Destination Location', 'destination'),
                                             ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
@@ -307,7 +307,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'SKU Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
 SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
@@ -316,14 +316,14 @@ MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SK
                            'Paytm Description', 'HomeShop18 Description', 'Jabong Description',
                            'Indiatimes Description', 'Amazon Description']
 
-PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
+PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'SKU Code', 'Quantity', 'Price',
                           'Ship TO']
 
 PURCHASE_ORDER_UPLOAD_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('PO Reference', 'po_name'),
                                             ('PO Date(MM-DD-YYYY)', 'po_date'),
                                             ('PO Delivery Date(MM-DD-YYYY)', 'po_delivery_date'),
                                             ('Supplier ID', 'supplier_id'),
-                                            ('WMS SKU Code', 'wms_code'), ('Quantity', 'quantity'),
+                                            ('SKU Code', 'wms_code'), ('Quantity', 'quantity'),
                                             ('Unit Price', 'price'), ('MRP', 'mrp'), ('CGST(%)', 'cgst_tax'),
                                             ('SGST(%)', 'sgst_tax'), ('IGST(%)', 'igst_tax'),
                                             ('UTGST(%)', 'utgst_tax'), ('CESS(%)', 'cess_tax'),
@@ -1202,7 +1202,7 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Reason']
 
-INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
+INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('SKU Code', 'wms_code'),
                               ('Location', 'location'), ('Quantity', 'quantity'),
                               ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
                               ('Batch Number', 'batch_no'), ('MRP', 'mrp'),
@@ -2386,7 +2386,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('Location', 'location')
                                    ))
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
-                                      ('Warehouse Name', 'warehouse_name'), ('WMS Code', 'wms_code'),
+                                      ('Warehouse Name', 'warehouse_name'), ('SKU Code', 'wms_code'),
                                       ('Quantity', 'quantity'), ('Price', 'price'),('Cgst(%)','cgst_tax'),('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
                                    ))
 

@@ -3067,7 +3067,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         child_sku_code = data.sku_code
                         child_sku_mrp = SKUMaster.objects.filter(user=user.id, sku_code = data.sku_code).values('mrp')[0]['mrp']
                     ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.sku_code),
-                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('SKU MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),
@@ -3113,7 +3113,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                         cost_tax_percent = data.stock.batch_detail.tax_percent
                     wms_code_mrp = data.order.sku.mrp
                     ord_dict = OrderedDict((('Order ID', order_id), ('SKU Code', data.order.sku.sku_code),
-                                                            ('WMS MRP', wms_code_mrp),('Child SKU', child_sku_code),
+                                                            ('SKU MRP', wms_code_mrp),('Child SKU', child_sku_code),
                                                             ('Child SKU MRP', child_sku_mrp),('Child SKU Weight', child_sku_weight),
                                                             ('Description', data.order.sku.sku_desc),
                                                             ('SKU Category', data.order.sku.sku_category),

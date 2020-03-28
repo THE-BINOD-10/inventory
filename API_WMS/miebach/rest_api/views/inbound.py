@@ -5394,12 +5394,12 @@ def confirm_add_po(request, sales_data='', user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 
         if industry_type == 'FMCG':
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
             if user.username in MILKBASKET_USERS:
                 table_headers.insert(4, 'Weight')
         else:
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if ean_flag:
             table_headers.insert(1, 'EAN')

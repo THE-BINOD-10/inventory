@@ -23,6 +23,8 @@ from xml.etree.ElementTree import fromstring
 from sync_sku import insert_skus
 from utils import *
 from rest_api.views import *
+from inbound_descrepancy import *
+from inbound_common_operations import *
 
 log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
@@ -3045,7 +3047,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         po_new_data.setdefault(cond, {'discrepency_quantity': 0,
                                              'discrepency_reason': ''})
                         po_new_data[cond]['discrepency_quantity']+=discrepency_quantity
-                        po_new_data[cond]['discrepency_reason'] = discrepency_quantity
+                        po_new_data[cond]['discrepency_reason'] = discrepency_reason
                     continue
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
@@ -3356,10 +3358,6 @@ def confirm_grn(request, confirm_returns='', user=''):
     else:
         myDict = confirm_returns
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
-    total_discrepency_amount = 0
-    total_discrepency_qty = 0
-    discrepency_number = 0
-    discrepency_dict = {}
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
@@ -3464,9 +3462,6 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
                                 'tax_value': tax_value,
-                                'total_discrepency_amount':total_discrepency_amount,
-                                'total_discrepency_qty':total_discrepency_qty,
-                                'discrepency_number': discrepency_dict.get('discrepancy_number',''),
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -3481,82 +3476,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             if send_discrepencey and fmcg:
-                import pdb;pdb.set_trace()
-                putaway_data = {headers: []}
-                descrip_prefix = ''
-                discrepency_prefix = MiscDetail.objects.filter(user=user.id,misc_type='discrepency_prefix')
-                if discrepency_prefix.exists():
-                    descrip_prefix = discrepency_prefix[0].misc_value
-                discrepency_report_dict = copy.deepcopy(report_data_dict)
-                for key , value in po_new_data.iteritems():
-                    value = po_new_data[key].get('value', 0)
-                    price = 0
-                    if key[3]:
-                        price = key[3]
-                    entry_price = float(price) * float(value)
-                    purchase_order_dict = {'wms_code': key[1], 'order_quantity': order_quantity_dict.get(key[0],0),
-                                           'received_quantity': value , 'measurement_unit': key[2],
-                                           'price': price, 'cgst_tax': key[4], 'sgst_tax': key[5],
-                                           'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
-                                           'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
-                                           'mrp': key[13]}
-                    tax = 0
-                    if key[4]:tax+=flaot(key[4])
-                    if key[5]:tax+=flaot(key[5])
-                    if key[6]:tax+=float(key[6])
-                    discrepency_quantity = float(po_new_data[key].get('discrepency_quantity', 0))
-                    discrepencey_reason = po_new_data[key].get('discrepency_reason', '')
-                    po_id = po_new_data[key].get('po_id', '')
-                    discrepencey_price = float(price) * float(discrepency_quantity)
-                    discrepencey_price_tax = discrepencey_price + (discrepencey_price * tax / 100)
-                    total_discrepency_amount += discrepencey_price_tax
-                    total_discrepency_qty += discrepency_quantity
-                    if discrepency_quantity:
-                        purchase_order_text = json.dumps(purchase_order_dict)
-                        discrepency_dict = {'quantity': discrepency_quantity, 'return_reason': discrepencey_reason, }
-                        if po_id:
-                            discrepency_dict['purchase_order_id'] = po_id
-                        else:
-                            discrepency_dict['new_data'] = purchase_order_text
-                        if not discrepency_number:
-                            incremental_object = IncrementalTable.objects.filter(user=user.id, type_name='discrepancy')
-                            if not incremental_object.exists():
-                                discrepency_number = 1
-                                incremental_object = IncrementalTable.objects.create(user_id=user.id,
-                                                                                     value=discrepency_number,
-                                                                                     type_name='discrepancy')
-                            else:
-                                discrepency_number = incremental_object[0].value
-                                incremental_object = incremental_object[0]
-
-                        discrepency_dict['discrepancy_number'] = descrip_prefix + get_financial_year(datetime.datetime.now())+'/'+str(discrepency_number).zfill(4)
-                        discrepency_dict['po_number'] = po_number
-                        discrepency_dict['user_id'] = user.id
-                        Discrepancy.objects.create(**discrepency_dict)
-                        discrpency_po_dict = {'discrepency_quantity': discrepency_quantity,
-                                              'discrepency_reason': discrepencey_reason,
-                                              'discrepencey_price': discrepencey_price,
-                                              'discrepencey_price_tax': discrepencey_price_tax, }
-                        purchase_order_dict.update(discrpency_po_dict)
-                        putaway_data[headers].append(purchase_order_dict)
-                sku_list = putaway_data[putaway_data.keys()[0]]
-                sku_slices = generate_grn_pagination(sku_list)
-                discrepency_data_dict = {'data':putaway_data,'data_slices':sku_slices,
-                                         'total_discrepency_qty':total_discrepency_qty,
-                                         'total_discrepency_amount':total_discrepency_amount}
-                discrepency_report_dict.update(discrepency_data_dict)
-                incremental_update = incremental_object
-                incremental_update.value=discrepency_number+1
-                incremental_update.save()
-                t = loader.get_template('templates/toggle/discrepency_form.html')
-                discrepency_rendered = t.render(discrepency_report_dict)
-                data_dict_po = {'po_date': order_date,'po_reference':po_number ,
-                                'invoice_number': bill_no,'supplier_name': data_dict[1][1],
-                                'number': discrepency_dict.get('discrepancy_number',''),'type':'Discrepancy' ,}
-                write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email, telephone, po_data,
-                                   order_date, internal=True, report_type="Discrepancy Note",data_dict_po = data_dict_po)
-
-
+                discrepency_rendered, data_dict_po = generate_discrepancy_data(user, po_new_data, print_des=False, **report_data_dict)
+                write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email, telephone,po_data,
+                                   order_date, internal=True, report_type="Discrepancy Note", data_dict_po=data_dict_po)
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
@@ -3570,33 +3492,7 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 
 
-def generate_grn_pagination(sku_list):
-    # header 220
-    # footer 125
-    # table header 44
-    # row 46
-    # total 1358
-    # default 24 items
-    # last page 21 items
-    sku_len = len(sku_list)
-    sku_list1 = []
-    for index, sku in enumerate(sku_list):
-        #sku += (index+1,)
-        sku_list1.append(sku)
-    sku_list = sku_list1
-    t = sku_list[0]
-    #for i in range(47): sku_list.append(t)#remove it
-    sku_slices = [sku_list[i: i+24] for i in range(0, len(sku_list), 24)]
-    extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
-    if len(sku_slices[-1]) == 24:
-        temp = sku_slices[-1]
-        sku_slices[-1] = temp[:23]
-        temp = [temp[-1]]
-        for i in range(20): temp.append(extra_tuple)
-        sku_slices.append(temp)
-    else:
-        for i in range((21 - len(sku_slices[-1]))): sku_slices[-1].append(extra_tuple)
-    return sku_slices
+
 
 
 @csrf_exempt

@@ -11,7 +11,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-from inbound import generate_grn_pagination
+from inbound_common_operations import generate_grn_pagination
 from dateutil.relativedelta import *
 
 
@@ -2019,6 +2019,66 @@ def print_debit_note(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def print_descrepancy_note(request, user=''):
+    from inbound_descrepancy import generate_discrepancy_data
+    disp_number = request.GET.get('discrepancy_number', '')
+    po_new_data = OrderedDict()
+    updated_discrepancy = False
+    profile = UserProfile.objects.get(user=user.id)
+    report_data_dict ={}
+    if disp_number:
+        discrepancy_objects = Discrepancy.objects.filter(user=user.id, discrepancy_number=disp_number)
+        for obj in discrepancy_objects:
+            if obj.purchase_order:
+                open_po = obj.purchase_order.open_po
+                filter_params = {'purchase_order_id': obj.purchase_order.id}
+                if len(obj.po_number.split('/')) >= 2:
+                    reciept_number = obj.po_number.split('/')[1]
+                seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
+                price = obj.purchase_order.open_po.price
+                mrp = 0
+                if seller_po_summary.exists():
+                    seller_po_obj = seller_po_summary[0]
+                    if seller_po_obj.batch_detail:
+                        price = seller_po_obj.batch_detail.buy_price
+                        mrp = seller_po_obj.batch_detail.mrp
+                if not updated_discrepancy:
+                    updated_discrepancy=True
+                    invoice_number, invoice_date = '', ''
+                    if seller_po_summary.exists():
+                        invoice_number = seller_po_summary[0].invoice_number
+                        invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                    supplier = obj.purchase_order.open_po.supplier
+                    order_date = get_local_date(request.user, obj.purchase_order.creation_date)
+                    order_date = datetime.datetime.strftime(
+                        datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
+                                        'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
+                                        'company_name': profile.company_name, 'company_address': profile.address,
+                                        'po_number': obj.po_number, 'bill_no': invoice_number,'full_discrepancy_number':disp_number,
+                                        'order_date': order_date, 'bill_date': invoice_date,
+                                        }
+
+                cond = ('', open_po.sku.wms_code, '', price, open_po.cgst_tax, open_po.sgst_tax, open_po.igst_tax,
+                        '', open_po.sku.sku_desc, 0, 0, 0, 0, mrp)
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+            else:
+                data_dict =json.loads(obj.new_data)
+                cond = ('', data_dict['wms_code'], '', data_dict['price'], data_dict['cgst_tax'], data_dict['sgst_tax'], data_dict['igst_tax'],
+                        '', data_dict['sku_desc'], 0, 0, 0, 0, data_dict['mrp'])
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+        discrepency_rendered = generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_dict)
+        return HttpResponse(discrepency_rendered)
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_sku_wise_rtv_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_rtv_filter_data(search_params, user, request.user)
@@ -2173,3 +2233,4 @@ def print_basa_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+

@@ -2423,6 +2423,10 @@ var app = angular.module('urbanApp')
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
+        .state('app.reports.DiscrepancyReport.print', {
+           url: '/DescrepancyNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
         .state('app.reports.CurrentStockReport', {
           url: '/CurrentStockReport',
           templateUrl: 'views/reports/current_stock_report.html',

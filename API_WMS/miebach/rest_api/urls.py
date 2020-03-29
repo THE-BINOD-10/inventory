@@ -423,6 +423,8 @@ urlpatterns = [
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
+    url(r'^print_descrepancy_note/$', print_descrepancy_note),
+
 
 
 

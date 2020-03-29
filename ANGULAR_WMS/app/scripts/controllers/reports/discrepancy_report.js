@@ -33,6 +33,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.empty_data = datam.empty_data;
         angular.copy(vm.empty_data, vm.model_data);
         vm.dtOptions = datam.dtOptions;
+        vm.report_data["row_call"] = vm.row_call;
         vm.dtColumns = datam.dtColumns;
         vm.datatable = true;
         vm.dtInstance = {};
@@ -41,7 +42,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 	}
 	})
   }
-  vm.toggle_rtv_sku_wise()
+  vm.row_call = function(aData) {
+    vm.title = 'Debit Note';
+    $http.get(Session.url+'print_descrepancy_note/?discrepancy_number='+aData['Discrepancy Number']).success(function(data) {
+      var html = $(data);
+      vm.print_page = $(html).clone();
+      $(".modal-body").html(html);
+      vm.print_enable = true;
+    });
+    $state.go('app.reports.DiscrepancyReport.print');
+  }
   vm.print_page = "";
   vm.dtInstance = {};
   vm.empty_data = {

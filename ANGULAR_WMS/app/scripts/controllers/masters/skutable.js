@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
     ];
 
-    if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+    /*if(true || !vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'))
     }
     vm.dtColumns.push(
@@ -62,8 +62,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
       vm.dtColumns.push( DTColumnBuilder.newColumn('Color').withTitle('Color'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),)
-    }
-    vm.dtColumns.push(
+    }*/
+    /*vm.dtColumns.push(
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
         )
@@ -77,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
            DTColumnBuilder.newColumn('Tax Type').withTitle('Tax Type')
             )
         }}
-    
+    */
     vm.dtColumns.push( DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
                         }).withOption('width', '80px'))

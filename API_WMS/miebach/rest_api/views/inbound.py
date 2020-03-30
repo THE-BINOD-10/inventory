@@ -10534,8 +10534,8 @@ def download_grn_invoice_mapping(request, user=''):
                 po_reference = get_po_reference(seller_po_sum[0].purchase_order) + '_' + str(order['receipt_number'])
             master_doc_objs['%s_%s.%s' % (supplier_name, po_reference, file_format)] = master_docs
             total_file_size += master_docs.uploaded_file.size
-        if float(total_file_size/1024)/1024 > 15:
-            return HttpResponse("Selected Filters exceeding File limit(15 MB)")
+        if float(total_file_size/1024)/1024 > 50:
+            return HttpResponse("Selected Filters exceeding File limit(50 MB)")
     zip_subdir = ""
     zip_filename = "GRN_INVOICES.zip"
     stringio = StringIO.StringIO()

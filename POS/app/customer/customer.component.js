@@ -75,9 +75,9 @@
     //on change text in customer extra fields, save it in urlService
     self.save_extra_fields = save_extra_fields;
     function save_extra_fields() {
-        for(var  field in self.customer.extra_fields) {
-            urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
-        }
+      for(var  field in self.customer.extra_fields) {
+        urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
+      }
     }
 
 
@@ -113,7 +113,7 @@
 
     self.searchOrderText = searchOrderText;
     function searchOrderText(text) {
-      if (self.searchText != self.original_order_id) {
+      if (text != self.original_order_id) {
         self.customer = {}
         urlService.current_order.sku_data=[];
         urlService.current_returns_data = {};
@@ -130,6 +130,7 @@
           'igst': 0,
           'utgst': 0
         }
+        self.original_order_id = '';
       }
     }
 
@@ -147,6 +148,7 @@
       $http.get(urlService.mainUrl+'rest_api/get_view_order_details?id='+id+'&order_id='+cust.original_order_id).then(function(data) {
         urlService.current_returns_data = data.data.data_dict[0].ord_data;
         urlService.returns_load = true;
+        urlService.returns_total_paid = true;
       })
     }
 

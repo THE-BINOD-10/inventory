@@ -7,10 +7,10 @@
            "templateUrl": "/app/order_summary/summary.template.html",
            "controller"  : ["$http", "$scope", "$rootScope", "urlService", "manageData", "$state", "$location", "$window",
     function ($http, $scope, $rootScope, urlService, manageData, $state, $location, $window) {
-
       var self = this;
       self.VAT = urlService.VAT;
       self.order = urlService.current_order.summary;
+      self.urlService = urlService;
       var GET_STAFF_DATA=false;
 		if (urlService.user_update) {
            console.log("online");
@@ -68,7 +68,35 @@
               });
       
     }
-
+    self.order_summary_refresh = function () {
+      urlService.current_order.summary.total_amount = 0;
+      urlService.current_order.summary.total_quantity = 0;
+      urlService.current_order.summary.total_returned = 0;
+      urlService.current_order.summary.subtotal = 0;
+      urlService.current_order.summary.unit_price = 0;
+      urlService.current_order.summary.sgst = 0;
+      urlService.current_order.summary.cgst = 0;
+      urlService.current_order.summary.igst = 0;
+      urlService.current_order.summary.utgst = 0;
+      urlService.current_order.summary.gst_based = {};
+      urlService.current_order.summary.total_paid = 0;
+      urlService.current_order.summary.pay = 0;
+      urlService.current_order.summary.return = 0;
+      self.order = urlService.current_order.summary;
+    }
+    self.on_data_change = function(data){
+      if (data == 'remove') {
+        self.order_summary_refresh();
+        console.log(urlService);
+      } else {
+        urlService.current_order.summary.total_paid = 0;
+        urlService.current_order.summary.pay = 0;
+        urlService.current_order.summary.return = 0;
+        self.order = urlService.current_order.summary;
+        console.log(urlService);
+        console.log('add');
+      }
+    }
     //user different clear the data
     function userDiffClearData(user_data){
       clearUserofflineSyncData().

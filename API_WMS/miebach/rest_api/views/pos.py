@@ -139,6 +139,37 @@ def search_pos_order_ids(request, user=''):
         total_data.append({ 'original_order_id': data.original_order_id, 'customer': data.customer_name, 'customer_id': data.customer_id })
     return HttpResponse(json.dumps(total_data))
 
+@login_required
+@get_admin_user
+def get_sku_stock_value(request, user=''):
+    search_key = request.GET['key']
+    total_data = []
+    ean_skus = list(EANNumbers.objects.filter(sku__user=user.id, ean_number=search_key).values_list('sku_id', flat=True))
+    master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code=search_key) |
+                                                                  Q(sku_desc=search_key) |
+                                                                  Q(ean_number=search_key) |
+                                                                  Q(id__in=ean_skus),
+                                                                  status = 1, user=user.id)
+    filt_master_ids = list(master_data.values_list('id', flat=True))
+    stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
+        .filter(sku__user=user.id, quantity__gt=0, sku_id__in=filt_master_ids).values_list('sku_id').distinct().\
+                      annotate(total=Sum('quantity')))
+    pick_reserved = dict(PicklistLocation.objects.filter(stock__sku__user=user.id, status=1,
+                                                          stock__sku_id__in=filt_master_ids).\
+                                           only('stock__sku_id', 'reserved').\
+                                    values_list('stock__sku_id').distinct().annotate(in_reserved=Sum('reserved')))
+    rm_reserved = dict(RMLocation.objects.filter(stock__sku__user=user.id, status=1,
+                                                stock__sku_id__in=filt_master_ids).\
+                                           only('stock__sku_id', 'reserved').\
+                                    values_list('stock__sku_id').distinct().annotate(in_reserved=Sum('reserved')))
+    data_dict = {}
+    for data in master_data:
+        stock_quantity = stock_dict.get(data.id, 0)
+        stock_quantity -= pick_reserved.get(data.id, 0)
+        stock_quantity -= rm_reserved.get(data.id, 0)
+        data_dict[search_key] = stock_quantity
+        total_data.append(data_dict)
+    return HttpResponse(json.dumps(total_data))
 
 @login_required
 @get_admin_user
@@ -584,7 +615,6 @@ def customer_order(request):
                         location=sku_stocks_.location, \
                         returns=order_return)
             if order_created:
-
                 #send mail and sms for pre order
                 if order["summary"]["issue_type"] == "Pre Order" and customer_data:
                     email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number

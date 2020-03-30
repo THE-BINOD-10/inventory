@@ -95,11 +95,39 @@
       <b>{{ $ctrl.order.subtotal - $ctrl.order.total_discount | number:2 }}/-</b>
     </div>
   </div>
-
+  <div class="summary-row total-cost" ng-if="$ctrl.urlService.returnsView">
+    <div class="pull-left">
+      <p><b>TOTAL PAID</b></p>
+    </div>
+    <div class="pull-right" >
+      <b>{{ $ctrl.order.total_paid | number:2 }}/-</b>
+    </div>
+  </div>
+  <div class="summary-row total-cost" ng-if="$ctrl.urlService.returnsView">
+    <div class="pull-left">
+      <p><b>RECEIVE (+)</b></p>
+    </div>
+    <div class="pull-right" >
+      <b>{{ $ctrl.order.pay | number:2 }}/-</b>
+    </div>
+  </div>
+  <div class="summary-row total-cost" ng-if="$ctrl.urlService.returnsView">
+    <div class="pull-left">
+      <p><b>RETURN (-)</b></p>
+    </div>
+    <div class="pull-right" >
+      <b>{{ $ctrl.order.return | number:2 }}/-</b>
+    </div>
+  </div>
   <div class="summary-row discount">
     <div class="btn btn-default" ng-click="$ctrl.discount_modal()">Discount</div>
   </div>
-
+  <div ng-if="$ctrl.urlService.returns_load">
+    <div ng-init="$ctrl.on_data_change('add')"></div>
+  </div>
+  <div ng-if="!$ctrl.urlService.returns_load">
+    <div ng-init="$ctrl.on_data_change('remove')"></div>
+  </div>
 </div>
 
 

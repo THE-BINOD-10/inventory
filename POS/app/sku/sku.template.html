@@ -133,8 +133,9 @@
    </div>
    <div class="line"></div>
    <div>
-     <md-button class="button-color md-raised md-primary pull-right" ng-click="$ctrl.hold_data();" style="width:100px" ng-disabled="$ctrl.submit_enable">Hold</md-button>
-     <md-button class="button-color md-raised md-primary pull-right" ng-click="$ctrl.submit_data()" style="width:100px" ng-disabled="$ctrl.submit_enable">Submit</md-button>
+    <md-button ng-if="$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.update_customer_order()" style="width:100px">Confirm</md-button>
+     <md-button ng-if="!$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.hold_data();" style="width:100px" ng-disabled="$ctrl.submit_enable">Hold</md-button>
+     <md-button ng-if="!$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.submit_data()" style="width:100px" ng-disabled="$ctrl.submit_enable">Submit</md-button>
    </div>
 </div>
 <div ng-if="$ctrl.urlService.returns_load">

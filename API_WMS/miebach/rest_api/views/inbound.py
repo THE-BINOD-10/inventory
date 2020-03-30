@@ -10533,16 +10533,16 @@ def download_grn_invoice_mapping(request, user=''):
             if seller_po_sum.exists():
                 po_reference = get_po_reference(seller_po_sum[0].purchase_order) + '_' + str(order['receipt_number'])
             master_doc_objs['%s_%s.%s' % (supplier_name, po_reference, file_format)] = master_docs
-            total_file_size += master_docs.uploaded_file.size
-        if float(total_file_size/1024)/1024 > 15:
-            return HttpResponse("Selected Filters exceeding File limit(15 MB)")
+            #total_file_size += master_docs.uploaded_file.size
+        #if float(total_file_size/1024)/1024 > 15:
+        #    return HttpResponse("Selected Filters exceeding File limit(15 MB)")
     zip_subdir = ""
     zip_filename = "GRN_INVOICES.zip"
     stringio = StringIO.StringIO()
     zf = zipfile.ZipFile(stringio, "w")
     for fname, file_obj in master_doc_objs.items():
         zip_path = os.path.join(zip_subdir, fname)
-        zf.write(file_obj.uploaded_file.path, zip_path)
+        zf.write((file_obj.uploaded_file.path).replace('/root/sreekanth/git_dev/', '/var/www/'), zip_path)
     zf.close()
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename

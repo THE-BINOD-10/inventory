@@ -4899,8 +4899,7 @@ def get_order_summary_data(search_params, user, sub_user):
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
             if invoice_number:
-                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'],
-                                                            invoice_number=invoice_number)
+                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'])
                 if shipment_info.exists():
                     ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
@@ -4974,7 +4973,12 @@ def get_order_summary_data(search_params, user, sub_user):
             total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
-        aaData = OrderedDict((('User ID', data['user']),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+        order_user = data['user']
+        if order_taken_by:
+            order_user_obj = User.objects.filter(username=order_taken_by)
+            if order_user_obj:
+                order_user = order_user_obj[0].id
+        aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
                                                     ('Customer Type', customer_type),

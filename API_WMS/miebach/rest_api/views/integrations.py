@@ -1141,12 +1141,15 @@ def update_skus (skus, user='', company_name=''):
     failed_status = OrderedDict()
     try:
         token_user = user
-        if 'warehouse' not in skus.keys():
-            error_message = 'warehouse key missing'
-            update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
-        else:
+        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        if 'warehouse' not in skus.keys() and sister_whs1:
+            error_message = 'User %s have multiple warehouses. Please specify the warehouse.'% (str(user.username))
+            update_error_message(failed_status, 5021, error_message, '', field_key='warehouse')
+        if 'warehouse' in skus.keys():
+        #     error_message = 'warehouse key missing'
+        #     update_error_message(failed_status, 5020, error_message, '', field_key='warehouse')
+        # else:
             warehouse = skus['warehouse']
-            sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
             sister_whs1.append(token_user.username)
             sister_whs = []
             for sister_wh1 in sister_whs1:
@@ -1157,7 +1160,7 @@ def update_skus (skus, user='', company_name=''):
                 error_message = 'Invalid Warehouse Name'
                 update_error_message(failed_status, 5021, error_message, warehouse, field_key='warehouse')
         if failed_status:
-            return insert_status, failed_status
+            return insert_status, failed_status.values()
         user_attr_list = get_user_attributes(user, 'sku')
         user_attr_list = list(user_attr_list.values_list('attribute_name', flat=True))
         user_profile = user.userprofile
@@ -1315,6 +1318,8 @@ def update_customers(customers, user='', company_name=''):
                         continue
                     if not value in price_types:
                         insert_status['Invalid Price types for customer ids'].append(str(customer_id))
+                elif key =='tin_number':
+                    value = customer_data.get('gst_number', '')
                 customer_master_dict[key] = value
                 if customer_master:
                     setattr(customer_master, key, value)
@@ -2221,7 +2226,11 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        order_details['quantity'] = sku_item['quantity']
+                        if sku_item.has_key('quantity'):
+                            order_details['quantity'] = sku_item['quantity']
+                        else:
+                            update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                            break
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)
@@ -2435,8 +2444,12 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     if unit_price == '':
                         unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
                         if discount_amount == '':
-                            order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
-                            #unit_price = sku_item.get('unit_price', sku_master[0].price)
+                            if sku_item.has_key('quantity'):
+                                order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                                #unit_price = sku_item.get('unit_price', sku_master[0].price)
+                            else:
+                                update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                                break
                     if not order_det:
                         order_det = order_det1
 
@@ -2480,7 +2493,11 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         order_details['sku_id'] = sku_master[0].id
                         order_details['title'] = sku_item.get('name', sku_master[0].sku_desc)
                         order_details['user'] = user.id
-                        order_details['quantity'] = sku_item['quantity']
+                        if sku_item.has_key('quantity'):
+                            order_details['quantity'] = sku_item['quantity']
+                        else:
+                            update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                            break
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)

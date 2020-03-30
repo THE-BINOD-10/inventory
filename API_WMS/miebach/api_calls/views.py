@@ -929,8 +929,8 @@ def get_supplier_data(request):
 @login_required
 def get_skus(request):
     data = []
-    limit = 30
     user = request.user
+    limit = 10
     attr_list = []
     error_status = []
     skus = []
@@ -950,6 +950,8 @@ def get_skus(request):
             warehouse = request_data['warehouse']
             if warehouse.lower() in sister_whs:
                 user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
         search_params = {'user': user.id}
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
@@ -963,7 +965,7 @@ def get_skus(request):
         if skus:
             search_params['sku_code__in'] = skus
         if request_data.get('sku_search'):
-            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+            search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
@@ -991,6 +993,7 @@ def get_skus(request):
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:
+        price_filter = {}
         updated = ''
         cgst, sgst, igst, cess = '','','',''
         tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
@@ -1005,18 +1008,37 @@ def get_skus(request):
                 cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        # price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
+        # if request_data.has_key('customer_name'):
+        #     price_filter['price_type'] = request_data['customer_name']
+        # price_master_objs = PriceMaster.objects.filter(**price_filter)
+        # if price_master_objs.exists():
+        #     brand_level_discount = price_master_objs[0].discount
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
-                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
+                                  ('sku_class',sku.sku_class),
+                                  ('sub_category', sku.sub_category),
+                                  ('sku_type', sku.sku_type),
+                                  ('sku_group',sku.sku_group),
+                                  ('sku_size', sku.sku_size),
+                                  ('style_name',sku.style_name),
+                                  ('price', str(sku.price)),
                                   ('mrp', str(sku.mrp)),
                                   ('cost_price', str(sku.cost_price)),
                                   ('product_type', sku.product_type),
-                                  ('hsn_code', sku.hsn_code),
                                   ('cgst', cgst),
                                   ('sgst', sgst),
                                   ('igst', igst),
                                   ('cess', cess),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('mix_sku',sku.mix_sku),
+                                  ('color', sku.color),
                                   ('ean_number', sku.ean_number),
+                                  ('zone',sku.zone),
+                                  ('threshold_quantity',sku.threshold_quantity),
+                                  ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
+                                  ('image_url',sku.image_url),
                                   ('active', sku.status),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))
@@ -1032,6 +1054,56 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+def get_discount(request):
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    request_data = request.body
+    data_dict = OrderedDict()
+    page_info = {}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        price_filter = {'user': user.id, 'attribute_type':'Brand'}
+        if request_data.get('limit'):
+            limit = request_data['limit']
+        if request_data.get('sku_code'):
+            price_filter['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            price_filter['attribute_value'] = request_data['sku_brand']
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Brand name required'}), status=400)
+        if request_data.has_key('customer_id'):
+            customer_id = request_data['customer_id']
+            customer_obj = CustomerMaster.objects.filter(user=user.id,customer_id=customer_id)
+            if customer_obj.exists():
+                customer_name = customer_obj[0].name
+                price_filter['price_type'] = customer_name
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid customer name'}), status=400)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Customer ID required'}), status=400)
+        price_master_objs = PriceMaster.objects.filter(**price_filter)
+        if price_master_objs.exists():
+            data_dict = OrderedDict((('discount', price_master_objs[0].discount),
+                                     ('customer_name', customer_name),
+                                     ('sku_brand',price_master_objs[0].attribute_value)))
+        page_info['data'] = data_dict
+        page_info['message'] = "Success"
+        return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required
@@ -1369,7 +1441,28 @@ def get_orders(request):
     record = []
     limit = request.POST.get('limit', '')
     search_parameters = {}
-    headers, search_params, filter_params = get_search_params(request)
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    request_type = 'POST'
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    try:
+        search_params = json.loads(request.body)
+        request_type = 'body'
+        limit = search_params.get('limit', '')
+        if search_params.has_key('from_date'):
+            search_params['from_date'] = parser.parse(search_params['from_date'])
+        if search_params.has_key('to_date'):
+            search_params['to_date'] = parser.parse(search_params['to_date'])
+    except:
+        headers, search_params, filter_params = get_search_params(request)
+    if 'warehouse' in search_params:
+        warehouse = search_params['warehouse']
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -1378,40 +1471,71 @@ def get_orders(request):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'order_id' in search_params:
-        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
-    search_parameters['user'] = request.user.id
-    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
-    page_info = scroll_data(request, order_records, limit=limit)
+        try:
+            search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
+        except:
+            search_parameters['original_order_id__in'] = search_params['order_id']
+        limit = len(search_parameters['original_order_id__in'])
+    if 'order_reference' in search_params:
+        try:
+            search_parameters['order_reference__in'] = search_params['order_reference'].split(',')
+        except:
+            search_parameters['order_reference__in'] = search_params['order_reference']
+    search_parameters['user'] = user.id
+    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
+    page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
-        data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
+        data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
+                                                  .values('order__sku_id', 'invoice_number', 'order__quantity')\
+                                                  .distinct().annotate(pic_qty=Sum('quantity'))
+        picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
+        order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
         discount_amount = 0
         item_dict = {}
+        order_status = ''
+        if data_dict[0].status == '0':
+            if picked_quantity == order_quantity:
+                order_status = 'Picked'
+            else:
+                order_status = 'Partially Picked'
+        elif data_dict[0].status == '1':
+            order_status = 'Open'
+        elif data_dict[0].status == '2':
+            order_status = 'Dispatched'
+        elif data_dict[0].status == '3':
+            order_status = 'Cancelled'
+        order_summary = CustomerOrderSummary.objects.filter(order_id=data_dict[0].id,order__user=user.id)
         for data in data_dict:
-            tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
             if charge:
                 charge_amount = charge[0]
-            if tax_data.exists():
-                discount_amount = tax_data[0].discount
-                if tax_data[0].cgst_tax:
-                    item_dict['tax_percent'] = {'CGST': tax_data[0].cgst_tax, 'SGST': tax_data[0].sgst_tax}
-                elif tax_data[0].igst_tax:
-                    item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
+            if order_summary.exists():
+                discount_amount = order_summary[0].discount
+                if order_summary[0].cgst_tax:
+                    item_dict['tax_percent'] = {'CGST': order_summary[0].cgst_tax, 'SGST': order_summary[0].sgst_tax}
+                elif order_summary[0].igst_tax:
+                    item_dict['tax_percent'] = {'IGST': order_summary[0].igst_tax}
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
             items.append(item_dict)       
-        billing_address = {"customer_id": data_dict[0].customer_id,
-               "name": data_dict[0].customer_name,
+        billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
                "phone_number": data_dict[0].telephone,
                "address": data_dict[0].address,
                "city": data_dict[0].city,
                "state": data_dict[0].state,
                "pincode": data_dict[0].pin_code}
-        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),('order_date',created),('shipment_date',shipment),('source',data_dict[0].marketplace),('billing_address',billing_address ),('items',items))))
+        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
+                                    ('order_date',created),('shipment_date',shipment),
+                                    ('order_status',order_status),
+                                    ('order_reference',data_dict[0].order_reference),
+                                    ('source',data_dict[0].marketplace),
+                                    ('customer_id', data_dict[0].customer_id),
+                                    ('billing_address',billing_address ),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
@@ -1713,10 +1837,11 @@ def get_mp_inventory(request):
                     mrp_weight_obj = StockDetail.objects.filter(sku=sku['id'], location__location__in=sellable_bulk_locations)
                     if mrp_weight_obj:
                         mrp_weight_obj = mrp_weight_obj.latest('creation_date')
-                        mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
-                                                                     ('inventory', OrderedDict((('sellable', 0),
-                                                                                                ('on_hold', 0),
-                                                                                                ('bulk_area', 0))))))]
+                        if mrp_weight_obj.batch_detail:
+                            mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
+                                                                         ('inventory', OrderedDict((('sellable', 0),
+                                                                                                    ('on_hold', 0),
+                                                                                                    ('bulk_area', 0))))))]
                 if mrp_list:
                     data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
                 else:

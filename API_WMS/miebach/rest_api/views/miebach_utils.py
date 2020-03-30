@@ -458,7 +458,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Order Date','Order ID', 'Customer ID','Customer Name', 'SKU Brand', 'SKU Category',
+    'dt_headers': ['User ID','Order Date','Order ID', 'Customer ID','Customer Name', 'Customer Type','SKU Brand', 'SKU Category',
                    'SKU Sub Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Vehicle Number',
                    'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Order Tax Amt', 'Order Amt(w/o tax)',
                    'Tax Percent', 'City', 'State', 'Marketplace', 'Total Order Amt', 'Cancelled Order Qty',
@@ -509,6 +509,8 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', '
 GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
+                        {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
@@ -536,8 +538,8 @@ GRN_EDIT_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type':
     }
 
 SKU_WISE_GRN_DICT = {'filters' : [
-            {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
-                        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+            {'label': 'GRN From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'GRN To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
@@ -3676,10 +3678,24 @@ def get_po_filter_data(search_params, user, sub_user):
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'grn_from_date' in search_params:
+        search_parameters['sellerposummary__creation_date__gte'] = search_params['from_date']
+        if field_mapping['from_date'] + '__gte' in search_parameters.keys():
+            del search_parameters[field_mapping['from_date'] + '__gte']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                          datetime.time())
         search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+
+    if 'grn_to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+                                                                 datetime.time())
+
+        search_parameters['sellerposummary__creation_date__lte'] = search_params['grn_to_date']
+        if field_mapping['to_date'] + '__lte' in search_parameters.keys():
+            del search_parameters[field_mapping['to_date'] + '__lte']
+
+
     if 'open_po' in search_params and search_params['open_po']:
         temp = re.findall('\d+', search_params['open_po'])
         if temp:
@@ -4560,11 +4576,12 @@ def get_order_summary_data(search_params, user, sub_user):
     user_gst_number = ''
     if user.userprofile:
         user_gst_number = user.userprofile.gst_number
-    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku_n_sku_class',
+    lis = ['creation_date', 'order_id', 'customer_id','customer_name', 'customer_name','sku__sku_brand', 'sku__sku_category', 'sku_n_sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku__sub_category', 'sku_code', 'sku_code', 'original_quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id',
            'quantity', 'quantity', 'quantity', 'quantity','order_id',
-           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','full_invoice_number', 'order_id', 'quantity','creation_date', 'order_id', 'order_id', 'order_id','order_id','order_id']
+           'order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','order_id','full_invoice_number', 'order_id', 'quantity','creation_date', 'order_id',
+            'order_id', 'order_id','order_id','order_id','order_id']
     if milkbasket_user :
         lis.append('order_id')
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -4579,12 +4596,18 @@ def get_order_summary_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_params['from_date'] = get_utc_start_date(search_params['from_date'])
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        if search_params.has_key('tally_report'):
+            search_parameters['sellerordersummary__creation_date__gt'] = search_params['from_date']
+        else:
+            search_parameters['creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        if search_params.has_key('tally_report'):
+            search_parameters['sellerordersummary__creation_date__lt'] = search_params['to_date']
+        else:
+            search_parameters['creation_date__lt'] = search_params['to_date']
     filter_dict = {'sku_code':'sku__sku_code', 'marketplace':'marketplace','sku_category':'sku__sku_category',
                     'sub_category': 'sku__sub_category','sku_brand':'sku__sku_brand','sku_size':'sku__sku_size',
                     'sku_class':'sku__sku_class','city':'city', 'state':'state','order_reference':'order_reference',
@@ -4619,13 +4642,13 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     if search_params.get('invoice','') == 'true':
-        orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
+        orders = OrderDetail.objects.filter(**search_parameters).values('user','id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__full_invoice_number','sellerordersummary__challan_number','address',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
                                                                     'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
-        orders = OrderDetail.objects.filter(**search_parameters).values('id','order_id','status','creation_date','order_code','unit_price',
+        orders = OrderDetail.objects.filter(**search_parameters).values('user','id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
@@ -4704,7 +4727,7 @@ def get_order_summary_data(search_params, user, sub_user):
         except:
             temp_data['totalMRP'] = 0
         total_row = {}
-        total_row = OrderedDict((('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Order Reference' ,""),
+        total_row = OrderedDict((('User ID',''),('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Customer Type',''),('Order Reference' ,""),
         ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
         ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''), ('Order Tax Amt',''),('Order Amt(w/o tax)', ''),
         ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Invoice Qty',''),('Payment Type' ,''),('Reference Number',''),('Total Order Amt', ''),('Cancelled Order Qty', ''),('Cancelled Order Amt', ''),
@@ -4893,8 +4916,7 @@ def get_order_summary_data(search_params, user, sub_user):
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
             if invoice_number:
-                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'],
-                                                            invoice_number__endswith='/'+invoice_number)
+                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'])
                 if shipment_info.exists():
                     ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
@@ -4928,7 +4950,7 @@ def get_order_summary_data(search_params, user, sub_user):
         else:
             serial_number = ''
         customer_name = data['customer_name']
-        billing_address = shipping_address =  ''
+        billing_address = shipping_address = customer_type = ''
         if order_summary.exists():
             shipping_address = order_summary[0].consignee
         customer_master_obj = CustomerMaster.objects.filter(user = user.id, customer_id  = data['customer_id'])
@@ -4936,6 +4958,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if customer_master_obj.exists():
             gst_number = customer_master_obj[0].tin_number
             billing_address = customer_master_obj[0].address
+            customer_type = customer_master_obj[0].customer_type
             if not shipping_address :
                 shipping_address = customer_master_obj[0].shipping_address
         if not billing_address :
@@ -4967,9 +4990,15 @@ def get_order_summary_data(search_params, user, sub_user):
             total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
-        aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+        order_user = data['user']
+        if order_taken_by:
+            order_user_obj = User.objects.filter(username=order_taken_by)
+            if order_user_obj:
+                order_user = order_user_obj[0].id
+        aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
+                                                    ('Customer Type', customer_type),
                                                     ('Order Reference' ,data['order_reference']),
                                                     ('SKU Brand', data['sku__sku_brand']),
                                                     ('SKU Category', data['sku__sku_category']),

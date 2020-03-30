@@ -9323,7 +9323,8 @@ def update_order_data(request, user=""):
                 default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
                 default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
                                                     default_dict['original_quantity']
-                order_obj.update(**default_dict)
+                #order_obj.update(**default_dict)
+                update_multiple_records(order_obj, default_dict)
                 order_obj = order_obj[0]
             # order_obj, created = OrderDetail.objects.update_or_create(
             #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict

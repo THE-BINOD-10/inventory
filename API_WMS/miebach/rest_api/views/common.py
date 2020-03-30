@@ -3090,18 +3090,24 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
             invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
-                seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
+                #seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
+                seller_order_summary_update = seller_order_summary.filter(invoice_number='')
+                update_multiple_records(seller_order_summary_update, {'invoice_number': order_no})
                 inv_no = order_no
             elif invoice_no_gen[0].misc_value == 'true':
                 if invoice_sequence:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
                     order_no = str(inv_no).zfill(3)
-                    seller_order_summary.update(invoice_number=order_no)
+                    #seller_order_summary.update(invoice_number=order_no)
+                    update_multiple_records(seller_order_summary, {'invoice_number': order_no})
                     invoice_seq.value = inv_no + 1
                     invoice_seq.save()
             else:
-                seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
+                #seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
+                seller_order_summary_update = seller_order_summary.filter(invoice_number='')
+                update_multiple_records(seller_order_summary_update, {'invoice_number': order_no})
+
     else:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
                                                                  Q(seller_order__order__user=user.id,
@@ -3119,6 +3125,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         invoice_update_objs = invoice_update_objs1.filter(full_invoice_number='')
         if invoice_update_objs.exists():
             invoice_update_objs.update(full_invoice_number=invoice_number)
+            update_multiple_records(invoice_update_objs, {'full_invoice_number': invoice_number})
     return invoice_number, inv_no
 
 

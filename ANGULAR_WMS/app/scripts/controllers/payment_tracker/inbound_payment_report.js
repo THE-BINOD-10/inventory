@@ -110,7 +110,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('invoicee_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('supplier_name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
-        DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
+        DTColumnBuilder.newColumn('payment_received').withTitle('Paid'),
         // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('mode_of_pay').withTitle('Mode Of Payment'),
         DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),

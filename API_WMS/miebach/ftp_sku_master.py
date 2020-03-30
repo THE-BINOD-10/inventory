@@ -14,13 +14,13 @@ def validate_(df, file_split,file_name):
     df['error_status'] = df.isna().dot(df.columns + '-should not be empty, ').str.rstrip(', ')
     price_check=pd.to_numeric(df.Price, errors='coerce')
     df['price_status'] = price_check.isna()
-    price_dict = {True: 'Price Must Be Number', False: ''}
+    price_dict = {False: 'Price Must Be Number', True: ''}
     df['price_status'] = df['price_status'].replace(price_dict)
 
     mrp_check=pd.to_numeric(df.MRP, errors='coerce')
-    df['mrp_status'] = price_check.isna()
-    price_dict = {True: 'MRP Must Be Number', False: ''}
-    df['mrp_status'] = df['mrp_status'].replace(price_dict)
+    df['mrp_status'] = mrp_check.isna()
+    mrp_dict = {True: 'MRP Must Be Number', False: ''}
+    df['mrp_status'] = df['mrp_status'].replace(mrp_dict)
 
     if len(set(df['error_status'])) > 1 or len(set(df['mrp_status'])) > 1 or  len(set(df['price_status'])) >1 :
         send_mail(mail_id, 'FTP file Upload', wrapper %("SKU Upload Failed for the file "+file_name))
@@ -44,6 +44,9 @@ def validate_(df, file_split,file_name):
 
 def validate_sku_code(df):
     sku_code = df['Part No']
+    if isinstance(df['Part No'], float):
+        sku_code = str(int(df['Part No']))
+    sku_code = str(sku_code)
     sku_code = sku_code.lstrip()
     sku_code = sku_code.rstrip()
     if df['Brand'].lower() == 'toyota':
@@ -84,7 +87,7 @@ def make_df_from_excel(file_name, nrows):
     st = validate_(df,file_split,file_name)
     if not st:
         return False
-    gomech_users = ['gomechanic_admin','gomechanic_gurgaon', 'gomechanic_mumbai', 'gomechanic_bangalore']
+    gomech_users = ['gomechanic_admin', 'gomechanic_gurgaon','gomechanic_mumbai', 'gomechanic_bangalore']
     for username in gomech_users:
         print(username)
         user = User.objects.get(username=username)
@@ -113,12 +116,15 @@ def make_df_from_excel(file_name, nrows):
             df_chunks['sku_code']=df_chunks.apply(validate_sku_code,axis=1)
             data_dict = {"user":user.id}
             for index,row in df_chunks.iterrows():
-                str_dict = {'hsn_code':'HSN Code', 'sku_desc':'Part Desc'}
+                count += 1
+                print(count)
+                str_dict = {'hsn_code':'HSN Code', 'sku_desc':'Part Desc','sku_brand':'Brand'}
                 num_dict = {'price':'Price', 'mrp':'MRP'}
                 if row.get('Part No', ''):
                     sku_code = row.get('Part No')
                     if isinstance(sku_code, float):
                         sku_code = str(int(sku_code))
+                    sku_code = str(xcode(sku_code))
                     # if sku_code in upload_file_skus:
                     #     index_status.setdefault(row_idx, set()).add('Duplicate SKU Code found in File')
                     # else:
@@ -182,7 +188,7 @@ for name in names:
     success = ftp.rename(existingFilepath,newFilepath)
     com_existingFilepath = "Processing/"+name
     com_newFilepath = "Completed/"+name
-    status = make_df_from_excel(name, nrows=5)
+    status = make_df_from_excel(name, nrows=10000)
     if status:
         send_mail(mail_id, 'FTP file Upload', wrapper %("SKU Upload Completed for the file "+name))
         os.remove(name)

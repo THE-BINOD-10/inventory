@@ -478,7 +478,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     order_index = search_params.get('order_index', 0)
     search_parameters = {'open_po__sku_id__in': sku_master_ids}
     supplier_data = {'aaData': []}
-    supplier_name = search_params.get('supplier')
+    supplier_name = search_params.get('supplier_id')
     lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id']
     order_val = lis[order_index]

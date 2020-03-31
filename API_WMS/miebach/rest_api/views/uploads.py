@@ -4454,7 +4454,6 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     order_id = str(int(order_id))
                 if isinstance(sku_code, float):
                     sku_code = str(int(sku_code))
-
                 order_id_search = ''.join(re.findall('\d+', order_id))
                 order_code_search = ''.join(re.findall('\D+', order_id))
                 if sor_id:
@@ -4466,6 +4465,10 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
                 else:
                     index_status.setdefault(row_idx, set()).add('SOR ID is mandatory')
+            elif key in ['mrp', 'weight']:
+                if user.username in MILKBASKET_USERS:
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('MRP and Weight are Mandatory ')
 
     if not index_status:
         return 'Success'
@@ -4601,8 +4604,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             returns.save()
             if not batch_data:
                 batch_data = False
-            if not order_data.get('seller_order_id', ''):
-                save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data)
+            save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data)
     return 'Success'
 
 
@@ -4611,7 +4613,7 @@ def get_sales_returns_mapping(reader, file_type, user):
     if get_cell_data(0, 0, reader, file_type) == 'Return ID':
         order_mapping = copy.deepcopy(GENERIC_RETURN_EXCEL)
         if user.userprofile.user_type == 'marketplace_user':
-            order_mapping['seller_order_id'] = 7
+            order_mapping['seller_order_id'] = 13
     elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':

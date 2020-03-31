@@ -17,9 +17,10 @@
         return;
       }
       $http.get( urlService.mainUrl+'rest_api/print_order_data/?user='+urlService.userData.parent_id+'&order_id='+order).success(function(data, status, headers, config) {
-            
             if(data.message === "invalid user") {
                 $window.location.reload();
+            } else if (data == '"No Data Found"') {
+              alert('Sku With Zero Quantity Available')
             } else {
                 console.log(data);
                 if(data.status == "success") {

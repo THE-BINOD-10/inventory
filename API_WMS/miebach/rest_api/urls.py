@@ -711,8 +711,7 @@ urlpatterns += [
     url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
-    url(r'^get_pos_customer_data/$', get_pos_customer_data),
-    url(r'^get_sku_stock_value/$', get_sku_stock_value),
+    url(r'^update_customer_orders/$', update_customer_orders),
 
 ]
 

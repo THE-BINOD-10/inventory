@@ -104,10 +104,23 @@
     self.original_order_id = '';
     function searchOrderChange(data) {
       if (typeof(data) != "undefined") {
+        urlService.data_loader = true;
         self.searchOrder = data['original_order_id'];
         self.original_order_id = data['original_order_id'];
-        get_customer_data(data);
-        load_order_Data(data);
+        $http.get( urlService.mainUrl+'rest_api/print_order_data/?user='+urlService.userData.parent_id+'&order_id='+self.original_order_id).success(function(data, status, headers, config) {  
+          if(data.message === "invalid user") {
+              $window.location.reload();
+          } else {
+            if(data.status == "success") {
+              urlService.current_order.summary['order_code'] = data.data.order_code;
+              urlService.current_order.summary['order_ids'] = data.data.order_id;
+              self.customer = urlService.current_order.customer_data = data.data.customer_data;
+              urlService.current_returns_data = data.data.sku_data;
+              urlService.returns_load = true;
+              urlService.returns_total_paid = true;
+            }
+          }
+        })
       }
     }
 
@@ -128,28 +141,11 @@
           'cgst': 0,
           'sgst': 0,
           'igst': 0,
-          'utgst': 0
+          'utgst': 0,
+          'staff_member': urlService.default_staff_member
         }
         self.original_order_id = '';
       }
-    }
-
-    self.get_customer_data = get_customer_data;
-    function get_customer_data(customer) {
-      $http.get(urlService.mainUrl+'rest_api/get_pos_customer_data?user='+urlService.userData.parent_id+'&key='+customer.customer_id).then(function(data) {
-        data=data.data;
-        self.customer = urlService.current_order.customer_data = data;
-      })
-    }
-
-    self.load_order_Data = load_order_Data;
-    function load_order_Data(cust) {
-      var id = ''
-      $http.get(urlService.mainUrl+'rest_api/get_view_order_details?id='+id+'&order_id='+cust.original_order_id).then(function(data) {
-        urlService.current_returns_data = data.data.data_dict[0].ord_data;
-        urlService.returns_load = true;
-        urlService.returns_total_paid = true;
-      })
     }
 
     function get_user_data(key) {

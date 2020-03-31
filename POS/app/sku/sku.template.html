@@ -107,6 +107,9 @@
     </div> -->
   </div>
   <div class="sku-details">
+    <div class="col" align="center" ng-if="$ctrl.urlService.data_loader">
+      <h3 style="font-family: auto; color: #b1b1b1;">loading ..</h3>
+    </div>
     <table style="width: 100%;">
       <thead ng-if="$ctrl.table_headers">
         <tr>
@@ -116,24 +119,24 @@
           <th>Price</th>
       </thead>
       <tbody>
-    <tr class="sku" ng-repeat = "item in $ctrl.skus">
-        <td style="padding-left: 10px;">{{item.stock_quantity}} Units</td>
-        <td class="alter">{{item.return_status==='true' ? '(Return) ' + item.name : item.name}}</td>
-        <td class="alter">
+        <tr class="sku" ng-repeat = "item in $ctrl.skus">
+          <td style="padding-left: 10px;">{{item.stock_quantity}} Units</td>
+          <td class="alter">{{item.return_status==='true' ? '(Return) ' + item.name : item.name}}</td>
+          <td class="alter">
           <p class="text-show">{{item.quantity}}</p>
           <input class="input-show" style="width: 50px;" ng-blur="$ctrl.changeQuantity(item)" type=text value="{{item.quantity}}" ng-model="item.quantity" ngMinlength=0></td>
-       <td class="alter">
-           <p class="text-show">{{item.price}}/-</p>
-           <input class="input-show" style="width: 40px;" ng-blur="$ctrl.changePrice(item, current_val)" type=text value="{{item.price}}"
+          <td class="alter">
+            <p class="text-show">{{item.price}}/-</p>
+            <input class="input-show" style="width: 40px;" ng-blur="$ctrl.changePrice(item, current_val)" type=text value="{{item.price}}"
                   ng-model="item.price" ng-pattern="" ng-keypress="filterValue($event)"
                   ng-click="current_val=item.price"></td>
-    </tr>
-    </tbody>
+        </tr>
+      </tbody>
     </table>
    </div>
    <div class="line"></div>
    <div>
-    <md-button ng-if="$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.update_customer_order()" style="width:100px">Confirm</md-button>
+    <md-button ng-if="$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.submit_data()" style="width:100px" g-disabled="$ctrl.submit_enable">Confirm</md-button>
      <md-button ng-if="!$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.hold_data();" style="width:100px" ng-disabled="$ctrl.submit_enable">Hold</md-button>
      <md-button ng-if="!$ctrl.urlService.returnsView" class="button-color md-raised md-primary pull-right" ng-click="$ctrl.submit_data()" style="width:100px" ng-disabled="$ctrl.submit_enable">Submit</md-button>
    </div>
@@ -142,6 +145,9 @@
   <div ng-init="$ctrl.on_data_change('add')"></div>
 </div>
 <div ng-if="!$ctrl.urlService.returns_load">
+  <div ng-init="$ctrl.on_data_change('remove')"></div>
+</div>
+<div ng-if="$ctrl.urlService.returnsView">
   <div ng-init="$ctrl.on_data_change('remove')"></div>
 </div>
 </div>

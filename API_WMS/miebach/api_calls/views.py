@@ -1405,33 +1405,41 @@ def get_orders(request):
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
+        picked_quantity = 0
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
         seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
                                                   .values('order__sku_id', 'invoice_number', 'order__quantity')\
                                                   .distinct().annotate(pic_qty=Sum('quantity'))
-        picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
+        if seller_obj.exists():
+            picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
         order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
         discount_amount = 0
         item_dict = {}
         order_status = ''
-        if data_dict[0].status == '0':
-            if picked_quantity == order_quantity:
-                order_status = 'Picked'
-            else:
-                order_status = 'Partially Picked'
-        elif data_dict[0].status == '1':
-            order_status = 'Open'
-        elif data_dict[0].status == '2':
-            order_status = 'Dispatched'
-        elif data_dict[0].status == '3':
-            order_status = 'Cancelled'
+        # if data_dict[0].status == '0':
+        #     if picked_quantity == order_quantity:
+        #         order_status = 'Picked'
+        #     else:
+        #         order_status = 'Partially picked'
+        # elif data_dict[0].status == '1':
+        #     order_status = 'Open'
+        # elif data_dict[0].status == '2':
+        #     order_status = 'Dispatched'
+        # elif data_dict[0].status == '3':
+        #     order_status = 'Cancelled'
         order_summary = CustomerOrderSummary.objects.filter(order_id=data_dict[0].id,order__user=user.id)
         for data in data_dict:
+            invoice_num_check = ''
+            picked_quantity_sku = 0
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
+            seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
+            invoice_num_check = seller_sku.values('invoice_number')
+            if seller_sku.exists():
+                picked_quantity_sku = seller_sku[0].quantity
             if charge:
                 charge_amount = charge[0]
             if order_summary.exists():
@@ -1440,7 +1448,23 @@ def get_orders(request):
                     item_dict['tax_percent'] = {'CGST': order_summary[0].cgst_tax, 'SGST': order_summary[0].sgst_tax}
                 elif order_summary[0].igst_tax:
                     item_dict['tax_percent'] = {'IGST': order_summary[0].igst_tax}
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            if data.status == '0':
+                if picked_quantity_sku == data.quantity:
+                    sku_status = 'Picked'
+                else:
+                    sku_status = 'Partially picked'
+                if seller_sku.exists():
+                    if picked_quantity_sku == data.quantity and invoice_num_check:
+                        order_status = 'Invoice generated'
+                    if picked_quantity_sku != data.quantity and invoice_num_check:
+                        order_status = 'Partial invoice generated'
+            elif data.status == '1':
+                sku_status = 'Open'
+            elif data.status == '2':
+                sku_status = 'Dispatched'
+            elif data.status == '3':
+                sku_status = 'Cancelled'
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'status':sku_status,'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
             items.append(item_dict)       
         billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
@@ -1451,10 +1475,10 @@ def get_orders(request):
                "pincode": data_dict[0].pin_code}
         record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
                                     ('order_date',created),('shipment_date',shipment),
-                                    ('order_status',order_status),
                                     ('order_reference',data_dict[0].order_reference),
                                     ('source',data_dict[0].marketplace),
                                     ('customer_id', data_dict[0].customer_id),
+                                    ('customer_name',data_dict[0].customer_name),
                                     ('billing_address',billing_address ),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'

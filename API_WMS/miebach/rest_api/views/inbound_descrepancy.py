@@ -32,9 +32,9 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
                                'mrp': key[13]}
         tax = 0
         if key[4]:
-            tax += flaot(key[4])
+            tax += float(key[4])
         if key[5]:
-            tax += flaot(key[5])
+            tax += float(key[5])
         if key[6]:
             tax += float(key[6])
         discrepency_quantity = float(po_new_data[key].get('discrepency_quantity', 0))

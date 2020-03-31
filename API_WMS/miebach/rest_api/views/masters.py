@@ -888,7 +888,8 @@ def get_sku_data(request, user=''):
     sku_attributes = OrderedDict()
     for sku_attribute_obj in sku_attribute_objs:
         sku_attributes.setdefault(sku_attribute_obj.attribute_name, [])
-        sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
+        if sku_attribute_obj.attribute_value:
+            sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
     #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,

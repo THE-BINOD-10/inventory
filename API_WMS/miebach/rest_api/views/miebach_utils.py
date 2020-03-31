@@ -458,7 +458,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['User ID','Order Date','Order ID', 'Customer ID','Customer Name', 'Customer Type','SKU Brand', 'SKU Category',
+    'dt_headers': ['Created By','Order Date','Order ID', 'Customer ID','Customer Name','SKU Brand', 'SKU Category',
                    'SKU Sub Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Vehicle Number',
                    'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Order Tax Amt', 'Order Amt(w/o tax)',
                    'Tax Percent', 'City', 'State', 'Marketplace', 'Total Order Amt', 'Cancelled Order Qty',
@@ -4727,7 +4727,7 @@ def get_order_summary_data(search_params, user, sub_user):
         except:
             temp_data['totalMRP'] = 0
         total_row = {}
-        total_row = OrderedDict((('User ID',''),('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Customer Type',''),('Order Reference' ,""),
+        total_row = OrderedDict((('Created By',''),('Order Date', ''), ('Order ID', ""), ("Customer ID", ""), ('Customer Name', ""),('Customer Type',''),('Order Reference' ,""),
         ('SKU Brand', ""),('SKU Category', ''),('SKU Class', ''),('SKU Size', ''), ('SKU Description', ''),('SKU Sub Category', ''),
         ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''), ('Order Tax Amt',''),('Order Amt(w/o tax)', ''),
         ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Invoice Qty',''),('Payment Type' ,''),('Reference Number',''),('Total Order Amt', ''),('Cancelled Order Qty', ''),('Cancelled Order Amt', ''),
@@ -4991,11 +4991,15 @@ def get_order_summary_data(search_params, user, sub_user):
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
         order_user = data['user']
+        order_by = ''
         if order_taken_by:
             order_user_obj = User.objects.filter(username=order_taken_by)
-            if order_user_obj:
-                order_user = order_user_obj[0].id
-        aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+        if not order_user_obj.exists():
+            order_user_obj = User.objects.filter(id=data['user'])
+        if order_user_obj:
+            order_user = order_user_obj[0].id
+            order_by = order_user_obj[0].username
+        aaData = OrderedDict((('Created By', order_by),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
                                                     ('Customer Type', customer_type),

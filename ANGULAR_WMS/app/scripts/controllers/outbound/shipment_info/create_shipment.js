@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.scan_imei_readonly = false;
     vm.parent_username = Session.parent.parent_username;
     vm.g_data = Data.create_shipment;
-
+    
     //table start
     vm.selected = {};
     vm.order_imei_mapping = {}
@@ -614,6 +614,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.change_datatable = function() {
       Data.create_shipment.view = (vm.g_data.alternate_view)? 'ShipmentPickedAlternative': 'ShipmentPickedOrders';
+      if(vm.group_by == 'invoice'){
+        Data.create_shipment.view = 'ShipmentPickedInvoice';
+      }
       $state.go($state.current, {}, {reload: true});
     }
 

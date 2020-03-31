@@ -9558,7 +9558,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                      'purchase_order__prefix', 'seller_po__unit_price', 'seller_po__receipt_type', 'receipt_number', 'invoice_number', 
                      'invoice_date', 'purchase_order__open_po__supplier__tin_number', 'purchase_order__open_po__supplier__tax_type',
                      'purchase_order__open_po__sku__user'
-                     ]                  
+                     ]
     excl_status = {'purchase_order__status': ''}
 
     search_parameters = {}
@@ -9600,14 +9600,15 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         search_parameters['purchase_order__open_po__sku__user__in'] = warehouses.values_list('user_id', flat=True)
         sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        #sku_master = SKUMaster.objects.filter(user__in=[5613])
         sku_master_ids = sku_master.values_list('id', flat=True)
     else:
         search_parameters[field_mapping['user']] = user.id
     # search_parameters['order__sku_id__in'] = sku_master_ids    
     # search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    # search_parameters['purchase_order__order_id'] = 130
-    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters).values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + F('purchase_order__open_po__cgst_tax') + F('purchase_order__open_po__sgst_tax'))).order_by('-purchase_order__order_id', '-tot_tax')
+    #search_parameters['purchase_order__order_id'] = 139
+    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters).values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + F('purchase_order__open_po__cgst_tax') + F('purchase_order__open_po__sgst_tax'))).order_by('purchase_order__open_po__sku__user', '-purchase_order__order_id', 'receipt_number', '-tot_tax')
     model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('quantity') * F('price'))). \
                     annotate(totalOrderQty=Sum('quantity'))
     col_num = search_params.get('order_index', 0)
@@ -9616,8 +9617,12 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     if stop_index:
         model_data = model_data[start_index:stop_index]
     lastPoNumber = ''
+    lastGRNNumber = ''
+    rtvlastPoNumber = ''
+    rtvlastGRNNumber = ''
     counter = 1
     inv_header_cnt = start_index
+    invHeaderCntMap = {}
     for data in model_data:
         result = PurchaseOrder.objects.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=data['purchase_order__open_po__sku__user'])[0]
         receipt_no = data['receipt_number']
@@ -9630,20 +9635,153 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             wh_name = ''
         if not receipt_no:
             receipt_no = ''
-        po_order_id = data[field_mapping['order_id']]
 
+        po_order_id = data[field_mapping['order_id']]
+        po_user = data['purchase_order__open_po__sku__user']
+        ordList = []
         po_number = '%s%s_%s' % (data[field_mapping['prefix']],
                                  str(result.creation_date).split(' ')[0].replace('-', ''),
                                  po_order_id)
-        if lastPoNumber == po_number:
+        grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
+                                 str(result.creation_date).split(' ')[0].replace('-', ''),
+                                 po_order_id, str(receipt_no))
+        if lastPoNumber == po_number and lastGRNNumber == receipt_no:
             counter += 1
         else:
             counter = 1
             inv_header_cnt += 1
+
+        uniqKey = '%s#<>#%s' %(po_order_id, receipt_no)
+        if uniqKey not in invHeaderCntMap:
+            invHeaderCntMap[uniqKey] = inv_header_cnt
         lastPoNumber = po_number
+        lastGRNNumber = receipt_no
+
+        returnQtyQs = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__order_id=po_order_id,
+                        seller_po_summary__purchase_order__open_po__sku__user=po_user,
+                        seller_po_summary__receipt_number=receipt_no,
+                        seller_po_summary__purchase_order__open_po__igst_tax=data['purchase_order__open_po__igst_tax'],
+                        seller_po_summary__purchase_order__open_po__cgst_tax=data['purchase_order__open_po__cgst_tax'],
+                        seller_po_summary__purchase_order__open_po__sgst_tax=data['purchase_order__open_po__sgst_tax']
+                        ).values(tot_tax=Sum(F('seller_po_summary__purchase_order__open_po__igst_tax') + F('seller_po_summary__purchase_order__open_po__cgst_tax') + \
+                                F('seller_po_summary__purchase_order__open_po__sgst_tax'))).distinct().annotate(amtWithOutTax=Sum(F('quantity') * F('seller_po_summary__price'))). \
+                                annotate(ordQty=Sum('quantity'))
+        if returnQtyQs.exists():
+            in_counter = 1
+            for rtvObj in returnQtyQs:
+                uniqKey = '%s#<>#%s' %(po_order_id, receipt_no)
+                returnQty = rtvObj['ordQty']
+                #returnPrice = rtvObj['seller_po_summary__price']
+                totAmtWithOutTax = rtvObj['amtWithOutTax']
+                po_number = '%s%s_%s' % (data[field_mapping['prefix']],
+                                 str(result.creation_date).split(' ')[0].replace('-', ''),
+                                 po_order_id)
+                if rtvlastPoNumber == po_number and rtvlastGRNNumber == receipt_no:
+                    in_counter += 1
+                else:
+                    in_counter = 1
+                inv_header_cnt = invHeaderCntMap[uniqKey]
+
+                rtvlastGRNNumber= receipt_no
+                rtvlastPoNumber = po_number
+                grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
+                                         str(result.creation_date).split(' ')[0].replace('-', ''),
+                                         po_order_id, str(receipt_no))
+                invAmtWithOutTax = truncate_float(totAmtWithOutTax, 2)
+                if not data['purchase_order__open_po__cgst_tax']:
+                    data['purchase_order__open_po__cgst_tax'] = 0
+                if not data['purchase_order__open_po__sgst_tax']:
+                    data['purchase_order__open_po__sgst_tax'] = 0
+                if not data['purchase_order__open_po__igst_tax']:
+                    data['purchase_order__open_po__igst_tax'] = 0
+                if not data['purchase_order__open_po__utgst_tax']:
+                    data['purchase_order__open_po__utgst_tax'] = 0
+                tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
+                          float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+                invAmtWithTax = truncate_float(totAmtWithOutTax + (totAmtWithOutTax * tot_tax / 100), 2)
+                invoice_date, challan_date = '', ''
+                if data['invoice_date']:
+                    invoice_date = data['invoice_date'].strftime("%d %b, %Y")
+                supplierCity = data['purchase_order__open_po__supplier__city']
+                ordList = []
+                supplierNumber = ''.join(re.findall('\d+', data['purchase_order__open_po__supplier_id']))
+                for col in all_cols:
+                    if col in blankCols:
+                        ordTuple = (col, '')
+                    elif col in colsWithDefaultVals:
+                        ordTuple = (col, colsWithDefaultVals[col])
+                    else:
+                        if col == '*Invoice Number':
+                            ordTuple = (col, data['invoice_number'])
+                        elif col == '*Invoice Header Identifier':
+                            ordTuple = (col, inv_header_cnt)
+                        elif col == '*Invoice Amount':
+                            ordTuple = (col, invAmtWithTax)
+                        elif col == '*Invoice Date':
+                            ordTuple = (col, invoice_date)
+                        elif col == '**Supplier':
+                            ordTuple = (col, data['purchase_order__open_po__supplier__name'])
+                        elif col == '**Supplier Number':
+                            ordTuple = (col, supplierNumber)
+                        elif col == '*Supplier Site':
+                            ordTuple = (col, supplierCity)
+                        elif col == 'Description':
+                            ordTuple = (col, 'Required Parts Purchase_PO No-%s_GRN No-%s' %(po_number, grn_number))
+                        elif col == 'Description_1':
+                            ordTuple = (col, 'Required Parts Purchase@%s'%(tot_tax)+'_ PO No-%s _GRN No-%s' %(po_number, grn_number))
+                        elif col == 'Distribution Combination':
+                            if supplierCity in locationDistMap:
+                                ordTuple = (col, locationDistMap[supplierCity][0])
+                            else:
+                                ordTuple = (col, 'CityMismatch')
+                        elif col == 'Ship-to Location':
+                            if supplierCity in locationDistMap:
+                                ordTuple = (col, locationDistMap[supplierCity][1])
+                            else:
+                                ordTuple = (col, 'CityMismatch')
+                        elif col == 'Invoice Type':
+                            ordTuple = (col, 'Credit Note')
+                        elif col == '*Amount':
+                            ordTuple = (col, invAmtWithOutTax)
+                        elif col == 'Line':
+                            ordTuple = (col, in_counter)
+                        elif col == 'Product Category':
+                            if data['purchase_order__open_po__supplier__tax_type'] == 'inter_state':
+                                ordTuple = (col, 'INTERSTATE_%s' %tot_tax + '%')
+                            else:
+                                taxSplitup = str(tot_tax/2)
+                                ordTuple = (col, 'SGST_%s' %taxSplitup + '%' + ' + ' + 'CGST_%s' %taxSplitup +'%')
+                        elif col == 'Invoiced Quantity':
+                            ordTuple = (col, returnQty)
+                        elif col == 'OLA GSTIN':
+                            ordTuple = (col, ola_gst_num)
+                        elif col == 'Customer GSTIN':
+                            ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
+                        elif col == 'Warehouse':
+                            ordTuple = (col, wh_name)
+                        else:
+                            ordTuple = (col, 'TODO')
+                    ordList.append(ordTuple)
+                inv_header_cnt += 1
+                temp_data['aaData'].append(OrderedDict(ordList))
+
+        '''
+        po_number = '%s%s_%s' % (data[field_mapping['prefix']],
+                                 str(result.creation_date).split(' ')[0].replace('-', ''),
+                                 po_order_id)
         grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
                                  str(result.creation_date).split(' ')[0].replace('-', ''),
                                  po_order_id, str(receipt_no))
+        if lastPoNumber == po_number and lastGRNNumber == receipt_no:
+            counter += 1
+        else:
+            counter = 1
+            inv_header_cnt += 1
+        print("inv_header_cnt at 9759:%s" %inv_header_cnt)
+        lastPoNumber = po_number
+        lastGRNNumber = receipt_no
+        '''
+
         invAmtWithOutTax = truncate_float(data['totAmtWithOutTax'], 2)
         if not data['purchase_order__open_po__cgst_tax']:
             data['purchase_order__open_po__cgst_tax'] = 0

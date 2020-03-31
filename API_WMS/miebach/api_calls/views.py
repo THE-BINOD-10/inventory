@@ -928,8 +928,8 @@ def get_supplier_data(request):
 @login_required
 def get_skus(request):
     data = []
-    limit = 30
     user = request.user
+    limit = 10
     attr_list = []
     error_status = []
     skus = []
@@ -964,7 +964,7 @@ def get_skus(request):
         if skus:
             search_params['sku_code__in'] = skus
         if request_data.get('sku_search'):
-            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+            search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
@@ -992,6 +992,7 @@ def get_skus(request):
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:
+        price_filter = {}
         updated = ''
         cgst, sgst, igst, cess = '','','',''
         tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
@@ -1006,18 +1007,37 @@ def get_skus(request):
                 cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        # price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
+        # if request_data.has_key('customer_name'):
+        #     price_filter['price_type'] = request_data['customer_name']
+        # price_master_objs = PriceMaster.objects.filter(**price_filter)
+        # if price_master_objs.exists():
+        #     brand_level_discount = price_master_objs[0].discount
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
-                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
+                                  ('sku_class',sku.sku_class),
+                                  ('sub_category', sku.sub_category),
+                                  ('sku_type', sku.sku_type),
+                                  ('sku_group',sku.sku_group),
+                                  ('sku_size', sku.sku_size),
+                                  ('style_name',sku.style_name),
+                                  ('price', str(sku.price)),
                                   ('mrp', str(sku.mrp)),
                                   ('cost_price', str(sku.cost_price)),
                                   ('product_type', sku.product_type),
-                                  ('hsn_code', sku.hsn_code),
                                   ('cgst', cgst),
                                   ('sgst', sgst),
                                   ('igst', igst),
                                   ('cess', cess),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('mix_sku',sku.mix_sku),
+                                  ('color', sku.color),
                                   ('ean_number', sku.ean_number),
+                                  ('zone',sku.zone),
+                                  ('threshold_quantity',sku.threshold_quantity),
+                                  ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
+                                  ('image_url',sku.image_url),
                                   ('active', sku.status),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))
@@ -1033,6 +1053,56 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+def get_discount(request):
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    request_data = request.body
+    data_dict = OrderedDict()
+    page_info = {}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        price_filter = {'user': user.id, 'attribute_type':'Brand'}
+        if request_data.get('limit'):
+            limit = request_data['limit']
+        if request_data.get('sku_code'):
+            price_filter['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            price_filter['attribute_value'] = request_data['sku_brand']
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Brand name required'}), status=400)
+        if request_data.has_key('customer_id'):
+            customer_id = request_data['customer_id']
+            customer_obj = CustomerMaster.objects.filter(user=user.id,customer_id=customer_id)
+            if customer_obj.exists():
+                customer_name = customer_obj[0].name
+                price_filter['price_type'] = customer_name
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid customer name'}), status=400)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Customer ID required'}), status=400)
+        price_master_objs = PriceMaster.objects.filter(**price_filter)
+        if price_master_objs.exists():
+            data_dict = OrderedDict((('discount', price_master_objs[0].discount),
+                                     ('customer_name', customer_name),
+                                     ('sku_brand',price_master_objs[0].attribute_value)))
+        page_info['data'] = data_dict
+        page_info['message'] = "Success"
+        return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required

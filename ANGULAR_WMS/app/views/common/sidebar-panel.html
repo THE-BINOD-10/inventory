@@ -386,7 +386,6 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <!--<li ui-sref-active="active">-->
         <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
@@ -495,6 +494,11 @@
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.STGoodsReceiptNote">
+            <span>Stock Transfer Goods Receipt Note</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_polocation')">

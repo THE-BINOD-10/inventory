@@ -1993,6 +1993,22 @@ var app = angular.module('urbanApp')
             url: '/GoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',
           })
+         .state('app.reports.STGoodsReceiptNote', {
+          url: '/STGoodsReceiptNote',
+          templateUrl: 'views/reports/st_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/st_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
+            url: '/STGoodsReceiptNote',
+            templateUrl: 'views/reports/toggles/purchase_order.html',
+          })
         .state('app.reports.ReceiptSummary', {
           url: '/ReceiptSummary',
           templateUrl: 'views/reports/receipt_summary.html',

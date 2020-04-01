@@ -526,6 +526,17 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
+STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        {'label': 'WareHouse Name', 'name': 'warehouse', 'type': 'input'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
+            'dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
+            'mk_dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
+            'dt_url': 'get_st_po_filter', 'excel_name': 'st_goods_receipt', 'print_url': '',
+            }
+
 GRN_EDIT_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                   {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                   {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
@@ -1135,6 +1146,7 @@ BULK_STOCK_UPDATE = {
 }
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
+                     'st_grn_report': STOCK_TRANSFER_GRN_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
@@ -3766,6 +3778,94 @@ def get_po_filter_data(search_params, user, sub_user):
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
+
+def get_st_po_filter_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['order_id', 'stpurchaseorder__open_st__warehouse__username','stpurchaseorder__open_st__warehouse', 'stpurchaseorder__open_st__warehouse__username', 'ordered_qty', 'received_quantity']
+    unsorted_dict = {}
+    model_name = PurchaseOrder
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'stpurchaseorder__open_st__sku__wms_code__iexact', 'user': 'stpurchaseorder__open_st__sku__user', 'sku_id__in': 'stpurchaseorder__open_st__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'stpurchaseorder__open_st__warehouse_id', 'supplier_name': 'stpurchaseorder__open_st__warehouse__username'}
+    result_values = ['order_id', 'stpurchaseorder__open_st__warehouse_id', 'stpurchaseorder__open_st__warehouse__username', 'prefix',
+                     'sellerposummary__receipt_number']
+    excl_status = {'status': ''}
+    ord_quan = 'stpurchaseorder__open_st__order_quantity'
+    rec_quan = 'received_quantity'
+    rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                         datetime.time())
+        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+    if 'warehouse' in search_params:
+        search_parameters['stpurchaseorder__open_st__warehouse__username'] = search_params['warehouse']
+    if 'sku_code' in search_params:
+        search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['sellerposummary__invoice_number'] = search_params['invoice_number']
+    search_parameters[field_mapping['user']] = user.id
+    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters['received_quantity__gt'] = 0
+    query_data = model_name.objects.prefetch_related('stpurchaseorder__open_st__sku__user','stpurchaseorder__open_st__warehouse').select_related('stpurchaseorder__open_st', 'stpurchaseorder__open_st__sku','stpurchaseorder__open_st__warehouse_id','stpurchaseorder__open_st__warehouse__username').exclude(**excl_status).filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
+                                                                   total_received=Sum(rec_quan))
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+                order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+    if stop_index and not custom_search:
+        model_data = model_data[start_index:stop_index]
+    purchase_orders = PurchaseOrder.objects.filter(stpurchaseorder__open_st__sku__user=user.id)
+    for data in model_data:
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], stpurchaseorder__open_st__sku__user=user.id)
+        result = po_result[0]
+        total_ordered = po_result.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
+        if not total_ordered:
+            total_ordered = 0
+        po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
+                                    data[field_mapping['order_id']])
+        receipt_no = data['sellerposummary__receipt_number']
+        if not receipt_no:
+            receipt_no = ''
+        else:
+            po_number = '%s/%s' % (po_number, receipt_no)
+        received_qty = data['total_received']
+        if data.get('sellerposummary__receipt_number', ''):
+            received_qty =  po_result.filter(sellerposummary__receipt_number=data['sellerposummary__receipt_number']).aggregate(
+                Sum(rec_quan1))[rec_quan1 + '__sum']
+            if not received_qty:
+                received_qty = 0
+        #if data['grn_rec']:
+        #    received_qty = data['grn_rec']
+        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
+                                                ('WareHouse ID', data[field_mapping['supplier_id']]),
+                                                ('WareHouse Name', data[field_mapping['supplier_name']]),
+                                                ('Order Quantity', total_ordered),
+                                                ('Received Quantity', received_qty),
+                                                ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
+                                                ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
+                                            )))
+    if stop_index and custom_search:
+        if temp_data['aaData']:
+            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
 
 def get_stock_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

@@ -170,6 +170,16 @@ def get_po_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_st_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_st_po_filter_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_grn_edit_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_grn_edit_filter_data(search_params, user, request.user)
@@ -1030,6 +1040,8 @@ def print_po_reports(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
+    st_grn = request.GET.get('st_grn', '')
+    utgst_tax , cess_tax , apmc_tax,measurement_unit = 0, 0, 0,''
     data_dict = ''
     bill_no = ''
     bill_date = ''
@@ -1039,9 +1051,14 @@ def print_po_reports(request, user=''):
         'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
         'UTGST(%)', 'Amount', 'Description')
     po_data = {headers: []}
+    filter_params = {}
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
+    if st_grn:
+        filter_params['stpurchaseorder__open_st__sku__user'] = user.id
+    else:
+        filter_params['open_po__sku__user'] = user.id
     if po_id:
-        results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+        results = PurchaseOrder.objects.filter(order_id=po_id, **filter_params)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
@@ -1062,7 +1079,10 @@ def print_po_reports(request, user=''):
             bill_date = data.updation_date
             if receipt_no:
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
-                open_data = data.open_po
+                if st_grn:
+                    open_data = data.stpurchaseorder_set.filter()[0].open_st
+                else:
+                    open_data = data.open_po
                 grouped_data = OrderedDict()
                 if seller_summary_objs[0].overall_discount:
                     overall_discount = seller_summary_objs[0].overall_discount
@@ -1080,9 +1100,10 @@ def print_po_reports(request, user=''):
                     cgst_tax = open_data.cgst_tax
                     sgst_tax = open_data.sgst_tax
                     igst_tax = open_data.igst_tax
-                    utgst_tax = open_data.utgst_tax
-                    cess_tax = open_data.cess_tax
-                    apmc_tax = seller_summary_obj.apmc_tax
+                    if not st_grn:
+                        utgst_tax = open_data.utgst_tax
+                        cess_tax = open_data.cess_tax
+                        apmc_tax = seller_summary_obj.apmc_tax
                     if seller_summary_obj.cess_tax:
                         cess_tax = seller_summary_obj.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
@@ -1110,10 +1131,12 @@ def print_po_reports(request, user=''):
                         amount = amount - (amount * float(discount) / 100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
+                    if not st_grn:
+                        measurement_unit = open_data.measurement_unit
                     grouped_data.setdefault(grouping_key, {'wms_code': open_data.sku.wms_code,
                                                            'order_quantity': open_data.order_quantity,
                                                            'received_quantity': 0,
-                                                           'measurement_unit': open_data.measurement_unit,
+                                                           'measurement_unit': measurement_unit,
                                                            'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                                            'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
@@ -1175,20 +1198,29 @@ def print_po_reports(request, user=''):
         purchase_order = results[0]
         if not po_id:
             purchase_order = results[0].purchase_order
-        address = purchase_order.open_po.supplier.address
-        address = '\n'.join(address.split(','))
+        if st_grn:
+            user_profile = UserProfile.objects.filter(user_id=purchase_order.stpurchaseorder_set.filter()[0].stocktransfer_set.filter()[0].sku.user)
+            address = user_profile[0].address
+            telephone = user_profile[0].phone_number
+            name = user_profile[0].user.username
+            supplier_id = user_profile[0].user.id
+            tin_number = user_profile[0].gst_number
+
+        else:
+            address = purchase_order.open_po.supplier.address
+            address = '\n'.join(address.split(','))
+            telephone = purchase_order.open_po.supplier.phone_number
+            name = purchase_order.open_po.supplier.name
+            supplier_id = purchase_order.open_po.supplier.id
+            tin_number = purchase_order.open_po.supplier.tin_number
         remarks = purchase_order.remarks
-        telephone = purchase_order.open_po.supplier.phone_number
-        name = purchase_order.open_po.supplier.name
-        supplier_id = purchase_order.open_po.supplier.id
-        tin_number = purchase_order.open_po.supplier.tin_number
         order_id = purchase_order.order_id
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
-        order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+        order_date = datetime.datetime.strftime(purchase_order.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)  # user_profile.address
@@ -1231,7 +1263,6 @@ def print_po_reports(request, user=''):
                    'net_amount': net_amount,
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
                    'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
-
 
 @csrf_exempt
 @get_admin_user

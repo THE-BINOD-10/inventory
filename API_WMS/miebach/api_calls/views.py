@@ -1013,6 +1013,9 @@ def get_skus(request):
         # price_master_objs = PriceMaster.objects.filter(**price_filter)
         # if price_master_objs.exists():
         #     brand_level_discount = price_master_objs[0].discount
+        zone = ''
+        if sku.zone:
+            zone = sku.zone.zone
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
                                   ('sku_class',sku.sku_class),
@@ -1033,7 +1036,7 @@ def get_skus(request):
                                   ('mix_sku',sku.mix_sku),
                                   ('color', sku.color),
                                   ('ean_number', sku.ean_number),
-                                  ('zone',sku.zone),
+                                  ('zone',zone),
                                   ('threshold_quantity',sku.threshold_quantity),
                                   ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
@@ -1957,16 +1960,16 @@ def get_inventory(request,user=''):
             if quantity < 0:
                 quantity = 0
 
-            total_stock_value = 0
-            if quantity:
-                wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
-                                                                                    sku__user=user.id)
-                wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
-                total_wms_qty_unit_price = sum(
-                    wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
-                        'stock_value', flat=True))
-                wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-                total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
+            # total_stock_value = 0
+            # if quantity:
+            #     wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
+            #                                                                         sku__user=user.id)
+            #     wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
+            #     total_wms_qty_unit_price = sum(
+            #         wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
+            #             'stock_value', flat=True))
+            #     wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            #     total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
             open_order_qty = sku_type_qty.get(data[0], 0)
             data_lis.append(OrderedDict((('sku', data[0]),
                                         ('available_quantity', quantity),

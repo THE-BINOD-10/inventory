@@ -54,7 +54,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
      vm.dtColumns.push(DTColumnBuilder.newColumn('EwayBill Number').withTitle('EwayBill Number'))
-     vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Type').withTitle('Customer Type'))
      vm.model_data.invoice = "true"
     } else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
@@ -68,7 +67,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Amount').withTitle('Invoice Amount'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Tax Amt').withTitle('Invoice Tax Amt'))
       vm.dtColumns.pop(DTColumnBuilder.newColumn('EwayBill Number').withTitle('EwayBill Number'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Customer Type').withTitle('Customer Type'))
       vm.model_data.invoice = "false"
     }
   }

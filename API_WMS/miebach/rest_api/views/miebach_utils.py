@@ -458,7 +458,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order Reference', 'name': 'order_reference', 'type': 'input'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
-    'dt_headers': ['Created By','Order Date','Order ID', 'Customer ID','Customer Name','SKU Brand', 'SKU Category',
+    'dt_headers': ['Created By','Order Date','Order ID', 'Customer ID','Customer Name', 'Customer Type','SKU Brand', 'SKU Category',
                    'SKU Sub Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Vehicle Number',
                    'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Order Tax Amt', 'Order Amt(w/o tax)',
                    'Tax Percent', 'City', 'State', 'Marketplace', 'Total Order Amt', 'Cancelled Order Qty',
@@ -4732,7 +4732,7 @@ def get_order_summary_data(search_params, user, sub_user):
         ('SKU Code', 'TotalQuantity='), ('Vehicle Number', ''),('Order Qty',temp_data['totalOrderQuantity']),('MRP', ''), ('Unit Price',''),('Discount', ''), ('Order Tax Amt',''),('Order Amt(w/o tax)', ''),
         ('Serial Number',''),('Invoice Number',''),('Challan Number', ''),('Invoice Qty',''),('Payment Type' ,''),('Reference Number',''),('Total Order Amt', ''),('Cancelled Order Qty', ''),('Cancelled Order Amt', ''),
         ('Order Amt(w/o tax)',''), ('Tax Percent',''), ('HSN Code', ''), ('Tax', ''),('City', ''), ('State', ''), ('Marketplace', 'TotalOrderAmount='),('Invoice Amount',''),('Order Amount', temp_data['totalSellingPrice']),
-        ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''), ('Order Taken By', ''),('Net Order Qty', ''), ('Net Order Amt', ''),
+        ('Price', ''),('Status', ''), ('Order Status', ''),('Invoice Tax', ''),('Customer GST Number',''),('Remarks', ''),('Net Order Qty', ''), ('Net Order Amt', ''),
         ('Invoice Date',''),('Billing Address',''),('Shipping Address',''),('Payment Cash', ''),('Payment Card', ''),('Payment PhonePe',''),('Payment GooglePay',''),('Payment Paytm',''),('Payment Received', ''),('GST Number', ''),
         ('Procurement Price',''), ('Total Procurement Price','') , ('Margin',''), ('Invoice Amt(w/o tax)',''), ('Invoice Tax Amt',''), ('EwayBill Number','')))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
@@ -4990,16 +4990,7 @@ def get_order_summary_data(search_params, user, sub_user):
             total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
-        order_user = data['user']
-        order_by = ''
-        if order_taken_by:
-            order_user_obj = User.objects.filter(username=order_taken_by)
-        if not order_user_obj.exists():
-            order_user_obj = User.objects.filter(id=data['user'])
-        if order_user_obj:
-            order_user = order_user_obj[0].id
-            order_by = order_user_obj[0].username
-        aaData = OrderedDict((('Created By', order_by),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+        aaData = OrderedDict((('Created By', order_taken_by),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),
                                                     ('Customer Type', customer_type),
@@ -5030,7 +5021,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Net Order Qty', net_qty), ('Net Order Amt', net_amt),
                                                     ('Price', data['sku__price']),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
-                                                    ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                    ('Remarks', remarks),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
                                                     ('Payment Cash', payment_cash), ('Payment Card', payment_card),('Payment PhonePe', payment_PhonePe),
                                                     ('Payment Paytm', payment_Paytm),('Payment GooglePay', payment_GooglePay), ('Payment Received', data['payment_received']), ('Vehicle Number', vehicle_number),

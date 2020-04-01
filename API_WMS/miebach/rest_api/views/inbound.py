@@ -51,11 +51,11 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
         for memObj in memQs:
             master_id = memObj.master_id
-            prApprObj = PRApprovalConfig.objects.filter(id=master_id)
+            prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
             if prApprObj.exists():
                 currentUserLevel = prApprObj[0].level
                 configName = prApprObj[0].name
-                pr_numbers = list(PRApprovals.objects.filter(pr_user=user,
+                pr_numbers = list(PurchaseApprovals.objects.filter(pr_user=user,
                                 configName=configName,
                                 level=currentUserLevel).distinct().values_list('openpr_number', flat=True))
             else:
@@ -76,7 +76,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                     'po_number', 'final_status', 'pending_level', 'remarks', 'supplier_id', 'supplier__name', 
                     'prefix', 'delivery_date']
 
-    results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
+    results = PendingPurchase.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(po_number__icontains=search_term) | Q(requested_user__username__icontains=search_term) |
@@ -100,7 +100,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pr_number'], result['total_amt'])
-        prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+        prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
 
         last_updated_by = ''
         last_updated_time = ''
@@ -110,19 +110,19 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['final_status'] not in ['pending', 'saved']:
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
             else:
                 if result['pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
-                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
+                    prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                    prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
                     # last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     # last_updated_remarks = prApprQs[0].remarks
@@ -911,7 +911,7 @@ def generated_pr_data(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     requested_user = request.POST.get('requested_user', '')
     supplier_id = request.POST.get('supplier_id', '')
-    record = OpenPR.objects.filter(sku__user=user.id, requested_user__username=requested_user, pr_number=pr_number)
+    record = PendingPurchase.objects.filter(sku__user=user.id, requested_user__username=requested_user, pr_number=pr_number)
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -923,7 +923,7 @@ def generated_pr_data(request, user=''):
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})    
-    prApprQs = PRApprovals.objects.filter(pr_user=user.id, openpr_number=pr_number)
+    prApprQs = PurchaseApprovals.objects.filter(pr_user=user.id, openpr_number=pr_number)
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
@@ -956,7 +956,7 @@ def print_pending_po_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     po_number = int(po_id.split('_')[-1])
-    pendingPO = OpenPR.objects.filter(sku__user=user.id, po_number=po_number)
+    pendingPO = PendingPurchase.objects.filter(sku__user=user.id, po_number=po_number)
     po_sku_ids = pendingPO.values_list('sku_id', flat=True)
     # ean_flag = False
     # ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
@@ -2072,7 +2072,7 @@ def add_po(request, user=''):
 
 def createPRApproval(user, reqConfigName, level, pr_number):
     mailsList = []
-    apprConfObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
+    apprConfObj = PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName, level=level)
     if apprConfObj:
         apprConfObjId = apprConfObj[0].id
         mailsList = MasterEmailMapping.objects.filter(user=user, 
@@ -2089,13 +2089,13 @@ def createPRApproval(user, reqConfigName, level, pr_number):
                         'validated_by': validated_by,
                         'configName': reqConfigName
                     }
-    prObj = PRApprovals(**prApprovalsMap)
+    prObj = PurchaseApprovals(**prApprovalsMap)
     prObj.save()
     return prObj, mailsList
 
 
 def updatePRApproval(pr_number, user, level, validated_by, validation_type, remarks):
-    apprQs = PRApprovals.objects.filter(openpr_number=pr_number, 
+    apprQs = PurchaseApprovals.objects.filter(openpr_number=pr_number, 
                                             pr_user=user, 
                                             level=level, 
                                             validated_by__icontains=validated_by)
@@ -2112,7 +2112,7 @@ def generateHashCodeForMail(prObj, mailId):
                     'email': mailId, 
                     'hash_code': hash_code,
                 }
-    mailObj = PRApprovalMails(**prApprovalMailsMap)
+    mailObj = PurchaseApprovalMails(**prApprovalMailsMap)
     mailObj.save()
     return hash_code
 
@@ -2121,7 +2121,7 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
     from mail_server import send_mail
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
-    openPRQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
+    openPRQs = PendingPurchase.objects.filter(pr_number=pr_number, sku__user=user.id)
     if openPRQs.exists():
         result = openPRQs[0]
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
@@ -2188,7 +2188,7 @@ def approve_pr(request, user=''):
     else:
         pr_number = int(pr_number)
 
-    PRQs = OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number)
+    PRQs = PendingPurchase.objects.filter(sku__user=user.id, pr_number=pr_number)
     if not PRQs:
         status = 'NO Purchase Request Object found'
         return HttpResponse(status)
@@ -2197,7 +2197,7 @@ def approve_pr(request, user=''):
     pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
     reqConfigName, lastLevel = findLastLevelToApprove(user, pr_number, totalAmt)
     if currentUserEmailId not in validated_by:
-        confObj = PRApprovalConfig.objects.filter(user=user, name=reqConfigName, level=pending_level)
+        confObj = PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName, level=pending_level)
         apprConfObjId = confObj[0].id
         mailsList = MasterEmailMapping.objects.filter(user=user, 
                     master_id=apprConfObjId, 
@@ -2247,7 +2247,7 @@ def createPRObjandRertunOrderAmt(request, all_data, user, pr_number, po_number, 
         
         data_id = value['data_id']
         if data_id:
-            record = OpenPR.objects.get(id=data_id, sku__user=user.id)
+            record = PendingPurchase.objects.get(id=data_id, sku__user=user.id)
             setattr(record, 'quantity', value['order_quantity'])
             setattr(record, 'price', value['price'])
             setattr(record, 'sgst_tax', value['sgst_tax'])
@@ -2296,7 +2296,7 @@ def createPRObjandRertunOrderAmt(request, all_data, user, pr_number, po_number, 
             if value['measurement_unit'] != "":
                 pr_suggestions['measurement_unit'] = value['measurement_unit']            
 
-        openPRObj = OpenPR.objects.create(**pr_suggestions)
+        openPRObj = PendingPurchase.objects.create(**pr_suggestions)
         totalAmt += (pr_suggestions['quantity'] * pr_suggestions['price'])
     return totalAmt
 
@@ -2311,7 +2311,7 @@ def add_pr(request, user=''):
         myDict = dict(request.POST.iterlists())
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
-            prQs = OpenPR.objects.filter(pr_number=pr_number)
+            prQs = PendingPurchase.objects.filter(pr_number=pr_number)
             po_number = prQs[0].po_number
         else:
             pr_number = get_incremental(user, 'PurchaseRequest')
@@ -2345,7 +2345,7 @@ def save_pr(request, user=''):
         myDict = dict(request.POST.iterlists())
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
-            prQs = OpenPR.objects.filter(pr_number=pr_number)
+            prQs = PendingPurchase.objects.filter(pr_number=pr_number)
             po_number = prQs[0].po_number
         else:
             pr_number = get_incremental(user, 'PurchaseRequest')
@@ -2370,7 +2370,7 @@ def cancel_pr(request, user=''):
     supplier_id = request.POST.get('supplier_id', '')
     if not pr_number:
         return HttpResponse("Please Select PO to Delete")
-    prQs = OpenPR.objects.filter(pr_number=pr_number, sku__user=user.id)
+    prQs = PendingPurchase.objects.filter(pr_number=pr_number, sku__user=user.id)
     if prQs.exists():
         prQs.update(final_status='cancelled')
     return HttpResponse("Deleted Successfully")
@@ -6018,7 +6018,7 @@ def confirm_add_po(request, sales_data='', user=''):
     is_purchase_request = request.POST.get('is_purchase_request', '')
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
-        prQs = OpenPR.objects.filter(sku__user=user.id, pr_number=pr_number)
+        prQs = PendingPurchase.objects.filter(sku__user=user.id, pr_number=pr_number)
         if prQs.exists():
             prObj = prQs[0]
             po_creation_date = prObj.creation_date
@@ -6143,7 +6143,7 @@ def confirm_add_po(request, sales_data='', user=''):
             if request.POST.get('is_purchase_request') == 'true':
                 pr_number = request.POST.get('pr_number', '')
                 if pr_number: pr_number = int(pr_number)
-                OpenPR.objects.filter(sku_id=sku_id[0].id, pr_number=pr_number).update(open_po_id=data1.id)
+                PendingPurchase.objects.filter(sku_id=sku_id[0].id, pr_number=pr_number).update(open_po_id=data1.id)
 
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id

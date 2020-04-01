@@ -751,9 +751,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
-            if (vm.permissions.sku_pack_config) {
-              sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
-            }
+          }
+          if (vm.permissions.sku_pack_config) {
+            sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
           }
         }
       });

@@ -1825,8 +1825,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Returns Putaway", "add_returnslocation"),
                        ("RTV", "add_returntovendor"), ("Seller Invoices", "add_sellerpo"),
                        ("Supplier Invoices", "change_sellerposummary"), ("GRN Edit", "delete_sellerposummary"),
-                       ("View PendingPO", "view_openpr"), ("Add PendingPO", "add_openpr"),
-                       ("Change PendingPO", "change_openpr"),
+                       ("View PendingPO", "view_pendingpurchase"), ("Add PendingPO", "add_pendingpurchase"),
+                       ("Change PendingPO", "change_pendingpurchase"),
                        )),
 
     # Production
@@ -9700,8 +9700,8 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     data['purchase_order__open_po__igst_tax'] = 0
                 if not data['purchase_order__open_po__utgst_tax']:
                     data['purchase_order__open_po__utgst_tax'] = 0
-                tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
-                          float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+                tot_tax = int(data['purchase_order__open_po__cgst_tax']) + int(data['purchase_order__open_po__sgst_tax']) + \
+                          int(data['purchase_order__open_po__igst_tax']) + int(data['purchase_order__open_po__utgst_tax'])
                 invAmtWithTax = truncate_float(totAmtWithOutTax + (totAmtWithOutTax * tot_tax / 100), 2)
                 invoice_date, challan_date = '', ''
                 if data['invoice_date']:
@@ -9795,8 +9795,8 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             data['purchase_order__open_po__igst_tax'] = 0
         if not data['purchase_order__open_po__utgst_tax']:
             data['purchase_order__open_po__utgst_tax'] = 0
-        tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
-                  float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+        tot_tax = int(data['purchase_order__open_po__cgst_tax']) + int(data['purchase_order__open_po__sgst_tax']) + \
+                  int(data['purchase_order__open_po__igst_tax']) + int(data['purchase_order__open_po__utgst_tax'])
         invAmtWithTax = truncate_float(data['totAmtWithOutTax'] + (data['totAmtWithOutTax'] * tot_tax / 100), 2)
         invoice_date, challan_date = '', ''
         if data['invoice_date']:

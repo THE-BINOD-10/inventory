@@ -248,9 +248,9 @@
       </div>
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
-          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_openpr) && showCase.pending_status !='cancelled'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
+          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpurchase) && showCase.pending_status !='cancelled'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PO</button>
-          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_openpr) && showCase.pending_status !='cancelled'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
+          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpurchase) && showCase.pending_status !='cancelled'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>
         </div>
       </div>
     </div>

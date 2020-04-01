@@ -489,7 +489,7 @@ class OpenPO(models.Model):
 
 
 @reversion.register()
-class OpenPR(models.Model):
+class PendingPurchase(models.Model):  #OpenPR
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
@@ -514,12 +514,12 @@ class OpenPR(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'OPEN_PR'
+        db_table = 'PENDING_PURCHASE'
         #unique_together = ('requested_user', 'sku')
 
 
 @reversion.register()
-class PRApprovals(models.Model):
+class PurchaseApprovals(models.Model):  #PRApprovals
     id = BigAutoField(primary_key=True)
     openpr_number = models.PositiveIntegerField() #WH Specific Inc Number
     configName = models.CharField(max_length=64, default='')
@@ -532,11 +532,11 @@ class PRApprovals(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'PR_APPROVALS'
+        db_table = 'PURCHASE_APPROVALS'
         #unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
 
 
-class PRApprovalConfig(models.Model):
+class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
@@ -547,13 +547,13 @@ class PRApprovalConfig(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'PR_APPROVAL_CONFIG'
+        db_table = 'PURCHASE_APPROVAL_CONFIG'
         unique_together = ('user', 'name', 'level')
 
 
-class PRApprovalMails(models.Model):
+class PurchaseApprovalMails(models.Model):  #PRApprovalMails
     id = BigAutoField(primary_key=True)
-    pr_approval = models.ForeignKey(PRApprovals)
+    pr_approval = models.ForeignKey(PurchaseApprovals)
     email = models.EmailField(max_length=64)
     hash_code = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=32, default='')
@@ -561,7 +561,7 @@ class PRApprovalMails(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "PR_APPROVAL_MAILS"
+        db_table = "PURCHASE_APPROVAL_MAILS"
 
 @reversion.register()
 class PurchaseOrder(models.Model):

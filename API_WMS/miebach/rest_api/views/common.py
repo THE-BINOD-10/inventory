@@ -826,7 +826,7 @@ def findReqConfigName(user, totalAmt):
 def findLastLevelToApprove(user, pr_number, totalAmt):
     finalLevel = 'level0'
     reqConfigName = findReqConfigName(user, totalAmt)
-    configQs = list(PRApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
+    configQs = list(PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
     return reqConfigName, finalLevel
@@ -835,11 +835,11 @@ def findLastLevelToApprove(user, pr_number, totalAmt):
 def pr_request(request):
     response_data = {'data': {}, 'message': 'Fail'}
     hash_code = request.GET.get('hash_code', '')
-    storedData = PRApprovalMails.objects.filter(hash_code=hash_code)
+    storedData = PurchaseApprovalMails.objects.filter(hash_code=hash_code)
     # if storedData:
     prApprId = storedData[0].pr_approval_id
     email_id = storedData[0].email
-    prApprObj = PRApprovals.objects.filter(id=prApprId)
+    prApprObj = PurchaseApprovals.objects.filter(id=prApprId)
     # if prApprObj:
     parentUser = prApprObj[0].pr_user
     sub_users = get_sub_users(parentUser)
@@ -873,7 +873,7 @@ def pr_request(request):
                     'po_number', 'final_status', 'pending_level', 'remarks', 'supplier_id', 'supplier__name', 
                     'prefix', 'delivery_date']
 
-    results = OpenPR.objects.filter(**filtersMap).values(*values_list).distinct().\
+    results = PendingPurchase.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
 
     resultsWithDate = dict(results.values_list('pr_number', 'creation_date'))
@@ -888,7 +888,7 @@ def pr_request(request):
         po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pr_number'], result['total_amt'])
-        prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+        prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
         if not prApprQs.exists():
             continue
 
@@ -898,16 +898,16 @@ def pr_request(request):
         validated_by = prApprQs[0].validated_by
         if result['pending_level'] != 'level0':
             prev_level = 'level' + str(int(result['pending_level'].replace('level', '')) - 1)
-            prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
+            prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
         elif result['pending_level'] == 'level0':
             if result['final_status'] == 'pending':
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
                 last_updated_remarks = result['remarks']
             else:
-                prApprQs = PRApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
+                prApprQs = PurchaseApprovals.objects.filter(openpr_number=result['pr_number'], pr_user=user, level=result['pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
@@ -940,7 +940,7 @@ def add_update_pr_config(request,user=''):
     toBeUpdateData = eval(request.POST.get('data', []))
     if toBeUpdateData:
         data = toBeUpdateData[0]
-        pr_approvals = PRApprovalConfig.objects.filter(user=user, name=data['name'])
+        pr_approvals = PurchaseApprovalConfig.objects.filter(user=user, name=data['name'])
         existingLevels = list(pr_approvals.values_list('level', flat=True))
             
         mailsMap = data.get('mail_id', {})
@@ -958,7 +958,7 @@ def add_update_pr_config(request,user=''):
                     'level': level,
                 }
             if not pr_approvals.exists():
-                eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
+                eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
                 eachConfigId = eachConfig.id
             else:
                 eachLevel = pr_approvals.filter(level=level)
@@ -971,7 +971,7 @@ def add_update_pr_config(request,user=''):
                     eachLevelObj.save()
                     eachConfigId = eachLevelObj.id
                 else:
-                    eachConfig = PRApprovalConfig.objects.create(**PRApprovalMap)
+                    eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
                     eachConfigId = eachConfig.id
             # To Delete Existing Mails from  Level
             mailsList = [i.strip() for i in mails.split(',')]
@@ -1004,7 +1004,7 @@ def delete_pr_config(request, user=''):
     toBeDeleteData = eval(request.POST.get('data', []))
     if toBeDeleteData:
         configName = toBeDeleteData[0].get('name')
-        PRApprovalConfig.objects.filter(user=user, name=configName).delete()
+        PurchaseApprovalConfig.objects.filter(user=user, name=configName).delete()
         status = 'Deleted Successfully'
     else:
         status = 'Something Went Wrong, Please check with Tech Team'
@@ -1013,13 +1013,13 @@ def delete_pr_config(request, user=''):
 
 def fetchConfigNameRangesMap(user):
     confMap = OrderedDict()
-    for rec in PRApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
+    for rec in PurchaseApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap
 
 def get_pr_approvals_configuration_data(user):
-    pr_conf_obj = PRApprovalConfig.objects.filter(user=user).order_by('creation_date')
+    pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user).order_by('creation_date')
     pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
@@ -1080,7 +1080,7 @@ def configurations(request, user=''):
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix'))
 
-    config_dict['pr_conf_names'] = list(PRApprovalConfig.objects.filter(user=user).values_list('name', flat=True))
+    config_dict['pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user).values_list('name', flat=True))
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user)
 
     config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
@@ -5591,10 +5591,19 @@ def get_sku_stock_check(request, user=''):
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
+        if sku_pack_config:
+            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
+                'intransit_quantity': 0, 'skuPack_quantity': skuPack_quantity}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
@@ -5609,12 +5618,6 @@ def get_sku_stock_check(request, user=''):
         poOrderedQty = poQs[0]['total_order']
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
-    skuPack_quantity = 0
-    sku_pack_config = get_misc_value('sku_pack_config', user.id)
-    if sku_pack_config == 'true':
-        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
-        if skuPack_data:
-            skuPack_quantity = skuPack_data[0].pack_quantity
 
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))

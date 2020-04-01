@@ -2208,7 +2208,21 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                                                         max_amt__gte=sku_master[0].price, min_amt__lte=sku_master[0].price, inter_state=inter_state)
 
                     invoice_amount = 0
-                    unit_price = sku_item.get('unit_price', sku_master[0].price)
+                    unit_price = sku_item.get('unit_price', '')
+                    discount_amount = sku_item.get('discount_amount', '')
+                    if discount_amount:
+                        try:
+                            order_summary_dict['discount'] = float(discount_amount)
+                        except:
+                            order_summary_dict['discount'] = 0
+                    if unit_price == '':
+                        unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
+                        if discount_amount == '':
+                            if sku_item.has_key('quantity'):
+                                order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                            else:
+                                update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                                break
                     if not order_det:
                         order_det = order_det1
 
@@ -2267,6 +2281,10 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     }
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
+                if order.has_key('payment_status'):
+                    if order['payment_status'].lower() == 'paid':
+                        order_details['payment_received'] = order_details['invoice_amount']
+                    final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2537,6 +2555,10 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     }
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
+                if order.has_key('payment_status'):
+                    if order['payment_status'].lower() == 'paid':
+                        order_details['payment_received'] = order_details['invoice_amount']
+                    final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

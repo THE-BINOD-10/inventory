@@ -6761,6 +6761,8 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        if order.get('payment_status',''):
+            OrderFields.objects.create(**{'user': user.id, 'original_order_id': original_order_id,'name': 'payment_status', 'value':order['payment_status']})
         order_sku = {}
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
 

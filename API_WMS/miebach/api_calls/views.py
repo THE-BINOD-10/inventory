@@ -1013,6 +1013,9 @@ def get_skus(request):
         # price_master_objs = PriceMaster.objects.filter(**price_filter)
         # if price_master_objs.exists():
         #     brand_level_discount = price_master_objs[0].discount
+        zone = ''
+        if sku.zone:
+            zone = sku.zone.zone
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
                                   ('sku_class',sku.sku_class),
@@ -1033,7 +1036,7 @@ def get_skus(request):
                                   ('mix_sku',sku.mix_sku),
                                   ('color', sku.color),
                                   ('ean_number', sku.ean_number),
-                                  ('zone',sku.zone),
+                                  ('zone',zone),
                                   ('threshold_quantity',sku.threshold_quantity),
                                   ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),

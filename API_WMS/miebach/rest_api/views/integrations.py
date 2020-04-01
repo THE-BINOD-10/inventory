@@ -2257,6 +2257,9 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                             amt = float(order_details['quantity']) * order_details['unit_price']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
 
+                        if order.has_key('payment_status'):
+                            if order['payment_status'].lower() == 'paid':
+                                order_details['payment_received'] = order_details['invoice_amount']
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status:
@@ -2282,8 +2285,6 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
                 if order.has_key('payment_status'):
-                    if order['payment_status'].lower() == 'paid':
-                        order_details['payment_received'] = order_details['invoice_amount']
                     final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback
@@ -2529,6 +2530,9 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
                         order_details['creation_date'] = creation_date
 
+                        if order.has_key('payment_status'):
+                            if order['payment_status'].lower() == 'paid':
+                                order_details['payment_received'] = order_details['invoice_amount']
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status:
@@ -2556,8 +2560,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
                 if order.has_key('payment_status'):
-                    if order['payment_status'].lower() == 'paid':
-                        order_details['payment_received'] = order_details['invoice_amount']
                     final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback

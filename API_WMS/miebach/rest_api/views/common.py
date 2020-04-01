@@ -6733,7 +6733,7 @@ def update_order_dicts(orders, user='', company_name=''):
             continue
         order_det_dict = order['order_details']
         original_order_id = order_det_dict.get('original_order_id', '')
-        orderId.append(original_order_id)
+        orderId = [original_order_id]
         if not order.get('order_detail_obj', None):
             order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
                                                    order_id=order_det_dict['order_id'],

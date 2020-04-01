@@ -1960,16 +1960,16 @@ def get_inventory(request,user=''):
             if quantity < 0:
                 quantity = 0
 
-            total_stock_value = 0
-            if quantity:
-                wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
-                                                                                    sku__user=user.id)
-                wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
-                total_wms_qty_unit_price = sum(
-                    wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
-                        'stock_value', flat=True))
-                wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-                total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
+            # total_stock_value = 0
+            # if quantity:
+            #     wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
+            #                                                                         sku__user=user.id)
+            #     wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
+            #     total_wms_qty_unit_price = sum(
+            #         wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
+            #             'stock_value', flat=True))
+            #     wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            #     total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
             open_order_qty = sku_type_qty.get(data[0], 0)
             data_lis.append(OrderedDict((('sku', data[0]),
                                         ('available_quantity', quantity),

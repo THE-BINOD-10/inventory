@@ -77,7 +77,7 @@
               <div class="form-group">
                 <label class="control-label">Market Place</label>
                 <select name="marketplace" ng-model="showCase.special_key.market_place" class="form-control">
-                  <option value="">Default</option>
+                  <option value="">All</option>
                   <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
                 </select>
               </div>
@@ -104,7 +104,7 @@
               <div class="form-group">
                 <label class="control-label">Group By</label>
                 <select name="marketplace" ng-change="showCase.change_datatable()" ng-model="showCase.group_by" class="form-control">
-                  <option value="order">Order</option>
+                  <option value="order" selected>Order</option>
                   <option value="invoice">Invoice</option>
                 </select>
               </div>

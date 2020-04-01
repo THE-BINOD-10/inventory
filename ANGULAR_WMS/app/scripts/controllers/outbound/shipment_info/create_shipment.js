@@ -15,7 +15,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.scan_imei_readonly = false;
     vm.parent_username = Session.parent.parent_username;
     vm.g_data = Data.create_shipment;
-    
+    vm.group_by = 'order'
+    if(vm.g_data.view == 'ShipmentPickedInvoice'){
+      vm.group_by = 'invoice';
+    }
     //table start
     vm.selected = {};
     vm.order_imei_mapping = {}
@@ -197,11 +200,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           if(key) {
             var temp = table[Number(value)]['order_id']
             var temp2 = table[Number(value)]['Marketplace']
+            var temp3 = table[Number(value)]['Invoice Number']
             cust_details['cust_name'] = table[Number(value)]['Customer Name']
             cust_details['cust_id'] = table[Number(value)]['Customer ID']
+
             cust_details['order_id'] = temp
             cust_details['marketplace'] = temp2
           data.push({ name: "order_id", value: temp})
+          data.push({name:"invoice_number", value: temp3})
           if(order_ids.indexOf(temp) == -1) {
               order_ids.push(temp);
           }
@@ -217,17 +223,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           return false;
         }
 
-        if(vm.g_data.view == 'ShipmentPickedAlternative'){
-          if (vm.group_by == 'order' && order_ids.length > 1) {
+        
+          if ( order_ids.length > 1) {
             vm.bt_disable = false;
             vm.service.showNoty("Please Select Single Order");
             return;
-          } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
+          } else if(mk_places.length > 1) {
             vm.bt_disable = false;
             vm.service.showNoty("Please Select Single Marketplace");
             return;
           }
-        }
+        
 
         data.push({name:'view', value:vm.g_data.view});
         vm.service.apiCall(apiUrl, "GET", data).then(function(data){

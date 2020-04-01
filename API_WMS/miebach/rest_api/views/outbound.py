@@ -3260,12 +3260,17 @@ def get_customer_sku(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     insert_st_order_serialsearch_params = {'user': user.id}
+    invoice_number = ''
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     picked_imeis = []
     search_params = {}
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
+        if datatable_view == 'ShipmentPickedInvoice' and request_data['invoice_number']:
+            invoice_number = request_data['invoice_number'][0]
+            order_id = list(SellerOrderSummary.objects.filter(order__user=user.id, order__original_order_id__in=request_data['order_id'],full_invoice_number=invoice_number).values_list('order_id',flat=True))
+            search_params['id__in'] = order_id
     elif 'order_id' in request_data.keys() and request_data['order_id']:
         filter_order_ids = []
         for order_ids in request_data['order_id']:
@@ -3295,6 +3300,7 @@ def get_customer_sku(request, user=''):
                                         'marketplace': '',
                                         'shipment_number': ship_no,
                                         'picked_imeis': picked_imeis,
+                                        'invoice_number':invoice_number,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -10616,13 +10622,13 @@ def get_invoice_shipment(start_index, stop_index, temp_data, search_term, order_
     user_filter = {'order__user': user.id}
     if user_dict.get('market_place', ''):
             marketplace = user_dict['market_place'].split(',')
-            user_filter['order__order__marketplace__in'] = marketplace
+            user_filter['order__marketplace__in'] = marketplace
     if user_dict.get('customer', ''):
-        user_filter['order__order__customer_id'] = user_dict['customer']
+        user_filter['order__customer_id'] = user_dict['customer']
     if user_dict.get('order_id', ''):
         order_id_filter = ''.join(re.findall('\d+', user_dict['order_id']))
         order_code_filter = ''.join(re.findall('\D+', user_dict['order_id']))
-        user_filter['order__order_id__in'] = OrderDetail.objects.filter(Q(original_order_id__icontains=user_dict['order_id']) |
+        user_filter['order_id__in'] = OrderDetail.objects.filter(Q(original_order_id__icontains=user_dict['order_id']) |
                                                                Q(order_id__icontains=order_id_filter,
                                                                  order_code__icontains=order_code_filter),
                                                                user=user.id)

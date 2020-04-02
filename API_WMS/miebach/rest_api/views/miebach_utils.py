@@ -9647,7 +9647,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             tot_tax = int(cgst_tax) + int(sgst_tax) + int(igst_tax) + int(utgst_tax)
             unit_price = data['seller_po__unit_price']
             if data['invoice_date']:
-                invoice_date = data['invoice_date'].strftime("%d %b, %Y")
+                invoice_date = data['invoice_date'].strftime("%d-%b-%Y")
             else:
                 invoice_date = ''
             invoice_number = data['invoice_number']

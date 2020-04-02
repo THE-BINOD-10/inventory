@@ -4763,6 +4763,9 @@ def get_order_summary_data(search_params, user, sub_user):
             extra_fields.append(str(i))
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    inv_eway_mapping = dict(ShipmentInfo.objects.filter(order_id__in=list(orders.values_list('id', flat=True))).\
+                            exclude(order_shipment__ewaybill_number='').\
+                             values_list('invoice_number', 'order_shipment__ewaybill_number'))
     for data in orders.iterator():
         cancelled_qty, cancelled_amt, net_qty, net_amt = 0, 0, 0, 0
         count = count + 1
@@ -4920,9 +4923,10 @@ def get_order_summary_data(search_params, user, sub_user):
                         else:
                             invoice_number = str(invoice_number_obj[0].seller_order.order.order_id)
             if invoice_number:
-                shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'])
-                if shipment_info.exists():
-                    ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
+                ewaybill_number = inv_eway_mapping.get(invoice_number, '')
+                #shipment_info = ShipmentInfo.objects.filter(order__user=user.id,order__original_order_id=data['original_order_id'])
+                #if shipment_info.exists():
+                #    ewaybill_number = str(shipment_info[0].order_shipment.ewaybill_number)
 
             if data['sellerordersummary__creation_date'] :
                 invoice_date = data['sellerordersummary__creation_date'].strftime('%d %b %Y')

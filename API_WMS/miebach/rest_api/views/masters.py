@@ -1037,7 +1037,6 @@ def update_sku(request, user=''):
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
-    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1097,7 +1096,6 @@ def update_sku(request, user=''):
                 value = 1
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
-                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             elif key == 'youtube_url':
                 if data.youtube_url != request.POST.get('youtube_url', ''):
                     youtube_update_flag = True

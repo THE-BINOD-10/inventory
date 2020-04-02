@@ -9602,6 +9602,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     lastPoNumber = ''
     lastGRNNumber = ''
+    grnWiseInvoiceAmts = {}
     for index, eachData in enumerate([model_data, rtv_data]):
         for data in eachData:
             user = data['purchase_order__open_po__sku__user']
@@ -9647,9 +9648,23 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             uniqueKey = '%s#<>#%s#<>#%s#<>#%s' % (user, po_number, grn_number, tot_tax)
             uniqueKeyWithoutTax = '%s#<>#%s#<>#%s' % (user, po_number, grn_number)
             if 'returntovendor__quantity' in data:
-                inv_type = 'credit_note'
+                inv_type = 'Credit Note'
             else:
-                inv_type = 'standard'
+                inv_type = 'Standard'
+
+            if uniqueKeyWithoutTax not in grnWiseInvoiceAmts:
+                if inv_type == 'Standard':
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax] = {'Standard': invAmtWithTax}
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Credit Note'] = 0
+                else:
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax] = {'Credit Note': invAmtWithTax}
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Standard'] = 0
+            else:
+                if inv_type == 'Standard':
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Standard'] += invAmtWithTax
+                else:
+                    grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Credit Note'] += invAmtWithTax
+
             reqMap = {
                     'user': user,
                     'po_number': po_number,
@@ -9693,10 +9708,10 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             oldUniqKey = uniqueKeyWithoutTax
             oldInvType = inv_type
             if inv_type == 'Credit Note':
-                invAmt = -reqMap['invAmtWithTax']
+                invAmt = -grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Credit Note']
                 totAmtWithTax = -reqMap['totalAmtWithoutTax']
             else:
-                invAmt = reqMap['invAmtWithTax']
+                invAmt = grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Standard']
                 totAmtWithTax = reqMap['totalAmtWithoutTax']
             ordList = []
             for col in all_cols:

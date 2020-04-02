@@ -520,7 +520,10 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started for %s" % str(user.username))
+    order_code_prefix_check = ['Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order', 'DC', 'PRE']
     order_code_prefix = get_order_prefix(user.id)
+    if order_code_prefix:
+        order_code_prefix_check.insert(0, order_code_prefix)
     st_time = datetime.datetime.now()
     index_status = {}
     # order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
@@ -560,6 +563,15 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
+            elif cell_data:
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                for order_cd in order_code_prefix_check:
+                    cell_data_lower = ''
+                    cell_data_lower = (''.join(re.findall('\D+', cell_data))).replace("'", "").replace("`", "")
+                    if order_cd and cell_data_lower and order_cd.lower() in cell_data_lower.lower():
+                        index_status.setdefault(count, set()).add('Remove Order Code in OrderID')
+                        break
             if 'order_type' in order_mapping:
                 order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
                 if cell_data in order_id_order_type.keys():

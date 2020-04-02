@@ -9610,9 +9610,11 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             if UpQs.exists():
                 ola_gst_num = UpQs[0].gst_number
                 wh_name = UpQs[0].user.first_name
+                wh_city = UpQs[0].city
             else:
                 ola_gst_num = ''
-                wh_name = ''            
+                wh_name = '' 
+                wh_city = ''           
             po_order_id = data['purchase_order__order_id']
             receipt_no = data['receipt_number']
             prefix = data['purchase_order__prefix']
@@ -9690,6 +9692,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     'invAmtWithTax': invAmtWithTax,
                     'counter': counter,
                     'uniqueKeyWithoutTax': uniqueKeyWithoutTax,
+                    'wh_city': wh_city,
                 }
             if uniqueKey not in sellerPOSummaryMap:
                 sellerPOSummaryMap[uniqueKey] = OrderedDict()
@@ -9739,13 +9742,13 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     elif col == 'Description_1':
                         ordTuple = (col, 'Parts Purchase@%s'%(reqMap['tot_tax'])+'_ PO No-%s _GRN No-%s' %(reqMap['po_number'], reqMap['grn_number']))
                     elif col == 'Distribution Combination':
-                        if reqMap['supplierCity'] in locationDistMap:
-                            ordTuple = (col, locationDistMap[reqMap['supplierCity']][0])
+                        if reqMap['wh_city'] in locationDistMap:
+                            ordTuple = (col, locationDistMap[reqMap['wh_city']][0])
                         else:
                             ordTuple = (col, 'CityMismatch')
                     elif col == 'Ship-to Location':
-                        if reqMap['supplierCity'] in locationDistMap:
-                            ordTuple = (col, locationDistMap[reqMap['supplierCity']][1])
+                        if reqMap['wh_city'] in locationDistMap:
+                            ordTuple = (col, locationDistMap[reqMap['wh_city']][1])
                         else:
                             ordTuple = (col, 'CityMismatch')
                     elif col == 'Invoice Type':

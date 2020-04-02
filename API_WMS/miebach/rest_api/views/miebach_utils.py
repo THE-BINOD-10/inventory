@@ -9423,7 +9423,6 @@ def get_bulk_stock_update_data(search_params, user, sub_user):
 def get_credit_note_form_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     all_cols = ['*Invoice Header Identifier', '*Business Unit', 'Import Set', '*Invoice Number', '*Invoice Currency', 
                 '*Invoice Amount', '*Invoice Date', '**Supplier', '**Supplier Number', '*Supplier Site', 
@@ -9538,15 +9537,9 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         'Nashik': ('1003.22.6005.7301.50002.1051501.9999.9999.9999.9999.9999', 'OFT-Nashik'), 
         'Visakhapatnam': ('1003.22.6005.7301.50002.1050701.9999.9999.9999.9999.9999', 'OFT - Visakhapatnam'), 
         'Kota': ('1003.22.6005.7301.50002.1001402.9999.9999.9999.9999.9999', 'OFT-KOTA')}
-    model_name = SellerPOSummary
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                      'order_id': 'purchase_order__order_id',
-                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
-                     'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
-                     'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
-                     'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                      'user': 'purchase_order__open_po__sku__user',
-                     'sku_id__in': 'purchase_order__open_po__sku_id__in',
                      'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                      'supplier_name': 'purchase_order__open_po__supplier__name',
                      'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 
@@ -9566,30 +9559,13 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
-    if 'from_date' in search_params:
-        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    # if 'from_date' in search_params:
+    #     search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
-    # if 'open_po' in search_params and search_params['open_po']:
-    #     temp = re.findall('\d+', search_params['open_po'])
-    #     if temp:
-    #         search_parameters[field_mapping['order_id']] = temp[-1]
-    # if 'sku_code' in search_params:
-    #     search_parameters[field_mapping['wms_code']] = search_params['sku_code']
-    # if 'sku_category' in search_params:
-    #     search_parameters[field_mapping['sku_category']] = search_params['sku_category']
-    # if 'sub_category' in search_params:
-    #     search_parameters[field_mapping['sub_category']] = search_params['sub_category']
-    # if 'sku_brand' in search_params:
-    #     search_parameters[field_mapping['sku_brand']] = search_params['sku_brand']
-
-    # if 'invoice_number' in search_params:
-    #     search_parameters[field_mapping['invoice_number']] = search_params['invoice_number']
-    # if 'supplier' in search_params and ':' in search_params['supplier']:
-    #     search_parameters[field_mapping['supplier_id']] = \
-    #         search_params['supplier'].split(':')[0]
+    warehouse_users = {}
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -9599,268 +9575,186 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
         warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         search_parameters['purchase_order__open_po__sku__user__in'] = warehouses.values_list('user_id', flat=True)
-        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-        #sku_master = SKUMaster.objects.filter(user__in=[5613])
-        sku_master_ids = sku_master.values_list('id', flat=True)
     else:
         search_parameters[field_mapping['user']] = user.id
-    # search_parameters['order__sku_id__in'] = sku_master_ids    
-    # search_parameters[field_mapping['user']] = user.id
-    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
-    # search_parameters['purchase_order__order_id'] = 130
-    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters). \
+        warehouse_users[user.id] = user.username
+    # search_parameters['purchase_order__order_id'] = 20
+    # search_parameters[field_mapping['user']] = 5612
+    query_data = SellerPOSummary.objects.exclude(**excl_status).filter(**search_parameters). \
             values(tot_tax=Sum(F('purchase_order__open_po__igst_tax') + \
                                F('purchase_order__open_po__cgst_tax') + \
                                F('purchase_order__open_po__sgst_tax'))). \
-            order_by('purchase_order__open_po__sku__user', '-purchase_order__order_id', '-tot_tax')
+            order_by('purchase_order__open_po__sku__user', '-purchase_order__order_id', 'receipt_number', '-tot_tax')
     model_data = query_data.values(*result_values).distinct().annotate(totAmtWithOutTax=Sum(F('quantity') * F('price'))). \
-                    annotate(totalOrderQty=Sum('quantity'))
-    col_num = search_params.get('order_index', 0)
-    temp_data['recordsTotal'] = model_data.count()
+                    annotate(totalOrderQty=Sum('quantity')). \
+                    annotate(created_date=Cast('purchase_order__creation_date', DateField()))
+
+    result_values.append('returntovendor__quantity')
+    rtv_data = query_data.filter(returntovendor__quantity__isnull=False). \
+                    values(*result_values).annotate(totAmtWithOutTax=Sum(F('returntovendor__quantity') * F('price'))). \
+                    annotate(totalOrderQty=Sum('returntovendor__quantity')). \
+                    annotate(created_date=Cast('purchase_order__creation_date', DateField()))
+
+    sellerPOSummaryMap = OrderedDict()
+    temp_data['recordsTotal'] = model_data.count() + rtv_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         model_data = model_data[start_index:stop_index]
     lastPoNumber = ''
     lastGRNNumber = ''
-    rtvlastPoNumber = ''
-    rtvlastGRNNumber = ''
-    counter = 1
-    inv_header_cnt = start_index
-    invHeaderCntMap = {}
-    for data in model_data:
-        result = PurchaseOrder.objects.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=data['purchase_order__open_po__sku__user'])[0]
-        receipt_no = data['receipt_number']
-        UpQs = UserProfile.objects.filter(user_id=data['purchase_order__open_po__sku__user'])
-        if UpQs.exists():
-            ola_gst_num = UpQs[0].gst_number
-            wh_name = UpQs[0].user.first_name
-        else:
-            ola_gst_num = ''
-            wh_name = ''
-        if not receipt_no:
-            receipt_no = ''
-
-        po_order_id = data[field_mapping['order_id']]
-        po_user = data['purchase_order__open_po__sku__user']
-        ordList = []
-        po_number = '%s%s_%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 po_order_id)
-        grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 po_order_id, str(receipt_no))
-        if lastPoNumber == po_number and lastGRNNumber == receipt_no:
-            counter += 1
-        else:
-            counter = 1
-            inv_header_cnt += 1
-
-        uniqKey = '%s#<>#%s' %(po_order_id, receipt_no)
-        if uniqKey not in invHeaderCntMap:
-            invHeaderCntMap[uniqKey] = inv_header_cnt
-        lastPoNumber = po_number
-        lastGRNNumber = receipt_no
-
-        returnQtyQs = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__order_id=po_order_id,
-                        seller_po_summary__purchase_order__open_po__sku__user=po_user,
-                        seller_po_summary__receipt_number=receipt_no,
-                        seller_po_summary__purchase_order__open_po__igst_tax=data['purchase_order__open_po__igst_tax'],
-                        seller_po_summary__purchase_order__open_po__cgst_tax=data['purchase_order__open_po__cgst_tax'],
-                        seller_po_summary__purchase_order__open_po__sgst_tax=data['purchase_order__open_po__sgst_tax']
-                        ).values(tot_tax=Sum(F('seller_po_summary__purchase_order__open_po__igst_tax') + F('seller_po_summary__purchase_order__open_po__cgst_tax') + \
-                                F('seller_po_summary__purchase_order__open_po__sgst_tax'))).distinct().annotate(amtWithOutTax=Sum(F('quantity') * F('seller_po_summary__price'))). \
-                                annotate(ordQty=Sum('quantity'))
-        if returnQtyQs.exists():
-            in_counter = 1
-            for rtvObj in returnQtyQs:
-                uniqKey = '%s#<>#%s' %(po_order_id, receipt_no)
-                returnQty = rtvObj['ordQty']
-                #returnPrice = rtvObj['seller_po_summary__price']
-                totAmtWithOutTax = rtvObj['amtWithOutTax']
-                po_number = '%s%s_%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 po_order_id)
-                if rtvlastPoNumber == po_number and rtvlastGRNNumber == receipt_no:
-                    in_counter += 1
-                else:
-                    in_counter = 1
-                inv_header_cnt = invHeaderCntMap[uniqKey]
-
-                rtvlastGRNNumber= receipt_no
-                rtvlastPoNumber = po_number
-                grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
-                                         str(result.creation_date).split(' ')[0].replace('-', ''),
-                                         po_order_id, str(receipt_no))
-                invAmtWithOutTax = truncate_float(totAmtWithOutTax, 2)
-                if not data['purchase_order__open_po__cgst_tax']:
-                    data['purchase_order__open_po__cgst_tax'] = 0
-                if not data['purchase_order__open_po__sgst_tax']:
-                    data['purchase_order__open_po__sgst_tax'] = 0
-                if not data['purchase_order__open_po__igst_tax']:
-                    data['purchase_order__open_po__igst_tax'] = 0
-                if not data['purchase_order__open_po__utgst_tax']:
-                    data['purchase_order__open_po__utgst_tax'] = 0
-                tot_tax = int(data['purchase_order__open_po__cgst_tax']) + int(data['purchase_order__open_po__sgst_tax']) + \
-                          int(data['purchase_order__open_po__igst_tax']) + int(data['purchase_order__open_po__utgst_tax'])
-                invAmtWithTax = truncate_float(totAmtWithOutTax + (totAmtWithOutTax * tot_tax / 100), 2)
-                invoice_date, challan_date = '', ''
-                if data['invoice_date']:
-                    invoice_date = data['invoice_date'].strftime("%d %b, %Y")
-                supplierCity = data['purchase_order__open_po__supplier__city']
-                ordList = []
-                supplierNumber = ''.join(re.findall('\d+', data['purchase_order__open_po__supplier_id']))
-                for col in all_cols:
-                    if col in blankCols:
-                        ordTuple = (col, '')
-                    elif col in colsWithDefaultVals:
-                        ordTuple = (col, colsWithDefaultVals[col])
-                    else:
-                        if col == '*Invoice Number':
-                            ordTuple = (col, data['invoice_number'])
-                        elif col == '*Invoice Header Identifier':
-                            ordTuple = (col, inv_header_cnt)
-                        elif col == '*Invoice Amount':
-                            ordTuple = (col, invAmtWithTax)
-                        elif col == '*Invoice Date':
-                            ordTuple = (col, invoice_date)
-                        elif col == '**Supplier':
-                            ordTuple = (col, data['purchase_order__open_po__supplier__name'])
-                        elif col == '**Supplier Number':
-                            ordTuple = (col, supplierNumber)
-                        elif col == '*Supplier Site':
-                            ordTuple = (col, supplierCity)
-                        elif col == 'Description':
-                            ordTuple = (col, 'Required Parts Purchase_PO No-%s_GRN No-%s' %(po_number, grn_number))
-                        elif col == 'Description_1':
-                            ordTuple = (col, 'Required Parts Purchase@%s'%(tot_tax)+'_ PO No-%s _GRN No-%s' %(po_number, grn_number))
-                        elif col == 'Distribution Combination':
-                            if supplierCity in locationDistMap:
-                                ordTuple = (col, locationDistMap[supplierCity][0])
-                            else:
-                                ordTuple = (col, 'CityMismatch')
-                        elif col == 'Ship-to Location':
-                            if supplierCity in locationDistMap:
-                                ordTuple = (col, locationDistMap[supplierCity][1])
-                            else:
-                                ordTuple = (col, 'CityMismatch')
-                        elif col == 'Invoice Type':
-                            ordTuple = (col, 'Credit Note')
-                        elif col == '*Amount':
-                            ordTuple = (col, invAmtWithOutTax)
-                        elif col == 'Line':
-                            ordTuple = (col, in_counter)
-                        elif col == 'Product Category':
-                            if data['purchase_order__open_po__supplier__tax_type'] == 'inter_state':
-                                ordTuple = (col, 'INTERSTATE_%s' %tot_tax + '%')
-                            else:
-                                taxSplitup = str(tot_tax/2)
-                                ordTuple = (col, 'SGST_%s' %taxSplitup + '%' + ' + ' + 'CGST_%s' %taxSplitup +'%')
-                        elif col == 'Invoiced Quantity':
-                            ordTuple = (col, returnQty)
-                        elif col == 'OLA GSTIN':
-                            ordTuple = (col, ola_gst_num)
-                        elif col == 'Customer GSTIN':
-                            ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
-                        elif col == 'Warehouse':
-                            ordTuple = (col, wh_name)
-                        else:
-                            ordTuple = (col, 'TODO')
-                    ordList.append(ordTuple)
-                inv_header_cnt += 1
-                temp_data['aaData'].append(OrderedDict(ordList))
-
-        '''
-        po_number = '%s%s_%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 po_order_id)
-        grn_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 po_order_id, str(receipt_no))
-        if lastPoNumber == po_number and lastGRNNumber == receipt_no:
-            counter += 1
-        else:
-            counter = 1
-            inv_header_cnt += 1
-        print("inv_header_cnt at 9759:%s" %inv_header_cnt)
-        lastPoNumber = po_number
-        lastGRNNumber = receipt_no
-        '''
-
-        invAmtWithOutTax = truncate_float(data['totAmtWithOutTax'], 2)
-        if not data['purchase_order__open_po__cgst_tax']:
-            data['purchase_order__open_po__cgst_tax'] = 0
-        if not data['purchase_order__open_po__sgst_tax']:
-            data['purchase_order__open_po__sgst_tax'] = 0
-        if not data['purchase_order__open_po__igst_tax']:
-            data['purchase_order__open_po__igst_tax'] = 0
-        if not data['purchase_order__open_po__utgst_tax']:
-            data['purchase_order__open_po__utgst_tax'] = 0
-        tot_tax = int(data['purchase_order__open_po__cgst_tax']) + int(data['purchase_order__open_po__sgst_tax']) + \
-                  int(data['purchase_order__open_po__igst_tax']) + int(data['purchase_order__open_po__utgst_tax'])
-        invAmtWithTax = truncate_float(data['totAmtWithOutTax'] + (data['totAmtWithOutTax'] * tot_tax / 100), 2)
-        invoice_date, challan_date = '', ''
-        if data['invoice_date']:
-            invoice_date = data['invoice_date'].strftime("%d %b, %Y")
-        supplierCity = data['purchase_order__open_po__supplier__city']
-        ordList = []
-        supplierNumber = ''.join(re.findall('\d+', data['purchase_order__open_po__supplier_id']))
-        for col in all_cols:
-            if col in blankCols:
-                ordTuple = (col, '')
-            elif col in colsWithDefaultVals:
-                ordTuple = (col, colsWithDefaultVals[col])
+    for index, eachData in enumerate([model_data, rtv_data]):
+        for data in eachData:
+            user = data['purchase_order__open_po__sku__user']
+            UpQs = UserProfile.objects.filter(user_id=user)
+            if UpQs.exists():
+                ola_gst_num = UpQs[0].gst_number
+                wh_name = UpQs[0].user.first_name
             else:
-                if col == '*Invoice Number':
-                    ordTuple = (col, data['invoice_number'])
-                elif col == '*Invoice Header Identifier':
-                    ordTuple = (col, inv_header_cnt)
-                elif col == '*Invoice Amount':
-                    ordTuple = (col, invAmtWithTax)
-                elif col == '*Invoice Date':
-                    ordTuple = (col, invoice_date)
-                elif col == '**Supplier':
-                    ordTuple = (col, data['purchase_order__open_po__supplier__name'])
-                elif col == '**Supplier Number':
-                    ordTuple = (col, supplierNumber)
-                elif col == '*Supplier Site':
-                    ordTuple = (col, supplierCity)
-                elif col == 'Description':
-                    ordTuple = (col, 'Required Parts Purchase_PO No-%s_GRN No-%s' %(po_number, grn_number))
-                elif col == 'Description_1':
-                    ordTuple = (col, 'Required Parts Purchase@%s'%(tot_tax)+'_ PO No-%s _GRN No-%s' %(po_number, grn_number))
-                elif col == 'Distribution Combination':
-                    if supplierCity in locationDistMap:
-                        ordTuple = (col, locationDistMap[supplierCity][0])
-                    else:
-                        ordTuple = (col, 'CityMismatch')
-                elif col == 'Ship-to Location':
-                    if supplierCity in locationDistMap:
-                        ordTuple = (col, locationDistMap[supplierCity][1])
-                    else:
-                        ordTuple = (col, 'CityMismatch')
-                elif col == 'Invoice Type':
-                    ordTuple = (col, 'Standard')
-                elif col == '*Amount':
-                    ordTuple = (col, invAmtWithOutTax)
-                elif col == 'Line':
-                    ordTuple = (col, counter)
-                elif col == 'Product Category':
-                    if data['purchase_order__open_po__supplier__tax_type'] == 'inter_state':
-                        ordTuple = (col, 'INTERSTATE_%s' %tot_tax + '%')
-                    else:
-                        taxSplitup = str(tot_tax/2)
-                        ordTuple = (col, 'SGST_%s' %taxSplitup + '%' + ' + ' + 'CGST_%s' %taxSplitup +'%')
-                elif col == 'Invoiced Quantity':
-                    ordTuple = (col, data['totalOrderQty'])
-                elif col == 'OLA GSTIN':
-                    ordTuple = (col, ola_gst_num)
-                elif col == 'Customer GSTIN':
-                    ordTuple = (col, data['purchase_order__open_po__supplier__tin_number'])
-                elif col == 'Warehouse':
-                    ordTuple = (col, wh_name)
-                else:
-                    ordTuple = (col, 'TODO')
+                ola_gst_num = ''
+                wh_name = ''            
+            po_order_id = data['purchase_order__order_id']
+            receipt_no = data['receipt_number']
+            prefix = data['purchase_order__prefix']
+            creation_date = data['created_date'].strftime('%Y%m%d')
+            po_number = '%s%s_%s' % (prefix, str(creation_date), po_order_id)
+            grn_number = '%s%s_%s/%s' % (prefix, str(creation_date), str(po_order_id), str(receipt_no))
+            if lastPoNumber == po_number and lastGRNNumber == receipt_no:
+                counter += 1
+            else:
+                counter = 1
+            lastPoNumber = po_number
+            lastGRNNumber = receipt_no        
 
-            ordList.append(ordTuple)
-        temp_data['aaData'].append(OrderedDict(ordList))
+            totalAmtWithoutTax= truncate_float(data['totAmtWithOutTax'], 2)
+            totalQty = data['totalOrderQty']
+            supplier_number = ''.join(re.findall('\d+', data['purchase_order__open_po__supplier_id']))
+            supplier_name = data['purchase_order__open_po__supplier__name']
+            supplierCity = data['purchase_order__open_po__supplier__city']
+            cgst_tax = data['purchase_order__open_po__cgst_tax']
+            sgst_tax = data['purchase_order__open_po__sgst_tax']
+            igst_tax = data['purchase_order__open_po__igst_tax']
+            utgst_tax = data['purchase_order__open_po__utgst_tax']
+            tot_tax = int(cgst_tax) + int(sgst_tax) + int(igst_tax) + int(utgst_tax)
+            unit_price = data['seller_po__unit_price']
+            if data['invoice_date']:
+                invoice_date = data['invoice_date'].strftime("%d %b, %Y")
+            else:
+                invoice_date = ''
+            invoice_number = data['invoice_number']
+            invAmtWithTax = truncate_float(totalAmtWithoutTax + (totalAmtWithoutTax * tot_tax / 100), 2)
+            cust_gst_num = data['purchase_order__open_po__supplier__tin_number']
+            tax_type = data['purchase_order__open_po__supplier__tax_type']
+            uniqueKey = '%s#<>#%s#<>#%s#<>#%s' % (user, po_number, grn_number, tot_tax)
+            uniqueKeyWithoutTax = '%s#<>#%s#<>#%s' % (user, po_number, grn_number)
+            if 'returntovendor__quantity' in data:
+                inv_type = 'credit_note'
+            else:
+                inv_type = 'standard'
+            reqMap = {
+                    'user': user,
+                    'po_number': po_number,
+                    'grn_number': grn_number,
+                    'totalQty': totalQty,
+                    'totalAmtWithoutTax': totalAmtWithoutTax,
+                    'supplier_number': supplier_number,
+                    'supplier_name': supplier_name,
+                    'supplierCity': supplierCity,
+                    'cgst_tax': cgst_tax,
+                    'sgst_tax': sgst_tax,
+                    'utgst_tax': utgst_tax,
+                    'igst_tax': igst_tax,
+                    'tax_type': tax_type,
+                    'tot_tax': tot_tax,
+                    'unit_price': unit_price,
+                    'invoice_date': invoice_date,
+                    'ola_gst_num': ola_gst_num,
+                    'cust_gst_num': cust_gst_num,
+                    'inv_type': inv_type,
+                    'wh_name': wh_name,
+                    'invoice_number': invoice_number,
+                    'invAmtWithTax': invAmtWithTax,
+                    'counter': counter,
+                    'uniqueKeyWithoutTax': uniqueKeyWithoutTax,
+                }
+            if uniqueKey not in sellerPOSummaryMap:
+                sellerPOSummaryMap[uniqueKey] = OrderedDict()
+                sellerPOSummaryMap[uniqueKey]['Standard'] = reqMap
+            else:
+                sellerPOSummaryMap[uniqueKey]['Credit Note'] = reqMap
+
+    inv_header_cnt = start_index
+    oldUniqKey = ''
+    oldInvType = ''
+    for uniqueKey, eachMap in sellerPOSummaryMap.items():
+        for inv_type, reqMap in eachMap.items():
+            uniqueKeyWithoutTax = reqMap['uniqueKeyWithoutTax']
+            if oldUniqKey != uniqueKeyWithoutTax or oldInvType != inv_type:
+                inv_header_cnt += 1
+            oldUniqKey = uniqueKeyWithoutTax
+            oldInvType = inv_type
+            if inv_type == 'Credit Note':
+                invAmt = -reqMap['invAmtWithTax']
+                totAmtWithTax = -reqMap['totalAmtWithoutTax']
+            else:
+                invAmt = reqMap['invAmtWithTax']
+                totAmtWithTax = reqMap['totalAmtWithoutTax']
+            ordList = []
+            for col in all_cols:
+                if col in blankCols:
+                    ordTuple = (col, '')
+                elif col in colsWithDefaultVals:
+                    ordTuple = (col, colsWithDefaultVals[col])
+                else:
+                    if col == '*Invoice Number':
+                        ordTuple = (col, reqMap['invoice_number'])
+                    elif col == '*Invoice Header Identifier':
+                        ordTuple = (col, inv_header_cnt)
+                    elif col == '*Invoice Amount':
+                        ordTuple = (col, invAmt)
+                    elif col == '*Invoice Date':
+                        ordTuple = (col, invoice_date)
+                    elif col == '**Supplier':
+                        ordTuple = (col, reqMap['supplier_name'])
+                    elif col == '**Supplier Number':
+                        ordTuple = (col, reqMap['supplier_number'])
+                    elif col == '*Supplier Site':
+                        ordTuple = (col, reqMap['supplierCity'])
+                    elif col == 'Description':
+                        ordTuple = (col, 'Parts Purchase_PO No-%s_GRN No-%s' %(reqMap['po_number'], reqMap['grn_number']))
+                    elif col == 'Description_1':
+                        ordTuple = (col, 'Parts Purchase@%s'%(reqMap['tot_tax'])+'_ PO No-%s _GRN No-%s' %(reqMap['po_number'], reqMap['grn_number']))
+                    elif col == 'Distribution Combination':
+                        if reqMap['supplierCity'] in locationDistMap:
+                            ordTuple = (col, locationDistMap[reqMap['supplierCity']][0])
+                        else:
+                            ordTuple = (col, 'CityMismatch')
+                    elif col == 'Ship-to Location':
+                        if reqMap['supplierCity'] in locationDistMap:
+                            ordTuple = (col, locationDistMap[reqMap['supplierCity']][1])
+                        else:
+                            ordTuple = (col, 'CityMismatch')
+                    elif col == 'Invoice Type':
+                        ordTuple = (col, inv_type)
+                    elif col == '*Amount':
+                        ordTuple = (col, totAmtWithTax)
+                    elif col == 'Line':
+                        ordTuple = (col, reqMap['counter'])
+                    elif col == 'Product Category':
+                        if reqMap['tax_type'] == 'inter_state':
+                            ordTuple = (col, 'INTERSTATE_%s' %reqMap['tot_tax'] + '%')
+                        else:
+                            taxSplitup = str(reqMap['tot_tax']/2)
+                            ordTuple = (col, 'SGST_%s' %taxSplitup + '%' + ' + ' + 'CGST_%s' %taxSplitup +'%')
+                    elif col == 'Invoiced Quantity':
+                        ordTuple = (col, reqMap['totalQty'])
+                    elif col == 'OLA GSTIN':
+                        ordTuple = (col, reqMap['ola_gst_num'])
+                    elif col == 'Customer GSTIN':
+                        ordTuple = (col, reqMap['cust_gst_num'])
+                    elif col == 'Warehouse':
+                        ordTuple = (col, reqMap['wh_name'])
+                    else:
+                        ordTuple = (col, 'TODO')
+                ordList.append(ordTuple)
+            temp_data['aaData'].append(OrderedDict(ordList))
     return temp_data

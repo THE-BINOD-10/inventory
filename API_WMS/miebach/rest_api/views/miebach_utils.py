@@ -2831,7 +2831,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
             reason = data.reason
         po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         updated_user_name = user.username
-        version_obj = Version.objects.get_for_object(data)
+        version_obj = Version.objects.using('reversion').get_for_object(data)
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
@@ -3579,7 +3579,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         updated_user_name = user.username
-        version_obj = Version.objects.get_for_object(SellerPOSummary.objects.get(id=data['id']))
+        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=data['id']))
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
@@ -9331,7 +9331,7 @@ def get_move_inventory_report_data(search_params, user, sub_user):
         seller_name = ''
         if sku_data.seller:
             seller_name = sku_data.seller.name
-        version_obj = Version.objects.get_for_object(sku_data)
+        version_obj = Version.objects.using('reversion').get_for_object(sku_data)
         updated_user_name = ''
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username

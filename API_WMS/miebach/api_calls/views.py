@@ -1317,15 +1317,18 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        message = update_customers(customers, user=request.user, company_name='mieone')
-        status = {'status': 1, 'message': message}
+        UIN, failed_status = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 200, 'message': 'Success', 'UIN': UIN}
+        if failed_status:
+            status = failed_status[0]
+        return HttpResponse(json.dumps(status))
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(status))
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
 @csrf_exempt
 @login_required
@@ -1479,9 +1482,14 @@ def get_orders(request):
     page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
         picked_quantity = 0
+        payment_status = 'Pending'
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        payment = data_dict.aggregate(invoice_amount_sum = Sum('invoice_amount'),
+                                    payment_received_sum = Sum('payment_received'))
+        if payment['invoice_amount_sum'] == payment['payment_received_sum']:
+            payment_status='Paid'
         seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
                                                   .values('order__sku_id', 'invoice_number', 'order__quantity')\
                                                   .distinct().annotate(pic_qty=Sum('quantity'))
@@ -1549,6 +1557,7 @@ def get_orders(request):
         record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
                                     ('order_date',created),('shipment_date',shipment),
                                     ('order_reference',data_dict[0].order_reference),
+                                    ('payment_status', payment_status),
                                     ('source',data_dict[0].marketplace),
                                     ('customer_id', data_dict[0].customer_id),
                                     ('customer_name',data_dict[0].customer_name),
@@ -2327,7 +2336,15 @@ def get_customers(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
-                           'last_name': data.last_name, 'address': data.address,
+                           'last_name': data.last_name, 'billing_address': data.address,
+                           'shipping_address': data.shipping_address,
+                           'shipping_city':data.city,'shipping_state': data.state,
+                           'shipping_country':data.country,
+                           'spoc_name': data.spoc_name,
+                           'gst_number': data.tin_number,
+                           'pan_number': data.pan_number,
+                           'tax_type': data.tax_type,
+                           'price_type':data.price_type,
                            'phone_number': str(data.phone_number), 'email': data.email_id,
                            'customer_type':data.customer_type})
     page_info['data'] = total_data

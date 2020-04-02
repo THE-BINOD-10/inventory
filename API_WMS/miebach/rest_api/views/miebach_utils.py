@@ -1955,6 +1955,10 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict((('customers', 'customers'), ('custome
                                            ('credit_period', 'credit_period'),
                                            ('tin_number', 'tin_number'), ('price_type', 'price_type'),
                                            ('tax_type', 'tax_type'),
+                                           ('customer_type', 'customer_type'),
+                                           ('shipping_address', 'shipping_address'),
+                                           ('discount_percentage','discount_percentage'),
+                                           ('spoc_name','spoc_name'),
                                            ('pan_number', 'pan_number')
                                            ))
 

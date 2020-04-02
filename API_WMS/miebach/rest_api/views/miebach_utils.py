@@ -9602,6 +9602,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     lastPoNumber = ''
     lastGRNNumber = ''
+    lastInvType = ''
     grnWiseInvoiceAmts = {}
     for index, eachData in enumerate([model_data, rtv_data]):
         for data in eachData:
@@ -9618,15 +9619,21 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             po_order_id = data['purchase_order__order_id']
             receipt_no = data['receipt_number']
             prefix = data['purchase_order__prefix']
+            if 'returntovendor__quantity' in data:
+                inv_type = 'Credit Note'
+            else:
+                inv_type = 'Standard'
+
             creation_date = data['created_date'].strftime('%Y%m%d')
             po_number = '%s%s_%s' % (prefix, str(creation_date), po_order_id)
             grn_number = '%s%s_%s/%s' % (prefix, str(creation_date), str(po_order_id), str(receipt_no))
-            if lastPoNumber == po_number and lastGRNNumber == receipt_no:
+            if lastPoNumber == po_number and lastGRNNumber == receipt_no and lastInvType == inv_type:
                 counter += 1
             else:
                 counter = 1
             lastPoNumber = po_number
-            lastGRNNumber = receipt_no        
+            lastGRNNumber = receipt_no
+            lastInvType = inv_type
 
             totalAmtWithoutTax= truncate_float(data['totAmtWithOutTax'], 2)
             totalQty = data['totalOrderQty']
@@ -9649,11 +9656,6 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
             tax_type = data['purchase_order__open_po__supplier__tax_type']
             uniqueKey = '%s#<>#%s#<>#%s#<>#%s' % (user, po_number, grn_number, tot_tax)
             uniqueKeyWithoutTax = '%s#<>#%s#<>#%s' % (user, po_number, grn_number)
-            if 'returntovendor__quantity' in data:
-                inv_type = 'Credit Note'
-            else:
-                inv_type = 'Standard'
-
             if uniqueKeyWithoutTax not in grnWiseInvoiceAmts:
                 if inv_type == 'Standard':
                     grnWiseInvoiceAmts[uniqueKeyWithoutTax] = {'Standard': invAmtWithTax}
@@ -9703,12 +9705,21 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     inv_header_cnt = start_index
     oldUniqKey = ''
     oldInvType = ''
+    invHeaderCntMap = {}
     for uniqueKey, eachMap in sellerPOSummaryMap.items():
         for inv_type, reqMap in eachMap.items():
             uniqueKeyWithoutTax = reqMap['uniqueKeyWithoutTax']
-            if oldUniqKey != uniqueKeyWithoutTax or oldInvType != inv_type:
-                inv_header_cnt += 1
-            oldUniqKey = uniqueKeyWithoutTax
+            uniqKey = '%s#<>#%s' %(uniqueKeyWithoutTax, inv_type)
+            if uniqKey not in invHeaderCntMap:
+                if invHeaderCntMap:
+                    maxInvCnt = max(invHeaderCntMap.values())
+                else:
+                    maxInvCnt = 0
+                inv_header_cnt = maxInvCnt + 1
+                invHeaderCntMap[uniqKey] = inv_header_cnt
+            else:
+                inv_header_cnt = invHeaderCntMap[uniqKey]
+            #oldUniqKey = uniqueKeyWithoutTax
             oldInvType = inv_type
             if inv_type == 'Credit Note':
                 invAmt = -grnWiseInvoiceAmts[uniqueKeyWithoutTax]['Credit Note']
@@ -9728,7 +9739,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     elif col == '*Invoice Header Identifier':
                         ordTuple = (col, inv_header_cnt)
                     elif col == '*Invoice Amount':
-                        ordTuple = (col, invAmt)
+                        ordTuple = (col, truncate_float(invAmt, 2))
                     elif col == '*Invoice Date':
                         ordTuple = (col, invoice_date)
                     elif col == '**Supplier':
@@ -9754,7 +9765,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     elif col == 'Invoice Type':
                         ordTuple = (col, inv_type)
                     elif col == '*Amount':
-                        ordTuple = (col, totAmtWithTax)
+                        ordTuple = (col, truncate_float(totAmtWithTax, 2))
                     elif col == 'Line':
                         ordTuple = (col, reqMap['counter'])
                     elif col == 'Product Category':

@@ -1335,15 +1335,24 @@ def excel_reports(request, user=''):
                 'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1', 
                 'Project Information', 'Multiperiod Accounting Accrual Account'
                 ]
-            ordList = []
             report_data['New_aaData'] = []
+            sortedData = OrderedDict()
             for row in report_data['aaData']:
+                ordList = []
                 for k, v in row.items():
                     if k in squareBracketCols:
                         ordList.append((k+'[..]', v),)
                     else:
                         ordList.append((k, v),)
-                report_data['New_aaData'].append(OrderedDict(ordList))
+                sortedData.setdefault(row['*Invoice Header Identifier'], []).append(OrderedDict(ordList))
+                #report_data['New_aaData'].append(OrderedDict(ordList))
+            #report_data['aaData'] = report_data['New_aaData']
+            for k, v in sortedData.items():
+                if len(v) > 1:
+                    for x in v:
+                        report_data['New_aaData'].append(x)
+                else:
+                    report_data['New_aaData'].append(v[0])
             report_data['aaData'] = report_data['New_aaData']
             headers = report_data['aaData'][0].keys()
 

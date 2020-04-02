@@ -9741,7 +9741,7 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                     elif col == '*Invoice Amount':
                         ordTuple = (col, truncate_float(invAmt, 2))
                     elif col == '*Invoice Date':
-                        ordTuple = (col, invoice_date)
+                        ordTuple = (col, reqMap['invoice_date'])
                     elif col == '**Supplier':
                         ordTuple = (col, reqMap['supplier_name'])
                     elif col == '**Supplier Number':

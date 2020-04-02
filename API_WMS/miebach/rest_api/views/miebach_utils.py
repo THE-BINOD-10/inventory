@@ -9559,8 +9559,8 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
-    # if 'from_date' in search_params:
-    #     search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'from_date' in search_params:
+        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())

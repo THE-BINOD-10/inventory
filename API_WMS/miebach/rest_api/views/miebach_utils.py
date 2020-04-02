@@ -3679,7 +3679,7 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'grn_from_date' in search_params:
-        search_parameters['sellerposummary__creation_date__gte'] = search_params['from_date']
+        search_parameters['sellerposummary__creation_date__gte'] = search_params['grn_from_date']
         if field_mapping['from_date'] + '__gte' in search_parameters.keys():
             del search_parameters[field_mapping['from_date'] + '__gte']
     if 'to_date' in search_params:

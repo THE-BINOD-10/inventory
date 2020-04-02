@@ -53,7 +53,7 @@
               'ProductDescription': value.name,
               'igst': value.igst_percent,
               'SKUCode': value.sku_code,
-              'price': value.price,
+              'price': value.unit_price,
               'discount': value.discount,
               'selling_price': value.selling_price,
               'search': value.name,

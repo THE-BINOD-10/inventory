@@ -28,8 +28,8 @@
               <table  class="table mw45">
                 <thead>
                   <tr>
-                    <th>WMS Code*</th>
-                    <th> Description </th>
+                    <th>SKU Code*</th>
+                    <th>Description </th>
                     <th>Available Quantity*</th>
                     <th>Quantity*</th>
                     <th>Price*</th>
@@ -44,8 +44,8 @@
                   <tr ng-repeat="data in showCase.model_data.data">
                     <td>
                       <!--<input id="wms1" type="text" name="wms_code" class="form-control" ng-model="data.wms_code" ng-required="$first">-->
-                      <!-- <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-requvail_qty}))ired="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];"> -->
-                      <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
+                      <!-- <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-requvail_qty}))ired="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];"> -->
+                      <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
                     </td>
                     <td>
                       <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">

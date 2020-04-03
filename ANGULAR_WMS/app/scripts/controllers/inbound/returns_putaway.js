@@ -49,7 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
             }).notSortable(),
         DTColumnBuilder.newColumn('Return ID').withTitle('Return ID'),
         DTColumnBuilder.newColumn('Return Date').withTitle('Return Date'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone')
           .renderWith(function(data, type, full, meta) {

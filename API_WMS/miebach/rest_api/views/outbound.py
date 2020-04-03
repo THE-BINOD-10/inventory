@@ -26,8 +26,6 @@ import requests
 import httplib2
 from utils import *
 import os, math
-from rest_api.rista_save_transfer import *
-
 
 
 log = init_logger('logs/outbound.log')
@@ -35,7 +33,6 @@ picklist_qc_log =  init_logger('logs/picklist_qc_log.log')
 payment_log = init_logger('logs/payments.log')
 
 today = datetime.datetime.now().strftime("%Y%m%d")
-storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
 
 import itertools
 
@@ -621,7 +618,10 @@ def get_picklist_locations(data_dict, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -732,7 +732,10 @@ def generate_picklist(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def batch_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     remarks = request.POST.get('ship_reference', '')
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -1944,161 +1947,13 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     return combo_status, final_data_list
 
 
-def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
-    rista_inv = []
-    sku_code_list = []
-    for order_id in original_order_id_list:
-	data_dict_confirm = {}
-	rista_json = {}
-        model_name_value = 'rista<<>>indent_out<<>>' + order_id
-        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
-        if temp_json:
-            rista_json = eval(temp_json[0].model_json)
-        else:
-            continue
-        get_all_sku_code = eval(temp_json[0].model_json)['items']
-        sku_dict = {}
-        for ind in get_all_sku_code:
-            sku_code_list.append(ind['skuCode'])
-            sku_dict[ind['skuCode']] = ind['quantity']
-        sku_code_list = list(set(sku_code_list))
-	partial = False
-	collect_all_skus = []
-        for sku_code_obj in order_id_dict[order_id]:
-	    sku_code = sku_code_obj.keys()[0]
-	    collect_all_skus.append(sku_code)
-            if sku_code_obj[sku_code] != sku_dict[sku_code]:
-                partial = True
-        if not partial:
-	    collect_all_skus = list(set(collect_all_skus))
-	    if len(collect_all_skus) != len(sku_code_list):
-		partial = True
-	    else:
-		partial = False
-        if not partial:
-            data_dict_confirm["branchCode"] = rista_json['branchCode']
-            data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
-            data_dict_confirm["notes"] = ""
-            data_dict_confirm["itemsAmount"] = rista_json['itemsAmount']
-            data_dict_confirm["taxAmount"] = rista_json['taxAmount']
-            data_dict_confirm["totalAmount"] = rista_json['totalAmount']
-            if rista_json['taxAmount'] == 0:
-                data_dict_confirm["taxes"] = []
-                for obj in rista_json['items']:
-                    obj['taxes'] = []
-                data_dict_confirm["items"] = rista_json['items']
-            else:
-                data_dict_confirm["taxes"] = rista_json['taxes']
-                data_dict_confirm["items"] = rista_json['items']
-            for obj_item in data_dict_confirm["items"]:
-                if obj_item['taxAmount'] == 0:
-                    obj_item['taxes'] = []
-            data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
-            if save_transfer_resp['status'] != False:
-                temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
-                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
-            rista_inv.append(save_transfer_resp)
-        else:
-            data_dict_confirm["taxes"] = []
-            data_dict_confirm["branchCode"] = rista_json['branchCode']
-            data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
-            data_dict_confirm["notes"] = ""
-            data_dict_confirm["itemsAmount"] = 0
-            data_dict_confirm["taxAmount"] = 0
-            data_dict_confirm["totalAmount"] = 0
-            if rista_json['taxAmount'] == 0:
-                data_dict_confirm["taxes"] = []
-                for obj in rista_json['items']:
-                    obj['taxes'] = []
-                data_dict_confirm["items"] = rista_json['items']
-            else:
-                data_dict_confirm["items"] = rista_json['items']
-            sku_code_list_with_qty = order_id_dict[order_id]
-            sku_code_obj_list = []
-            for obj in rista_json['items']:
-                sku_code_obj = {}
-                sku_code_obj['totalAmount'] = 0
-                for sku_obj in sku_code_list_with_qty:
-                    for key, value in sku_obj.items():
-                        if obj['skuCode'] in key:
-                            sku_code_obj['skuCode'] = obj['skuCode']
-                            sku_code_obj['taxes'] = obj['taxes']
-                            for tax_data in obj['taxes']:
-                                data_dict_confirm["taxAmount"] += tax_data['taxAmount']
-                            sku_code_obj['measuringUnit'] = obj['measuringUnit']
-                            sku_code_obj['itemName'] = obj['itemName']
-                            sku_code_obj['unitCost'] = obj['unitCost']
-                            sku_code_obj['quantity'] = value
-                            sku_code_obj['itemAmount'] = obj['unitCost'] * value
-                            sku_code_obj['taxAmount'] = 0
-                            sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
-                            data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
-                            data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
-                            for tax_data in obj['taxes']:
-                                tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
-                                tax_data['taxAmount'] = tax_amount
-                                sku_code_obj['taxAmount'] += tax_amount
-				tax_data['taxableAmount'] = sku_code_obj['itemAmount']
-                                data_dict_confirm["taxAmount"] = 0
-                                if sku_code_obj['taxes']:
-                                    if obj["taxes"]:
-                                        for idx, tax_obj in enumerate(obj["taxes"]):
-                                            if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
-                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
-                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
-                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
-                                            else:
-                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-                                                data_dict_confirm["taxAmount"] = sku_code_obj['taxes'][idx]['taxAmount']
-                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
-                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-                                                tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
-                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
-                                    for obj_dict in sku_code_obj['taxes']:
-                                        if obj_dict['taxAmount'] == 0:
-                                            sku_code_obj['taxes'] = []
-                            if sku_code_obj['taxes']:
-                                data_dict_confirm["taxes"] += (sku_code_obj['taxes'])
-                            sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
-                            sku_code_obj_list.append(sku_code_obj)
-	    data_dict_confirm["items"] = sku_code_obj_list
-	    data_dict_confirm["itemsAmount"] = 0
-	    data_dict_confirm["totalAmount"] = 0
-	    data_dict_confirm["taxAmount"] = 0
-	    for items_obj in data_dict_confirm["items"]:
-		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
-		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
-	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
-            form_tax_dict = {}
-            for obj in data_dict_confirm["taxes"]:
-                if obj['taxName'] in form_tax_dict.keys():
-                    inner_tax_dict = form_tax_dict[obj['taxName']]
-                    inner_tax_dict['taxAmount'] += obj['taxAmount']
-                    inner_tax_dict['taxableAmount'] += obj['taxableAmount']
-                else:
-                    form_tax_dict[obj['taxName']] = {}
-                    form_tax_dict[obj['taxName']]['taxName'] = obj['taxName']
-                    form_tax_dict[obj['taxName']]['percentage'] = obj['percentage']
-                    form_tax_dict[obj['taxName']]['taxableAmount'] = obj['taxableAmount']
-                    form_tax_dict[obj['taxName']]['taxAmount'] = obj['taxAmount']
-	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
-	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
-            data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
-            data_dict_confirm['taxes'] = form_tax_dict.values()
-            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
-            if save_transfer_resp['status'] != False:
-                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
-            rista_inv.append(save_transfer_resp)
-    return rista_inv
-
-
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def picklist_confirmation(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("picklist_confirmation")
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}
@@ -2127,13 +1982,9 @@ def picklist_confirmation(request, user=''):
         del (data['details'])
     if 'number' in data.keys():
         del (data['number'])
-    rista_picklist_dict = {}
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
-        storehippo_order_dict = {}
-        rista_order_id_list = []
-        rista_order_dict = {}
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -2340,38 +2191,6 @@ def picklist_confirmation(request, user=''):
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
-                    #Rista DM Integration Code, collect SKU code
-                    int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-                    if int_obj and picklist.order:
-                        original_order_id_str = str(picklist.order.original_order_id)
-                        model_name_value = 'rista<<>>indent_out<<>>' + original_order_id_str
-                        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
-                        if temp_json:
-                            rista_order_id_list.append(original_order_id_str)
-                        picking_count1 = float(picking_count1)
-                        if picking_count1:
-                            sku_code_str = picklist.order.sku.sku_code
-                            sku_code_dict = {}
-                            sku_code_dict[sku_code_str] = picking_count1
-                            if original_order_id_str in rista_order_dict.keys():
-                                rista_order_dict[original_order_id_str].append(sku_code_dict)
-                            else:
-                                rista_order_dict[original_order_id_str] = []
-                                rista_order_dict[original_order_id_str].append(sku_code_dict)
-                    #StoreHippo COnfirm Picklist
-                    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-                    if check_storehippo_user and picklist.order:
-                        original_order_id_str = str(picklist.order.order_reference)
-                        picking_count1 = int(picking_count1)
-                        if picking_count1:
-                            sku_code_str = picklist.order.sku.sku_code
-                            sku_code_dict = {}
-                            sku_code_dict[sku_code_str] = picking_count1
-                            if original_order_id_str in storehippo_order_dict.keys():
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
-                            else:
-                                storehippo_order_dict[original_order_id_str] = []
-                                storehippo_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
@@ -2412,11 +2231,6 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-    	#Check DM Rista User
-    	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-    	if int_obj and rista_order_id_list:
-    	    rista_order_id = list(set(rista_order_id_list))
-    	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
 
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
@@ -2565,9 +2379,11 @@ def remove_sku(request):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def update_invoice(request, user=''):
     """ update invoice data """
-
+    reversion.set_user(request.user)
+    reversion.set_comment("update_invoice")
     try:
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
@@ -2680,7 +2496,12 @@ def update_invoice(request, user=''):
                 update_dict['order_reference_date'] = datetime.datetime.strptime(order_reference_date,
                                                                                  "%m/%d/%Y").date()
             if update_dict:
-                ord_ids.update(**update_dict)
+                update_multiple_records(ord_ids, update_dict)
+                # for ord_id_obj in ord_ids:
+                #     for update_dict_key, update_dict_val in update_dict.items():
+                #         setattr(ord_id_obj, key, value)
+                #     ord_id_obj.save()
+                #ord_ids.update(**update_dict)
         '''if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
             if not invoice_sequence:
@@ -2707,9 +2528,12 @@ def update_invoice(request, user=''):
 
             discount_percentage = 0
             sos_obj = SellerOrderSummary.objects.filter(order_id=order_id, invoice_number=invoice_number)
-            sos_obj.update(invoice_reference=invoice_reference)
+            sos_update_dict = {'invoice_reference': invoice_reference}
+            #sos_obj.update(invoice_reference=invoice_reference)
             if invoice_date and sos_obj[0].creation_date.date() != invoice_date:
-                sos_obj.update(creation_date=invoice_date)
+                #sos_obj.update(creation_date=invoice_date)
+                sos_update_dict['creation_date'] = invoice_date
+            update_multiple_records(sos_obj, sos_update_dict)
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             '''if float(myDict['quantity'][unit_price_index]) == 0:
@@ -5076,7 +4900,10 @@ def check_backorder_compatibility(myDict, admin_user, user):
 @login_required
 @get_admin_user
 @fn_timer
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_order_data(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_order")
     myDict = dict(request.POST.iterlists())
     order_id = ''
     # Sending mail and message
@@ -7241,7 +7068,9 @@ def modify_invoice_data(invoice_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_order_invoice(request, user=''):
+    reversion.set_user(request.user)
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
     invoice_data = modify_invoice_data(invoice_data, user)
@@ -7914,9 +7743,6 @@ def get_view_order_details(request, user=''):
                       'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types, 'courier_name':courier_name})
     hide_buttons = False
-    check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-    if check_storehippo_user:
-        hide_buttons = True
     return HttpResponse(json.dumps({'data_dict': data_dict, 'hide_buttons':hide_buttons}))
 
 
@@ -9100,7 +8926,10 @@ def get_central_order_detail(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_category_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
@@ -9224,8 +9053,11 @@ def delete_order_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def update_order_data(request, user=""):
     """ This code will update data if order is updated """
+    reversion.set_user(request.user)
+    reversion.set_comment("update_order")
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
     myDict = dict(request.POST.iterlists())
@@ -9293,7 +9125,8 @@ def update_order_data(request, user=""):
                 default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
                 default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
                                                     default_dict['original_quantity']
-                order_obj.update(**default_dict)
+                #order_obj.update(**default_dict)
+                update_multiple_records(order_obj, default_dict)
                 order_obj = order_obj[0]
             # order_obj, created = OrderDetail.objects.update_or_create(
             #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
@@ -9388,9 +9221,10 @@ def update_order_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def picklist_delete(request, user=""):
     """ This code will delete the picklist selected"""
-
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     log.info("deletion of picklist process started")
     stock_transfer_order = False
@@ -9588,8 +9422,10 @@ def picklist_delete(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_delete(request, user=""):
     """ This code will delete the order selected"""
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of order process started")
@@ -10169,6 +10005,8 @@ def get_intermediate_order_detail(request, user=""):
                                     })
     final_data = {'data': [response_data]}
     return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
+
+
 @login_required
 @get_admin_user
 def get_customer_order_detail(request, user=""):
@@ -11687,7 +11525,9 @@ def construct_sell_ids(request, user, status_flag='processed_orders', cancel_inv
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_dc(request, user=''):
+    reversion.set_user(request.user)
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         status_flag = 'processed_orders'
@@ -11710,7 +11550,10 @@ def move_to_dc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_inv(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("move_to_inv")
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     is_sample_option =  get_misc_value('create_order_po', user.id)
@@ -11786,7 +11629,10 @@ def move_to_inv(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice_tab(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_invoice")
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -12012,7 +11858,10 @@ def generate_stock_transfer_invoice(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_invoice")
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -12131,9 +11980,6 @@ def generate_customer_invoice(request, user=''):
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
-        check_storehippo_user = Integrations.objects.filter(**{'user':user.id, 'name':'storehippo', 'status':1})
-        if check_storehippo_user:
-            invoice_data['order_reference'] = ''
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
@@ -14816,7 +14662,9 @@ def update_stock_transfer_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def stock_transfer_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
@@ -15792,7 +15640,9 @@ def send_order_back(request, user=''):
 
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def invoice_print_manifest(request, user=''):
+    reversion.set_user(request.user)
     shipment_number = request.POST.get('shipment_id')
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
                                                   order_shipment__user=user.id)
@@ -15816,7 +15666,9 @@ def invoice_print_manifest(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist_dc(request, user=''):
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     data = {}
     count = 0

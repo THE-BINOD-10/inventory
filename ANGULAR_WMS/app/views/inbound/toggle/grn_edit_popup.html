@@ -152,7 +152,7 @@
               <table class="table">
                 <thead>
                   <tr>
-                    <th>WMS CODE</th>
+                    <th>SKU CODE</th>
                     <th>Title</th>
                     <!-- <th>PO Quantity</th> -->
                     <!-- <th>PO Qty</th> -->
@@ -183,7 +183,7 @@
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" title="{{ data.sku_code }}"> -->
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" ng-readonly="records[0].dis && data.sku_code != 'TEMP'" title="{{ data.sku_code }}" ng-if="!data.is_new"> -->
 
-                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" readonly>
+                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" readonly>
 
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">

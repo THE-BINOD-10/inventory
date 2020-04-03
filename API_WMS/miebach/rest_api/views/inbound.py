@@ -1521,10 +1521,10 @@ def confirm_po(request, user=''):
     all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 
     if industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN')
@@ -6059,12 +6059,12 @@ def confirm_add_po(request, sales_data='', user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 
         if industry_type == 'FMCG':
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
             if user.username in MILKBASKET_USERS:
                 table_headers.insert(4, 'Weight')
         else:
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if ean_flag:
             table_headers.insert(1, 'EAN')
@@ -6615,12 +6615,12 @@ def confirm_po1(request, user=''):
             po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
             if industry_type == 'FMCG':
-                table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+                table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
                                  'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'APMC (%)','Total']
                 if show_cess_tax:
                     table_headers.insert(11, 'CESS (%)')
             else:
-                table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
                                  'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'APMC (%)','Total']
                 if show_cess_tax:
                     table_headers.insert(10, 'CESS (%)')
@@ -11095,12 +11095,12 @@ def confirm_central_po(request, user=''):
             expiry_date = ''
         po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
         if industry_type == 'FMCG':
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
             if show_cess_tax:
                 table_headers.insert(11, 'CESS (%)')
         else:
-            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
             if show_cess_tax:
                 table_headers.insert(10, 'CESS (%)')

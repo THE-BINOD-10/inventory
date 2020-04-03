@@ -13,7 +13,7 @@
               <label class="control-label"> Purchase Order ID </label>
               <input type="text" id="scan_qc" class="form-control" value="{{showCase.model_data.po_reference}}" readonly></div>
             <div class="col-md-4 col-sm-4 col-xs-6">
-              <label class="control-label">Scan WMS Code / EAN</label>
+              <label class="control-label">Scan SKU Code / EAN</label>
               <input type="text" id="scan_qc" class="form-control" ng-model="showCase.scan" ng-keydown="showCase.scan_sku($event,showCase.scan)" ng-disabled="showCase.confirm_btn">
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6"ng-show="showCase.permissions.use_imei">
@@ -31,7 +31,7 @@
               <table class="table mw60">
                 <thead>
                   <tr>
-                    <th> WMS Code </th>
+                    <th> SKU Code </th>
                     <th> Location </th>
                     <th> Quantity </th>
                     <th> Measurement </th>

@@ -21,6 +21,7 @@ import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
+import reversion
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
@@ -1013,6 +1014,9 @@ def get_skus(request):
         # price_master_objs = PriceMaster.objects.filter(**price_filter)
         # if price_master_objs.exists():
         #     brand_level_discount = price_master_objs[0].discount
+        zone = ''
+        if sku.zone:
+            zone = sku.zone.zone
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
                                   ('sku_class',sku.sku_class),
@@ -1033,7 +1037,7 @@ def get_skus(request):
                                   ('mix_sku',sku.mix_sku),
                                   ('color', sku.color),
                                   ('ean_number', sku.ean_number),
-                                  ('zone',sku.zone),
+                                  ('zone',zone),
                                   ('threshold_quantity',sku.threshold_quantity),
                                   ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
@@ -1248,7 +1252,10 @@ def update_order(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def create_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:
@@ -1277,7 +1284,10 @@ def create_orders(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("update_sku_api")
     skus = ''
     try:
         skus = json.loads(request.body)
@@ -1314,15 +1324,18 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        message = update_customers(customers, user=request.user, company_name='mieone')
-        status = {'status': 1, 'message': message}
+        UIN, failed_status = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 200, 'message': 'Success', 'UIN': UIN}
+        if failed_status:
+            status = failed_status[0]
+        return HttpResponse(json.dumps(status))
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(status))
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
 @csrf_exempt
 @login_required
@@ -1394,7 +1407,10 @@ def update_return(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:
@@ -1475,33 +1491,46 @@ def get_orders(request):
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
+        picked_quantity = 0
+        payment_status = 'Pending'
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        payment = data_dict.aggregate(invoice_amount_sum = Sum('invoice_amount'),
+                                    payment_received_sum = Sum('payment_received'))
+        if payment['invoice_amount_sum'] == payment['payment_received_sum']:
+            payment_status='Paid'
         seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
                                                   .values('order__sku_id', 'invoice_number', 'order__quantity')\
                                                   .distinct().annotate(pic_qty=Sum('quantity'))
-        picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
+        if seller_obj.exists():
+            picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
         order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
         discount_amount = 0
         item_dict = {}
         order_status = ''
-        if data_dict[0].status == '0':
-            if picked_quantity == order_quantity:
-                order_status = 'Picked'
-            else:
-                order_status = 'Partially Picked'
-        elif data_dict[0].status == '1':
-            order_status = 'Open'
-        elif data_dict[0].status == '2':
-            order_status = 'Dispatched'
-        elif data_dict[0].status == '3':
-            order_status = 'Cancelled'
+        # if data_dict[0].status == '0':
+        #     if picked_quantity == order_quantity:
+        #         order_status = 'Picked'
+        #     else:
+        #         order_status = 'Partially picked'
+        # elif data_dict[0].status == '1':
+        #     order_status = 'Open'
+        # elif data_dict[0].status == '2':
+        #     order_status = 'Dispatched'
+        # elif data_dict[0].status == '3':
+        #     order_status = 'Cancelled'
         order_summary = CustomerOrderSummary.objects.filter(order_id=data_dict[0].id,order__user=user.id)
         for data in data_dict:
+            invoice_num_check = ''
+            picked_quantity_sku = 0
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
+            seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
+            invoice_num_check = seller_sku.values('invoice_number')
+            if seller_sku.exists():
+                picked_quantity_sku = seller_sku[0].quantity
             if charge:
                 charge_amount = charge[0]
             if order_summary.exists():
@@ -1510,7 +1539,23 @@ def get_orders(request):
                     item_dict['tax_percent'] = {'CGST': order_summary[0].cgst_tax, 'SGST': order_summary[0].sgst_tax}
                 elif order_summary[0].igst_tax:
                     item_dict['tax_percent'] = {'IGST': order_summary[0].igst_tax}
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            if data.status == '0':
+                if picked_quantity_sku == data.quantity:
+                    sku_status = 'Picked'
+                else:
+                    sku_status = 'Partially picked'
+                if seller_sku.exists():
+                    if picked_quantity_sku == data.quantity and invoice_num_check:
+                        order_status = 'Invoice generated'
+                    if picked_quantity_sku != data.quantity and invoice_num_check:
+                        order_status = 'Partial invoice generated'
+            elif data.status == '1':
+                sku_status = 'Open'
+            elif data.status == '2':
+                sku_status = 'Dispatched'
+            elif data.status == '3':
+                sku_status = 'Cancelled'
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'status':sku_status,'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
             items.append(item_dict)       
         billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
@@ -1521,10 +1566,11 @@ def get_orders(request):
                "pincode": data_dict[0].pin_code}
         record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
                                     ('order_date',created),('shipment_date',shipment),
-                                    ('order_status',order_status),
                                     ('order_reference',data_dict[0].order_reference),
+                                    ('payment_status', payment_status),
                                     ('source',data_dict[0].marketplace),
                                     ('customer_id', data_dict[0].customer_id),
+                                    ('customer_name',data_dict[0].customer_name),
                                     ('billing_address',billing_address ),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
@@ -1957,16 +2003,16 @@ def get_inventory(request,user=''):
             if quantity < 0:
                 quantity = 0
 
-            total_stock_value = 0
-            if quantity:
-                wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
-                                                                                    sku__user=user.id)
-                wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
-                total_wms_qty_unit_price = sum(
-                    wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
-                        'stock_value', flat=True))
-                wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-                total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
+            # total_stock_value = 0
+            # if quantity:
+            #     wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
+            #                                                                         sku__user=user.id)
+            #     wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
+            #     total_wms_qty_unit_price = sum(
+            #         wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
+            #             'stock_value', flat=True))
+            #     wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            #     total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
             open_order_qty = sku_type_qty.get(data[0], 0)
             data_lis.append(OrderedDict((('sku', data[0]),
                                         ('available_quantity', quantity),
@@ -2300,7 +2346,15 @@ def get_customers(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
-                           'last_name': data.last_name, 'address': data.address,
+                           'last_name': data.last_name, 'billing_address': data.address,
+                           'shipping_address': data.shipping_address,
+                           'shipping_city':data.city,'shipping_state': data.state,
+                           'shipping_country':data.country,
+                           'spoc_name': data.spoc_name,
+                           'gst_number': data.tin_number,
+                           'pan_number': data.pan_number,
+                           'tax_type': data.tax_type,
+                           'price_type':data.price_type,
                            'phone_number': str(data.phone_number), 'email': data.email_id,
                            'customer_type':data.customer_type})
     page_info['data'] = total_data

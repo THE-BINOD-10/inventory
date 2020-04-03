@@ -621,7 +621,10 @@ def get_picklist_locations(data_dict, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -732,7 +735,10 @@ def generate_picklist(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def batch_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     remarks = request.POST.get('ship_reference', '')
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
@@ -2098,7 +2104,10 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def picklist_confirmation(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("picklist_confirmation")
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}
@@ -2565,9 +2574,11 @@ def remove_sku(request):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def update_invoice(request, user=''):
     """ update invoice data """
-
+    reversion.set_user(request.user)
+    reversion.set_comment("update_invoice")
     try:
         log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
         resp = {"msg": "success", "data": {}}
@@ -2680,7 +2691,12 @@ def update_invoice(request, user=''):
                 update_dict['order_reference_date'] = datetime.datetime.strptime(order_reference_date,
                                                                                  "%m/%d/%Y").date()
             if update_dict:
-                ord_ids.update(**update_dict)
+                update_multiple_records(ord_ids, update_dict)
+                # for ord_id_obj in ord_ids:
+                #     for update_dict_key, update_dict_val in update_dict.items():
+                #         setattr(ord_id_obj, key, value)
+                #     ord_id_obj.save()
+                #ord_ids.update(**update_dict)
         '''if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
             if not invoice_sequence:
@@ -2707,9 +2723,12 @@ def update_invoice(request, user=''):
 
             discount_percentage = 0
             sos_obj = SellerOrderSummary.objects.filter(order_id=order_id, invoice_number=invoice_number)
-            sos_obj.update(invoice_reference=invoice_reference)
+            sos_update_dict = {'invoice_reference': invoice_reference}
+            #sos_obj.update(invoice_reference=invoice_reference)
             if invoice_date and sos_obj[0].creation_date.date() != invoice_date:
-                sos_obj.update(creation_date=invoice_date)
+                #sos_obj.update(creation_date=invoice_date)
+                sos_update_dict['creation_date'] = invoice_date
+            update_multiple_records(sos_obj, sos_update_dict)
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             '''if float(myDict['quantity'][unit_price_index]) == 0:
@@ -5084,7 +5103,10 @@ def check_backorder_compatibility(myDict, admin_user, user):
 @login_required
 @get_admin_user
 @fn_timer
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_order_data(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_order")
     myDict = dict(request.POST.iterlists())
     order_id = ''
     # Sending mail and message
@@ -7249,7 +7271,9 @@ def modify_invoice_data(invoice_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_order_invoice(request, user=''):
+    reversion.set_user(request.user)
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
     invoice_data = modify_invoice_data(invoice_data, user)
@@ -9108,7 +9132,10 @@ def get_central_order_detail(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_category_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("generate_picklist")
     filters = request.POST.get('filters', '')
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
@@ -9232,8 +9259,11 @@ def delete_order_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def update_order_data(request, user=""):
     """ This code will update data if order is updated """
+    reversion.set_user(request.user)
+    reversion.set_comment("update_order")
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
     myDict = dict(request.POST.iterlists())
@@ -9301,7 +9331,8 @@ def update_order_data(request, user=""):
                 default_dict['original_quantity'] = order_obj[0].original_quantity + remainging_quantity
                 default_dict['invoice_amount'] = (float(myDict['invoice_amount'][i]) / quantity) * \
                                                     default_dict['original_quantity']
-                order_obj.update(**default_dict)
+                #order_obj.update(**default_dict)
+                update_multiple_records(order_obj, default_dict)
                 order_obj = order_obj[0]
             # order_obj, created = OrderDetail.objects.update_or_create(
             #     order_id=order_id, order_code=order_code, sku=sku_id, defaults=default_dict
@@ -9396,9 +9427,10 @@ def update_order_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def picklist_delete(request, user=""):
     """ This code will delete the picklist selected"""
-
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     log.info("deletion of picklist process started")
     stock_transfer_order = False
@@ -9596,8 +9628,10 @@ def picklist_delete(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_delete(request, user=""):
     """ This code will delete the order selected"""
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of order process started")
@@ -10177,6 +10211,8 @@ def get_intermediate_order_detail(request, user=""):
                                     })
     final_data = {'data': [response_data]}
     return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
+
+
 @login_required
 @get_admin_user
 def get_customer_order_detail(request, user=""):
@@ -11805,7 +11841,9 @@ def construct_sell_ids(request, user, status_flag='processed_orders', cancel_inv
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_dc(request, user=''):
+    reversion.set_user(request.user)
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         status_flag = 'processed_orders'
@@ -11828,7 +11866,10 @@ def move_to_dc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def move_to_inv(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("move_to_inv")
     log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     is_sample_option =  get_misc_value('create_order_po', user.id)
@@ -11904,7 +11945,10 @@ def move_to_inv(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice_tab(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_invoice")
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -12130,7 +12174,10 @@ def generate_stock_transfer_invoice(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_customer_invoice(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("create_invoice")
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -14934,7 +14981,9 @@ def update_stock_transfer_data(request, user=""):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def stock_transfer_generate_picklist(request, user=''):
+    reversion.set_user(request.user)
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
@@ -15910,7 +15959,9 @@ def send_order_back(request, user=''):
 
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def invoice_print_manifest(request, user=''):
+    reversion.set_user(request.user)
     shipment_number = request.POST.get('shipment_id')
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=int(shipment_number),
                                                   order_shipment__user=user.id)
@@ -15934,7 +15985,9 @@ def invoice_print_manifest(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def generate_picklist_dc(request, user=''):
+    reversion.set_user(request.user)
     st_time = datetime.datetime.now()
     data = {}
     count = 0

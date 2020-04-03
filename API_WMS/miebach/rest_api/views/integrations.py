@@ -1256,13 +1256,30 @@ def update_skus (skus, user='', company_name=''):
 def update_customers(customers, user='', company_name=''):
     customer_mapping = eval(LOAD_CONFIG.get(company_name, 'customer_mapping_dict', ''))
     NOW = datetime.datetime.now()
+    failed_status = OrderedDict()
+    UIN = 0
 
     insert_status = {'Newly Created customer ids': [], 'Data updated for customer ids': [],
                      'Customer ID should not be empty for customer names': [],
                      'Invalid Tax types for customer ids': [], 'Invalid Price types for customer ids': [],
                      'Customer ID should be number for customer names': []}
+    token_user = user
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
 
     try:
+        if customers.has_key('warehouse'):
+            warehouse = customers['warehouse']
+            sister_whs1.append(token_user.username)
+            sister_whs = []
+            for sister_wh1 in sister_whs1:
+                sister_whs.append(str(sister_wh1).lower())
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                error_message = 'Invalid Warehouse Name'
+                update_error_message(failed_status, 5021, error_message, warehouse, field_key='warehouse')
+        if failed_status:
+            return UIN, failed_status.values()
         user_profile = UserProfile.objects.get(user_id=user.id)
         customer_ids = []
         if not customers:
@@ -1274,13 +1291,14 @@ def update_customers(customers, user='', company_name=''):
             customer_master = None
             customer_id = customer_data.get(customer_mapping['customer_id'], '')
             if not customer_id:
-                insert_status['Customer ID should not be empty for customer names'].append(
-                    str(customer_data.get(customer_mapping['name'], '')))
-                continue
-            elif not isinstance(customer_id, int):
-                insert_status['Customer ID should be number for customer names'].append(
-                    str(customer_data.get(customer_mapping['name'], '')))
-                continue
+                error_message = 'Customer ID should not be empty for customer name %s' % str(customer_data.get(customer_mapping['first_name'], ''))
+                update_error_message(failed_status, 5024, error_message, '', field_key='customer_id')
+                break
+            try:
+                customer_id = int(customer_id)
+            except:
+                error_message = 'Customer ID should be a number for customer name %s' % str(customer_data.get(customer_mapping['first_name'], ''))
+                update_error_message(failed_status, 5024, error_message, customer_id, field_key='customer_id')
             customer_ins = CustomerMaster.objects.filter(user=user.id, customer_id=customer_id)
             if customer_ins:
                 customer_master = customer_ins[0]
@@ -1294,56 +1312,71 @@ def update_customers(customers, user='', company_name=''):
                     continue
                 value = customer_data.get(key, '')
                 if key in number_fields.keys():
+                    if key == 'pincode':
+                        value = customer_data.get('shipping_pincode', '')
                     if not value:
                         value = 0
                     try:
                         value = int(value)
                     except:
-                        if insert_status.has_key(number_fields[key] + " should be number for Customer ids"):
-                            insert_status[number_fields[key] + " should be number for Customer ids"].append(
-                                str(customer_id))
-                        else:
-                            insert_status[number_fields[key] + " should be number for Customer ids"] = [
-                                str(customer_id)]
+                        error_message = '%s should be number for customer id %s' % (str(number_fields[key]), str(customer_id))
+                        update_error_message(failed_status, 5024, error_message, customer_id, field_key='customer_id')
+                        break
                 elif key == 'tax_type':
                     if not value:
                         continue
                     if not value in TAX_TYPE_ATTRIBUTES.values():
-                        insert_status['Invalid Tax types for customer ids'].append(str(customer_id))
-                        continue
+                        error_message = 'Invalid tax type for customer id %s' % str(customer_id)
+                        update_error_message(failed_status, 5024, error_message, customer_id, field_key='customer_id')
+                        break
                     rev_taxes = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
                     value = rev_taxes.get(value, '')
                 elif key == 'price_type':
                     if not value:
                         continue
                     if not value in price_types:
-                        insert_status['Invalid Price types for customer ids'].append(str(customer_id))
+                        error_message = 'Invalid price type for Customer id %s' % str(customer_id)
+                        update_error_message(failed_status, 5024, error_message, customer_id, field_key='customer_id')
+                        break
+                elif key == 'name':
+                    value = customer_data.get('first_name', '')
+                elif key =='address':
+                    value = customer_data.get('billing_address', '')
                 elif key =='tin_number':
                     value = customer_data.get('gst_number', '')
+                elif key =='state':
+                    value = customer_data.get('shipping_state', '')
+                elif key =='city':
+                    value = customer_data.get('shipping_city', '')
+                elif key =='country':
+                    value = customer_data.get('shipping_country', '')
                 customer_master_dict[key] = value
-                if customer_master:
+                if customer_master and value:
                     setattr(customer_master, key, value)
 
             if str(customer_id) in sum(insert_status.values(), []):
                 continue
+            if not failed_status:
+                if customer_master:
+                    customer_master.save()
+                    insert_status['Data updated for customer ids'].append(str(customer_id))
+                else:
+                    customer_master = CustomerMaster(**customer_master_dict)
+                    customer_master.save()
+                    insert_status['Newly Created customer ids'].append(str(customer_id))
             if customer_master:
-                customer_master.save()
-                insert_status['Data updated for customer ids'].append(str(customer_id))
-            else:
-                customer_master = CustomerMaster(**customer_master_dict)
-                customer_master.save()
-                insert_status['Newly Created customer ids'].append(str(customer_id))
+                UIN = customer_master.id
 
-        final_status = {}
-        for key, value in insert_status.iteritems():
-            if not value:
-                continue
-            final_status[key] = ','.join(value)
-        return final_status
+        # final_status = {}
+        # for key, value in insert_status.iteritems():
+        #     if not value:
+        #         continue
+        #     final_status[key] = ','.join(value)
+        return UIN, failed_status.values()
 
     except:
         traceback.print_exc()
-        return insert_status
+        return UIN, failed_status.values()
 
 
 def validate_sellers(sellers, user=None, seller_mapping=None):
@@ -2208,7 +2241,21 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                                                         max_amt__gte=sku_master[0].price, min_amt__lte=sku_master[0].price, inter_state=inter_state)
 
                     invoice_amount = 0
-                    unit_price = sku_item.get('unit_price', sku_master[0].price)
+                    unit_price = sku_item.get('unit_price', '')
+                    discount_amount = sku_item.get('discount_amount', '')
+                    if discount_amount:
+                        try:
+                            order_summary_dict['discount'] = float(discount_amount)
+                        except:
+                            order_summary_dict['discount'] = 0
+                    if unit_price == '':
+                        unit_price, discount, price_bands_list = get_order_sku_price(customer_master, sku_master[0], user)
+                        if discount_amount == '':
+                            if sku_item.has_key('quantity'):
+                                order_summary_dict['discount'] = ((float(sku_item['quantity']) * unit_price)/100) * discount
+                            else:
+                                update_error_message(failed_status, 5020, "quantity Field missing", original_order_id)
+                                break
                     if not order_det:
                         order_det = order_det1
 
@@ -2243,6 +2290,9 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                             amt = float(order_details['quantity']) * order_details['unit_price']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
 
+                        if order.has_key('payment_status'):
+                            if order['payment_status'].lower() == 'paid':
+                                order_details['payment_received'] = order_details['invoice_amount']
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status:
@@ -2267,6 +2317,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     }
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
+                if order.has_key('payment_status'):
+                    final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2511,6 +2563,9 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
                         order_details['creation_date'] = creation_date
 
+                        if order.has_key('payment_status'):
+                            if order['payment_status'].lower() == 'paid':
+                                order_details['payment_received'] = order_details['invoice_amount']
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status:
@@ -2537,6 +2592,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     }
                     break
                 final_data_dict[grouping_key]['status_type'] = order_status
+                if order.has_key('payment_status'):
+                    final_data_dict[grouping_key]['payment_status'] = order['payment_status'].lower()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

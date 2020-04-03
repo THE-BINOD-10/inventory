@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "Debit Note");
   }
   vm.reports = {}
-  vm.toggle_rtv_sku_wise = function() {
+  vm.get_discrepacy_data = function() {
     var send = {};
     var name = 'discrepancy_report';
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
@@ -42,6 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 	}
 	})
   }
+  vm.get_discrepacy_data()
   vm.row_call = function(aData) {
     vm.title = 'Debit Note';
     $http.get(Session.url+'print_descrepancy_note/?discrepancy_number='+aData['Discrepancy Number']).success(function(data) {

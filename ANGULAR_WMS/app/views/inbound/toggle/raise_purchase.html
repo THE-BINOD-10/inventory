@@ -150,20 +150,30 @@
                        ng-readonly="showCase.model_data.is_approval"
                        ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
             </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
             <div class="form-group">
               <label class="control-label"> PO Number </label>
                 <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> 
                 <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="form-control" ng-readonly="true" ng-hide="true">
               </div>
             </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="showCase.is_purchase_request">
               <div class="form-group">
                 <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
                 <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
                 <input name="pr_delivery_date" ui-jq="datepicker"
                        ng-disabled="showCase.model_data.is_approval"
                        ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date"
+                       data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3" ng-if="!showCase.is_purchase_request">
+              <div class="form-group">
+                <label class="control-label" ng-if="!showCase.wh_purchase_order">PO Delivery Date</label>
+                <label class="control-label" ng-if="showCase.wh_purchase_order">PO Delivery Date*</label>
+                <input name="po_delivery_date" ui-jq="datepicker"
+                       ng-disabled="showCase.model_data.is_approval"
+                       ng-model="showCase.model_data.po_delivery_date" class="form-control" type="text" id="po_delivery_date"
                        data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>

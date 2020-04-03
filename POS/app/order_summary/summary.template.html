@@ -96,7 +96,7 @@
     </div>
   </div>
   <div class="summary-row total-cost" ng-if="$ctrl.urlService.returnsView">
-    <div class="pull-left">
+    <div class="pull-left" ng-init="$ctrl.order_summary_refresh()">
       <p><b>TOTAL PAID</b></p>
     </div>
     <div class="pull-right" >

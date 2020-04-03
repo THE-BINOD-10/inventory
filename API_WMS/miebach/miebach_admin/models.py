@@ -489,6 +489,81 @@ class OpenPO(models.Model):
 
 
 @reversion.register()
+class PendingPurchase(models.Model):  #OpenPR
+    id = BigAutoField(primary_key=True)
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
+    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    requested_user = models.ForeignKey(User)
+    pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    po_number = models.PositiveIntegerField() # Similar to PurchaseOrder->order_id field
+    prefix = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, db_index=True)
+    quantity = models.FloatField(default=0, db_index=True)
+    price = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
+    delivery_date = models.DateField(blank=True, null=True)
+    measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=256, default='')
+    pending_level = models.CharField(max_length=64, default='')
+    final_status = models.CharField(max_length=32, default='')
+    remarks = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PENDING_PURCHASE'
+        #unique_together = ('requested_user', 'sku')
+
+
+@reversion.register()
+class PurchaseApprovals(models.Model):  #PRApprovals
+    id = BigAutoField(primary_key=True)
+    openpr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    configName = models.CharField(max_length=64, default='')
+    pr_user = models.ForeignKey(User)
+    level = models.CharField(max_length=64, default='')
+    validated_by = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=32, default='')
+    remarks = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PURCHASE_APPROVALS'
+        #unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
+
+
+class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    name = models.CharField(max_length=64, default='')
+    min_Amt = models.FloatField(default=0)
+    max_Amt = models.FloatField(default=0)
+    level  = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PURCHASE_APPROVAL_CONFIG'
+        unique_together = ('user', 'name', 'level')
+
+
+class PurchaseApprovalMails(models.Model):  #PRApprovalMails
+    id = BigAutoField(primary_key=True)
+    pr_approval = models.ForeignKey(PurchaseApprovals)
+    email = models.EmailField(max_length=64)
+    hash_code = models.CharField(max_length=256, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "PURCHASE_APPROVAL_MAILS"
+
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)

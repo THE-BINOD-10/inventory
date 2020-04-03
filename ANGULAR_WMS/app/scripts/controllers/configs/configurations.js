@@ -6,7 +6,6 @@ angular.module('urbanApp', ['angularjs-dropdown-multiselect'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service,$rootScope, $modal) {
   var vm = this;
   vm.service = Service;
-
   vm.marketplace_user = (Session.user_profile.user_type == "marketplace_user")? true: false;
 
   vm.model_data = {
@@ -45,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
                   };
   vm.all_mails = '';
@@ -80,6 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
+                     105: 'enable_pending_approval_pos',
                      }
 
   vm.check_box_data = [
@@ -608,6 +609,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Enable Pending For Approval POs",
+   model_name: "enable_pending_approval_pos",
+   param_no: 105,
+   class_name: "fa fa-server",
+   display: true
+  },
+
 ]
 
   vm.empty = {};
@@ -744,9 +753,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
     }
   }
-
+  vm.pr_save = function (data, type) {
+    if(type =='save') {
+      vm.add_empty_index('', 'save');
+      console.log(vm.model_data['selected_pr_config_data'])
+      var toBeUpdateData = vm.model_data['selected_pr_config_data'];
+      if (!toBeUpdateData[0].name) {
+        Service.showNoty('Enter Configuration name');
+      } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
+        Service.showNoty('Min Amt Should not Exceed Max Amt');
+      } else if (!toBeUpdateData[0]['mail_id']['level0']) {
+        Service.showNoty('Email required !');
+      } else {
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
+          if(data.message) {
+            msg = data.data;
+            $scope.showNoty();
+            Auth.status();
+            vm.baseFunction()
+            vm.pr_selected = "";
+          }
+        });
+      }
+    } else {
+      console.log(type)
+      var toBeDeleteData = vm.model_data['selected_pr_config_data'];
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData)}).then(function(data){
+        if(data.message) {
+          msg = data.data;
+          $scope.showNoty();
+          Auth.status();
+          vm.baseFunction()
+          vm.pr_selected = "";
+        }
+      });
+    }
+  }
   vm.input_fields = ['Input', 'Textarea'];
-
   vm.service.apiCall("configurations/").then(function(data){
     if(data.message) {
       angular.copy(data.data, vm.model_data);
@@ -771,74 +814,266 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           vm.model_data[key] = Boolean(false);
         }
       });
-      vm.model_data["mail_alerts"] = parseInt(vm.model_data["mail_alerts"]);
-      vm.model_data["online_percentage"] = parseInt(vm.model_data["online_percentage"]);
-      vm.model_data["order_header_inputs"] = Session.roles.permissions["order_headers"].split(",")
-      $timeout(function () {
-        $('.selectpicker').selectpicker();
-        $(".mail_notifications .bootstrap-select").change(function(){
-          var data = $(".mail_notifications .selectpicker").val();
-          var send = "";
-          if (data) {
-            for(var i = 0; i < data.length; i++) {
-              send += data[i].slice(1)+",";
-            }
-          }
-          vm.service.apiCall("enable_mail_reports/?data="+send.slice(0,-1)).then(function(data){
-            if(data.message) {
-              Auth.update();
-            }
-          });
-          var build_data = send.split(",");
-          var temp = [];
-          angular.forEach(build_data, function(item){
-            if(item) {
-              temp.push(vm.model_data.mail_options[item]);
-            }
-          })
-          vm.model_data.mail_inputs = temp;
-        })
-
-        $(".create_orders .bootstrap-select").change(function(){
-          var data = $(".create_orders .selectpicker").val();
-          var send = "";
-          if (data) {
-            for(var i = 0; i < data.length; i++) {
-              send += data[i].slice(1)+",";
-            }
-          }
-          vm.service.apiCall("switches/?order_headers="+send.slice(0,-1)).then(function(data){
-            if(data.message) {
-              Auth.update();
-            }
-          });
-        })
-      }, 500);
-      $(".sku_groups").importTags(vm.model_data.all_groups);
-      $(".stages").importTags(vm.model_data.all_stages);
-      $(".order_fields").importTags(vm.model_data.all_order_fields);
-      $(".order_sku_fields").importTags(vm.model_data.all_order_sku_fields);
-      $(".grn_fields").importTags(vm.model_data.grn_fields);
-      $(".po_fields").importTags(vm.model_data.po_fields);
-      $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
-      $(".move_inventory_reasons").importTags(vm.model_data.move_inventory_reasons);
-      vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
-      $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
-      $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
-      $(".invoice_types").importTags(vm.model_data.invoice_types);
-      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
-      $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
-      if (vm.model_data.invoice_titles) {
-        $(".titles").importTags(vm.model_data.invoice_titles);
-      }
-      $('#my-select').multiSelect();
-      vm.getRemarks(vm.model_data.invoice_remarks)
-      vm.getDeclaration(vm.model_data.invoice_declaration)
-      vm.getPosremarks(vm.model_data.pos_remarks)
-      vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
     }
-  })
+  });
 
+  vm.add_empty_index = function(data, operation) {
+    if (operation == 'delete') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        if(data.name == tuple.name) {
+          vm.model_data['selected_pr_config_data'].splice(index,1)        
+        }
+      })
+    } else if (operation == 'add_email' || operation == 'remove_email') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        if(data.name == tuple.name) {
+          if (operation == 'add_email') {
+            tuple['mail_id']['level'+Object.keys(tuple['mail_id']).length] = ""
+          } else {
+            if (Object.keys(tuple['mail_id']).length > 1) {
+              delete tuple['mail_id'][Object.keys(tuple['mail_id'])[Object.keys(tuple['mail_id']).length -1]]
+            }
+          }
+        }
+      })
+    } else if (operation == 'save') {
+      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+        angular.forEach(Object.keys(tuple['mail_id']), function(level) {
+          var values = tuple.name+level
+          var emails = $("."+values).val();
+          tuple['mail_id'][level] = emails;
+        })
+      })
+    } else {
+      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
+      if (vm.model_data['selected_pr_config_data'].length != 0) {
+        var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
+        if (check_last_record['name'] == '') {
+          Service.showNoty('please Fill Available One');
+        }
+      } else {
+        if (vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]) {
+          var min_amt = vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]['max_Amt']+1;
+          empty_dict['min_Amt'] = min_amt;
+          vm.model_data['selected_pr_config_data'].push(empty_dict);
+          vm.pr_add_show = true;
+        } else {
+          vm.model_data['selected_pr_config_data'].push(empty_dict);
+          vm.pr_add_show = true;
+        }
+      }
+    }
+  }
+  vm.input_fields = ['Input', 'Textarea'];
+
+  // vm.service.apiCall("configurations/").then(function(data){
+  //   if(data.message) {
+  //     angular.copy(data.data, vm.model_data);
+  //     vm.model_data["tax_details"] = {'CST': {}};
+  //     vm.model_data['prefix_data'] = [];
+  //     vm.model_data['prefix_dc_data'] = [];
+  //     vm.model_data['pr_approvals_conf_data'] = [];
+  //     vm.model_data['selected_pr_config_data'] = [];
+  //     vm.model_data['total_pr_config_ranges'] = [];
+  //     angular.forEach(data.data.prefix_data, function(data){
+  //       vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
+  //                                       marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
+  //     })
+  //     angular.forEach(data.data.prefix_dc_data, function(data){
+  //       vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+  //     })
+  //     angular.forEach(data.data.pr_approvals_conf_data, function(data){
+  //       var data_dict = {}
+  //       data_dict['name'] = data.name;
+  //       data_dict['min_Amt'] = data.min_Amt;
+  //       data_dict['max_Amt'] = data.max_Amt;
+  //       data_dict['mail_id'] = data.mail_id;
+  //       vm.model_data.total_pr_config_ranges.push(data_dict)
+  //       vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+  //     })
+
+  //     angular.forEach(vm.model_data, function(value, key) {
+  //       if (value == "true") {
+  //         vm.model_data[key] = Boolean(true);
+  //       } else if (value == "false") {
+  //         vm.model_data[key] = Boolean(false);
+  //       }
+  //     });
+  //     vm.model_data["mail_alerts"] = parseInt(vm.model_data["mail_alerts"]);
+  //     vm.model_data["online_percentage"] = parseInt(vm.model_data["online_percentage"]);
+  //     vm.model_data["order_header_inputs"] = Session.roles.permissions["order_headers"].split(",")
+  //     $timeout(function () {
+  //       $('.selectpicker').selectpicker();
+  //       $(".mail_notifications .bootstrap-select").change(function(){
+  //         var data = $(".mail_notifications .selectpicker").val();
+  //         var send = "";
+  //         if (data) {
+  //           for(var i = 0; i < data.length; i++) {
+  //             send += data[i].slice(1)+",";
+  //           }
+  //         }
+  //         vm.service.apiCall("enable_mail_reports/?data="+send.slice(0,-1)).then(function(data){
+  //           if(data.message) {
+  //             Auth.update();
+  //           }
+  //         });
+  //         var build_data = send.split(",");
+  //         var temp = [];
+  //         angular.forEach(build_data, function(item){
+  //           if(item) {
+  //             temp.push(vm.model_data.mail_options[item]);
+  //           }
+  //         })
+  //         vm.model_data.mail_inputs = temp;
+  //       })
+
+  //       $(".create_orders .bootstrap-select").change(function(){
+  //         var data = $(".create_orders .selectpicker").val();
+  //         var send = "";
+  //         if (data) {
+  //           for(var i = 0; i < data.length; i++) {
+  //             send += data[i].slice(1)+",";
+  //           }
+  //         }
+  //         vm.service.apiCall("switches/?order_headers="+send.slice(0,-1)).then(function(data){
+  //           if(data.message) {
+  //             Auth.update();
+  //           }
+  //         });
+  //       })
+  //     }, 500);
+  //     $(".sku_groups").importTags(vm.model_data.all_groups);
+  //     $(".stages").importTags(vm.model_data.all_stages);
+  //     $(".order_fields").importTags(vm.model_data.all_order_fields);
+  //     $(".order_sku_fields").importTags(vm.model_data.all_order_sku_fields);
+  //     $(".grn_fields").importTags(vm.model_data.grn_fields);
+  //     $(".po_fields").importTags(vm.model_data.po_fields);
+  //     $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
+  //     $(".move_inventory_reasons").importTags(vm.model_data.move_inventory_reasons);
+  //     vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
+  //     $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+  //     $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
+  //     $(".invoice_types").importTags(vm.model_data.invoice_types);
+  //     $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
+  //     $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
+  //     if (vm.model_data.invoice_titles) {
+  //       $(".titles").importTags(vm.model_data.invoice_titles);
+  //     }
+  //     $('#my-select').multiSelect();
+  //     vm.getRemarks(vm.model_data.invoice_remarks)
+  //     vm.getDeclaration(vm.model_data.invoice_declaration)
+  //     vm.getPosremarks(vm.model_data.pos_remarks)
+  //     vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
+  //   }
+  // })
+  vm.baseFunction = function(){
+    console.log("Base Fucntion Called")
+    vm.service.apiCall("configurations/").then(function(data){
+      if(data.message) {
+        angular.copy(data.data, vm.model_data);
+        vm.model_data["tax_details"] = {'CST': {}};
+        vm.model_data['prefix_data'] = [];
+        vm.model_data['prefix_dc_data'] = [];
+        vm.model_data['pr_approvals_conf_data'] = [];
+        vm.model_data['selected_pr_config_data'] = [];
+        vm.model_data['total_pr_config_ranges'] = [];
+        angular.forEach(data.data.prefix_data, function(data){
+          vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
+                                          marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
+        })
+        angular.forEach(data.data.prefix_dc_data, function(data){
+          vm.model_data.prefix_dc_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+        })
+        if (data.data.pr_approvals_conf_data.length > 0) {
+          var temp_length = data.data.pr_approvals_conf_data.length;
+          angular.forEach(data.data.pr_approvals_conf_data, function(data, index){
+            var data_dict = {}
+            data_dict['name'] = data.name;
+            data_dict['min_Amt'] = data.min_Amt;
+            data_dict['max_Amt'] = data.max_Amt;
+            data_dict['mail_id'] = data.mail_id;
+            temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
+            vm.model_data.total_pr_config_ranges.push(data_dict)
+            vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+          })
+        }
+        angular.forEach(vm.model_data, function(value, key) {
+          if (value == "true") {
+            vm.model_data[key] = Boolean(true);
+          } else if (value == "false") {
+            vm.model_data[key] = Boolean(false);
+          }
+        });
+        vm.model_data["mail_alerts"] = parseInt(vm.model_data["mail_alerts"]);
+        vm.model_data["online_percentage"] = parseInt(vm.model_data["online_percentage"]);
+        vm.model_data["order_header_inputs"] = Session.roles.permissions["order_headers"].split(",")
+        $timeout(function () {
+          $('.selectpicker').selectpicker();
+          $(".mail_notifications .bootstrap-select").change(function(){
+            var data = $(".mail_notifications .selectpicker").val();
+            var send = "";
+            if (data) {
+              for(var i = 0; i < data.length; i++) {
+                send += data[i].slice(1)+",";
+              }
+            }
+            vm.service.apiCall("enable_mail_reports/?data="+send.slice(0,-1)).then(function(data){
+              if(data.message) {
+                Auth.update();
+              }
+            });
+            var build_data = send.split(",");
+            var temp = [];
+            angular.forEach(build_data, function(item){
+              if(item) {
+                temp.push(vm.model_data.mail_options[item]);
+              }
+            })
+            vm.model_data.mail_inputs = temp;
+          })
+
+          $(".create_orders .bootstrap-select").change(function(){
+            var data = $(".create_orders .selectpicker").val();
+            var send = "";
+            if (data) {
+              for(var i = 0; i < data.length; i++) {
+                send += data[i].slice(1)+",";
+              }
+            }
+            vm.service.apiCall("switches/?order_headers="+send.slice(0,-1)).then(function(data){
+              if(data.message) {
+                Auth.update();
+              }
+            });
+          })
+        }, 500);
+        $(".sku_groups").importTags(vm.model_data.all_groups);
+        $(".stages").importTags(vm.model_data.all_stages);
+        $(".order_fields").importTags(vm.model_data.all_order_fields);
+        $(".order_sku_fields").importTags(vm.model_data.all_order_sku_fields);
+        $(".grn_fields").importTags(vm.model_data.grn_fields);
+        $(".po_fields").importTags(vm.model_data.po_fields);
+        $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
+        $(".move_inventory_reasons").importTags(vm.model_data.move_inventory_reasons);
+        vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
+        $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+        $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
+        $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
+        $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
+        if (vm.model_data.invoice_titles) {
+          $(".titles").importTags(vm.model_data.invoice_titles);
+        }
+        $('#my-select').multiSelect();
+        vm.getRemarks(vm.model_data.invoice_remarks)
+        vm.getDeclaration(vm.model_data.invoice_declaration)
+        vm.getPosremarks(vm.model_data.pos_remarks)
+        vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
+      }
+    })    
+  }
+
+  vm.baseFunction();
   vm.mail_alerts_change = function(url, selector, item) {
     var data = $(selector).val();
     var send = "";
@@ -1217,6 +1452,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     for(var i=0; i < vm.model_data.marketplaces.length; i++) {
       if (vm.saved_marketplaces.indexOf(vm.model_data.marketplaces[i]) == -1) {
         vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
+
+  vm.model_data.pr_add_new = true;
+  vm.PRSelected = function(name) {
+    vm.model_data.selected_pr_config_data = []
+    angular.forEach(vm.model_data.total_pr_config_ranges, function(data){
+      if (name == data.name) {
+        vm.model_data.selected_pr_config_data.push(data);
+        vm.pr_add_show = true;
+      }
+    })
+  }
+
+  vm.saved_pr_configs = [];
+  vm.filterPRConfigs = function() {
+    vm.saved_pr_configs = [];
+    angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_pr_configs.push(data.name);
+    })
+    for(var i=0; i < vm.model_data.pr_conf_names.length; i++) {
+      if (vm.saved_pr_configs.indexOf(vm.model_data.pr_conf_names[i]) == -1) {
+        vm.model_data.pr_name = vm.model_data.pr_conf_names[i];
         break;
       }
     }

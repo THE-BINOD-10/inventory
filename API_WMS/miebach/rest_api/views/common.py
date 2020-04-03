@@ -876,10 +876,14 @@ def configurations(request, user=''):
         config_dict['po_fields'] = po_fields
 
     rtv_reasons = get_misc_value('rtv_reasons', user.id)
+    discrepancy_reasons = get_misc_value('discrepancy_reasons', user.id)
     if rtv_reasons == 'false' :
         config_dict['rtv_reasons'] = ''
     else:
         config_dict['rtv_reasons'] = rtv_reasons
+    config_dict['discrepancy_reasons'] = ''
+    if discrepancy_reasons != 'false':
+        config_dict['discrepancy_reasons'] = discrepancy_reasons
     move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
     if move_inventory_reasons == 'false':
         config_dict['move_inventory_reasons'] = ''
@@ -2485,7 +2489,7 @@ def save_config_extra_fields(request, user=''):
     field_type = request.GET.get('field_type', '')
     fields = request.GET.get('config_extra_fields', '')
     field_type =field_type.strip('.')
-    if len(fields.split(',')) <=  4 or field_type == 'move_inventory_reasons' :
+    if len(fields.split(',')) <=  4 or field_type in ['move_inventory_reasons', 'discrepancy_reasons'] :
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():

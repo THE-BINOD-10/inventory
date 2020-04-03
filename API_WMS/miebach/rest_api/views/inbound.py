@@ -1993,6 +1993,11 @@ def get_supplier_data(request, user=''):
                 uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                                       'file_url': '/' + master_docs[0].uploaded_file.name}
         orders =  sorted(orders, key = lambda i: i[0]['wrong_sku'],reverse=True)
+        discrepancy_reasons = ''
+        if user.userprofile.industry_type == 'FMCG':
+            discrepancy_reasons = get_misc_value('discrepancy_reasons', user.id)
+            if discrepancy_reasons != 'false':
+                discrepancy_reasons = discrepancy_reasons.split(',')
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
@@ -2000,7 +2005,7 @@ def get_supplier_data(request, user=''):
                                     'expected_date': expected_date, 'remarks': remarks,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
-                                    'dc_date': dc_date, 'dc_grn': dc_level_grn,
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn,'discrepancy_reasons':discrepancy_reasons,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
                                     'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
@@ -3035,13 +3040,11 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         exist_id = exist_list_ind
                         break
                 if not sku_master or not myDict['id'][exist_id]:
-                    import pdb;pdb.set_trace()
                     if not status_msg:
                         status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
                     else:
                         status_msg += ',' + myDict['wms_code'][i]
                     if user.userprofile.industry_type == 'FMCG':
-                        import pdb;pdb.set_trace()
                         cond = ('',myDict['wms_code'][i],'', myDict['buy_price'][i],0,0,myDict['tax_percent'][i],
                                  '',myDict['sku_desc'][i],0,0,0,0,myDict['mrp'][i])
                         po_new_data.setdefault(cond, {'discrepency_quantity': 0,
@@ -3479,6 +3482,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                 discrepency_rendered, data_dict_po = generate_discrepancy_data(user, po_new_data, print_des=False, **report_data_dict)
                 write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email, telephone,po_data,
                                    order_date, internal=True, report_type="Discrepancy Note", data_dict_po=data_dict_po)
+                t = loader.get_template('templates/toggle/c_putaway_toggle.html')
+                rendered = t.render(report_data_dict)
+                return HttpResponse(json.dumps({'grn_data': rendered,'discrepancy_data':discrepency_rendered}))
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)

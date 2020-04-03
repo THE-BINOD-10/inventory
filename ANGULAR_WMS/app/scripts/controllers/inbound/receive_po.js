@@ -382,7 +382,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
-      $state.go('app.inbound.RevceivePo');
+      if (vm.discrepancy_data) {
+         vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
+         vm.discrepancy_data = ''
+      } else {
+          $state.go('app.inbound.RevceivePo');
+      }
     }
 
     vm.update_data = update_data;
@@ -677,6 +682,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.absOfQtyTolerence = function(inv_value, total_value){
       return Math.abs(1.1*inv_value);
     }
+    vm.discrepancy_data = ''
 
     // vm.skus_total_amount
 
@@ -785,11 +791,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.failed_serial_number = {}
               vm.collect_imei_details = {}
               vm.extra_width = {}
-              vm.html = $(data.data);
+//              vm.html = $(data.data);
               vm.extra_width = {}
               //var html = $(vm.html).closest("form").clone();
               //angular.element(".modal-body").html($(html).find(".modal-body"));
-              angular.element(".modal-body").html($(data.data));
+              if (data.data.search('discrepancy_data')) {
+                   vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                   angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+              } else{
+                   angular.element(".modal-body").html($(data.data));
+              }
+
               vm.print_enable = true;
               vm.service.refresh(vm.dtInstance);
               if(vm.permissions.use_imei) {

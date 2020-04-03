@@ -314,11 +314,14 @@
                                ng-keyup= "showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-                      <input type="text" ng-model="data.discrepency_reason"
-                             size="15" title="{{ data.discrepency_reason }}"
-                             name="discrepency_reason" class="form-control detectTab"
-                             value="{{data.discrepency_reason}}"
-                             ng-keyup= "showCase.invoice_readonly($event, data, 'batch_no', is_number=false)">
+<!--                      <input type="text" ng-model="data.discrepency_reason"-->
+<!--                             size="15" title="{{ data.discrepency_reason }}"-->
+<!--                             name="discrepency_reason" class="form-control detectTab"-->
+<!--                             value="{{data.discrepency_reason}}"-->
+                       <select class="show-menu-arrow form-control pull-left" ng-model="data.discrepency_reason" name="discrepency_reason">
+                      <option value="">Select</option>
+                      <option ng-repeat="reason in showCase.model_data.discrepancy_reasons" value="{{ reason }}"> {{ reason }}</option>
+                      </select>
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>

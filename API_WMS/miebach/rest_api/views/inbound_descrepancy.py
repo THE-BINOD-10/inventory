@@ -85,7 +85,7 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
                              'total_discrepency_qty': total_discrepency_qty,
                              'total_discrepency_amount': total_discrepency_amount}
     if not print_des:
-        supplier_dict = {'supplier_id': data_dict[1][1], 'supplier_name':data_dict[3][1], supplier_gst : data_dict[4][1]}
+        supplier_dict = {'supplier_id': data_dict[1][1], 'supplier_name':data_dict[3][1], 'supplier_gst' : data_dict[4][1]}
         discrepency_report_dict.update(supplier_dict)
     discrepency_report_dict.update(discrepency_data_dict)
     t = loader.get_template('templates/toggle/discrepency_form.html')

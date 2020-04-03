@@ -45,6 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'mandate_invoice_number':false,
                     'discrepency_prefix':'',
                   };
@@ -824,6 +825,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".po_fields").importTags(vm.model_data.po_fields);
       $(".rtv_reasons").importTags(vm.model_data.rtv_reasons);
       $(".move_inventory_reasons").importTags(vm.model_data.move_inventory_reasons);
+      $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
       vm.model_data.all_order_fields_list = vm.model_data.all_order_fields.split(",")
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);

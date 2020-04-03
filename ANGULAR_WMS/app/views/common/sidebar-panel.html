@@ -197,7 +197,13 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo') || show_tab('add_intransitorders')" ui-sref-active="active">
+        <!-- <li ng-show="show_tab('add_openpr') || show_tab('change_openpr')" ui-sref-active="active">
+          <a ui-sref="app.inbound.RaisePr">
+            <span>Raise PR</span>
+          </a>
+        </li> -->
+        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo') || show_tab('add_intransitorders') || 
+                     show_tab('add_pendingpurchase') || show_tab('change_pendingpurchase') || show_tab('view_pendingpurchase')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePo">
             <span>Raise PO</span>
           </a>
@@ -705,6 +711,11 @@
         <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
           <a ui-sref="app.reports.BulkStockUpdate">
             <span>Bulk Stock Update</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.userName == 'ola_admin'">
+          <a ui-sref="app.reports.creditNoteForm">
+            <span>Credit Note Form (ORACLE Upload File)</span>
           </a>
         </li>
       </ul>

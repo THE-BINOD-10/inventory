@@ -3273,10 +3273,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
         if key:
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
-                    disp_imei_map = {}
-                    disp_imei_map['qc_type'] = 'purchase_order'
-                    disp_imei_map['po_imei_num'] = get_po_imei_qs[0]
-                    disp_imei_map['qc_name'] = key_obj
+                    disp_imei_map = {'qc_type': 'purchase_order', 'po_imei_num': get_po_imei_qs[0], 'qc_name': key_obj}
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
                     if value_obj[1] == "false":
                         value_obj[1] = False
@@ -3480,7 +3477,13 @@ def confirm_grn(request, confirm_returns='', user=''):
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             if send_discrepencey and fmcg:
                 discrepency_rendered, data_dict_po = generate_discrepancy_data(user, po_new_data, print_des=False, **report_data_dict)
-                write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email, telephone,po_data,
+                secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=data_dict[1][1], user=user.id,
+                                                                                  master_type='supplier').values_list(
+                    'email_id', flat=True).distinct())
+                supplier_email_id = []
+                supplier_email_id.insert(0, supplier_email)
+                supplier_email_id.extend(secondary_supplier_email)
+                write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email_id, telephone,po_data,
                                    order_date, internal=True, report_type="Discrepancy Note", data_dict_po=data_dict_po)
                 t = loader.get_template('templates/toggle/c_putaway_toggle.html')
                 rendered = t.render(report_data_dict)

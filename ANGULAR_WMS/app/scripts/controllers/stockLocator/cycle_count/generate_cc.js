@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
               vm.seleted_rows.push(full);
               return vm.service.frontHtml + meta.row + vm.service.endHtml;
             }),
-        DTColumnBuilder.newColumn('wms_code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('wms_code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('location').withTitle('Location'),
         DTColumnBuilder.newColumn('quantity').withTitle('Quantity')

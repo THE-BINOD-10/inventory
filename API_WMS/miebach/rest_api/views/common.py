@@ -6877,7 +6877,7 @@ def save_order_tracking_data(order, quantity, status='', imei=''):
         order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
         if order_tracking:
             order_tracking = order_tracking[0]
-            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.quantity = float(order_tracking.quantity) + float(quantity)
             order_tracking.save()
         else:
             OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity,

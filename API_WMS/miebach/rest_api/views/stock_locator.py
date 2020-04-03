@@ -3720,7 +3720,16 @@ def stock_detail_update(request, user=''):
                 if old_batch_dict[key] != new_batch_dict[key]:
                     updated_batch_dict[key] = new_batch_dict[key]
                     create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key], new_batch_dict[key])
-            BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
+            stock_check = StockDetail.objects.filter(sku__user=user.id,quantity__gt=0,batch_detail_id=id)
+            if stock_check.count() >=2 and updated_batch_dict:
+                new_batch_object = BatchDetail.objects.get(id=id).__dict__
+                del new_batch_object['_state']
+                del new_batch_object['id']
+                updated_batch = BatchDetail.objects.create(**new_batch_object)
+                stock_check.filter(location__location=data.get('location', '')).update(batch_detail_id=updated_batch.id)
+                BatchDetail.objects.filter(id=updated_batch.id).update(**updated_batch_dict)
+            else:
+                BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
             return HttpResponse(json.dumps({'status': 1, 'message': 'Successfully Updated'}))
     except Exception as e:
         import traceback

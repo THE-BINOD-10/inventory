@@ -10678,7 +10678,7 @@ def get_invoice_shipment(start_index, stop_index, temp_data, search_term, order_
         user_dict['to_date'] = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
         user_dict['to_date'] = datetime.datetime.combine(user_dict['to_date'] + datetime.timedelta(1), datetime.time())
         user_filter['creation_date__lt'] = user_dict['to_date']
-    shiped_invoices = list(ShipmentInfo.objects.filter(order__user=user.id).values_list('order_id', flat=True))
+    shiped_invoices = list(ShipmentInfo.objects.filter(order__user=user.id).values_list('invoice_number', flat=True))
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(list(set(lis)), search_term)
@@ -10701,7 +10701,7 @@ def get_invoice_shipment(start_index, stop_index, temp_data, search_term, order_
         master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'), ordered_quantity=Sum('order__quantity', distinct=True))
     order_summaries = SellerOrderSummary.objects.filter(Q(order__user=user.id))
-    master_data = master_data.exclude(order_id__in=shiped_invoices)
+    master_data = master_data.exclude(full_invoice_number__in=shiped_invoices).exclude(invoice_number='')
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:

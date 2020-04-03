@@ -15,9 +15,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.scan_imei_readonly = false;
     vm.parent_username = Session.parent.parent_username;
     vm.g_data = Data.create_shipment;
-    vm.group_by = 'order'
-    if(vm.g_data.view == 'ShipmentPickedInvoice'){
-      vm.group_by = 'invoice';
+    vm.group_by = 'invoice'
+    if(vm.g_data.view == 'ShipmentPickedAlternative'){
+      vm.group_by = 'order';
     }
     //table start
     vm.selected = {};
@@ -619,9 +619,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.change_datatable = function() {
-      Data.create_shipment.view = (vm.g_data.alternate_view)? 'ShipmentPickedAlternative': 'ShipmentPickedOrders';
-      if(vm.group_by == 'invoice'){
-        Data.create_shipment.view = 'ShipmentPickedInvoice';
+      Data.create_shipment.view = (vm.g_data.alternate_view)? 'ShipmentPickedInvoice': 'ShipmentPickedOrders';
+      if(vm.group_by == 'order'){
+        Data.create_shipment.view = 'ShipmentPickedAlternative';
       }
       $state.go($state.current, {}, {reload: true});
     }

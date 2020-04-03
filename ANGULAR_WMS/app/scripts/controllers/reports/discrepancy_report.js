@@ -53,6 +53,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     });
     $state.go('app.reports.DiscrepancyReport.print');
   }
+   vm.close = close;
+  function close() {
+    vm.title = "Debit Note";
+    $state.go('app.reports.DiscrepancyReport');
+  }
   vm.print_page = "";
   vm.dtInstance = {};
   vm.empty_data = {

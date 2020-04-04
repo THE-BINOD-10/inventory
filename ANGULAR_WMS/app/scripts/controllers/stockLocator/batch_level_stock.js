@@ -72,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
 
       $state.go('app.stockLocator.StockDetail');
     }
-    vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01''GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
+    vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01', 'GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.parent_username = Session.parent.userName;
     vm.validate_weight = function(event, row_data) {
      if(vm.milkbasket_users.indexOf(vm.parent_username) >= -1){

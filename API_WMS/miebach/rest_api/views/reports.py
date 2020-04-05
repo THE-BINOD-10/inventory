@@ -1259,6 +1259,7 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
+                   'st_grn':st_grn,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': net_amount,
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,

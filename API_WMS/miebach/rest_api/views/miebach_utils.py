@@ -529,6 +529,8 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
 STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
+                        {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'WareHouse Name', 'name': 'warehouse', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
@@ -3813,6 +3815,8 @@ def get_st_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if 'invoice_number' in search_params:
         search_parameters['sellerposummary__invoice_number'] = search_params['invoice_number']
+    if 'open_po' in search_params:
+        search_parameters['order_id'] = search_params['open_po']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0

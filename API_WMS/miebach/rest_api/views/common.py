@@ -6041,9 +6041,9 @@ def get_purchase_order_data(order):
         mrp = 0
         order_type = ''
         supplier_code = ''
-        cgst_tax = 0
-        sgst_tax = 0
-        igst_tax = 0
+        cgst_tax = open_data.cgst_tax
+        sgst_tax = open_data.sgst_tax
+        igst_tax = open_data.igst_tax
         utgst_tax = 0
         cess_tax = 0
         apmc_tax = 0

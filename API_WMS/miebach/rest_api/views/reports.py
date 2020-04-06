@@ -87,6 +87,13 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+    elif report_name in ['st_grn_report']:
+        admin_user=get_admin(user)
+        if 'sister_warehouse' in filter_keys:
+            sister_wh = get_sister_warehouse(admin_user)
+            data_index = data['filters'].index(
+                filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',
                          'corporate_reseller_mapping_report', 'financial_report', ''):

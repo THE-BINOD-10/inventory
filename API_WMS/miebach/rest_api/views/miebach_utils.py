@@ -532,7 +532,7 @@ STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_d
                         {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
                         {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
-                        {'label': 'WareHouse Name', 'name': 'warehouse', 'type': 'input'},
+                        {'label': 'WareHouse Name', 'name': 'sister_warehouse', 'type': 'select'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
@@ -3809,8 +3809,8 @@ def get_st_po_filter_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                          datetime.time())
         search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
-    if 'warehouse' in search_params:
-        search_parameters['stpurchaseorder__open_st__warehouse__username'] = search_params['warehouse']
+    if 'sister_warehouse' in search_params:
+        search_parameters['stpurchaseorder__open_st__warehouse__username'] = search_params['sister_warehouse']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if 'invoice_number' in search_params:

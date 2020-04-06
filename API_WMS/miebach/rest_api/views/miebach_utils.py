@@ -2380,6 +2380,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'display_order_reference': 'display_order_reference',
                         'enable_pending_approval_pos':'enable_pending_approval_pos',
                         'mandate_invoice_number':'mandate_invoice_number',
+                        'mandate_ewaybill_number':'mandate_ewaybill_number',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

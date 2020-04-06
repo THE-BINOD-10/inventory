@@ -8210,8 +8210,11 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
+        invoice_number = ''
+        if data.stocktransfersummary_set.filter():
+            invoice_number = data.stocktransfersummary_set.filter()[0].full_invoice_number
 
-        ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
+        ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',invoice_number),\
                                                 ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
                                                 ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
                                                 ('Source Location',user.username),('Destination',destination)))

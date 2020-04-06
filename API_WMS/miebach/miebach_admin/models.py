@@ -3486,7 +3486,7 @@ def save_order_original_quantity(sender, instance, created, **kwargs):
 
 class StockTransferSummary(models.Model):
     id = BigAutoField(primary_key=True)
-    pick_number = models.PositiveIntegerField(default=0)
+    pick_number = models.PositiveIntegerField(default=1)
     stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)

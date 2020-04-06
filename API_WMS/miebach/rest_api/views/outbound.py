@@ -1738,6 +1738,7 @@ def create_order_summary(picklist,picked_count, pick_number, picks_all):
     financial_year = get_financial_year(datetime.datetime.now())
     if st_order.exists():
         invoice_value = picked_count
+        if not pick_number: pick_number = 1
         StockTransferSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=picked_count,
                                           stock_transfer_id=st_order[0].stock_transfer.id, financial_year=financial_year)
         return
@@ -12015,7 +12016,7 @@ def generate_stock_transfer_invoice(request, user=''):
             sgst_tax = stock_transfer.st_po.open_st.sgst_tax
             igst_tax = stock_transfer.st_po.open_st.igst_tax
             rate = stock_transfer.st_po.open_st.price
-            if data.get('pick_number',''):
+            if data.get('pick_number','')[0]:
                 stock_transfer_summary =StockTransferSummary.objects.filter(stock_transfer_id=stock_transfer.id,pick_number__in=data.get('pick_number'))
                 if not stock_transfer_summary.exists():
                     continue

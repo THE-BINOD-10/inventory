@@ -493,7 +493,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                  ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
                                  ('role', data.role), ('spoc_name', data.spoc_name)))
         data_dict['customer_attributes'] = dict(MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
-                                                            attribute_model='customer_master').\
+                                                            attribute_model='customer').\
                             values_list('attribute_name', 'attribute_value'))
         temp_data['aaData'].append(data_dict)
 
@@ -888,7 +888,8 @@ def get_sku_data(request, user=''):
     sku_attributes = OrderedDict()
     for sku_attribute_obj in sku_attribute_objs:
         sku_attributes.setdefault(sku_attribute_obj.attribute_name, [])
-        sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
+        if sku_attribute_obj.attribute_value:
+            sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
     #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
@@ -1131,12 +1132,12 @@ def update_sku(request, user=''):
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
-        status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        if "python" not in status:
-            sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-            subprocess.call(sku_query, shell=True)
-        else:
-            print "already running"
+        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+        #if "python" not in status:
+        #   sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+        #  subprocess.call(sku_query, shell=True)
+        #else:
+        #    print "already running"
 
         insert_update_brands(user)
 

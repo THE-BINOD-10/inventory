@@ -23,8 +23,8 @@
       <div class="col-md-4 col-sm-4 col-xs-6">
         <div class="form-group">
           <label class="control-label"> Zone *</label>
-          <select name="zone" class="form-control" ng-model="showCase.model_data.zone">
-            <option ng-repeat="zone in showCase.zones_list" value="{{zone}}">{{zone}}</option>
+          <select name="zone" class="form-control" ng-model="showCase.model_data.zone" ng-init="showCase.model_data.zone='WIP'">
+            <option ng-repeat="zone in showCase.zones_list" value="{{zone}}" ng-selected="showCase.model_data.zone==zone">{{zone}}</option>
           </select>
         </div>
        </div>
@@ -78,13 +78,13 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Make </label>
-            <input name="make" ng-model="showCase.model_data.make" class="form-control" type="text" readonly>
+            <input ng-model="showCase.model_data.make" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Model </label>
-            <input name="model" ng-model="showCase.model_data.model" class="form-control" type="text" readonly>
+            <input ng-model="showCase.model_data.model" class="form-control" type="text" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">

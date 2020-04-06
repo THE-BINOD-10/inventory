@@ -8183,7 +8183,7 @@ def validate_vehiclemaster_form(request, reader, user, no_of_rows, no_of_cols, f
 
 def vehiclemaster_excel_upload(request, user, data_list):
     for final_data in data_list:
-        if final_data['id']:
+        if final_data.get('id'):
             customer_master = [CustomerMaster.objects.get(id=final_data['id'])]
         else:
             customer_master = CustomerMaster.objects.filter(user=user.id, name=final_data['name'])

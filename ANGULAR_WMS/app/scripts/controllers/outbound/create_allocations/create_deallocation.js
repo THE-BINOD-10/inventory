@@ -108,6 +108,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Updated Vehicle Number').withTitle('Updated Vehicle Number'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Description').withTitle('SKU Description'),
+        DTColumnBuilder.newColumn('Chassis Number').withTitle('Chassis Number'),
+        DTColumnBuilder.newColumn('Make').withTitle('Make'),
+        DTColumnBuilder.newColumn('Model').withTitle('Model'),
         DTColumnBuilder.newColumn('Allocated Quantity').withTitle('Allocated Quantity'),
         DTColumnBuilder.newColumn('Deallocation Quantity').withTitle('Deallocation Quantity'),
         DTColumnBuilder.newColumn('').withTitle(''),
@@ -160,7 +163,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.filters['customer_id'] = '';
         vm.model_data.filters['from_date'] = vm.date;
         vm.model_data.filters['to_date'] = '';
-        vm.model_data.filters['order_id'] = '';
+        vm.model_data.filters['chassis_number'] = '';
+        vm.model_data.filters['make'] = '';
+        vm.model_data.filters['model'] = '';
         vm.model_data.filters['datatable'] = 'OrderAllocations';
       }
     }

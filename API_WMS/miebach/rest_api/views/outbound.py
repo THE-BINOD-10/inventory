@@ -16329,7 +16329,7 @@ def generate_dc(request , user = ''):
 @fn_timer
 def insert_allocation_data(request, user=''):
     myDict = dict(request.POST.iterlists())
-    single_key = ['customer_name', 'customer_id','customer_type','remarks', 'location']
+    single_key = ['customer_name', 'customer_id','customer_type','remarks', 'location', 'zone']
     number_fields = ["quantity", "unit_price", "cgst_tax", "sgst_tax", "igst_tax"]
     error_dict = {'quantity': 'Quantity'}
     data_list = []
@@ -16341,7 +16341,10 @@ def insert_allocation_data(request, user=''):
             if key in single_key:
                 val = myDict[key][0]
             else:
-                val = myDict[key][ind]
+                try:
+                    val = myDict[key][ind]
+                except:
+                    import pdb;pdb.set_trace()
             if key in number_fields:
                 try:
                     val = float(val)
@@ -16453,10 +16456,38 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
     #     to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
     #                                                          datetime.time())
     #     search_params['creation_date__lt'] = to_date
+    print filters
     if 'sku_code' in filters:
         search_params['sku__sku_code'] = filters['sku_code'].upper()
     if 'customer_id' in filters:
-        search_params['customer_id'] = filters['customer_id'].split(':')[0]
+        search_params['customer_id__in'] = [filters['customer_id'].split(':')[0]]
+    if 'chassis_number' in filters:
+        customer_ids = list(CustomerMaster.objects.filter(user=user.id, chassis_number__icontains=filters['chassis_number']).\
+                                                    values_list('customer_id', flat=True))
+        if search_params.get('customer_id__in'):
+            search_params['customer_id__in'] = set(search_params['customer_id__in']).intersection(customer_ids)
+        else:
+            search_params['customer_id__in'] = customer_ids
+    if 'make' in filters:
+        attr_query = MasterAttributes.objects.filter(user=user.id, attribute_model='customer',
+                                attribute_name='make', attribute_value__icontains=filters['make']).\
+                                                    values_list('attribute_id', flat=True)
+        customer_ids = list(CustomerMaster.objects.filter(user=user.id, id__in=attr_query).\
+                                            values_list('customer_id', flat=True))
+        if search_params.get('customer_id__in'):
+            search_params['customer_id__in'] = set(search_params['customer_id__in']).intersection(customer_ids)
+        else:
+            search_params['customer_id__in'] = customer_ids
+    if 'model' in filters:
+        attr_query = MasterAttributes.objects.filter(user=user.id, attribute_model='customer',
+                                attribute_name='model', attribute_value__icontains=filters['model']).\
+                                                    values_list('attribute_id', flat=True)
+        customer_ids = list(CustomerMaster.objects.filter(user=user.id, id__in=attr_query).\
+                                            values_list('customer_id', flat=True))
+        if search_params.get('customer_id__in'):
+            search_params['customer_id__in'] = set(search_params['customer_id__in']).intersection(customer_ids)
+        else:
+            search_params['customer_id__in'] = customer_ids
 
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -16478,6 +16509,7 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
 
     count = 0
     for order in orders_data[start_index: stop_index]:
+        make, model, chassis_number = '', '', ''
         quantity = order['orig_qty']
         return_check_dict = {}
         return_check_dict1 = copy.deepcopy(order)
@@ -16491,12 +16523,23 @@ def get_order_allocation_data(start_index, stop_index, temp_data, search_term, o
         if order_returns:
             quantity -= order_returns
         data_id = count
+        customer = CustomerMaster.objects.filter(user=user.id, customer_id=order['customer_id'])
+        if customer.exists():
+            customer = customer[0]
+            chassis_number = customer.chassis_number
+            attr_data = dict(MasterAttributes.objects.filter(attribute_id=customer.id, attribute_model='customer',
+                                            attribute_name__in=['make', 'model']).values_list('attribute_name', 'attribute_value'))
+            make = attr_data.get('Make')
+            model = attr_data.get('Model')
         temp_data['aaData'].append(OrderedDict((('data_id', data_id),
                                                 ('Vehicle ID', order['customer_id']),
                                                 ('Updated Vehicle Number', updated_customer_dict.get(order['customer_id'])),
                                                 ('Vehicle Number', order['customer_name']),
                                                 ('SKU Code', order['sku__sku_code']),
                                                 ('SKU Description', order['sku__sku_desc']),
+                                                ('Chassis Number', chassis_number),
+                                                ('Make', make),
+                                                ('Model', model),
                                                 ('Allocated Quantity', quantity),
                                                 ('Deallocation Quantity',
                                                  '<input type="number" class="form-control" name="deallocation_qty" min="0" ng-model="showCase.deallocation_qty_val_%s" ng-init="showCase.deallocation_qty_val_%s=0" ng-keyup="showCase.check_dealloc_qty(%s, %s)">' % (str(data_id), str(data_id), str(count), str(data_id))),

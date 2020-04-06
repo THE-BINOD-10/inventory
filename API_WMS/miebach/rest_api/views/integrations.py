@@ -983,7 +983,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                             error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
-            else:
+            elif sku_master:
                 EANNumbers.objects.filter(sku_id=sku_master.id).delete()
                 sku_obj = sku_master
                 sku_obj.ean_number = ''

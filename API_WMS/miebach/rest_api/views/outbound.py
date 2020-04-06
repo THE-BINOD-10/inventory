@@ -16334,6 +16334,7 @@ def insert_allocation_data(request, user=''):
     error_dict = {'quantity': 'Quantity'}
     data_list = []
     picklist_exclude_zones = get_exclude_zones(user)
+    original_order_id = ''
     for ind in range(0, len(myDict['sku_id'])):
         data_dict = {}
         for key, value in myDict.items():
@@ -16437,7 +16438,7 @@ def insert_allocation_data(request, user=''):
             log.info('Parts Allocation failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
             return HttpResponse("Failed")
-    return HttpResponse("Success")
+    return HttpResponse("Order ID %s Created Successfuly" % str(original_order_id))
 
 
 def get_order_allocation_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):

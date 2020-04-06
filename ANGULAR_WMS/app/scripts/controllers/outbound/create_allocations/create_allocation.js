@@ -179,7 +179,7 @@ function CreateAllocations($scope, $filter, $http, $q, Session, colFilters, Serv
               vm.final_data = {total_quantity:0,total_amount:0};
               vm.from_custom_order = false;
             }
-            colFilters.showNoty(data.data);
+            vm.service.showNotyNotHide(data.data);
           }
           vm.bt_disable = false;
         })

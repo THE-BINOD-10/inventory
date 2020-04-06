@@ -3889,7 +3889,7 @@ def get_return_segregation_locations(order_returns, batch_dict, data, user):
     return data
 
 def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False,
-                          batch_dict=None):
+                          batch_dict=None, upload=False):
     order_returns = order_returns[0]
     zone = order_returns.sku.zone
     if zone:
@@ -3902,6 +3902,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
         all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
         all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
     for data in all_data:
+        batch_dict1 = {}
         temp_dict = {'received_quantity': float(order_returns.quantity), 'data': "", 'user': user.id, 'pallet_data': '',
                      'pallet_number': '',
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
@@ -3953,7 +3954,6 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                     batch_dict1 = copy.deepcopy(batch_dict)
                     batch_dict1['transact_id'] = returns_data.id
                     batch_dict1['transact_type'] = 'return_loc'
-                    create_update_batch_data(batch_dict1)
             else:
                 return_location = return_location[0]
                 setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
@@ -3962,7 +3962,13 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                     batch_dict1 = copy.deepcopy(batch_dict)
                     batch_dict1['transact_id'] = return_location.id
                     batch_dict1['transact_type'] = 'return_loc'
-                    create_update_batch_data(batch_dict1)
+            if upload:
+                batch_objs = BatchDetail.objects.filter(**batch_dict1)
+                if not batch_objs.exists():
+                    batch_dict1['creation_date'] = datetime.datetime.now()
+                    batch_obj = BatchDetail.objects.create(**batch_dict1)
+            else:
+                create_update_batch_data(batch_dict1)
             if received_quantity == 0:
                 order_returns.status = 0
                 order_returns.save()
@@ -4149,6 +4155,7 @@ def confirm_sales_return(request, user=''):
                     tax_percent = float(return_dict.get('tax_percent', 0))
                 except:
                     tax_percent = 0
+
                 batch_dict = {'mrp': mrp,
                               'manufactured_date': return_dict.get('manufactured_date', ''),
                               'expiry_date': return_dict.get('expiry_date', ''),

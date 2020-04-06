@@ -6590,7 +6590,9 @@ def check_and_update_order_status(shipped_orders_dict, user):
 
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
-    filt_params = {'order_id': order_detail_id, 'order__sku__sku_code': sku_code, 'order__user': user.id}
+    filt_params = {'order__sku__sku_code': sku_code, 'order__user': user.id}
+    if order_detail_id:
+        filt_params['order_id'] = order_detail_id,
     if sor_id:
         filt_params['sor_id'] = sor_id
     seller_order = SellerOrder.objects.filter(**filt_params)
@@ -8713,27 +8715,26 @@ def user_type_sequence_obj(user, type_name, type_value):
 def create_update_batch_data(batch_dict):
     batch_obj = None
     batch_dict1 = copy.deepcopy(batch_dict)
-    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict1):
-        if batch_dict1['expiry_date']:
-            batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
-        else:
-            batch_dict1['expiry_date'] = None
-        if batch_dict1['manufactured_date']:
-            batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
-        else:
-            batch_dict1['manufactured_date'] = None
-        number_fields = ['mrp', 'buy_price', 'tax_percent']
-        for field in number_fields:
-            try:
-                batch_dict1[field] = float(batch_dict1.get(field, 0))
-            except:
-                batch_dict1[field] = 0
-        batch_objs = BatchDetail.objects.filter(**batch_dict1)
-        if not batch_objs.exists():
-            batch_dict1['creation_date'] = datetime.datetime.now()
-            batch_obj = BatchDetail.objects.create(**batch_dict1)
-        else:
-            batch_obj = batch_objs[0]
+    if batch_dict1['expiry_date']:
+        batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
+    else:
+        batch_dict1['expiry_date'] = None
+    if batch_dict1['manufactured_date']:
+        batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
+    else:
+        batch_dict1['manufactured_date'] = None
+    number_fields = ['mrp', 'buy_price', 'tax_percent']
+    for field in number_fields:
+        try:
+            batch_dict1[field] = float(batch_dict1.get(field, 0))
+        except:
+            batch_dict1[field] = 0
+    batch_objs = BatchDetail.objects.filter(**batch_dict1)
+    if not batch_objs.exists():
+        batch_dict1['creation_date'] = datetime.datetime.now()
+        batch_obj = BatchDetail.objects.create(**batch_dict1)
+    else:
+        batch_obj = batch_objs[0]
     return batch_obj
 
 

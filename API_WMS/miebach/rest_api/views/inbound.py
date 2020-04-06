@@ -23,6 +23,7 @@ from xml.etree.ElementTree import fromstring
 from sync_sku import insert_skus
 from utils import *
 from rest_api.views import *
+from django.db import transaction
 
 log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
@@ -8176,7 +8177,8 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=True, using='reversion')
+@transaction.atomic(using='default')
+@reversion.create_revision(using='reversion')
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("confirm_primary_seg")
@@ -8193,7 +8195,7 @@ def confirm_primary_segregation(request, user=''):
             sellable = float(sellable)
             non_sellable = float(non_sellable)
 
-            segregation_obj = PrimarySegregation.objects.select_for_update().select_related('batch_detail', 'purchase_order').\
+            segregation_obj = PrimarySegregation.objects.using('default').select_for_update().select_related('batch_detail', 'purchase_order').\
                                                             filter(id=data_dict['segregation_id'][ind],
                                                                    status=1)
             if not segregation_obj:

@@ -570,7 +570,7 @@ data_datatable = {  # masters
     'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count', \
     'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory', \
     'InventoryModification' : 'get_inventory_modification', \
-    'ConfirmCycleCount': '`get_cycle_confirmed`', 'VendorStockTable': 'get_vendor_stock', \
+    'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
@@ -5591,16 +5591,6 @@ def get_sku_stock_check(request, user=''):
         skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
         if skuPack_data:
             skuPack_quantity = skuPack_data[0].pack_quantity
-    load_unit_handle = ''
-    if stock_data:
-        load_unit_handle = stock_data[0].sku.load_unit_handle
-    else:
-        if sku_pack_config:
-            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
-                'intransit_quantity': 0, 'skuPack_quantity': skuPack_quantity}))
-        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
-    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     po_search_params = {'open_po__sku__user': user.id, 
                         'open_po__sku__sku_code': sku_code,
                         }
@@ -5613,6 +5603,31 @@ def get_sku_stock_check(request, user=''):
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
 
+
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    '''
+    po_search_params = {'open_po__sku__user': user.id, 
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        print "poOrderedQty:%s, poReceivedQty:%s" %(poOrderedQty, poReceivedQty)
+        intransitQty = poOrderedQty - poReceivedQty
+    '''
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
 

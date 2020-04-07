@@ -495,7 +495,7 @@ class PendingPurchase(models.Model):  #OpenPR
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     requested_user = models.ForeignKey(User)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
-    po_number = models.PositiveIntegerField() # Similar to PurchaseOrder->order_id field
+    po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster, db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
@@ -525,7 +525,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     configName = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User)
     level = models.CharField(max_length=64, default='')
-    validated_by = models.CharField(max_length=64, default='')
+    validated_by = models.CharField(max_length=64, default='') #TODO
     status = models.CharField(max_length=32, default='')
     remarks = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -543,6 +543,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
+    purchase_type = models.CharField(max_length=32, default='PO')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

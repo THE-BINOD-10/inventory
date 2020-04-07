@@ -2379,6 +2379,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'display_dc_invoice': 'display_dc_invoice',
                         'display_order_reference': 'display_order_reference',
                         'enable_pending_approval_pos':'enable_pending_approval_pos',
+                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                         'mandate_invoice_number':'mandate_invoice_number',
                         }
 

@@ -557,7 +557,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions',
+    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions', 'RaiseActualPR': 'get_actual_pr_suggestions',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -939,9 +939,16 @@ def pr_request(request):
 @get_admin_user
 def add_update_pr_config(request,user=''):
     toBeUpdateData = eval(request.POST.get('data', []))
+    configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
+    if configFor == 'actual_pr_save':
+        master_type = 'actual_pr_approvals_conf_data'
+        purchase_type = 'PR'
+    else:
+        master_type = 'pr_approvals_conf_data'
+        purchase_type = 'PO'
     if toBeUpdateData:
         data = toBeUpdateData[0]
-        pr_approvals = PurchaseApprovalConfig.objects.filter(user=user, name=data['name'])
+        pr_approvals = PurchaseApprovalConfig.objects.filter(user=user, name=data['name'], purchase_type=purchase_type)
         existingLevels = list(pr_approvals.values_list('level', flat=True))
             
         mailsMap = data.get('mail_id', {})
@@ -957,6 +964,7 @@ def add_update_pr_config(request,user=''):
                     'min_Amt': data['min_Amt'],
                     'max_Amt': data['max_Amt'],
                     'level': level,
+                    'purchase_type': purchase_type,
                 }
             if not pr_approvals.exists():
                 eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
@@ -976,7 +984,7 @@ def add_update_pr_config(request,user=''):
                     eachConfigId = eachConfig.id
             # To Delete Existing Mails from  Level
             mailsList = [i.strip() for i in mails.split(',')]
-            memQs = MasterEmailMapping.objects.filter(master_type='pr_approvals_conf_data', 
+            memQs = MasterEmailMapping.objects.filter(master_type=master_type, 
                                     master_id=eachConfigId)
             existingMails = memQs.values_list('email_id', flat=True)
             toBeDeletedMails = set(list(existingMails)) - set(mailsList)
@@ -988,7 +996,7 @@ def add_update_pr_config(request,user=''):
                 emailMap = {
                             'user': user, 
                             'master_id': eachConfigId, 
-                            'master_type': 'pr_approvals_conf_data', 
+                            'master_type': master_type, 
                             'email_id': eachMail,
                             }
                 MasterEmailMapping.objects.update_or_create(**emailMap)
@@ -1003,9 +1011,14 @@ def add_update_pr_config(request,user=''):
 @get_admin_user
 def delete_pr_config(request, user=''):
     toBeDeleteData = eval(request.POST.get('data', []))
+    configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
+    if configFor == 'actual_pr_save':
+        purchase_type = 'PR'
+    else:
+        purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData[0].get('name')
-        PurchaseApprovalConfig.objects.filter(user=user, name=configName).delete()
+        PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type).delete()
         status = 'Deleted Successfully'
     else:
         status = 'Something Went Wrong, Please check with Tech Team'
@@ -1019,15 +1032,19 @@ def fetchConfigNameRangesMap(user):
         confMap[name] = (min_Amt, max_Amt)
     return confMap
 
-def get_pr_approvals_configuration_data(user):
-    pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user).order_by('creation_date')
+def get_pr_approvals_configuration_data(user, purchase_type='PO'):
+    if purchase_type == 'PO':
+        master_type = 'pr_approvals_conf_data'
+    elif purchase_type == 'PR':
+        master_type = 'actual_pr_approvals_conf_data'
+    pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).order_by('creation_date')
     pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
         sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'], 
-                                    master_type='pr_approvals_conf_data', user=user).values_list('email_id', flat=True)
+                                    master_type=master_type, user=user).values_list('email_id', flat=True)
         commaSepMailIds = ','.join(sameLevelMailIds)
         eachConfData['mail_id'] = {str(eachConfData['level']):commaSepMailIds}
         if name not in totalConfigData:
@@ -1081,8 +1098,11 @@ def configurations(request, user=''):
     config_dict['prefix_dc_data'] = list(ChallanSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
                                       values('marketplace', 'prefix'))
 
-    config_dict['pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user).values_list('name', flat=True))
-    config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user)
+    config_dict['pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PO').values_list('name', flat=True))
+    config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
+
+    config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
+    config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
 
     config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
                                             type_name='credit_note_sequence').exclude(type_value=''). \

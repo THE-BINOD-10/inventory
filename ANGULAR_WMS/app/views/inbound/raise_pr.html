@@ -1,0 +1,12 @@
+<div class="page-layout" ng-controller="RaisePurchaseRequestCtrl as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body"> 
+    <tabset class="box-tab">
+      <tab heading="Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs">
+        <div ng-include="'views/inbound/raise_pr/raise_purchase_request.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

@@ -46,6 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'move_inventory_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'enable_pending_approval_prs': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -81,6 +82,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
+                     106: 'enable_pending_approval_prs',
                      }
 
   vm.check_box_data = [
@@ -610,6 +612,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
+   name: "Enable Pending For Approval PRs",
+   model_name: "enable_pending_approval_prs",
+   param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Enable Pending For Approval POs",
    model_name: "enable_pending_approval_pos",
    param_no: 105,
@@ -755,7 +764,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   }
   vm.pr_save = function (data, type) {
     if(type =='save') {
-      vm.add_empty_index('', 'save');
+      vm.add_empty_index('', 'save', 'pr_save');
       console.log(vm.model_data['selected_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_pr_config_data'];
       if (!toBeUpdateData[0].name) {
@@ -765,7 +774,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
       } else {
-        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'pr_save'}).then(function(data){
           if(data.message) {
             msg = data.data;
             $scope.showNoty();
@@ -778,13 +787,49 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     } else {
       console.log(type)
       var toBeDeleteData = vm.model_data['selected_pr_config_data'];
-      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData)}).then(function(data){
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData), 'type': 'pr_save'}).then(function(data){
         if(data.message) {
           msg = data.data;
           $scope.showNoty();
           Auth.status();
           vm.baseFunction()
           vm.pr_selected = "";
+        }
+      });
+    }
+  }
+  vm.actual_pr_save = function (data, type) {
+    if(type =='save') {
+      vm.add_empty_index('', 'save', 'actual_pr_save');
+      console.log(vm.model_data['selected_actual_pr_config_data'])
+      var toBeUpdateData = vm.model_data['selected_actual_pr_config_data'];
+      if (!toBeUpdateData[0].name) {
+        Service.showNoty('Enter Configuration name');
+      } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
+        Service.showNoty('Min Amt Should not Exceed Max Amt');
+      } else if (!toBeUpdateData[0]['mail_id']['level0']) {
+        Service.showNoty('Email required !');
+      } else {
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'actual_pr_save'}).then(function(data){
+          if(data.message) {
+            msg = data.data;
+            $scope.showNoty();
+            Auth.status();
+            vm.baseFunction()
+            vm.actual_pr_selected = "";
+          }
+        });
+      }
+    } else {
+      console.log(type)
+      var toBeDeleteData = vm.model_data['selected_actual_pr_config_data'];
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData), 'type': 'actual_pr_save'}).then(function(data){
+        if(data.message) {
+          msg = data.data;
+          $scope.showNoty();
+          Auth.status();
+          vm.baseFunction()
+          vm.actual_pr_selected = "";
         }
       });
     }
@@ -817,15 +862,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   });
 
-  vm.add_empty_index = function(data, operation) {
+  vm.add_empty_index = function(data, operation, pr_type) {
+    var prConfigData = vm.model_data['selected_pr_config_data'];
+    var totalData = vm.model_data['total_pr_config_ranges'];
+    if(pr_type == 'actual_pr_save'){
+      prConfigData = vm.model_data['selected_actual_pr_config_data'];
+      totalData = vm.model_data['total_actual_pr_config_ranges'];
+    }
     if (operation == 'delete') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         if(data.name == tuple.name) {
-          vm.model_data['selected_pr_config_data'].splice(index,1)        
+          prConfigData.splice(index,1)        
         }
       })
     } else if (operation == 'add_email' || operation == 'remove_email') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         if(data.name == tuple.name) {
           if (operation == 'add_email') {
             tuple['mail_id']['level'+Object.keys(tuple['mail_id']).length] = ""
@@ -837,7 +888,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         }
       })
     } else if (operation == 'save') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         angular.forEach(Object.keys(tuple['mail_id']), function(level) {
           var values = tuple.name+level
           var emails = $("."+values).val();
@@ -846,20 +897,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
     } else {
       var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
-      if (vm.model_data['selected_pr_config_data'].length != 0) {
-        var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
+      if (prConfigData.length != 0) {
+        var check_last_record = prConfigData[prConfigData.length -1]
         if (check_last_record['name'] == '') {
           Service.showNoty('please Fill Available One');
         }
       } else {
-        if (vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]) {
-          var min_amt = vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]['max_Amt']+1;
+        if (totalData[totalData.length -1]) {
+          var min_amt = totalData[totalData.length -1]['max_Amt']+1;
           empty_dict['min_Amt'] = min_amt;
-          vm.model_data['selected_pr_config_data'].push(empty_dict);
-          vm.pr_add_show = true;
+          prConfigData.push(empty_dict);
+          if(pr_type == 'actual_pr_save'){
+            vm.actual_pr_add_show = true;
+          } else {
+            vm.pr_add_show = true;
+          }
         } else {
-          vm.model_data['selected_pr_config_data'].push(empty_dict);
-          vm.pr_add_show = true;
+          prConfigData.push(empty_dict);
+          if(pr_type == 'actual_pr_save'){
+            vm.actual_pr_add_show = true;
+          } else {
+            vm.pr_add_show = true;
+          }
         }
       }
     }
@@ -975,8 +1034,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.model_data['prefix_data'] = [];
         vm.model_data['prefix_dc_data'] = [];
         vm.model_data['pr_approvals_conf_data'] = [];
+        vm.model_data['actual_pr_approvals_conf_data'] = [];
         vm.model_data['selected_pr_config_data'] = [];
+        vm.model_data['selected_actual_pr_config_data'] = [];
         vm.model_data['total_pr_config_ranges'] = [];
+        vm.model_data['total_actual_pr_config_ranges'] = [];
         angular.forEach(data.data.prefix_data, function(data){
           vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                           marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -995,6 +1057,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
             vm.model_data.total_pr_config_ranges.push(data_dict)
             vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+          })
+        }
+        if (data.data.actual_pr_approvals_conf_data.length > 0) {
+          var temp_length = data.data.actual_pr_approvals_conf_data.length;
+          angular.forEach(data.data.actual_pr_approvals_conf_data, function(data, index){
+            var data_dict = {}
+            data_dict['name'] = data.name;
+            data_dict['min_Amt'] = data.min_Amt;
+            data_dict['max_Amt'] = data.max_Amt;
+            data_dict['mail_id'] = data.mail_id;
+            temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
+            vm.model_data.total_actual_pr_config_ranges.push(data_dict)
+            vm.model_data.actual_pr_approvals_conf_data.push({pr_name: data.name});
           })
         }
         angular.forEach(vm.model_data, function(value, key) {
@@ -1468,6 +1543,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     })
   }
 
+  // vm.model_data.actual_pr_add_new = true;
+  vm.ActualPRSelected = function(name) {
+    vm.model_data.selected_actual_pr_config_data = []
+    angular.forEach(vm.model_data.total_actual_pr_config_ranges, function(data){
+      if (name == data.name) {
+        vm.model_data.selected_actual_pr_config_data.push(data);
+        vm.actual_pr_add_show = true;
+      }
+    })
+  }
+
   vm.saved_pr_configs = [];
   vm.filterPRConfigs = function() {
     vm.saved_pr_configs = [];
@@ -1477,6 +1563,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     for(var i=0; i < vm.model_data.pr_conf_names.length; i++) {
       if (vm.saved_pr_configs.indexOf(vm.model_data.pr_conf_names[i]) == -1) {
         vm.model_data.pr_name = vm.model_data.pr_conf_names[i];
+        break;
+      }
+    }
+  }
+
+  vm.saved_actual_pr_configs = [];
+  vm.filterActualPRConfigs = function() {
+    vm.saved_pr_configs = [];
+    angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_actual_pr_configs.push(data.name);
+    })
+    for(var i=0; i < vm.model_data.actual_pr_conf_names.length; i++) {
+      if (vm.saved_actual_pr_configs.indexOf(vm.model_data.actual_pr_conf_names[i]) == -1) {
+        vm.model_data.actual_pr_name = vm.model_data.pr_conf_names[i];
         break;
       }
     }

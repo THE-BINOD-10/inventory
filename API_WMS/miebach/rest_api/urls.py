@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
+from rest_api.views.cancel_invoice import *
 #urlpatterns = patterns('rest_api.views',
 tally_api = TallyAPI()
 
@@ -648,7 +649,8 @@ urlpatterns += [
     url(r'^save_update_classification/$',save_update_classification),
     url(r'^delete_classification/$',delete_classification),
 
-
+    #cancel_invoice
+    url(r'^cancel_invoice/$', cancel_invoice),
 
 
 

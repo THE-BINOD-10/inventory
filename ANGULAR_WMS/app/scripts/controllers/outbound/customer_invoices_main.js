@@ -311,46 +311,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           send['data'] = true;
           send['edit_invoice'] = true;
         }
+        var url = "generate_customer_invoice/"
+        if (click_type =='cancel'){
+            url = 'cancel_invoice'
+        }
         send['delivery_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
-        vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
-
+        vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {
-            if(click_type == 'generate') {
-              vm.pdf_data = data.data;
-              if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-                $state.go("app.outbound.CustomerInvoicesMain.InvoiceE");
-                $timeout(function () {
-                  $(".modal-body:visible").html(vm.pdf_data)
-                }, 3000);
-              } else if(Session.user_profile.user_type == "marketplace_user") {
-                $state.go("app.outbound.CustomerInvoicesMain.InvoiceM");
-              } else if(vm.permissions.detailed_invoice) {
-                $state.go("app.outbound.CustomerInvoicesMain.InvoiceD");
-              } else {
-                $state.go("app.outbound.CustomerInvoicesMain.InvoiceN");
-              }
-            } else {
-              var mod_data = data.data;
-              var modalInstance = $modal.open({
-              templateUrl: 'views/outbound/toggle/edit_invoice.html',
-              controller: 'EditInvoice',
-              controllerAs: 'pop',
-              size: 'lg',
-              backdrop: 'static',
-              keyboard: false,
-              resolve: {
-                items: function () {
-                  return mod_data;
-                }
-              }
-              });
+              if(click_type != 'cancel') {
+                if(click_type == 'generate') {
+                  vm.pdf_data = data.data;
+                  if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+                    $state.go("app.outbound.CustomerInvoicesMain.InvoiceE");
+                    $timeout(function () {
+                      $(".modal-body:visible").html(vm.pdf_data)
+                    }, 3000);
+                  } else if(Session.user_profile.user_type == "marketplace_user") {
+                    $state.go("app.outbound.CustomerInvoicesMain.InvoiceM");
+                  } else if(vm.permissions.detailed_invoice) {
+                    $state.go("app.outbound.CustomerInvoicesMain.InvoiceD");
+                  } else {
+                    $state.go("app.outbound.CustomerInvoicesMain.InvoiceN");
+                  }
+                } else {
+                  var mod_data = data.data;
+                  var modalInstance = $modal.open({
+                  templateUrl: 'views/outbound/toggle/edit_invoice.html',
+                  controller: 'EditInvoice',
+                  controllerAs: 'pop',
+                  size: 'lg',
+                  backdrop: 'static',
+                  keyboard: false,
+                  resolve: {
+                    items: function () {
+                      return mod_data;
+                    }
+                  }
+                  });
 
-              modalInstance.result.then(function (selectedItem) {
-                var data = selectedItem;
-              })
-            }
+                  modalInstance.result.then(function (selectedItem) {
+                    var data = selectedItem;
+                  })
+                }
+               } else {
+                 Service.showNoty(data.data.message)
+               }
           }
           vm.bt_disable = false;
         });

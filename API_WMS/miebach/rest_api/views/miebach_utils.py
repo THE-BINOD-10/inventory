@@ -3026,6 +3026,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
         model_data = model_data.values(*lis).distinct()\
                                .annotate(qty=Sum('order__original_quantity'), tot_count=Count('order__original_quantity'))\
                                .annotate(tot_qty=F('qty')/Cast(F('tot_count'), FloatField()))\
+                               .annotate(cancel_qty=Sum('cancelled_quantity'))\
                                .annotate(loc_qty=Sum('picklistlocation__quantity'), res_qty=Sum('picklistlocation__reserved'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -3064,6 +3065,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('SKU Brand', data['order__sku__sku_brand']),
                                                     ('Quantity', data['qty']),
                                                     ('Picked Quantity', data['loc_qty'] - data['res_qty']),
+                                                    ('Cancelled Quantity', data['cancel_qty']),
                                                     ('Warehouse', warehouse_users.get(data['order__sku__user']))
                                                   ))
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
@@ -3130,6 +3132,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', 'NO STOCK'),
                                                             ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', data.picked_quantity),
+                                                            ('Cancelled Quantity', data.cancelled_quantity),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])), ('Customer Name', customer_name),
@@ -3176,6 +3179,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', picked_quantity),
+                                                            ('Cancelled Quantity', data.cancelled_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
                                                             ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),

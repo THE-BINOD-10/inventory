@@ -212,6 +212,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                           var send = {seller_summary_id: ids};
                           if (click_type == 'cancel_inv') {
                              send['cancel'] = true;
+                             var url = 'cancel_invoice/';
                           }
                           vm.bt_disable = true;
                           vm.service.apiCall(url, "GET", send).then(function(data){

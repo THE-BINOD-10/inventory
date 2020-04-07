@@ -1092,6 +1092,7 @@ def switches(request, user=''):
                        'display_order_reference': 'display_order_reference',
                        'mrp_discount':'mrp_discount',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'auto_generate_receive_qty':'auto_generate_receive_qty',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1829,6 +1830,7 @@ def get_supplier_data(request, user=''):
     use_imei = get_misc_value('use_imei', user.id)
     if use_imei == 'true':
         headers.insert(-2, 'Serial Number')
+    auto_generate_receive_qty = get_misc_value('auto_generate_receive_qty', user.id)
     data = {}
     order_id = request.GET['supplier_id']
     sample_order = int(request.GET.get('sample_order', ''))
@@ -1907,13 +1909,17 @@ def get_supplier_data(request, user=''):
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     temp_json = json.loads(temp_json_obj.model_json)
+                    if use_imei =='false' and auto_generate_receive_qty == 'true':
+                        rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
+                    else:
+                        rec_data = temp_json.get('quantity', 0)
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                                     'sku_desc': order_data['sku_desc'],
                                     'weight': temp_json.get('weight', 0),
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                                    'value': temp_json.get('quantity', 0),
+                                    'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price': order_data['price'],
@@ -1938,13 +1944,17 @@ def get_supplier_data(request, user=''):
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
+                if use_imei == 'false' and auto_generate_receive_qty == 'true':
+                    rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
+                else:
+                    rec_data = get_decimal_limit(user.id, order.saved_quantity)
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                  'weight_copy':weight,
                                 'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                 'name': str(order.order_id) + '-' + str(
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                                'value': get_decimal_limit(user.id, order.saved_quantity),
+                                'value': rec_data,
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                 'price': order_data['price'],
                                 'grn_price':order_data['price'],
@@ -3285,7 +3295,6 @@ def confirm_grn(request, confirm_returns='', user=''):
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
-
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0

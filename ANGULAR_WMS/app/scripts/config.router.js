@@ -7,8 +7,8 @@ var LOGIN_STATE = "user.signin",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
-  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
-        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
+  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout', '$http',
+        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout, $http) {
       if(Session.user_profile.request_user_type == "customer") {
         if (Session.roles.permissions.is_portal_lite) {
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
@@ -16,39 +16,64 @@ var app = angular.module('urbanApp')
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
         }
       }
-
+      $rootScope.$redirect = '';
+      $rootScope.$current_pr ='';
       $rootScope.$state = $state;
       $rootScope.$stateParams = $stateParams;
       $rootScope.$on('$stateChangeSuccess', function () {
         window.scrollTo(0, 0);
       });
       FastClick.attach(document.body);
-
-      var skipAsync = false;
-      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
-
-            $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
-
+      if(window.location.href.includes('pr_request')){
+        if(window.location.href.split('pr_request')[1].includes('hash_code')) {
+          Session.unset();
+          $rootScope.$redirect = 'pr_request';
+          var data = window.location.href.split('pr_request')[1];
+          swal2({
+            title: 'Redirecting to Validate PO',
+            text: 'User Authentication in Progress..',
+            imageUrl: 'images/default_loader.gif',
+            imageWidth: 150,
+            imageHeight: 150,
+            imageAlt: 'Custom image',
+            showConfirmButton:false,
+          })
+          $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
+           if (resp) {
+            resp = resp.data;
+            $rootScope.$current_pr = resp.aaData['aaData'][0]
+            localStorage.clear();
+            if (resp.message != "Fail") {
+              Session.set(resp.data)
+              swal2.close()
+              $state.go("app.inbound.RaisePo");
+              }
+            }
+        });
+        }
+      } else {
+        var skipAsync = false;
+        var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
+          $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
               var prms = toPrms;
               if(next.name == from.name) {
-
                 return;
               } else if ((states.indexOf(next.name) > -1) && Session.userName) {
-
-                if(confirm("Do you really want to logout from mieone?")) {
-                  Auth.logout();
+                if ($rootScope.$redirect) {
+                  $state.go("app.masters.SKUMaster");
                 } else {
-                  event.preventDefault();
-                  $timeout(function(){$(".preloader").removeClass("ng-show").addClass("ng-hide");}, 2000);
-                }
+                 if(confirm("Do you really want to logout from mieone?")) {
+                   Auth.logout();
+                 } else {
+                   event.preventDefault();
+                   $timeout(function(){$(".preloader").removeClass("ng-show").addClass("ng-hide");}, 2000);
+                 }
+               }
               }
-
               if (skipAsync) {
-
                 skipAsync = false;
                 return;
               }
-
               if (states.indexOf(next.name) == -1) {
 
                 event.preventDefault();
@@ -134,7 +159,7 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on(AUTH_EVENTS.unAuthorized, goToLogin);
             $rootScope.$on(AUTH_EVENTS.logoutSuccess, goToLogin);
-
+          }
         },
     ])
   .config(['$stateProvider', '$urlRouterProvider',
@@ -709,9 +734,37 @@ var app = angular.module('urbanApp')
           abstract: true,
           url: '/inbound',
         })
+        // .state('app.inbound.RaisePr', {
+        //   url: '/RaisePR',
+        //   permission: 'add_openpr|change_openpr',
+        //   templateUrl: 'views/inbound/raise_purchase_request.html',
+        //   resolve: {
+        //       deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+        //         return $ocLazyLoad.load([
+        //           'scripts/controllers/inbound/raise_purchase_request.js'
+        //         ])
+        //       }]
+        //   },
+        //   data: {
+        //     title: 'Raise PR',
+        //   }
+        // })
+        // .state('app.inbound.RaisePr.OpenPr', {
+        //   url: '/PurchaseRequest',
+        //   templateUrl: 'views/inbound/toggle/raise_pr.html'
+        //   })
+        // .state('app.inbound.RaisePr.PurchaseOrder', {
+        //   url: '/PurchaseOrder',
+        //   templateUrl: 'views/inbound/toggle/raise_purchase.html'
+        //   })
+        // .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
+        //   url: '/ApprovePR',
+        //   templateUrl: 'views/inbound/toggle/approve_pr.html'
+        //   })
+
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
-          permission: 'add_openpo|change_openpo|add_intransitorders',
+          permission: 'add_openpo|change_openpo|add_intransitorders|add_pendingpurchase|change_pendingpurchase|view_pendingpurchase',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -728,6 +781,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_po/repeat_purchase_order.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_purchase_request.js'
                   ])
                 });
               }]
@@ -751,6 +808,18 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePo.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
+          })
+          .state('app.inbound.RaisePo.PurchaseRequest', {
+          url: '/PendingForApprovalPurchaseOrder',
+          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          })
+          .state('app.inbound.RaisePo.ApprovePurchaseRequest', {
+          url: '/ApprovePR',
+          templateUrl: 'views/inbound/toggle/approve_pr.html'
+          })
+          .state('app.inbound.RaisePo.SavedPurchaseRequest', {
+          url: '/SavedPR',
+          templateUrl: 'views/inbound/toggle/saved_pr.html'
           })
 
 
@@ -1854,13 +1923,25 @@ var app = angular.module('urbanApp')
       // Track Orders
       .state('app.PaymentTracker', {
           url: '/PaymentTracker',
-          templateUrl: 'views/payment_tracker/payment_tracker.html',
+          templateUrl: 'views/payment_tracker/alternative_payment_tab.html',
           authRequired: true,
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/payment_tracker/payment_tracker.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/payment_tracker_inbound.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/inbound_payment_report.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -1878,11 +1959,15 @@ var app = angular.module('urbanApp')
                   'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
                     'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
                 }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                    'scripts/controllers/payment_tracker/inbound_payment_report.js'
                   ])
                 }).then( function() {
                     return $ocLazyLoad.load([{
@@ -2521,6 +2606,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Bulk Stock Update',
+          }
+        })
+        .state('app.reports.creditNoteForm', {
+          url: '/creditNoteForm',
+          templateUrl: 'views/reports/credit_note_form.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/credit_note_form.js');
+              }]
+          },
+          data: {
+            title: 'Credit Note Form (Oracle Upload File)',
           }
         })
       // configuration route

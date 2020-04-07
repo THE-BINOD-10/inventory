@@ -555,7 +555,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
                                                     ('PO Number', get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
-                                                    ('WMS Code', po_obj.open_po.sku.wms_code),
+                                                    ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
                                                     ('Ordered Quantity', purchase_order['total_ordered']),
                                                     ('Amount', total_amt),
@@ -845,7 +845,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             qty = data['quantity']
             updated_user_name = user.username
             avg_cost = 0
-            version_obj = Version.objects.get_for_object(data['cycle'])
+            version_obj = Version.objects.using('reversion').get_for_object(data['cycle'])
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
@@ -1318,7 +1318,7 @@ def excel_reports(request, user=''):
         headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
         if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
             headers = ['Voucher Type', 'Invoice Number','Invoice Date','Party Name','Address1','Address2','Address3','State Name',
-                        'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Sales Ledger',
+                        'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Discount Amount','Sales Ledger',
                         'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',
                         'Part Number','Unit','Group','MRP','Selling price(inc Tax)','Cost price (Inc Tax)','HSN Code','GST']
         extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
@@ -1326,6 +1326,36 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
+            squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
+                'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',
+                'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule',
+                'Purchase Order Distribution', 'Receipt', 'Receipt Line', 'Consumption Advice',
+                'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location',
+                'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1',
+                'Project Information', 'Multiperiod Accounting Accrual Account'
+                ]
+            report_data['New_aaData'] = []
+            sortedData = OrderedDict()
+            for row in report_data['aaData']:
+                ordList = []
+                for k, v in row.items():
+                    if k in squareBracketCols:
+                        ordList.append((k+'[..]', v),)
+                    else:
+                        ordList.append((k, v),)
+                sortedData.setdefault(row['*Invoice Header Identifier'], []).append(OrderedDict(ordList))
+                #report_data['New_aaData'].append(OrderedDict(ordList))
+            #report_data['aaData'] = report_data['New_aaData']
+            for k, v in sortedData.items():
+                if len(v) > 1:
+                    for x in v:
+                        report_data['New_aaData'].append(x)
+                else:
+                    report_data['New_aaData'].append(v[0])
+            report_data['aaData'] = report_data['New_aaData']
+            headers = report_data['aaData'][0].keys()
+
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -1815,12 +1845,12 @@ def print_purchase_order_form(request, user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN')
@@ -2234,3 +2264,11 @@ def print_basa_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_form_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_form_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

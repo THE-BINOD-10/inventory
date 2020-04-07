@@ -75,9 +75,10 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
         purchase_order_dict.update(discrpency_po_dict)
         putaway_data['putaway_key'].append(purchase_order_dict)
     if not print_des:
-        incremental_update = incremental_object
-        incremental_update.value = discrepency_number + 1
-        incremental_update.save()
+        if incremental_object:
+            incremental_update = incremental_object
+            incremental_update.value = discrepency_number + 1
+            incremental_update.save()
     sku_list = putaway_data[putaway_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     discrepency_data_dict = {'data': putaway_data, 'data_slices': sku_slices,

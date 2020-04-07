@@ -188,7 +188,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
-        temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
                                                 ('Available Quantity', quantity),
@@ -1241,7 +1241,7 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_move_inventory(request, user=''):
     # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     # if not data:
@@ -1250,6 +1250,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
+    reversion.set_comment("insert_move_inv")
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -1592,7 +1593,7 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
-            OrderedDict((('Vendor Name', data['vendor__name']), ('WMS Code', data['sku__wms_code']),
+            OrderedDict((('Vendor Name', data['vendor__name']), ('SKU Code', data['sku__wms_code']),
                          ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
                          ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
                          )))
@@ -3271,10 +3272,10 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('sku_code', data['sku__sku_code']), ('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
                          ('ean_number', data['sku__ean_number']),
-                         ('sheet', sheet),
-                         ('vendor', vendor),
+                         ('Sheet', sheet),
+                         ('Vendor', vendor),
                          ('reset_stock', reset_stock),
-                         ('searchable', searchable),
+                         ('Searchable', searchable),
                          ('aisle', aisle),
                          ('rack', rack),
                          ('shelf', shelf),
@@ -3523,6 +3524,11 @@ def ba_to_sa_calculate_now(request, user=''):
         log.info(
             "BA to SA calculating saving for user %s started at %s" % (user.username, str(datetime.datetime.now())))
         for data in master_data:
+            sku_avg_sale_per_day_units = 0
+            sku_avg_sale_per_day_value = 0
+            cumulative_contribution = 0
+            sku_avail_qty = 0
+            classification = 0
             if not total_avg_sale_per_day_units:
                 min_stock = 20
                 max_stock = 30
@@ -3556,6 +3562,7 @@ def ba_to_sa_calculate_now(request, user=''):
                         # min_days, max_days, min_stock, max_stock = 0, 0, 0, 0
                         min_stock = 20
                         max_stock = 30
+                        required_inventory = 30
                     else:
                         min_days = sku_rep_dict['min_days']  # replenishment_obj[0].min_days
                         max_days = sku_rep_dict['max_days']  # replenishment_obj[0].max_days
@@ -3572,14 +3579,18 @@ def ba_to_sa_calculate_now(request, user=''):
                                         'min_stock_qty': min_stock,
                                         'max_stock_qty': max_stock, 'status': 1}
 
+            remarks1 = ''
             if not sku_avg_sale_per_day_units:
                 replenishment_qty = 30
-                remarks = 'No Sales Data Found for in last 31 Days'
-            elif float(sku_avail_qty) < 1.5 * float(peak) :
+                remarks1 = 'No Sales Data Found for in last 31 Days'
+            elif float(sku_avail_qty) < min_stock:#1.5 * float(peak) :
                 replenishment_qty = max_stock - sku_avail_qty
                 replenishment_qty = int(replenishment_qty)
                 needed_qty = replenishment_qty
-            else :
+                if replenishment_qty < 0:
+                    replenishment_qty = 0
+                    remarks = 'Available Quantity is more than Min Stock'
+            else:
                 remarks = 'Available Quantity is more than Min Stock'
                 replenishment_qty = 0
                 ba_stock_objs = []
@@ -3595,21 +3606,26 @@ def ba_to_sa_calculate_now(request, user=''):
                 if sku_avail_qty:
                     continue
             ba_stock_dict = ba_sku_avail_qty.get(data.id, {})
-            if replenishment_qty < 20:
-                replenishment_qty = 20
+            #if replenishment_qty < 20:
+            #    replenishment_qty = 20
 
             if data.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=data.sku_code,
                                                             attribute_name='Carton/Case Size').only('attribute_value')
+
                 if sku_attr_obj:
                     try:
                         round_of_value = int(sku_attr_obj[0].attribute_value)
                     except:
                         round_of_value = 0
                     if round_of_value:
-                        replenishment_qty = int(
-                            (replenishment_qty + (round_of_value - 1)) // round_of_value * round_of_value)
-
+                        replenishment_rounded = int((replenishment_qty + (round_of_value - 1)) // round_of_value * round_of_value)
+                        if (replenishment_rounded + sku_avail_qty) > max_stock:
+                            replenishment_qty = max_stock - sku_avail_qty
+                        else:
+                            replenishment_qty = replenishment_rounded
+                elif max_stock < (replenishment_qty+sku_avail_qty):
+                    replenishment_qty = max_stock - sku_avail_qty
             if ba_stock_dict:
                 total_ba_stock = ba_stock_dict[
                     'total_quantity']  # ba_stock_objs.aggregate(Sum('sellerstock__quantity'))['sellerstock__quantity__sum']
@@ -3628,6 +3644,9 @@ def ba_to_sa_calculate_now(request, user=''):
                     else:
                         suggested_qty = needed_qty
                         needed_qty = 0
+                    remarks = ''
+                    if remarks1:
+                        remarks = remarks1
                     sku_classification_dict = {'sku_id': data.id, 'avg_sales_day': sku_avg_sale_per_day_units,
                                                'avg_sales_day_value': sku_avg_sale_per_day_value,
                                                'cumulative_contribution': cumulative_contribution,
@@ -3637,7 +3656,7 @@ def ba_to_sa_calculate_now(request, user=''):
                                                'avail_quantity': total_ba_stock,
                                                'sku_avail_qty': sku_avail_qty,
                                                'dest_location_id': locations[0].id, 'seller_id': seller_master.id,
-                                               'min_stock_qty': min_stock, 'max_stock_qty': max_stock,
+                                               'min_stock_qty': min_stock, 'max_stock_qty': max_stock, 'remarks': remarks,
                                                'status': 1}
                     # exist_obj = SkuClassification.objects.filter(sku_id=data.id, classification=classification,
                     #                                             source_stock_id=ba_stock_id, status=1,

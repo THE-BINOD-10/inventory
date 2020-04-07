@@ -227,7 +227,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
         temp_data['aaData'].append(OrderedDict(
-            (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
+            (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
@@ -1030,14 +1030,14 @@ def check_update_hot_release(data, value):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
+    reversion.set_comment("update_sku")
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
-    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1097,7 +1097,6 @@ def update_sku(request, user=''):
                 value = 1
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
-                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             elif key == 'youtube_url':
                 if data.youtube_url != request.POST.get('youtube_url', ''):
                     youtube_update_flag = True
@@ -2486,11 +2485,12 @@ def get_zones_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
+    reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']

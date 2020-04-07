@@ -347,6 +347,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "add_pricemaster",
                  },
+                 {
+                   title: "SKU Substitute Download/ Upload",
+                   download: "Download SKU Form",
+                   upload: "Upload SKU Form",
+                   durl: "sku_substitutes_form/",
+                   uurl: "sku_substitutes_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: true,
+                   perm: "add_skumaster"
+                 },
                 ]
 
   $scope.download = function(data) {

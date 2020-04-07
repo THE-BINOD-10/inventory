@@ -55,7 +55,7 @@
               'SKUCode': value.sku_code,
               'price': value.unit_price,
               'discount': value.discount,
-              'selling_price': value.selling_price,
+              'selling_price': parseFloat((Math.abs(value.selling_price)).toFixed(2)/value.quantity),
               'search': value.name,
               'url': '',
               'sgst': value.sgst_percent,

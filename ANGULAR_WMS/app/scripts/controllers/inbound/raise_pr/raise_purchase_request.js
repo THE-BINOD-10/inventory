@@ -106,7 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   });
 
     vm.update = false;
-    vm.title = 'Raise PO';
+    vm.title = 'Raise PR';
     vm.bt_disable = true;
     vm.vendor_receipt = false;
 
@@ -226,7 +226,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data['pr_number'] = aData['PR Number'];
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
-          vm.title = 'Validate PO';
+          vm.title = 'Validate PR';
           vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
@@ -249,7 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.dynamic_route($rootScope.$current_pr);
     }
     vm.base = function() {
-      vm.title = "Raise PO";
+      vm.title = "Raise PR";
       vm.vendor_produce = false;
       vm.confirm_print = false;
       vm.update = false;
@@ -730,10 +730,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
         if(data.message) {
-          if(data.data.available_quantity) {
+          // if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
-          }
+          // }
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
           }

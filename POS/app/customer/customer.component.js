@@ -236,8 +236,8 @@
     }
 
     function selectedItemChange(item) {
-      console.log(urlService)
       if (!(typeof(item) == "undefined")) {
+        urlService.load_summary_data = false;
         self.customer = urlService.current_order.customer_data = item;
         $log.info('Item changed to ' + JSON.stringify(item));
       }
@@ -325,7 +325,6 @@
         }
        urlService.current_order.customer_data.Number = self.searchText;
        urlService.current_order.customer_data.value = self.searchText;
-       console.log(urlService.current_order.customer_data);
     }
 
     self.checkNumber = checkNumber;

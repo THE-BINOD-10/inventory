@@ -84,17 +84,15 @@
       urlService.current_order.summary.return = 0;
       self.order = urlService.current_order.summary;
     }
+    
     self.on_data_change = function(data){
       if (data == 'remove') {
         self.order_summary_refresh();
-        console.log(urlService);
       } else {
         urlService.current_order.summary.total_paid = 0;
         urlService.current_order.summary.pay = 0;
         urlService.current_order.summary.return = 0;
         self.order = urlService.current_order.summary;
-        console.log(urlService);
-        console.log('add');
       }
     }
     //user different clear the data
@@ -146,10 +144,12 @@
       });
 
       $scope.$on('change_current_order', function(){
-
         self.order = urlService.current_order.summary;
       });
-
+      self.load_summary = function(){
+        self.order = urlService.current_order.summary;
+        urlService.load_summary_data = false;
+      }
 
       var temp_url=urlService.mainUrl+"rest_api/get_staff_members_list/";
       $http({

@@ -425,7 +425,7 @@
           }
         }
       }
-      if (urlService.returns_total_paid) {
+      if (urlService.returnsView && urlService.returns_total_paid) {
         urlService.current_order.summary.total_paid = urlService.current_order.summary.total_amount;
       }
       if(self.mrp_discount){
@@ -615,11 +615,6 @@
         self.table_headers = ( self.skus.length>0 )? true : false;
       })
 
-
-
-
-
-
       self.update_customer_order = update_customer_order;
       function update_customer_order(data) {
         console.log('confirm');
@@ -771,7 +766,6 @@
                                       "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
                                       "order_date":'', 'staff_member': urlService.default_staff_member},
                                       "money_data": {}};
-          console.log(urlService.hold_data);
           self.skus = urlService.current_order.sku_data;
           self.table_headers = false;
           manageData.prepForBroadcast("clear");
@@ -1007,7 +1001,6 @@
 
       self.changePrice = changePrice;
       function changePrice(item, prev) {
-        console.log(item);
         if(item.price !== prev) {
 
             for (var i = 0; i < self.skus.length ; i ++) {
@@ -1071,6 +1064,7 @@
         if (!(typeof(item) == "undefined")) {
           update_search_results([item], item.SKUCode);
           cal_total();
+          urlService.load_summary_data = true;
           self.searchText = "";
         }
       }

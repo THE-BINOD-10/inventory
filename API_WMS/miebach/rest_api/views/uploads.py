@@ -4525,6 +4525,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     index_status = {}
     order_mapping = get_sales_returns_mapping(reader, file_type, user)
     count = 1
+    returns_list  = []
 
     for row_idx in range(1, no_of_rows):
         all_data = []
@@ -4645,13 +4646,16 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_data['quantity'] = order_quantity
                     order_quantity = 0
                 else:
-                    order_data['quantity'] = order_quantity - original_quantity
+                    order_data['quantity'] = original_quantity
                     order_quantity -= original_quantity
                 order_data['order_id'] = order.id
                 order_object.status = 4
                 order_object.save()
                 returns = OrderReturns(**order_data)
+                if not returns.return_id:
+                    returns.return_id = 'MN%s' % returns.id
                 returns.save()
+                returns_list.append(returns)
                 order_tracking = OrderTracking.objects.filter(order_id=order_object.id, status='returned')
                 if order_tracking.exists():
                     order_tracking = order_tracking[0]
@@ -4661,19 +4665,26 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     OrderTracking.objects.create(order_id=order_object.id, status='returned', quantity=order_data['quantity'],
                                          creation_date=datetime.datetime.now(),
                                          updation_date=datetime.datetime.now())
+            if order_quantity:
+                del order_data['order_id']
+                order_data['quantity'] = order_quantity
+                returns = OrderReturns(**order_data)
+                if not returns.return_id:
+                    returns.return_id = 'MN%s' % returns.id
+                returns.save()
+                returns_list.append(returns)
+
             if order_data.get('seller_order_id', ''):
                 SellerOrder.objects.filter(id=order_data['seller_order_id']).update(status=4)
 
-            if not returns.return_id:
-                returns.return_id = 'MN%s' % returns.id
-            returns.save()
+
             if not batch_data:
                 if order_detail[0].picklist_set.filter()[0].stock:
                     batch_detail = order_detail[0].picklist_set.filter()[0].stock.batch_detail
                     batch_data = batch_detail.__dict__
                     del batch_data['_state']
                     del batch_data['id']
-            save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data, upload=True)
+            save_return_locations(returns_list, all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data, upload=True)
     return 'Success'
 
 

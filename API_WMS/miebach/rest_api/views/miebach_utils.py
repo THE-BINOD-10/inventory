@@ -5116,7 +5116,7 @@ def get_order_summary_data(search_params, user, sub_user):
             if data.get('sellerordersummary__order_status_flag','') != 'cancelled':
                 tally_report = tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary)
                 if tally_report:
-                temp_data['aaData'].append(tally_report)
+                    temp_data['aaData'].append(tally_report)
         else:
             temp_data['aaData'].append(aaData)
     return temp_data

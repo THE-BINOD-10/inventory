@@ -1382,6 +1382,9 @@ def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fna
     for row_idx in range(1, no_of_rows):
         cell_data = reader.row_values(row_idx)
         skus = map(lambda sku: str(sku), cell_data)
+        for sku in skus:
+            if 'invalid' in sku.lower():
+                skus.remove(sku)
         skus = ' '.join(skus).split()
         sku_records = SKUMaster.objects.filter(user=user.id, sku_code__in=skus).values('sku_code', 'id')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
@@ -1857,6 +1860,9 @@ def substitutes_upload(request, reader, user, no_of_rows, no_of_cols, fname, fil
     for row_idx in range(1, no_of_rows):
         cell_data = reader.row_values(row_idx)
         skus = map(lambda sku: str(sku), cell_data)
+        for sku in skus:
+            if 'invalid' in sku.lower():
+                skus.remove(sku)
         skus = ' '.join(skus).split()
         for sku in skus:
             substitutes_list = skus

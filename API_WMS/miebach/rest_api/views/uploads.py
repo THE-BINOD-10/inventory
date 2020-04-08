@@ -4495,7 +4495,10 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 'qt']
             if not return_quantity:
                 return_quantity = 0
-            if order_detail.original_quantity < return_quantity + float(quantity):
+            order_quantity = order_detail.original_quantity
+            if order_detail.status == 3:
+                order_quantity = order_quantity - order_detail.quantity
+            if order_quantity  < return_quantity + float(quantity):
                 index_status.setdefault(row_idx, set()).add(
                     'Returned Quantity is more than Order Quantity {} Quantity Already Returned ', return_quantity)
 
@@ -4606,7 +4609,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_data['seller_id'] = seller_order.seller_id
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                order_detail = OrderDetail.objects.exclude(status=3).filter(sku__user=user.id,
+                order_detail = OrderDetail.objects.filter(sku__user=user.id,
                                                                       sellerorder__seller__seller_id=seller_id,
                                                                       sku__wms_code=sku_code). \
                     annotate(ret=Sum(F('orderreturns__quantity')),
@@ -4621,11 +4624,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 order_data['quantity'] = 1
         if seller_order:
             order_detail = OrderDetail.objects.filter(id=seller_order.order.id)
-        if order_detail:
-            order_object = order_detail[0]
-            order_data['order_id'] = order_detail[0].id
-            order_detail[0].status = 4
-            order_detail[0].save()
+
         if not order_data['return_date']:
             order_data['return_date'] = datetime.datetime.now()
 
@@ -4634,17 +4633,34 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
         if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
             # if order_data.get('seller_order_id', '') and 'order_id' in order_data.keys():
             #    del order_data['order_id']
-            returns = OrderReturns(**order_data)
-            returns.save()
-            order_tracking = OrderTracking.objects.filter(order_id=order_object.id, status='returned')
-            if order_tracking.exists():
-                order_tracking = order_tracking[0]
-                order_tracking.quantity = float(order_tracking.quantity) + order_data['quantity']
-                order_tracking.save()
-            else:
-                OrderTracking.objects.create(order_id=order_object.id, status='returned', quantity=order_data['quantity'],
-                                             creation_date=datetime.datetime.now(),
-                                             updation_date=datetime.datetime.now())
+            order_quantity = float(order_data['quantity'])
+            for order in  order_detail:
+                if order_quantity <= 0 :
+                    continue
+                order_object = order
+                original_quantity = order_object.original_quantity
+                if order_object.status==3:
+                    original_quantity = original_quantity - order_object.quantity
+                if original_quantity >= order_quantity:
+                    order_data['quantity'] = order_quantity
+                    order_quantity = 0
+                else:
+                    order_data['quantity'] = order_quantity - original_quantity
+                    order_quantity -= original_quantity
+                order_data['order_id'] = order.id
+                order_object.status = 4
+                order_object.save()
+                returns = OrderReturns(**order_data)
+                returns.save()
+                order_tracking = OrderTracking.objects.filter(order_id=order_object.id, status='returned')
+                if order_tracking.exists():
+                    order_tracking = order_tracking[0]
+                    order_tracking.quantity = float(order_tracking.quantity) + order_data['quantity']
+                    order_tracking.save()
+                else:
+                    OrderTracking.objects.create(order_id=order_object.id, status='returned', quantity=order_data['quantity'],
+                                         creation_date=datetime.datetime.now(),
+                                         updation_date=datetime.datetime.now())
             if order_data.get('seller_order_id', ''):
                 SellerOrder.objects.filter(id=order_data['seller_order_id']).update(status=4)
 

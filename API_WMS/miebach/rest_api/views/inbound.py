@@ -2591,10 +2591,12 @@ def get_supplier_data(request, user=''):
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
-                orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
+                po_quantity = float(order_data['order_quantity']) - float(order.received_quantity) - float(sum(order.discrepancy_set.filter().values_list('quantity',flat=True)))
+                if po_quantity > 0 :
+                    orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                  'weight_copy':weight,
-                                'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
+                                'po_quantity': po_quantity,
                                 'name': str(order.order_id) + '-' + str(
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': get_decimal_limit(user.id, order.saved_quantity),

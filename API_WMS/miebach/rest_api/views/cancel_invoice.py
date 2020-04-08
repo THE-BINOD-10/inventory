@@ -29,7 +29,7 @@ def cancel_invoice(request, user=''):
         else:
             cancel_invoice_serial = IncrementalTable.objects.filter(user=user.id,type_name='cancel_invoice')[0].value
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
-        if request.GET.get('delivery_challan',''):
+        if request.GET.get('delivery_challan', ''):
             if market_place:
                 sell_ids['seller_order__order__order_id__in'] = sell_ids['invoice_number__in']
             else:
@@ -42,8 +42,11 @@ def cancel_invoice(request, user=''):
                 order_detail = order.seller_order.order
             else:
                 order_detail = order.order
-            order_detail.quantity = cancelled_quantity
-            order_detail.status = 3
+            if order_detail.status == 3:
+                order_detail.quantity = order_detail.quantity + cancelled_quantity
+            else:
+                order_detail.quantity = cancelled_quantity
+                order_detail.status = 3
             order_detail.save()
             picklist = order.picklist
             picklist.cancelled_quantity = cancelled_quantity

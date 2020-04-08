@@ -1551,9 +1551,8 @@ def get_orders(request):
                     sku_status = 'Open'
             shipment_info = ShipmentInfo.objects.filter(order__user=user.id, order_id=data.id)
             if shipment_info.exists():
-                shipment_info = shipment_info[0]
-                dispatched_quantity = shipment_info.shipping_quantity
-                picked_quantity_sku = 0
+                dispatched_quantity = shipment_info.aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                picked_quantity_sku -= dispatched_quantity
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'status':sku_status,'unit_price':data.unit_price,

@@ -1015,6 +1015,19 @@ BASA_REPORT_DICT = {
   'print_url': 'print_basa_report',
 }
 
+CANCEL_INVOICE_REPORT_DICT = {
+  'filters': [
+      {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+      {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+      {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+      {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+
+  ],
+  'dt_headers': ['Invoice Number','Order ID','SKU Code','Quantity','Cancelled Date'],
+  'dt_url': 'get_cancel_invoice_report', 'excel_name': 'get_cancel_invoice_report',
+  'print_url': 'print_cancel_invoice_report',
+}
+
 CURRENT_STOCK_REPORT_DICT = {
     'filters': [
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -1207,6 +1220,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'financial_report': FINANCIAL_REPORT_DICT,
                      'bulk_stock_update': BULK_STOCK_UPDATE,
                      'credit_note_form_report': CREDIT_NOTE_FORM_REPORT_DICT,
+                     'cancel_invoice_report':CANCEL_INVOICE_REPORT_DICT,
                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -9825,4 +9839,81 @@ def get_credit_note_form_report_data(search_params, user, sub_user):
                         ordTuple = (col, 'TODO')
                 ordList.append(ordTuple)
             temp_data['aaData'].append(OrderedDict(ordList))
+    return temp_data
+
+
+def get_cancel_invoice_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_po_reference
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    marketplace=False
+    if user.userprofile.user_type == 'marketplace_user':
+        marketplace = True
+    search_parameters = {}
+    lis = ['invoice_number', 'order__order_id','order__sku__wms_code','quantity','updation_date']
+    if marketplace:
+        search_parameters['seller_order__order__user'] = user.id
+        search_parameters['seller_order__order__sku_id__in'] = sku_master_ids
+    else:
+        search_parameters['order__user'] = user.id
+        search_parameters['order__sku_id__in'] = sku_master_ids
+
+    search_parameters['quantity__gt'] = 0
+    search_parameters['order_status_flag'] = 'cancelled'
+    temp_data = copy.deepcopy(AJAX_DATA)
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['updation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['updation_date__gt'] = search_params['to_date']
+    if 'invoice_number' in search_params:
+        search_parameters['full_invoice_number'] = search_params['invoice_number']
+    if 'order_id ' in search_params:
+        if marketplace:
+            search_parameters['seller_order__order__original_order_id'] = search_params['order_id']
+        else:
+            search_parameters['order__original_order_id'] = search_params['order_id']
+    if 'sku_code' in search_params:
+        search_parameters['seller_po_summary__purchase_order__open_po__sku__wms_code'] = search_params['sku_code']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    data=['order__original_order_id','full_invoice_number','order__sku__wms_code']
+    if marketplace:
+        data = ['seller_order__order__original_order_id', 'full_invoice_number', 'seller_order__order__sku__wms_code']
+    seller_order_summary = SellerOrderSummary.objects.filter(**search_parameters)
+    model_data = seller_order_summary.values(*data).distinct().annotate(tsum=Sum('quantity'))
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+
+    for data in model_data:
+        if marketplace:
+            order_id = data['seller_order__order__original_order_id']
+            sku_code = data['seller_order__order__sku__wms_code']
+            date = seller_order_summary.filter(seller_order__order__original_order_id=order_id,
+                                               seller_order__order__sku__wms_code=sku_code,full_invoice_number = data['full_invoice_number'])[0].updation_date
+        else:
+            order_id = data['order__original_order_id']
+            sku_code = data['order__sku__wms_code']
+            date = seller_order_summary.filter(order__original_order_id=order_id,
+                                               order__sku__wms_code=sku_code,
+                                               full_invoice_number=data['full_invoice_number'])[0].updation_date
+
+
+        cancelled_date = get_local_date(user, date)
+        temp_data['aaData'].append(OrderedDict((('Invoice Number',data['full_invoice_number']),
+                                                ('Order ID',order_id),('SKU Code',sku_code),
+                                                ('Quantity',data['tsum']),('Cancelled Date',cancelled_date))))
     return temp_data

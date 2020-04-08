@@ -2580,6 +2580,18 @@ var app = angular.module('urbanApp')
             title: 'BASA Report',
           }
         })
+        .state('app.reports.CancelledInvoicesReport', {
+          url: '/CancelInvoiceReport',
+          templateUrl: 'views/reports/cancel_invoice_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/cancel_invoice_report.js');
+              }]
+          },
+          data: {
+            title: 'Cancelled Invoices Report',
+          }
+        })
         .state('app.reports.BulkStockUpdate', {
           url: '/BulkStockUpdate',
           templateUrl: 'views/reports/bulk_stock_update.html',

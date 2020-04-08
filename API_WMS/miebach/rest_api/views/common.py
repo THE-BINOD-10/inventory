@@ -811,16 +811,19 @@ def add_extra_permissions(user):
 def findReqConfigName(user, totalAmt):
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user)
-    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-        min_Amt, max_Amt = priceRanges
-        if totalAmt <= min_Amt:
+    if configNameRangesMap:
+        for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+            min_Amt, max_Amt = priceRanges
+            if totalAmt <= min_Amt:
+                reqConfigName = confName
+                break
+            elif min_Amt <= totalAmt <= max_Amt:
+                reqConfigName = confName
+                break
+        else:
             reqConfigName = confName
-            break
-        elif min_Amt <= totalAmt <= max_Amt:
-            reqConfigName = confName
-            break
     else:
-        reqConfigName = confName
+        reqConfigName = ''
     return reqConfigName
 
 
@@ -950,13 +953,16 @@ def add_update_pr_config(request,user=''):
         data = toBeUpdateData[0]
         pr_approvals = PurchaseApprovalConfig.objects.filter(user=user, name=data['name'], purchase_type=purchase_type)
         existingLevels = list(pr_approvals.values_list('level', flat=True))
-            
         mailsMap = data.get('mail_id', {})
         updatingLevels = mailsMap.keys()
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
         if tobeDeletedLevels:
             for eachLevel in tobeDeletedLevels:
-                pr_approvals.filter(level=eachLevel).delete()
+                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
+                if tobeDeleteQs.exists():
+                    tobeDeleteId = tobeDeleteQs[0].id
+                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete() 
+                    tobeDeleteQs.delete()               
         for level, mails in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
@@ -1018,7 +1024,12 @@ def delete_pr_config(request, user=''):
         purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData[0].get('name')
-        PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type).delete()
+        pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type)
+        if pacQs.exists():
+            for pacObj in pacQs:
+                configId = pacObj.id
+                MasterEmailMapping.objects.filter(master_id=configId).delete()
+            pacQs.delete()
         status = 'Deleted Successfully'
     else:
         status = 'Something Went Wrong, Please check with Tech Team'
@@ -7554,6 +7565,16 @@ def get_warehouse_admin(user):
         admin_user = user
     return admin_user
 
+
+def get_warehouse_user_from_sub_user(user_id):
+    warehouseId = None
+    subUser = User.objects.get(id=user_id)
+    permGroup = AdminGroups.objects.filter(group_id=subUser.groups.all()[0].id)
+    if permGroup.exists():
+        warehouseId = permGroup[0].user
+    return warehouseId
+
+
 @fn_timer
 def get_picklist_number(user):
     """ Get the Latest Picklist number"""
@@ -10825,3 +10846,5 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
+
+

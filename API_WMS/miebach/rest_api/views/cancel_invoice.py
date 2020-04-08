@@ -49,7 +49,7 @@ def cancel_invoice(request, user=''):
                 order_detail.status = 3
             order_detail.save()
             picklist = order.picklist
-            picklist.cancelled_quantity = cancelled_quantity
+            picklist.cancelled_quantity = picklist.cancelled_quantity + cancelled_quantity
             picklist.save()
             stock_detail = picklist.stock
             if stock_detail:

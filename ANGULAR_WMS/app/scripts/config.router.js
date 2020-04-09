@@ -1726,7 +1726,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Create Orders',
+            title: 'Create Stock Transfer',
           }
         })
         .state('app.outbound.CustomerInvoices', {

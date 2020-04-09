@@ -8,8 +8,10 @@ function CreateStockOrders($scope, $http, $q, $state, Session, colFilters, Servi
   vm.current_user = {[$scope.user.userName]: $scope.user.user_profile.state};
   vm.tax_cg_sg = false;
   vm.igst_enable = false;
+  vm.dest_sellers_list = [];
   vm.model_data = {}
-  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: ""};
+  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: "",
+                            seller_id:""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -64,6 +66,17 @@ vm.changeUnitPrice = function(data){
       vm.warehouse_list_states = data.data.states;
     }
   })
+
+  vm.sellers_list = [];
+  vm.service.apiCall('get_sellers_list/').then(function(data){
+    if(data.message) {
+      vm.sellers_list = data.data.sellers;
+      if(vm.sellers_list) {
+        vm.model_data.source_seller_id = vm.sellers_list[0].id;
+      }
+    }
+  });
+
   vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
@@ -141,6 +154,20 @@ vm.changeUnitPrice = function(data){
       vm.igst_enable = true;
     }
   }
+
+  vm.changeDestSeller = function() {
+    vm.dest_sellers_list = [];
+    var temp_data = {warehouse: vm.model_data.selected}
+    vm.service.apiCall("get_sellers_list/", "GET", temp_data).then(function(data){
+      if(data.message) {
+        vm.dest_sellers_list = data.data.sellers;
+        if(vm.sellers_list) {
+          vm.model_data.dest_seller_id = vm.sellers_list[0].id;
+        }
+      }
+    });
+  }
+
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();

@@ -5039,6 +5039,13 @@ def get_size_names(requst, user=""):
 @login_required
 @get_admin_user
 def get_sellers_list(request, user=''):
+    warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        if warehouse in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return json.dumps(json.dumps({'error': 'Invalid Warehouse Name'}))
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():
@@ -7654,6 +7661,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             seller_order = order
             seller_master_id = seller_order.seller_id
             order = order.order
+        if 'st_po' in dir(order) and order.st_seller:
+            seller_master_id = order.st_seller_id
         picklist_data['picklist_number'] = picklist_number + 1
         if remarks:
             picklist_data['remarks'] = remarks
@@ -10073,6 +10082,8 @@ def insert_st_gst(all_data, user):
             stock_dict['cgst_tax'] = float(val[3])
             stock_dict['sgst_tax'] = float(val[4])
             stock_dict['igst_tax'] = float(val[5])
+            if user.userprofile.user_type == 'marketplace_user':
+                stock_dict['po_seller_id'] = key[3].id
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][6] = stock_transfer.id
@@ -10111,6 +10122,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id
+            if user.userprofile.user_type == 'marketplace_user':
+                st_dict['st_seller_id'] = key[2].id
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
             open_st.status = 0

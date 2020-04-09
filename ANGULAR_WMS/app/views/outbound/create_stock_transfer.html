@@ -15,8 +15,24 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Warehouse Name </label>
-                <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.selected" ng-change="showCase.verifyTax()">
+                <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.selected" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
                   <option ng-repeat="wh in showCase.warehouse_list" value="{{wh}}">{{wh}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Source Warehouse Seller * </label>
+                <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id">
+                  <option ng-selected="showCase.model_data.source_seller_id==seller.id" ng-repeat="seller in showCase.sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Destination Warehouse Seller * </label>
+                <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id">
+                  <option ng-selected="showCase.model_data.dest_seller_id==seller.id" ng-repeat="seller in showCase.dest_sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
                 </select>
               </div>
             </div>

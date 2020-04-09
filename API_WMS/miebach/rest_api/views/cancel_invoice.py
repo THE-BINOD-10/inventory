@@ -50,8 +50,8 @@ def cancel_invoice(request, user=''):
             picklist = order.picklist
             picklist.cancelled_quantity = picklist.cancelled_quantity + cancelled_quantity
             picklist.save()
-
-            CancelledLocation.objects.create(picklist=picklist, quantity=cancelled_quantity,
+            if picklist.stock:
+                CancelledLocation.objects.create(picklist=picklist, quantity=cancelled_quantity,
                                              cancel_invoice_serial=cancel_invoice_serial,
                                              status=1, location=picklist.stock.location)
         seller_orders_summaries.update(order_status_flag='cancelled')

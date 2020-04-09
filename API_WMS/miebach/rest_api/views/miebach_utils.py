@@ -5072,6 +5072,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if not quantity and cancelled_qty:
             status = 'Cancelled'
             cancelled_qty = 0
+            cancelled_amt = 0
         aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),

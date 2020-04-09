@@ -967,13 +967,12 @@
           alert("Given Quantity is more than Stock Quantity.");
           item.quantity = item.stock_quantity;
         }
-
+        if (item.quantity == "") {
+          item.quantity = 0;
+        }
         for (var i = 0; i < self.skus.length ; i ++) {
-
           if (self.skus[i].sku_code == item.sku_code){
-
             if( (item.quantity == 0 || item.quantity == "0") && (!self.urlService.returnsView)) {
-
               self.skus.splice(i, 1);
               cal_total();
               var indx = self.selected_skus.indexOf(item.sku_code);
@@ -985,7 +984,6 @@
               }
 
             } else {
-
               self.skus[i].quantity = parseFloat(item.quantity);
               self.skus[i].discount = (item.discount) ? parseFloat(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));

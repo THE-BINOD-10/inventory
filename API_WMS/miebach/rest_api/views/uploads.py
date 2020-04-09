@@ -1074,7 +1074,7 @@ def move_inventory_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def marketplace_sku_form(request, user=''):
-    market_list = ['WMS Code']
+    market_list = ['SKU Code']
     market_sku = []
     market_desc = []
     supplier_file = request.GET['download-marketplace-sku-file']
@@ -1727,7 +1727,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
-            storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
         if not sku_data:

@@ -555,7 +555,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
                                                     ('PO Number', get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
-                                                    ('WMS Code', po_obj.open_po.sku.wms_code),
+                                                    ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
                                                     ('Ordered Quantity', purchase_order['total_ordered']),
                                                     ('Amount', total_amt),
@@ -1845,12 +1845,12 @@ def print_purchase_order_form(request, user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
                          'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN')

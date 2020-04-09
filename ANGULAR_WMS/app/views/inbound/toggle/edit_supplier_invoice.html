@@ -89,7 +89,7 @@
     <tbody>
       <tr class="rm-padding rm-brdr text-right" ng-repeat="record in pop.model_data.data">
         <td style="text-align: left;">
-            <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code"
+            <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search SKU Code"
             typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="record.sku_code" typeahead-on-select="pop.get_sku_data(record, $item, $index)">
             <!--{{record.sku_code}}--></td>
         <td style="text-align: left;">{{record.hsn_code}}</td>

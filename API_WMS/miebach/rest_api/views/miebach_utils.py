@@ -9873,7 +9873,7 @@ def get_cancel_invoice_report_data(search_params, user, sub_user):
         search_parameters['updation_date__gt'] = search_params['to_date']
     if 'invoice_number' in search_params:
         search_parameters['full_invoice_number'] = search_params['invoice_number']
-    if 'order_id ' in search_params:
+    if 'order_id' in search_params:
         if marketplace:
             search_parameters['seller_order__order__original_order_id'] = search_params['order_id']
         else:

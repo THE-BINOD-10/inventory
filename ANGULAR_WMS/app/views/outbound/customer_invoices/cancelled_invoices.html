@@ -1,0 +1,11 @@
+<div class="panel" ng-controller="CancelInvoicesTabCtrl as showCase">
+	<div class="panel-body">
+		<div ng-if="showCase.display">
+	  	<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable no_click_tb" dt-instance="showCase.dtInstance"></table>
+	  	<div ui-view></div>
+	  </div>
+	</div>
+	<div class="panel-footer">
+		<button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate')">Print Invoice</button>
+	</div>
+</div>

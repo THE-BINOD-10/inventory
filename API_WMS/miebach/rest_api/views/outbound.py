@@ -10962,6 +10962,10 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
+    user_filter = {}
+    user_filter['order_status_flag'] = 'customer_invoices'
+    if filters.get('cancel_invoice',0):
+        user_filter['order_status_flag'] = 'cancelled'
     if admin_user and user_profile.warehouse_type == 'DIST':
         temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
     else:
@@ -10969,7 +10973,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             lis = ['seller_order__order__original_order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
                    'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity',
                    'quantity', 'date_only', 'invoice_number','invoice_number','invoice_number']
-            user_filter = {'seller_order__seller__user': user.id, 'order_status_flag': 'customer_invoices'}
+            user_filter['seller_order__seller__user']= user.id
             result_values = ['invoice_number', 'full_invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id', 'financial_year', 'seller_order__order__customer_name']
             field_mapping = {'order_quantity_field': 'seller_order__quantity',
@@ -10978,7 +10982,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         else:
             lis = ['invoice_number', 'invoice_number', 'financial_year', 'order__customer_name', 'invoice_number', 'invoice_number',
                    'date_only', 'invoice_number', 'invoice_number','invoice_number','invoice_number']
-            user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+            user_filter['order__user'] = user.id
             result_values = ['invoice_number', 'full_invoice_number', 'financial_year', 'order__customer_name', 'order__marketplace']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'creation_date'}
             is_marketplace = False

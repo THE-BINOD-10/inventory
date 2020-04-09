@@ -498,7 +498,8 @@ def get_search_params(request, user=''):
                       'search4': 'search_4', 'search5': 'search_5',
                       'search6': 'search_6', 'search7': 'search_7',
                       'search8': 'search_8', 'search9': 'search_9',
-                      'search10': 'search_10', 'search11': 'search_11'}
+                      'search10': 'search_10', 'search11': 'search_11',
+                      'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
         request_data = request.GET

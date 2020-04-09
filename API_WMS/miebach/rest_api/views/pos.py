@@ -120,10 +120,9 @@ def search_pos_order_ids(request, user=''):
     if len(search_key) < 3:
         return HttpResponse(json.dumps(total_data))
     lis = ['original_order_id']
-    master_data = OrderDetail.objects.filter(Q(original_order_id__icontains=search_key) | \
-                                                Q(order_id__icontains=search_key), user=user.id)
+    master_data = OrderDetail.objects.filter(Q(original_order_id__icontains=search_key) | Q(order_id__icontains=search_key), user=user.id).values('original_order_id', 'customer_name', 'customer_id').distinct()
     for data in master_data[:20]:
-        total_data.append({ 'original_order_id': data.original_order_id, 'customer': data.customer_name, 'customer_id': data.customer_id })
+        total_data.append({ 'original_order_id': data['original_order_id'], 'customer': data['customer_name'], 'customer_id': data['customer_id'] })
     return HttpResponse(json.dumps(total_data))
 
 @login_required
@@ -326,29 +325,6 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
         if not stock_diff:
             break
 
-    if needed_order_quantity > 0:
-        picklist = Picklist.objects.create(picklist_number=picklist_number, \
-                                           reserved_quantity=0, \
-                                           picked_quantity=needed_order_quantity, \
-                                           remarks='Picklist_' + str(picklist_number), \
-                                           status='batch_picked', \
-                                           order_id=order_detail.id, \
-                                           stock=None, creation_date=NOW)
-        needed_order_quantity = 0
-        picks_all.append(picklist.id)
-        quantity = picklist.picked_quantity
-        if picklist.order.order_id in picklists_send_mail.keys():
-            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
-                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
-                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
-                      float(quantity)
-            else:
-                picklists_send_mail[picklist.order.order_id].update(
-                    {picklist.order.sku.sku_code: float(quantity)})
-        else:
-            picklists_send_mail.update(
-                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
-
     obj, created = CustomerOrderSummary.objects.get_or_create(order_id=order_detail.id)
     if created:
         obj.discount = item['discount']
@@ -375,7 +351,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
         return picks_all, picklists_send_mail
     return "Success"
 
-def save_return_orders(user, user_id, sku, item):
+def save_return_orders(user, user_id, sku, item, order):
     sku_stocks_ = StockDetail.objects.filter(sku__user=user_id, sku_id=sku.id)
     if sku_stocks_:
         sku_stocks_ = sku_stocks_[0]
@@ -402,7 +378,7 @@ def save_return_orders(user, user_id, sku, item):
     log.info("return item, stock increased: sku_id=%s, user=%s, qty=%s, new_stock=%s"\
             %(str(sku.id), str(user_id), str(item['quantity']), str(sku_stocks_.quantity)))
     order_return = OrderReturns.objects.create( \
-        order=None, \
+        order_id=order.id, \
         seller_order=None, \
         quantity=item['quantity'], \
         damaged_quantity=0, \
@@ -413,7 +389,7 @@ def save_return_orders(user, user_id, sku, item):
     save_sku_stats(user, sku_stocks_.sku_id, order_return.id, 'return',item['quantity'], sku_stocks_)
     log.info("OrderReturns object created with id: %s" %(str(order_return.id)))
     return_location = ReturnsLocation.objects.create( \
-        quantity=0, \
+        quantity=item['quantity'], \
         status=0, \
         location=sku_stocks_.location, \
         returns=order_return)
@@ -463,6 +439,8 @@ def update_customer_orders(request):
                     current_order_details = order_available[0]
                     current_order_details.original_quantity = item['quantity']
                     current_order_details.quantity = item['quantity']
+                    current_order_details.invoice_amount = item['price']
+                    current_order_details.unit_price = item['unit_price']
                     current_order_details.save()
                     # pending CustomerOrderSummary order_level_disc_per_sku / updation ...
                     stock_diff, invoice_number = pick_qty, order_id
@@ -473,10 +451,15 @@ def update_customer_orders(request):
                 elif order_available.exists() and item['quantity'] < order_available[0].quantity:
                     return_qty = order_available[0].quantity - item['quantity']
                     current_order_details = order_available[0]
+                    current_order_details.original_quantity = item['quantity']
                     current_order_details.quantity = item['quantity']
+                    current_order_details.invoice_amount = item['price']
+                    if item['unit_price'] == None:
+                        item['unit_price'] = 0
+                    current_order_details.unit_price = item['unit_price']
                     current_order_details.save()
                     item['quantity'] = return_qty
-                    save_return_orders(user, user_id, sku, item)
+                    save_return_orders(user, user_id, sku, item, order_available[0])
                 elif not order_available:
                     payment_received = 0
                     if item['price'] < total_payment_received :
@@ -887,19 +870,21 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         status = 'success'
         order = order_detail[0]
         customer_id = ''
+        customer_lastName = ''
         order_date = get_local_date(user, order.creation_date)
         extra_field_obj = list(OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
                                   .exclude(name__icontains = "payment_").values_list('name', 'value'))
         extra_fields = {}
         [extra_fields.update({a[0]:a[1]}) for a in extra_field_obj]
         if order.customer_id:
-            customer_master = CustomerMaster.objects.filter(id=order.customer_id, \
+            customer_master = CustomerMaster.objects.filter(customer_id=order.customer_id, \
                                                             name=order.customer_name, \
                                                             user=user_id)
             if customer_master:
                 customer_id = customer_master[0].id
+                customer_lastName = customer_master[0].last_name
         customer_data = {'FirstName': order.customer_name,
-                         'LastName': '',
+                         'LastName': customer_lastName,
                          'Number': order.telephone,
                          'ID': customer_id,
                          'Address': order.address,

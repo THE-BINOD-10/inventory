@@ -442,6 +442,11 @@ def update_customer_orders(request):
                     current_order_details.invoice_amount = item['price']
                     current_order_details.unit_price = item['unit_price']
                     current_order_details.save()
+                    cus_order_update = CustomerOrderSummary.objects.filter(order_id = current_order_details)
+                    if cus_order_update.exists():
+                        cus_order_update = cus_order_update[0]
+                        cus_order_update.discount = order_level_disc_per_sku
+                        cus_order_update.save()
                     # pending CustomerOrderSummary order_level_disc_per_sku / updation ...
                     stock_diff, invoice_number = pick_qty, order_id
                     stock_detail = sku_stocks.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__wms_code=sku.wms_code, sku__user=user_id)
@@ -458,6 +463,11 @@ def update_customer_orders(request):
                         item['unit_price'] = 0
                     current_order_details.unit_price = item['unit_price']
                     current_order_details.save()
+                    cus_order_update = CustomerOrderSummary.objects.filter(order_id = current_order_details)
+                    if cus_order_update.exists():
+                        cus_order_update = cus_order_update[0]
+                        cus_order_update.discount = order_level_disc_per_sku
+                        cus_order_update.save()
                     item['quantity'] = return_qty
                     save_return_orders(user, user_id, sku, item, order_available[0])
                 elif not order_available:

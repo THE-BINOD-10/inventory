@@ -1532,23 +1532,24 @@ def get_orders(request):
             if charge:
                 charge_amount = charge[0]
             if data.status == '0':
-                if picked_quantity_sku == data.original_quantity:
-                    sku_status = 'Picked'
-                else:
-                    sku_status = 'Partially Picked'
-                if seller_sku.exists():
-                    if picked_quantity_sku == data.original_quantity and invoice_num_check:
-                        order_status = 'Invoice generated'
-                    if picked_quantity_sku != data.original_quantity and invoice_num_check:
-                        order_status = 'Partial invoice generated'
+                sku_status = 'In progress'
+                # if picked_quantity_sku == data.original_quantity:
+                #     sku_status = 'Picked'
+                # else:
+                #     sku_status = 'Partially Picked'
+                # if seller_sku.exists():
+                #     if picked_quantity_sku == data.original_quantity and invoice_num_check:
+                #         sku_status = 'Invoice generated'
+                #     if picked_quantity_sku != data.original_quantity and invoice_num_check:
+                #         sku_status = 'Partial invoice generated'
             elif data.status == '1':
                 sku_status = 'Open'
             elif data.status == '2':
                 sku_status = 'Dispatched'
             elif data.status == '3':
                 sku_status = 'Cancelled'
-            if picked_quantity_sku == 0:
-                    sku_status = 'Open'
+            # if picked_quantity_sku == 0:
+            #         sku_status = 'Open'
             shipment_info = ShipmentInfo.objects.filter(order__user=user.id, order_id=data.id)
             if shipment_info.exists():
                 dispatched_quantity = shipment_info.aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']

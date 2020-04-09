@@ -426,7 +426,7 @@
         }
       }
       if (urlService.returnsView && urlService.returns_total_paid) {
-        urlService.current_order.summary.total_paid = urlService.current_order.summary.total_amount;
+        urlService.current_order.summary.total_paid = urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount;
       }
       if(self.mrp_discount){
         urlService.current_order.summary.subtotal = urlService.current_order.summary.total_amount

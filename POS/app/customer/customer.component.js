@@ -116,6 +116,7 @@
               urlService.current_order.summary['order_ids'] = data.data.order_id;
               self.customer = urlService.current_order.customer_data = data.data.customer_data;
               urlService.current_returns_data = data.data.sku_data;
+              urlService.current_order.summary.total_discount = data.data.summary.total_discount
               urlService.returns_load = true;
               urlService.returns_total_paid = true;
             }

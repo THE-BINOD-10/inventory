@@ -5009,9 +5009,10 @@ def get_order_summary_data(search_params, user, sub_user):
                 if data['sellerordersummary__full_invoice_number']:
                     invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
                 else:
-                    invoice_qty_filter['full_invoice_number'] = ''
                     invoice_date = ''
                 quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
+                if not invoice_qty_filter.get('full_invoice_number',''):
+                    quantity = 0
 
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
@@ -5068,6 +5069,9 @@ def get_order_summary_data(search_params, user, sub_user):
             order_user_obj = User.objects.filter(username=order_taken_by)
             if order_user_obj:
                 order_user = order_user_obj[0].id
+        if not quantity and cancelled_qty:
+            status = 'Cancelled'
+            cancelled_qty = 0
         aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
                                                     ('Customer Name', customer_name),

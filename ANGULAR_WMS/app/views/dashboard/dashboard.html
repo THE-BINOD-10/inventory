@@ -1,7 +1,6 @@
 <div class="page-layout dashboard" data-ng-controller="dashboardCtrl">
-  <div class="panel" style="background:#f0f0f0;margin-bottom:0px;">
+  <div class="panel" style="background:#f0f0f0;margin-bottom:0px;" ng-if="session">
     <div class="panel-body">
-
       <div class="row mb10">
         <div class="col-md-12">
           <button type="button" class="btn btn-primary btn-xs ml10 pull-right bg-lightblue" title="Refresh Dashboard" ng-click="update_dashboard()" ng-disabled="loadingData" style="padding: 1px 20px;">

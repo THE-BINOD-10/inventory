@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
                 return vm.service.frontHtml + meta.row + vm.service.endHtml +'<input type="hidden" name="id" value="'+full.DT_RowAttr['data-id']+'">';
             }).notSortable(),
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone')
           .renderWith(function(data, type, full, meta) {

@@ -4481,12 +4481,12 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     if not seller.exists():
                         index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
                     else:
-                       orders =  OrderDetail.objects.exclude(status=3).filter(sku__user=user.id,sellerorder__seller__seller_id=seller_id,sku__wms_code=sku_code). \
+                       orders =  OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,sellerorder__seller__seller_id=seller_id,sku__wms_code=sku_code). \
                             annotate(ret=Sum(F('orderreturns__quantity')),
                                      dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
-                            filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+                            filter(Q(tot__isnull=True) | Q(original_quantity__gt=F('tot')))
                        if not orders:
-                           index_status.setdefault(row_idx, set()).add('No Order Data Found to Return')
+                           index_status.setdefault(row_idx, set()).add('No Order Data Found to Return or Returned Completly')
 
         if not index_status:
             if not order_detail:
@@ -4560,7 +4560,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_code = ''.join(re.findall('\D+', cell_data))
                     if order_code:
                         order_filter['order_code'] = order_code
-                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                    order_detail = OrderDetail.objects.exclude(status=1).filter(Q(original_order_id=cell_data) | Q(**order_filter),
                                                               sku_id__sku_code=sku_code, user=user.id)
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, order_mapping[key], reader, file_type))
@@ -4610,7 +4610,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_data['seller_id'] = seller_order.seller_id
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                order_detail = OrderDetail.objects.filter(sku__user=user.id,
+                order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
                                                                       sellerorder__seller__seller_id=seller_id,
                                                                       sku__wms_code=sku_code). \
                     annotate(ret=Sum(F('orderreturns__quantity')),
@@ -4651,7 +4651,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 order_data['order_id'] = order.id
                 order_object.status = 4
                 order_object.save()
-                returns = OrderReturns(**order_data)
+                returns = OrderReturns.objects.create(**order_data)
                 if not returns.return_id:
                     returns.return_id = 'MN%s' % returns.id
                 returns.save()
@@ -4668,7 +4668,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             if order_quantity:
                 del order_data['order_id']
                 order_data['quantity'] = order_quantity
-                returns = OrderReturns(**order_data)
+                returns = OrderReturns.objects.create(**order_data)
                 if not returns.return_id:
                     returns.return_id = 'MN%s' % returns.id
                 returns.save()
@@ -4679,11 +4679,13 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
 
 
             if not batch_data:
-                if order_detail[0].picklist_set.filter()[0].stock:
-                    batch_detail = order_detail[0].picklist_set.filter()[0].stock.batch_detail
-                    batch_data = batch_detail.__dict__
-                    del batch_data['_state']
-                    del batch_data['id']
+                if order_detail:
+                    if order_detail[0].picklist_set.filter():
+                        if order_detail[0].picklist_set.filter()[0].stock:
+                            batch_detail = order_detail[0].picklist_set.filter()[0].stock.batch_detail
+                            batch_data = batch_detail.__dict__
+                            del batch_data['_state']
+                            del batch_data['id']
             save_return_locations(returns_list, all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data, upload=True)
     return 'Success'
 

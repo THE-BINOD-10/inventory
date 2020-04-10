@@ -3902,78 +3902,78 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
             if damaged_quantity:
                 all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
                 all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
-            for data in all_data:
-                batch_dict1 = {}
-                temp_dict = {'received_quantity': float(order_return.quantity), 'data': "", 'user': user.id, 'pallet_data': '',
-                             'pallet_number': '',
-                             'wms_code': order_return.sku.wms_code, 'sku_group': order_return.sku.sku_group,
-                             'sku': order_return.sku}
-                received_quantity = data['received_quantity']
-                if not received_quantity:
-                    continue
-                if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
-                    data = get_return_segregation_locations(order_return, batch_dict, data, user)
-                if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
-                    locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
-                    if not locations:
-                        locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
-                else:
-                    locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
-
+        for data in all_data:
+            batch_dict1 = {}
+            temp_dict = {'received_quantity': float(order_return.quantity), 'data': "", 'user': user.id, 'pallet_data': '',
+                         'pallet_number': '',
+                         'wms_code': order_return.sku.wms_code, 'sku_group': order_return.sku.sku_group,
+                         'sku': order_return.sku}
+            received_quantity = data['received_quantity']
+            if not received_quantity:
+                continue
+            if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
+                data = get_return_segregation_locations(order_return, batch_dict, data, user)
+            if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
+                locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
                 if not locations:
-                    return 'Locations not Found'
-                for location in locations:
-                    total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
-                                                               location__zone__user=user.id).aggregate(Sum('quantity'))[
-                        'quantity__sum']
-                    if not total_quantity:
-                        total_quantity = 0
-                    filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
-                                                                 sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-                    if not filled_capacity:
-                        filled_capacity = 0
-                    filled_capacity = float(total_quantity) + float(filled_capacity)
-                    remaining_capacity = float(location.max_capacity) - float(filled_capacity)
-                    if location.zone.zone in ['DEFAULT', 'DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']:
-                        remaining_capacity = received_quantity
-                    if remaining_capacity <= 0:
-                        continue
-                    elif remaining_capacity < received_quantity:
-                        location_quantity = remaining_capacity
-                        received_quantity -= remaining_capacity
-                    elif remaining_capacity >= received_quantity:
-                        location_quantity = received_quantity
-                        received_quantity = 0
-                    return_location = ReturnsLocation.objects.filter(returns_id=order_return.id, location_id=location.id,
-                                                                     status=1)
-                    if not return_location:
-                        location_data = {'returns_id': order_return.id, 'location_id': location.id,
-                                         'quantity': location_quantity, 'status': 1}
-                        returns_data = ReturnsLocation(**location_data)
-                        returns_data.save()
-                        if batch_dict:
-                            batch_dict1 = copy.deepcopy(batch_dict)
-                            batch_dict1['transact_id'] = returns_data.id
-                            batch_dict1['transact_type'] = 'return_loc'
-                    else:
-                        return_location = return_location[0]
-                        setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
-                        return_location.save()
-                        if batch_dict:
-                            batch_dict1 = copy.deepcopy(batch_dict)
-                            batch_dict1['transact_id'] = return_location.id
-                            batch_dict1['transact_type'] = 'return_loc'
-                    if upload:
-                        batch_objs = BatchDetail.objects.filter(**batch_dict1)
-                        if not batch_objs.exists():
-                            batch_dict1['creation_date'] = datetime.datetime.now()
-                            batch_obj = BatchDetail.objects.create(**batch_dict1)
-                    else:
-                        create_update_batch_data(batch_dict1)
-                    if received_quantity == 0:
-                        order_return.status = 0
-                        order_return.save()
-                        break
+                    locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
+            else:
+                locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
+
+            if not locations:
+                return 'Locations not Found'
+            for location in locations:
+                total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
+                                                           location__zone__user=user.id).aggregate(Sum('quantity'))[
+                    'quantity__sum']
+                if not total_quantity:
+                    total_quantity = 0
+                filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
+                                                             sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+                if not filled_capacity:
+                    filled_capacity = 0
+                filled_capacity = float(total_quantity) + float(filled_capacity)
+                remaining_capacity = float(location.max_capacity) - float(filled_capacity)
+                if location.zone.zone in ['DEFAULT', 'DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']:
+                    remaining_capacity = received_quantity
+                if remaining_capacity <= 0:
+                    continue
+                elif remaining_capacity < received_quantity:
+                    location_quantity = remaining_capacity
+                    received_quantity -= remaining_capacity
+                elif remaining_capacity >= received_quantity:
+                    location_quantity = received_quantity
+                    received_quantity = 0
+                return_location = ReturnsLocation.objects.filter(returns_id=order_return.id, location_id=location.id,
+                                                                 status=1)
+                if not return_location:
+                    location_data = {'returns_id': order_return.id, 'location_id': location.id,
+                                     'quantity': location_quantity, 'status': 1}
+                    returns_data = ReturnsLocation(**location_data)
+                    returns_data.save()
+                    if batch_dict:
+                        batch_dict1 = copy.deepcopy(batch_dict)
+                        batch_dict1['transact_id'] = returns_data.id
+                        batch_dict1['transact_type'] = 'return_loc'
+                else:
+                    return_location = return_location[0]
+                    setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
+                    return_location.save()
+                    if batch_dict:
+                        batch_dict1 = copy.deepcopy(batch_dict)
+                        batch_dict1['transact_id'] = return_location.id
+                        batch_dict1['transact_type'] = 'return_loc'
+                if upload:
+                    batch_objs = BatchDetail.objects.filter(**batch_dict1)
+                    if not batch_objs.exists():
+                        batch_dict1['creation_date'] = datetime.datetime.now()
+                        batch_obj = BatchDetail.objects.create(**batch_dict1)
+                else:
+                    create_update_batch_data(batch_dict1)
+                if received_quantity == 0:
+                    order_return.status = 0
+                    order_return.save()
+                    break
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

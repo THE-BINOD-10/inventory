@@ -5520,68 +5520,6 @@ def get_warehouses_list(request, user=''):
     return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states}))
 
 
-def validate_st(all_data, user):
-    sku_status = ''
-    other_status = ''
-    price_status = ''
-    wh_status = ''
-    for key, value in all_data.iteritems():
-        warehouse = User.objects.get(username=key[0])
-        if not value:
-            continue
-        for val in value:
-            sku = SKUMaster.objects.filter(wms_code=val[0], user=warehouse.id)
-            if not sku:
-                if not sku_status:
-                    sku_status = "Invalid SKU Code " + val[0]
-                else:
-                    sku_status += ', ' + val[0]
-            order_quantity = val[1]
-            if not order_quantity:
-                if not other_status:
-                    other_status = "Quantity missing for " + val[0]
-                else:
-                    other_status += ', ' + val[0]
-            try:
-                price = float(val[2])
-            except:
-                if not price_status:
-                    price_status = "Price missing for " + val[0]
-                else:
-                    price_status += ', ' + val[0]
-            code = val[0]
-            sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=user.id)
-            if not sku_code:
-                if not wh_status:
-                    wh_status = "SKU Code %s doesn't exists in given warehouse" % code
-                else:
-                    wh_status += ", " + code
-
-    if other_status:
-        sku_status += ", " + other_status
-    if price_status:
-        sku_status += ", " + price_status
-    if wh_status:
-        sku_status += ", " + wh_status
-
-    return sku_status.strip(", ")
-
-
-def validate_st_seller(user, seller_id, error_name=''):
-    status = ''
-    seller = None
-    if user.userprofile.user_type == 'marketplace_user':
-        if seller_id:
-            seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
-            if seller_master.exists():
-                seller = seller_master[0]
-            else:
-                status = 'Invalid %s Seller' % error_name
-        else:
-            status = 'Please Select %s Seller' % error_name
-    return status, seller
-
-
 @csrf_exempt
 @login_required
 @get_admin_user

@@ -8,6 +8,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.apply_filters = colFilters;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
 
     vm.filters = {'datatable': 'RaiseST', 'search0':'', 'search1':''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -38,8 +40,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 $http.get(Session.url+'update_raised_st?warehouse_name='+aData['Warehouse Name']).success(function(data, status, headers, config) {
                   console.log(data);
                   vm.update = true;
+                  vm.get_sellers_list(true);
                   vm.title = "Update Stock Transfer";
                   angular.copy(data, vm.model_data);
+                  vm.changeDestSeller();
                   $state.go('app.inbound.RaisePo.StockTransfer');
                 });
             });
@@ -74,12 +78,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var empty_data = {"Supplier_ID":"",
                       "POName": "",
                       "ShipTo": "",
+                      "warehouse_name": "",
+                      "source_seller_id": "",
+                      "dest_seller_id": "",
                       "data": [
                         {"WMS_Code":"", "Supplier_Code":"", "Quantity":"", "Price":""}
                       ]
                      };
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
+
+    vm.get_sellers_list = get_sellers_list;
+    function get_sellers_list(is_update) {
+      vm.sellers_list = [];
+      vm.service.apiCall('get_sellers_list/').then(function(data){
+      if(data.message) {
+        vm.sellers_list = data.data.sellers;
+        if(vm.sellers_list && !is_update) {
+          vm.model_data.source_seller_id = vm.sellers_list[0].id;
+        }
+      }
+    });
+    }
 
     vm.close = close;
     function close() {
@@ -93,7 +113,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       $http.get(Session.url+'raise_st_toggle/').success(function(data, status, headers, config) {
         vm.model_data['warehouse_list'] = data.user_list;
-      })
+      });
+      vm.get_sellers_list();
       vm.title = "Raise Stock Transfer";
       vm.model_data = {};
       angular.copy(empty_data, vm.model_data);
@@ -172,5 +193,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.message = "";
       }, 2000);
       reloadData();
-    }  
+    }
+
+    vm.changeDestSeller = function() {
+      vm.dest_sellers_list = [];
+      var temp_data = {warehouse: vm.model_data.warehouse_name}
+      vm.service.apiCall("get_sellers_list/", "GET", temp_data).then(function(data){
+      if(data.message) {
+        vm.dest_sellers_list = data.data.sellers;
+        if(vm.dest_sellers_list) {
+          vm.model_data.dest_seller_id = vm.sellers_list[0].id;
+        }
+      }
+    });
+  }
+
+
   }

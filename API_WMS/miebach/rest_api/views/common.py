@@ -10181,26 +10181,36 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         import traceback
         log.debug(traceback.format_exc())
 
+
 def insert_st(all_data, user):
     for key, value in all_data.iteritems():
         for val in value:
             if val[3]:
                 open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.warehouse_id = key[1]
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['warehouse_id'] = key[1]
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
+            if val[2]:
+                stock_dict['price'] = float(val[2])
+            else:
+                stock_dict['price'] = 0
+            if user.userprofile.user_type == 'marketplace_user':
+                stock_dict['po_seller_id'] = key[2].id
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
+            if user.userprofile.user_type == 'marketplace_user':
+                TempJson.objects.create(model_id=stock_transfer.id, model_name='open_st',
+                                        model_json=json.dumps({'dest_seller_id': key[3].id}))
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id
     return all_data
+
 
 def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
     sub_user = user
@@ -10240,6 +10250,8 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id
+            if user.userprofile.user_type == 'marketplace_user':
+                st_dict['st_seller_id'] = key[3].id
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
             open_st.status = 0
@@ -10818,3 +10830,64 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
+
+
+def validate_st_seller(user, seller_id, error_name=''):
+    status = ''
+    seller = None
+    if user.userprofile.user_type == 'marketplace_user':
+        if seller_id:
+            seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+            if seller_master.exists():
+                seller = seller_master[0]
+            else:
+                status = 'Invalid %s Seller' % error_name
+        else:
+            status = 'Please Select %s Seller' % error_name
+    return status, seller
+
+
+def validate_st(all_data, user):
+    sku_status = ''
+    other_status = ''
+    price_status = ''
+    wh_status = ''
+    for key, value in all_data.iteritems():
+        if not value:
+            continue
+        for val in value:
+            sku = SKUMaster.objects.filter(wms_code=val[0], user=user.id)
+            if not sku:
+                if not sku_status:
+                    sku_status = "Invalid SKU Code " + val[0]
+                else:
+                    sku_status += ', ' + val[0]
+            order_quantity = val[1]
+            if not order_quantity:
+                if not other_status:
+                    other_status = "Quantity missing for " + val[0]
+                else:
+                    other_status += ', ' + val[0]
+            try:
+                price = float(val[2])
+            except:
+                if not price_status:
+                    price_status = "Price missing for " + val[0]
+                else:
+                    price_status += ', ' + val[0]
+            code = val[0]
+            sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=key[1])
+            if not sku_code:
+                if not wh_status:
+                    wh_status = "SKU Code %s doesn't exists in given warehouse" % code
+                else:
+                    wh_status += ", " + code
+
+    if other_status:
+        sku_status += ", " + other_status
+    if price_status:
+        sku_status += ", " + price_status
+    if wh_status:
+        sku_status += ", " + wh_status
+
+    return sku_status.strip(", ")

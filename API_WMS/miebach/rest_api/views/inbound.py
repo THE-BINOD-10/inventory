@@ -3394,11 +3394,21 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
         if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
             overall_discount = myDict['overall_discount'][0]
         remarks_list = []
-        if data.open_po:
+        if data.open_po or data.stpurchaseorder_set.filter():
+            seller_id = ''
+            if data.open_po:
+                sku = data.open_po.sku
+                if seller_pos:
+                    seller_id = seller_pos[0].seller_id
+            else:
+                stock_transfer = data.stpurchaseorder_set.filter()[0]
+                sku = stock_transfer.open_st.sku
+                if stock_transfer.open_st.po_seller:
+                    seller_id = stock_transfer.open_st.po_seller_id
             if myDict.get('mrp', '') and myDict['mrp'][i]:
-                if float(data.open_po.sku.mrp) != float(myDict['mrp'][i]):
+                if float(sku.mrp) != float(myDict['mrp'][i]):
                     remarks_list.append("mrp_change")
-            if seller_pos:
+            if seller_id:
                 if batch_dict and batch_dict.get('mrp', ''):
                     mrp = float(batch_dict['mrp'])
                     #if float(data.open_po.sku.mrp) != mrp:
@@ -3416,9 +3426,10 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                     bulk_zone_name = MILKBASKET_BULK_ZONE
                     bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
                     zones = list(chain(zones, bulk_zones))
-                    stock_found = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,sku_id=data.open_po.sku_id,
-                                                                sellerstock__seller_id=seller_pos[0].seller_id).\
-                                                        filter(location__zone__zone__in=zones).exclude(batch_detail__mrp=mrp)
+                    stock_found = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,sku_id=sku.id,
+                                                                sellerstock__seller_id=seller_id).\
+                                                        filter(location__zone__zone__in=zones).\
+                                                        exclude(batch_detail__mrp=mrp)
                     if not stock_found.exists():
                         if 'mrp_change' in remarks_list:
                             del remarks_list[remarks_list.index('mrp_change')]
@@ -5104,12 +5115,16 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 
 
 def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
-    if not data.purchase_order.open_po:
-        return
-    seller_obj = data.purchase_order.open_po.sellerpo_set.filter()
-    if seller_obj:
-        seller_id = seller_obj[0].seller_id
-    else:
+    seller_id = ''
+    if data.purchase_order.open_po:
+        seller_obj = data.purchase_order.open_po.sellerpo_set.filter()
+        if seller_obj:
+            seller_id = seller_obj[0].seller_id
+    elif data.purchase_order.stpurchaseorder_set.filter():
+        open_st = data.purchase_order.stpurchaseorder_set.filter()[0].open_st
+        if open_st.po_seller:
+            seller_id = open_st.po_seller_id
+    if not seller_id:
         return
 
     seller_stock_update_details = []
@@ -5685,7 +5700,16 @@ def raise_st_toggle(request, user=''):
 def save_st(request, user=''):
     all_data = {}
     warehouse_name = request.POST.get('warehouse_name', '')
+    source_seller_id = request.POST.get('source_seller_id', '')
+    dest_seller_id = request.POST.get('dest_seller_id', '')
     data_dict = dict(request.POST.iterlists())
+    warehouse = User.objects.get(username=warehouse_name)
+    status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
+    if status:
+        return HttpResponse(status)
+    status, dest_seller = validate_st_seller(warehouse, dest_seller_id, error_name='Destination')
+    if status:
+        return HttpResponse(status)
     for i in range(len(data_dict['wms_code'])):
         if not data_dict['wms_code'][i]:
             continue
@@ -5694,7 +5718,8 @@ def save_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        cond = (warehouse_name)
+        #cond = (warehouse_name)
+        cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
             data_dict['price'][i], data_id])
@@ -5712,83 +5737,20 @@ def update_raised_st(request, user=''):
     all_data = []
     data_id = request.GET['warehouse_name']
     open_st = OpenST.objects.filter(warehouse__username=data_id, sku__user=user.id, status=1)
+    source_seller_id, dest_seller_id = '', ''
+    if open_st and open_st[0].po_seller:
+        stock = open_st[0]
+        source_seller_id = stock.po_seller.seller_id
+        temp_json = TempJson.objects.filter(model_id=stock.id, model_name='open_st')
+        if temp_json.exists():
+            seller_obj = SellerMaster.objects.get(id=json.loads(temp_json[0].model_json)['dest_seller_id'])
+            dest_seller_id = seller_obj.seller_id
     for stock in open_st:
         all_data.append({'wms_code': stock.sku.wms_code, 'order_quantity': stock.order_quantity, 'price': stock.price,
-                         'id': stock.id, 'warehouse_name': stock.warehouse.username})
-    return HttpResponse(json.dumps({'data': all_data, 'warehouse': data_id}))
-
-
-def validate_st(all_data, user):
-    sku_status = ''
-    other_status = ''
-    price_status = ''
-    wh_status = ''
-
-    for key, value in all_data.iteritems():
-        if not value:
-            continue
-        for val in value:
-            sku = SKUMaster.objects.filter(wms_code=val[0], user=user.id)
-            if not sku:
-                if not sku_status:
-                    sku_status = "Invalid SKU Code " + val[0]
-                else:
-                    sku_status += ', ' + val[0]
-            order_quantity = val[1]
-            if not order_quantity:
-                if not other_status:
-                    other_status = "Quantity missing for " + val[0]
-                else:
-                    other_status += ', ' + val[0]
-            # try:
-            #     price = float(val[2])
-            # except:
-            #     if not price_status:
-            #         price_status = "Price missing for " + val[0]
-            #     else:
-            #         price_status += ', ' + val[0]
-            warehouse = User.objects.get(username=key)
-            code = val[0]
-            sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=warehouse.id)
-            if not sku_code:
-                if not wh_status:
-                    wh_status = "SKU Code %s doesn't exists in given warehouse" % code
-                else:
-                    wh_status += ", " + code
-
-    if other_status:
-        sku_status += ", " + other_status
-    # if price_status:
-    #     sku_status += ", " + price_status
-    if wh_status:
-        sku_status += ", " + wh_status
-
-    return sku_status.strip(", ")
-
-
-def insert_st(all_data, user):
-    for key, value in all_data.iteritems():
-        for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
-                open_st.warehouse_id = User.objects.get(username__iexact=key).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-                open_st.price = float(val[2])
-                open_st.order_quantity = float(val[1])
-                open_st.save()
-                continue
-            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
-            stock_dict['order_quantity'] = float(val[1])
-            if val[2]:
-                stock_dict['price'] = float(val[2])
-            else:
-                stock_dict['price'] = 0
-            stock_transfer = OpenST(**stock_dict)
-            stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
-    return all_data
+                         'id': stock.id, 'warehouse_name': stock.warehouse.username,
+                         })
+    return HttpResponse(json.dumps({'data': all_data, 'warehouse': data_id, 'dest_seller_id': dest_seller_id,
+                                    'source_seller_id': source_seller_id}))
 
 
 @csrf_exempt
@@ -5797,6 +5759,15 @@ def insert_st(all_data, user):
 def confirm_st(request, user=''):
     all_data = {}
     warehouse_name = request.POST.get('warehouse_name', '')
+    warehouse = User.objects.get(username=warehouse_name)
+    source_seller_id = request.POST.get('source_seller_id', '')
+    dest_seller_id = request.POST.get('dest_seller_id', '')
+    status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
+    if status:
+        return HttpResponse(status)
+    status, dest_seller = validate_st_seller(warehouse, dest_seller_id, error_name='Destination')
+    if status:
+        return HttpResponse(status)
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['wms_code'])):
         if not data_dict['wms_code'][i]:
@@ -5806,7 +5777,7 @@ def confirm_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        cond = (warehouse_name)
+        cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
@@ -5814,7 +5785,6 @@ def confirm_st(request, user=''):
     if not status:
         all_data = insert_st(all_data, user)
         status = confirm_stock_transfer(all_data, user, warehouse_name, request)
-        warehouse = User.objects.get(username=warehouse_name)
         f_name = 'stock_transfer_' + warehouse_name + '_'
         rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)

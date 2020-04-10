@@ -13,12 +13,28 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label"> Warehouse Name *</label>
-              <select ng-if="(!(showCase.update))" class="form-control" name="warehouse_name" required>
+              <select ng-model="showCase.model_data.warehouse_name" ng-if="(!(showCase.update))" class="form-control" name="warehouse_name" ng-change="showCase.changeDestSeller()" required>
                 <option ng-repeat="option in showCase.model_data.warehouse_list" value="{{option}}">{{option}}</option>
               </select>
               <input type="text" class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" ng-readonly="showCase.update"/>
             </div>
           </div>
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Source Warehouse Seller *</label>
+                <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
+                  <option ng-selected="showCase.model_data.source_seller_id==seller.id" ng-repeat="seller in showCase.sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Destination Warehouse Seller *</label>
+                <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
+                  <option ng-selected="showCase.model_data.dest_seller_id==seller.id" ng-repeat="seller in showCase.dest_sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
+                </select>
+              </div>
+            </div>
         </div>
         <div class="row">
           <div class="col-md-12"><hr></div>

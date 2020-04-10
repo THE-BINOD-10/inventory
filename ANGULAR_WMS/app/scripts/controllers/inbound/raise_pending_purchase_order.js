@@ -228,7 +228,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
-          vm.validated_by = aData['To Be Validated By']
+          vm.validated_by = aData['To Be Approved By']
+          vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
           if (aData['Validation Status'] == 'approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
@@ -437,6 +438,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
+      }
+      if (vm.requested_user){
+        elem.push({name:'requested_user', value:vm.requested_user})
       }
       if (validation_type == 'approved'){
         elem.push({name: 'validation_type', value: 'approved'})

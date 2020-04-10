@@ -487,55 +487,88 @@ class OpenPO(models.Model):
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
 
-
 @reversion.register()
-class PendingPurchase(models.Model):  #OpenPR
+class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
-    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
-    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     requested_user = models.ForeignKey(User)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
-    po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
-    prefix = models.CharField(max_length=32, default='')
-    sku = models.ForeignKey(SKUMaster, db_index=True)
-    quantity = models.FloatField(default=0, db_index=True)
-    price = models.FloatField(default=0)
-    sgst_tax = models.FloatField(default=0)
-    cgst_tax = models.FloatField(default=0)
-    igst_tax = models.FloatField(default=0)
-    utgst_tax = models.FloatField(default=0)
+    wh_user = models.ForeignKey(User, related_name='pendingPRs')
     delivery_date = models.DateField(blank=True, null=True)
     measurement_unit = models.CharField(max_length=32, default='')
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='')
-    remarks = models.CharField(max_length=256, default='')
+    remarks = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'PENDING_PURCHASE'
-        #unique_together = ('requested_user', 'sku')
+        db_table = 'PENDING_PR'
 
+
+@reversion.register()
+class PendingPO(models.Model):
+    id = BigAutoField(primary_key=True)
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
+    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    pending_prs = models.ManyToManyField(PendingPR)
+    requested_user = models.ForeignKey(User)
+    wh_user = models.ForeignKey(User, related_name='pendingPOs')
+    po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
+    delivery_date = models.DateField(blank=True, null=True)
+    measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=256, default='')
+    pending_level = models.CharField(max_length=64, default='')
+    final_status = models.CharField(max_length=32, default='')
+    remarks = models.TextField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PENDING_PO'
+
+
+@reversion.register()
+class PendingLineItems(models.Model):
+    id = BigAutoField(primary_key=True)
+    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prlineItems', blank=True, null=True)
+    pending_po = models.ForeignKey(PendingPO, related_name='pending_polineItems', blank=True, null=True)
+    purchase_type = models.CharField(max_length=32, default='')
+    prefix = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, db_index=True)
+    quantity = models.FloatField(default=0, db_index=True)
+    price = models.FloatField(default=0)
+    measurement_unit = models.CharField(max_length=32, default='')
+    sgst_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PENDING_LINE_ITEMS'
 
 @reversion.register()
 class PurchaseApprovals(models.Model):  #PRApprovals
     id = BigAutoField(primary_key=True)
-    openpr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    pending_pr = models.ForeignKey(PendingPR, related_name='pending_prApprovals', blank=True, null=True)
+    pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True)
+    purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     configName = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User)
     level = models.CharField(max_length=64, default='')
-    validated_by = models.CharField(max_length=64, default='') #TODO
+    validated_by = models.TextField(default='')
     status = models.CharField(max_length=32, default='')
-    remarks = models.CharField(max_length=256, default='')
+    remarks = models.TextField(default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PURCHASE_APPROVALS'
-        #unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
 
 
+@reversion.register()
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)

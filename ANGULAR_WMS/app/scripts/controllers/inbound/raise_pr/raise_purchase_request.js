@@ -232,8 +232,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
           if (aData['Validation Status'] == 'approved'){
-            console.log('PR To PO Conversion')
-            // $state.go('app.inbound.RaisePr.PurchaseOrder');
+            $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'saved'){
             vm.update = true;
             $state.go('app.inbound.RaisePr.SavedPurchaseRequest');
@@ -449,6 +448,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name: 'validation_type', value: 'rejected'})
       }
       vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Approved Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      })
+    }
+
+    vm.convert_pr_to_po = function(form, validation_type) {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      if (vm.is_actual_pr){
+        elem.push({name:'is_actual_pr', value:true})
+      }
+      if (vm.pr_number){
+        elem.push({name:'pr_number', value:vm.pr_number})
+      }
+      if (vm.requested_user){
+        elem.push({name:'requested_user', value:vm.requested_user})
+      }
+      vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
             vm.close();

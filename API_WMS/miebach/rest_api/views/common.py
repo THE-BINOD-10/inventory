@@ -808,9 +808,9 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt):
+def findReqConfigName(user, totalAmt, purchase_type='PR'):
     reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user)
+    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -1036,9 +1036,9 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user):
+def fetchConfigNameRangesMap(user, purchase_type='PR'):
     confMap = OrderedDict()
-    for rec in PurchaseApprovalConfig.objects.filter(user=user).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
+    for rec in PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap

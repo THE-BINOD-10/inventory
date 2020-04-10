@@ -1504,7 +1504,6 @@ def get_orders(request):
         order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
-        discount_amount = 0
         item_dict = {}
         order_status = ''
         # if data_dict[0].status == '0':
@@ -1518,40 +1517,56 @@ def get_orders(request):
         #     order_status = 'Dispatched'
         # elif data_dict[0].status == '3':
         #     order_status = 'Cancelled'
-        order_summary = CustomerOrderSummary.objects.filter(order_id=data_dict[0].id,order__user=user.id)
         for data in data_dict:
             invoice_num_check = ''
             picked_quantity_sku = 0
+            unit_discount = 0
+            discount_amount = 0
+            dispatched_quantity = 0
+            order_summary = CustomerOrderSummary.objects.filter(order_id=data.id,order__user=user.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
             seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
             invoice_num_check = seller_sku.values('invoice_number')
             if seller_sku.exists():
-                picked_quantity_sku = seller_sku[0].quantity
+                picked_quantity_sku = seller_sku.aggregate(Sum('quantity'))['quantity__sum']
             if charge:
                 charge_amount = charge[0]
-            if order_summary.exists():
-                discount_amount = order_summary[0].discount
-                if order_summary[0].cgst_tax:
-                    item_dict['tax_percent'] = {'CGST': order_summary[0].cgst_tax, 'SGST': order_summary[0].sgst_tax}
-                elif order_summary[0].igst_tax:
-                    item_dict['tax_percent'] = {'IGST': order_summary[0].igst_tax}
             if data.status == '0':
-                if picked_quantity_sku == data.quantity:
-                    sku_status = 'Picked'
-                else:
-                    sku_status = 'Partially picked'
-                if seller_sku.exists():
-                    if picked_quantity_sku == data.quantity and invoice_num_check:
-                        order_status = 'Invoice generated'
-                    if picked_quantity_sku != data.quantity and invoice_num_check:
-                        order_status = 'Partial invoice generated'
+                sku_status = 'In progress'
+                # if picked_quantity_sku == data.original_quantity:
+                #     sku_status = 'Picked'
+                # else:
+                #     sku_status = 'Partially Picked'
+                # if seller_sku.exists():
+                #     if picked_quantity_sku == data.original_quantity and invoice_num_check:
+                #         sku_status = 'Invoice generated'
+                #     if picked_quantity_sku != data.original_quantity and invoice_num_check:
+                #         sku_status = 'Partial invoice generated'
             elif data.status == '1':
                 sku_status = 'Open'
             elif data.status == '2':
                 sku_status = 'Dispatched'
             elif data.status == '3':
                 sku_status = 'Cancelled'
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'status':sku_status,'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            # if picked_quantity_sku == 0:
+            #         sku_status = 'Open'
+            shipment_info = ShipmentInfo.objects.filter(order__user=user.id, order_id=data.id)
+            if shipment_info.exists():
+                dispatched_quantity = shipment_info.aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                picked_quantity_sku -= dispatched_quantity
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
+                         'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
+                         'status':sku_status,'unit_price':data.unit_price,
+                         'shipment_charge':charge_amount, 'discount_amount':'',
+                         'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
+            if order_summary.exists():
+                discount_amount = order_summary[0].discount
+                item_dict['discount_amount'] = discount_amount
+                if order_summary[0].cgst_tax:
+                    item_dict['tax_percent']['CGST'] = order_summary[0].cgst_tax
+                    item_dict['tax_percent']['SGST'] = order_summary[0].sgst_tax
+                elif order_summary[0].igst_tax:
+                    item_dict['tax_percent']['IGST'] = order_summary[0].igst_tax
             items.append(item_dict)       
         billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,

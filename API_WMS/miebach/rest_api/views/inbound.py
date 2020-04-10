@@ -1422,6 +1422,7 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

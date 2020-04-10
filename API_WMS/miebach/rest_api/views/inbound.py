@@ -149,7 +149,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
 
 @csrf_exempt
 def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PO' } # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
+    filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -6326,7 +6326,7 @@ def confirm_add_po(request, sales_data='', user=''):
     is_purchase_request = request.POST.get('is_purchase_request', '')
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
-        prQs = PendingPurchase.objects.filter(sku__user=user.id, pr_number=pr_number)
+        prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
         if prQs.exists():
             prObj = prQs[0]
             po_creation_date = prObj.creation_date
@@ -6451,7 +6451,10 @@ def confirm_add_po(request, sales_data='', user=''):
             if request.POST.get('is_purchase_request') == 'true':
                 pr_number = request.POST.get('pr_number', '')
                 if pr_number: pr_number = int(pr_number)
-                PendingPurchase.objects.filter(sku_id=sku_id[0].id, pr_number=pr_number).update(open_po_id=data1.id)
+                pendingPOQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user)
+                if pendingPOQs.exists():
+                    # pendingPoObj = pendingPOQs[0]
+                    pendingPOQs.update(open_po_id=data1.id)
 
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id

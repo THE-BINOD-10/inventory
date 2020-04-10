@@ -956,6 +956,8 @@ def get_skus(request):
             search_params['sku_code'] = request_data['sku_code']
         if request_data.get('sku_brand'):
             search_params['sku_brand'] = request_data['sku_brand']
+        if request_data.get('sku_category'):
+            search_params['sku_category'] = request_data['sku_category']
         skus = request_data.get('sku_list', [])
         skus = map(lambda sku: str(sku), skus)
         if skus:
@@ -1472,6 +1474,11 @@ def get_orders(request):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'customer_id' in search_params:
+        if type(search_params['customer_id']) == list:
+            search_parameters['customer_id__in'] = search_params['customer_id']
+        else:
+            search_parameters['customer_id'] = search_params['customer_id']
     if 'order_id' in search_params:
         try:
             search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
@@ -1489,34 +1496,26 @@ def get_orders(request):
     for order in page_info['data']:
         picked_quantity = 0
         payment_status = 'Pending'
+        shipment_dict = {}
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
+        shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
+                             values('order_id', 'shipping_quantity')
+        for item in shipment_mapping:
+            if item['order_id'] in shipment_dict:
+                shipment_dict[item['order_id']] += item['shipping_quantity']
+            else:
+                shipment_dict[item['order_id']] = item['shipping_quantity']
+
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
         payment = data_dict.aggregate(invoice_amount_sum = Sum('invoice_amount'),
                                     payment_received_sum = Sum('payment_received'))
         if payment['invoice_amount_sum'] == payment['payment_received_sum']:
             payment_status='Paid'
-        seller_obj = SellerOrderSummary.objects.filter(order__user= user.id, order__original_order_id=order)\
-                                                  .values('order__sku_id', 'invoice_number', 'order__quantity')\
-                                                  .distinct().annotate(pic_qty=Sum('quantity'))
-        if seller_obj.exists():
-            picked_quantity = seller_obj.aggregate(Sum('pic_qty'))['pic_qty__sum']
-        order_quantity = data_dict.aggregate(Sum('original_quantity'))['original_quantity__sum']
         items = []
         charge_amount= 0
         item_dict = {}
         order_status = ''
-        # if data_dict[0].status == '0':
-        #     if picked_quantity == order_quantity:
-        #         order_status = 'Picked'
-        #     else:
-        #         order_status = 'Partially picked'
-        # elif data_dict[0].status == '1':
-        #     order_status = 'Open'
-        # elif data_dict[0].status == '2':
-        #     order_status = 'Dispatched'
-        # elif data_dict[0].status == '3':
-        #     order_status = 'Cancelled'
         for data in data_dict:
             invoice_num_check = ''
             picked_quantity_sku = 0
@@ -1550,18 +1549,20 @@ def get_orders(request):
                 sku_status = 'Cancelled'
             # if picked_quantity_sku == 0:
             #         sku_status = 'Open'
-            shipment_info = ShipmentInfo.objects.filter(order__user=user.id, order_id=data.id)
-            if shipment_info.exists():
-                dispatched_quantity = shipment_info.aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
-                picked_quantity_sku -= dispatched_quantity
+            dispatched_quantity = shipment_dict.get(data.id, 0)
+            picked_quantity_sku -= dispatched_quantity
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'status':sku_status,'unit_price':data.unit_price,
                          'shipment_charge':charge_amount, 'discount_amount':'',
                          'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
+            shipping_address = {"address": data_dict[0].address}
             if order_summary.exists():
                 discount_amount = order_summary[0].discount
                 item_dict['discount_amount'] = discount_amount
+                consignee = order_summary[0].consignee
+                if consignee:
+                    shipping_address["address"] = consignee
                 if order_summary[0].cgst_tax:
                     item_dict['tax_percent']['CGST'] = order_summary[0].cgst_tax
                     item_dict['tax_percent']['SGST'] = order_summary[0].sgst_tax
@@ -1582,7 +1583,8 @@ def get_orders(request):
                                     ('source',data_dict[0].marketplace),
                                     ('customer_id', data_dict[0].customer_id),
                                     ('customer_name',data_dict[0].customer_name),
-                                    ('billing_address',billing_address ),('items',items))))
+                                    ('billing_address',billing_address ),
+                                    ('shipping_address',shipping_address),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))

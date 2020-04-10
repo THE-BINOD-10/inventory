@@ -7499,7 +7499,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                 creation_date = ord_inv_dates_map.get(data['order__id'], '')
                 if creation_date:
                     invoice_date = get_local_date(user, creation_date)
-                    invoice_number = get_full_invoice_number(user,invoice_number,order[0], invoice_date)
+                    invoice_number = get_full_invoice_number(user,invoice_number,order[0], creation_date)
                 else:
                     invoice_number = get_full_invoice_number(user,invoice_number,order[0])
             elif increment_invoice == 'false':
@@ -7508,7 +7508,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False, f
                     creation_date = ord_inv_dates_map.get(data['order__id'], '')
                     if creation_date:
                         invoice_date = get_local_date(user, creation_date)
-                        invoice_number = get_full_invoice_number(user,invoice_number,order[0], invoice_date)
+                        invoice_number = get_full_invoice_number(user,invoice_number,order[0], creation_date)
                     else:
                         invoice_number = get_full_invoice_number(user,invoice_number,order[0])
             else:

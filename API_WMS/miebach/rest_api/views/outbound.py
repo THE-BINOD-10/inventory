@@ -1629,6 +1629,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
         return
     elif misc_detail[0].misc_value != 'true':
         return
+    if get_misc_value('customer_dc', user.id) == 'true':
+        return
     if picklist.order:
         for order_id in order_ids:
             all_picked_items = picks_all.filter(order__order_id=order_id, picked_quantity__gt=0)
@@ -11717,7 +11719,8 @@ def move_to_inv(request, user=''):
                         order_obj = sel_obj.seller_order.order
                     else:
                         order_obj = sel_obj.order
-                    full_invoice_number = get_full_invoice_number(user, order_no, order_obj, invoice_date='', pick_number=sel_obj.pick_number)
+                    full_invoice_number = get_full_invoice_number(user, order_no, order_obj, invoice_date=sel_obj.creation_date,
+                                                                    pick_number=sel_obj.pick_number)
                     sel_obj.full_invoice_number = full_invoice_number
                     sel_obj.creation_date=date
                     sel_obj.save()

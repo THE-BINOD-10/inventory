@@ -1649,7 +1649,7 @@ def warehouse_headers(request, user=''):
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs
-        if size_name:
+        if size_name not in ['', 'undefined']:
             all_sizes = size_master_objs.filter(size_name=size_name)
         sizes = []
         if all_sizes:

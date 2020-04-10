@@ -2591,32 +2591,30 @@ def get_supplier_data(request, user=''):
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
-                po_quantity = float(order_data['order_quantity']) - float(order.received_quantity) - float(sum(order.discrepancy_set.filter().values_list('quantity',flat=True)))
-                if po_quantity > 0 :
-                    orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
-                                'sku_desc': order_data['sku_desc'], 'weight': weight,
-                                 'weight_copy':weight,
-                                'po_quantity': po_quantity,
-                                'name': str(order.order_id) + '-' + str(
-                                    re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                                'value': get_decimal_limit(user.id, order.saved_quantity),
-                                'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': order_data['price'],
-                                'grn_price':order_data['price'],
-                                'mrp': order_data['mrp'],
-                                'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                                'unit': order_data['unit'],
-                                'dis': True,'wrong_sku':0,
-                                'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                                'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                                'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
-                                'apmc_percent': order_data['apmc_tax'],
-                                'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
-                                 'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'],
-                                 'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
-                                 'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
-                                 }])
+                orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
+                            'sku_desc': order_data['sku_desc'], 'weight': weight,
+                             'weight_copy':weight,
+                            'po_quantity': po_quantity,
+                            'name': str(order.order_id) + '-' + str(
+                                re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
+                            'value': get_decimal_limit(user.id, order.saved_quantity),
+                            'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
+                            'price': order_data['price'],
+                            'grn_price':order_data['price'],
+                            'mrp': order_data['mrp'],
+                            'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
+                            'unit': order_data['unit'],
+                            'dis': True,'wrong_sku':0,
+                            'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                            'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
+                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
+                            'apmc_percent': order_data['apmc_tax'],
+                            'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
+                             'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
+                             'buy_price': order_data['price'],
+                             'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
+                             'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
+                             }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
         purchase_order = purchase_orders[0]
@@ -3152,7 +3150,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if pallet_number:
                     if temp_dict['pallet_data'] == 'true':
                         insert_pallet_data(temp_dict, po_loc)
-                if float(purchase_data['order_quantity']) <= data.received_quantity+float(sum(data.discrepancy_set.filter().values_list('quantity',flat=True))):
+                if float(purchase_data['order_quantity']) <= data.received_quantity+ float(tem_dict.get('discrepency_quantity',0)):
                     data.status = 'location-assigned'
                     data.save()
                     break

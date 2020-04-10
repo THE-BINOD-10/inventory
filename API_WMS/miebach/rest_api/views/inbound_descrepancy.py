@@ -6,7 +6,7 @@ from inbound_common_operations import *
 
 
 def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_dict):
-    for key,val in report_data_dict.items():
+    for key, val in report_data_dict.items():
         exec(key + '=val')
     putaway_data = {'putaway_key': []}
     total_discrepency_amount = 0
@@ -49,6 +49,11 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
             discrepency_dict = {'quantity': discrepency_quantity, 'return_reason': discrepencey_reason, }
             if po_id:
                 discrepency_dict['purchase_order_id'] = po_id
+                po_order = PurchaseOrder.objects.get(id=po_id)
+                purchase_order = po_order
+                purchase_order.received_quantity +=discrepency_quantity
+                purchase_order.discrepancy_quantity = discrepency_quantity
+                purchase_order.save()
             else:
                 discrepency_dict['new_data'] = purchase_order_text
             if not print_des:

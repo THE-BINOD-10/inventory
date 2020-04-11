@@ -843,9 +843,11 @@ def pr_request(request):
     # if storedData:
     prApprId = storedData[0].pr_approval_id
     email_id = storedData[0].email
+
     prApprObj = PurchaseApprovals.objects.filter(id=prApprId)
     # if prApprObj:
     parentUser = prApprObj[0].pr_user
+    toBeValidateLevel = prApprObj[0].level
     sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
@@ -929,6 +931,7 @@ def pr_request(request):
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
+                                                ('LevelToBeApproved', toBeValidateLevel),
                                                 ('To Be Validated By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),

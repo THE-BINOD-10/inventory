@@ -228,7 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
-          vm.validated_by = aData['To Be Validated By']
+          vm.validated_by = aData['To Be Approved By']
           vm.pending_status = aData['Validation Status']
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){

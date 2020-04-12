@@ -139,8 +139,9 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('Warehouse', warehouse),
                                                 ('PO Raise By', result['requested_user__first_name']),
                                                 ('Requested User', result['requested_user__username']),
-                                                ('Validation Status', result['final_status']),
+                                                ('Validation Status', result['final_status'].title()),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
+                                                ('LevelToBeApproved', result['pending_level']),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -2185,6 +2186,7 @@ def approve_pr(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     validation_type = request.POST.get('validation_type', '')
     validated_by = request.POST.get('validated_by', '')
+    levelToBeValidatedFor = request.POST.get('pending_level', '')
     remarks = request.POST.get('remarks', '')
     currentUserEmailId = request.user.email
     if not pr_number:
@@ -2200,6 +2202,12 @@ def approve_pr(request, user=''):
 
     totalAmt = PRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
     pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
+    if levelToBeValidatedFor != pending_level:
+        validatedPR = PurchaseApprovals.objects.filter(openpr_number=pr_number, pr_user=user.id, level=levelToBeValidatedFor)
+        if validatedPR.exists():
+            validation_status = validatedPR[0].status
+            status = "This PO has been already %s. Further action cannot be made." %validation_status
+            return HttpResponse(status)
     reqConfigName, lastLevel = findLastLevelToApprove(user, pr_number, totalAmt)
     if currentUserEmailId not in validated_by:
         confObj = PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName, level=pending_level)

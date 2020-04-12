@@ -22,7 +22,6 @@
             } else if (data == '"No Data Found"') {
               alert('Sku With Zero Quantity Available')
             } else {
-                console.log(data);
                 if(data.status == "success") {
                   if(data.data.summary.issue_type === "Pre Order") {
                       printer.print('/app/views/pre_order_print.html', {'data': data.data,
@@ -30,10 +29,20 @@
                                                             'print_type': 'DUPLICATE',
                                                             'date':data.data.order_date});
                   } else {
-                      printer.print('/app/views/print.html', {'data': data.data,
+                      for (var i = 0; i < data.data['sku_data'].length; i++) {
+                        data.data['sku_data'][i]['cgst'] = (data.data['sku_data'][i]['cgst'] * data.data['sku_data'][i]['quantity']) * data.data['sku_data'][i]['quantity']
+                        data.data['sku_data'][i]['sgst'] = (data.data['sku_data'][i]['sgst'] * data.data['sku_data'][i]['quantity']) * data.data['sku_data'][i]['quantity']
+                        data.data['sku_data'][i]['igst'] = (data.data['sku_data'][i]['igst'] * data.data['sku_data'][i]['quantity']) * data.data['sku_data'][i]['quantity']
+                        data.data['sku_data'][i]['utgst'] = (data.data['sku_data'][i]['utgst'] * data.data['sku_data'][i]['quantity']) * data.data['sku_data'][i]['quantity']
+                        data.data['sku_data'][i]['selling_price'] = (data.data['sku_data'][i]['selling_price']/data.data['sku_data'][i]['quantity'])
+                        if ((data.data['sku_data'].length-1) == i) {
+                          data.data['order_id'] = data.data['inv_order_prefix'] + data.data['order_id']
+                          printer.print('/app/views/print.html', {'data': data.data,
                                                           'user':urlService.userData,
                                                           'print_type': 'DUPLICATE',
                                                           'date':data.data.order_date});
+                        }
+                      }
                  }
                 }
             }

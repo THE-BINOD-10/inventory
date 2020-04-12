@@ -883,6 +883,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         order = order_detail[0]
         customer_id = ''
         customer_lastName = ''
+        order_date_prefix = ''
+        order_date_prefix = "TI/"+str(order.creation_date.month)+str(order.creation_date.year%100)
         order_date = get_local_date(user, order.creation_date)
         extra_field_obj = list(OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
                                   .exclude(name__icontains = "payment_").values_list('name', 'value'))
@@ -919,6 +921,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id, 'order_code': order.order_code,
                                  'order_date': order_date,
+                                 'inv_order_prefix': order_date_prefix,
                                  'payment_mode':payment_type,
                                  'reference_number':reference_number,
                                  'customer_extra': extra_fields},

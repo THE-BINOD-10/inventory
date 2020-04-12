@@ -120,7 +120,7 @@
     </div>
   </div>
   <div class="summary-row discount">
-    <div class="btn btn-default" ng-click="$ctrl.discount_modal()">Discount</div>
+    <div class="btn btn-default" ng-click="$ctrl.discount_modal()" ng-hide="!$ctrl.urlService.discount_en">Discount</div>
   </div>
   <div ng-if="$ctrl.urlService.returns_load">
     <div ng-init="$ctrl.on_data_change('add')"></div>

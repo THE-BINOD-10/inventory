@@ -432,6 +432,7 @@ def update_customer_orders(request):
             tot_order_level_discount = order['summary']['total_discount']
             order_level_disc_per_sku = tot_order_level_discount / float(len(order['sku_data']))
             for item in order['sku_data']:
+                order_level_disc_per_sku = (tot_order_level_discount * item['price'] * item['quantity']) / order['summary']['total_amount']
                 sku = SKUMaster.objects.get(wms_code=item['sku_code'], user=user_id)
                 order_available = OrderDetail.objects.filter(user=user_id, original_order_id=original_order_id, sku_id=sku.id)
                 if order_available.exists() and item['quantity'] > order_available[0].quantity:
@@ -656,6 +657,7 @@ def customer_order(request):
                                      str(payment_received)))
                             continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
+                    order_level_disc_per_sku = (tot_order_level_discount * item['price'] * item['quantity']) / order['summary']['total_amount']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
                                                         issue_type=order['summary']['issue_type'], \

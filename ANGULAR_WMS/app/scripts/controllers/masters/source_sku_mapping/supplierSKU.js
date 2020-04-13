@@ -7,7 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
+    vm.permissions = Session.roles.permissions;
     vm.filters = {'datatable': 'SupplierSKUMappingMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -66,6 +66,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   var empty_data = {supplier_id: "", wms_code: "", supplier_code: "", preference: "", moq: "", price: ""};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
+
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_skusupplier){
+        $(':input').attr('readonly','readonly');
+      }
+    }
 
   //close popup
   vm.close = function() {

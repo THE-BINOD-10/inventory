@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   var vm = this;
   vm.apply_filters = colFilters;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type
 
@@ -86,6 +87,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.message = "";
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
+
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_suppliermaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
 
   vm.close = function() {
 

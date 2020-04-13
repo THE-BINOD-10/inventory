@@ -111,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
+
     var row_click_bind = 'td';
     if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
@@ -127,6 +128,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }
+    if (vm.industry_type == 'FMCG')
+        {
+            vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+        }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {

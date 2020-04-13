@@ -347,15 +347,15 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
-                           'order_id']
+                           'order_id','order_id']
     st_purchase_list = ['po__order_id', 'po__order_id', 'open_st__warehouse__username', 'po__order_id',
                         'po__creation_date', 'po__order_id', 'po__order_id', 'po__order_id', 'po__order_id',
-                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id']
+                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id']
     rw_purchase_list = ['purchase_order__order_id', 'purchase_order__order_id', 'rwo__vendor__name',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'rwo__vendor__name', 'purchase_order__order_id',
-                        'purchase_order__order_id', 'purchase_order__order_id']
+                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id']
     st_purchase_list_sort = []
     for st_purchase_lis in st_purchase_list:
         st_purchase_list_sort.append('stpurchaseorder__%s' % st_purchase_lis)
@@ -521,6 +521,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     sr_number = courtesy_sr_number[0].value
                 else:
                     sr_number = ''
+        discrepency_qty = 0
+        if user.userprofile.industry_type == 'FMCG':
+            discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
+                                            .values_list('quantity',flat=True)))
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
@@ -530,6 +534,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Warehouse', warehouse),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
+                                      ('Discrepancy Qty', discrepency_qty),
                                       ('Style Name', ''), ('SR Number', sr_number)
                                       )))
     temp_data['aaData'] = data_list

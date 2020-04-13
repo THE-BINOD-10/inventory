@@ -571,6 +571,7 @@ class PurchaseOrder(models.Model):
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)
+    discrepancy_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=256, default='')
     priority = models.IntegerField(default=0)

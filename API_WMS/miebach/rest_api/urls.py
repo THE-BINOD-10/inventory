@@ -623,6 +623,8 @@ urlpatterns += [
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
+    url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
+    url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

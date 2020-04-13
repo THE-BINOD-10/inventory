@@ -334,8 +334,9 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         data_dict = {'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
+                                    'Seller ID': '', 'Seller Name': '',
                                     'DT_RowAttr': {'id': data.id}, 'id': count}
-        if user.userprofile.user_type == 'marketplace_user':
+        if user.userprofile.user_type == 'marketplace_user' and data.st_seller:
             data_dict['Seller ID'] = data.st_seller.seller_id
             data_dict['Seller Name'] = data.st_seller.name
         temp_data['aaData'].append(data_dict)

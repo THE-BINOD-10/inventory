@@ -347,6 +347,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "add_pricemaster",
                  },
+                 {
+                   title: "Brand Level Barcode Configuration Download/ Upload",
+                   download: "Brand Level Barcode Configuration Download Form",
+                   upload: "Brand Level Barcode Configuration Upload Form",
+                   durl: "brand_level_barcode_configuration_form/",
+                   uurl: "brand_level_barcode_configuration_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_barcodebrandmappingmaster",
+                 },
                 ]
 
   $scope.download = function(data) {

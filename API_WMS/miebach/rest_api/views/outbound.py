@@ -7731,7 +7731,7 @@ def get_view_order_details(request, user=''):
             order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
 
         order_details_data.append(
-            {'product_title': product_title, 'sku_brand': sku_brand, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
+            {'product_title': product_title, 'sku_brand': sku_brand, 'quantity': quantity, 'invoice_amount': float("%.2f" % invoice_amount), 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
              'city': city,
              'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
@@ -7743,10 +7743,10 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'cess_tax': cess_tax, 'order_sku_attributes': order_sku_attributes,
-             'unit_price': unit_price, 'discount_percentage': discount_percentage, 'discount': discount,
+             'unit_price': float("%.2f" % unit_price), 'discount_percentage': discount_percentage, 'discount': float("%.2f" % discount),
              'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':mrp})
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status, 'mrp':float("%.2f" % mrp)})
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
@@ -7839,7 +7839,7 @@ def payment_tracker(request, user=''):
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
         if round(picked_amount) > round(float(payment_received)):
-            receivable = picked_amount - data['payment_received']
+            receivable = picked_amount - payment_received
             total_payment_received += payment_received
             total_invoice_amount += picked_amount
             total_payment_receivable += receivable
@@ -7851,13 +7851,16 @@ def payment_tracker(request, user=''):
                                                 'payment_received': 0,
                                                 'payment_receivable': 0
                                                 })
-            data_dict[grouping_key]['invoice_amount'] +=round(picked_amount)
-            data_dict[grouping_key]['payment_received'] +=round(payment_received)
-            data_dict[grouping_key]['payment_receivable'] +=round(receivable)
+            data_dict[grouping_key]['invoice_amount'] +=picked_amount
+            data_dict[grouping_key]['payment_received'] +=payment_received
+            data_dict[grouping_key]['payment_receivable'] +=receivable
 
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
+        data1['invoice_amount'] = float("%.2f" % data1['invoice_amount'])
+        data1['payment_received'] = float("%.2f" % data1['payment_received'])
+        data1['payment_receivable'] = float("%.2f" % data1['payment_receivable'])
         customer_data.append(data1)
     response["data"] = customer_data
     response.update({'total_payment_received': "%.2f" % total_payment_received,
@@ -8108,7 +8111,7 @@ def get_customer_payment_tracker(request, user=''):
         payment_obj = PaymentSummary.objects.filter(invoice_number=data['full_invoice_number'], order__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
-        payment_receivable = round(picked_amount) - round(payment_received)
+        payment_receivable = picked_amount - payment_received
         order_id = str(data['order__order_code']) + str(data['order__order_id'])
         grouping_key = data['full_invoice_number']
         data_dict.setdefault(grouping_key, {'expected_date': due_date,
@@ -8118,9 +8121,9 @@ def get_customer_payment_tracker(request, user=''):
                                             'invoice_number': data['full_invoice_number'],
                                             'customer_name':data['order__customer_name'],
                                             'customer_id': data['order__customer_id'],
-                                            'inv_amount': round(picked_amount),
-                                            'received': round(payment_received),
-                                            'receivable': round(payment_receivable)
+                                            'inv_amount': float("%.2f" % picked_amount),
+                                            'received': float("%.2f" % payment_received),
+                                            'receivable': float("%.2f" % payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []

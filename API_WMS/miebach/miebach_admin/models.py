@@ -1514,7 +1514,7 @@ class LocationGroups(models.Model):
 class OpenST(models.Model):
     id = BigAutoField(primary_key=True)
     warehouse = models.ForeignKey(User)
-    po_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None)
+    po_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='po_seller')
     sku = models.ForeignKey(SKUMaster)
     order_quantity = models.FloatField(default=0)
     price = models.FloatField()
@@ -1550,7 +1550,7 @@ class StockTransfer(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.BigIntegerField()
     st_po = models.ForeignKey(STPurchaseOrder)
-    st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None)
+    st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)

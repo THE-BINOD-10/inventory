@@ -3566,12 +3566,18 @@ def st_generate_picklist(request, user=''):
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
         location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                    'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+    if user.username in MILKBASKET_USERS:
+        zones  = get_all_sellable_zones(user)
+        locations = []
+        bulk_zone_name = MILKBASKET_BULK_ZONE
+        bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
+        zones = list(chain(zones, bulk_zones))
+        sku_stocks.filter(location__zone__zone__in=zones)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
@@ -5546,11 +5552,12 @@ def create_stock_transfer(request, user=''):
         data_dict['cgst'][i] = data_dict['cgst'][i] if data_dict['cgst'][i] else 0
         data_dict['sgst'][i] = data_dict['sgst'][i] if data_dict['sgst'][i] else 0
         data_dict['igst'][i] = data_dict['igst'][i] if data_dict['igst'][i] else 0
+        data_dict['mrp'][i] = data_dict['mrp'][i] if data_dict['mrp'][i] else 0
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],data_dict['cgst'][i],
-             data_dict['sgst'][i],data_dict['igst'][i], data_id])
+             data_dict['sgst'][i],data_dict['igst'][i], data_id, data_dict['mrp'][i]])
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
     if not status:

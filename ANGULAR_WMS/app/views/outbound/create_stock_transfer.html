@@ -48,6 +48,7 @@
                     <th>Description </th>
                     <th>Available Quantity*</th>
                     <th>Quantity*</th>
+                    <th ng-if="showCase.industry_type='FMCG'">MRP</th>
                     <th>Price*</th>
                     <th>CGST (%)</th>
                     <th>SGST (%)</th>
@@ -69,6 +70,9 @@
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
                     <td>
                       <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td ng-if="showCase.industry_type='FMCG'">
+                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp"  decimal-number>
                     </td>
                     <td>
                       <input type="text" name="price" class="form-control" ng-model="data.price"  ng-keyup="showCase.changeUnitPrice(data)" decimal-number>

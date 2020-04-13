@@ -46,6 +46,7 @@
                 <tr>
                   <th> SKU Code* </th>
                   <th> Quantity* </th>
+                  <th ng-if="showCase.industry_type='FMCG'"> MRP </th>
                   <th> Price </th>
                   <th class="plus"></th>
                 </tr>
@@ -54,10 +55,11 @@
                 <tr ng-repeat="product in showCase.model_data.data">
                   <input type="hidden" name="id" value="{{product.id}}">
                   <td>
-                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-dirty ng-valid ng-valid-required ng-valid-editable" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.wms_code" ng-required="$first" typeahead-on-select="product.wms_code = $item.wms_code;" aria-autocomplete="list" aria-expanded="false" aria-owns="typeahead-00B-4663" required="required">
+                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-dirty ng-valid ng-valid-required ng-valid-editable" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.wms_code" ng-required="$first" typeahead-on-select="showCase.get_sku_data(product, $item, $index)" aria-autocomplete="list" aria-expanded="false" aria-owns="typeahead-00B-4663" required="required">
                     <!--<input id="wms1" ng-model="product.wms_code" type="text" name="wms_code" class="form-control mapping-check" ng-required ="$first">-->
                   </td>
                   <td><input id="quant1" ng-model="product.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-required ="$first"> </td>
+                  <td ng-if="showCase.industry_type='FMCG'"><input type="text" ng-model="product.mrp" name="mrp" class="form-control" decimal-number > </td>
                   <td><input type="text" ng-model="product.price" name="price" class="form-control" decimal-number > </td>
                   <td> <i ng-click="showCase.update_data($index)" ng-class="showCase.isLast($last)"></i> </td>
                 </tr>

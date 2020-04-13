@@ -7679,6 +7679,9 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
                 needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
                 sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
+            elif 'st_po' in dir(order):
+                needed_mrp_filter = order.st_po.open_st.mrp
+                sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
         if seller_master_id:
             seller_filter_dict = {}
             for stock_filter_key, stock_filter_val in sku_id_stock_filter.iteritems():
@@ -10072,6 +10075,7 @@ def insert_st_gst(all_data, user):
                 open_st.cgst_tax = float(val[3])
                 open_st.sgst_tax = float(val[4])
                 open_st.igst_tax = float(val[5])
+                open_st.mrp = float(val[7])
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
@@ -10082,6 +10086,7 @@ def insert_st_gst(all_data, user):
             stock_dict['cgst_tax'] = float(val[3])
             stock_dict['sgst_tax'] = float(val[4])
             stock_dict['igst_tax'] = float(val[5])
+            stock_dict['mrp'] = float(val[7])
             if user.userprofile.user_type == 'marketplace_user':
                 stock_dict['po_seller_id'] = key[3].id
             stock_transfer = OpenST(**stock_dict)
@@ -10190,6 +10195,7 @@ def insert_st(all_data, user):
                 open_st.warehouse_id = key[1]
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
+                open_st.mrp = float(val[4])
                 open_st.order_quantity = float(val[1])
                 open_st.save()
                 continue
@@ -10201,6 +10207,10 @@ def insert_st(all_data, user):
                 stock_dict['price'] = float(val[2])
             else:
                 stock_dict['price'] = 0
+            if val[4]:
+                stock_dict['mrp'] = float(val[4])
+            else:
+                stock_dict['mrp'] = 0
             if user.userprofile.user_type == 'marketplace_user':
                 stock_dict['po_seller_id'] = key[2].id
             stock_transfer = OpenST(**stock_dict)

@@ -6861,9 +6861,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = int(get_cell_data(row_idx, value, reader, file_type))
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
                 except:
                     price = 0
+            elif key == 'mrp':
+                try:
+                    mrp = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    mrp = 0
             elif key == 'cgst_tax':
                 try:
                     cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
@@ -6889,7 +6894,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         warehouse = User.objects.get(username__iexact=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
         all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 

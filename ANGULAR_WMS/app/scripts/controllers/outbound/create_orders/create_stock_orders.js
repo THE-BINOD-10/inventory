@@ -121,6 +121,7 @@ vm.changeUnitPrice = function(data){
     vm.get_customer_sku_prices(item.wms_code).then(function(data){
       if(data.length > 0) {
         data = data[0]
+        record.mrp = data.mrp;
         // record["price"] = data.mrp;
           if(!(record.order_quantity)) {
             record.order_quantity = 1

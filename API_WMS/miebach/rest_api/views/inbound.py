@@ -5718,11 +5718,13 @@ def save_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
+        if not data_dict['mrp'][i]:
+            data_dict['mrp'][i] = 0
         #cond = (warehouse_name)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
-            data_dict['price'][i], data_id])
+            data_dict['price'][i], data_id, data_dict['mrp'][i]])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -5747,7 +5749,7 @@ def update_raised_st(request, user=''):
             dest_seller_id = seller_obj.seller_id
     for stock in open_st:
         all_data.append({'wms_code': stock.sku.wms_code, 'order_quantity': stock.order_quantity, 'price': stock.price,
-                         'id': stock.id, 'warehouse_name': stock.warehouse.username,
+                         'id': stock.id, 'warehouse_name': stock.warehouse.username, 'mrp': stock.mrp,
                          })
     return HttpResponse(json.dumps({'data': all_data, 'warehouse': data_id, 'dest_seller_id': dest_seller_id,
                                     'source_seller_id': source_seller_id}))
@@ -5777,10 +5779,12 @@ def confirm_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
+        if not data_dict['mrp'][i]:
+            data_dict['mrp'][i] = 0
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append(
-            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
+            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)

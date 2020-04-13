@@ -209,4 +209,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
 
+  vm.get_sku_data = function(record, item, index) {
+    record.wms_code = item.wms_code;
+    var get_data = {sku_codes: record.wms_code}
+    vm.service.apiCall("get_customer_sku_prices/", "POST", get_data).then(function(data) {
+      if(data.message) {
+        data = data.data;
+        if(data.length > 0) {
+          data = data[0]
+          record.mrp = data.mrp;
+          if(!(record.order_quantity)) {
+            record.order_quantity = 1
+          }
+          if(!(record.price)) {
+            record.price = data.mrp;
+          }
+        }
+      }
+    });
   }
+
+}
+
+
+
+
+//        if(data.length > 0) {
+
+//      }

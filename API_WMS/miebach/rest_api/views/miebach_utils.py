@@ -2440,8 +2440,10 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('Location', 'location')
                                    ))
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
-                                      ('Warehouse Name', 'warehouse_name'), ('SKU Code', 'wms_code'),
-                                      ('Quantity', 'quantity'), ('Price', 'price'),('Cgst(%)','cgst_tax'),('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
+                                      ('Warehouse Name', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
+                                      ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
+                                      ('Quantity', 'quantity'), ('Price', 'price'), ('Cgst(%)','cgst_tax'),
+                                      ('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -2450,6 +2452,7 @@ CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
                                       ('City', 'city'), ('Pincode', 'pincode'),
                                       ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id'),
                                       ('Customer handset Model', 'sku_code')))
+
 SKU_PACK_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Pack ID', 'pack_id'),
                                       ('Pack Quantity', 'pack_quantity')))
 # SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'), ('Pack Quantity', 'pack_quantity')))

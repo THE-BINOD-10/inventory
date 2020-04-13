@@ -39,8 +39,8 @@
 
              <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
-                 <label cla4ss= control-label"> WMS Code * </label>
-                 <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code'); showCase.get_sku_batches(showCase.model_data.wms_code)" required>
+                 <label cla4ss= control-label"> SKU Code * </label>
+                 <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code'); showCase.get_sku_batches(showCase.model_data.wms_code)" required>
                </div>
              </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">

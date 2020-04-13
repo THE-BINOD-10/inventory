@@ -227,7 +227,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
         temp_data['aaData'].append(OrderedDict(
-            (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
+            (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
@@ -350,7 +350,6 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     order_data = SKU_SUPPLIER_MAPPING.values()[col_num]
     filter_params = get_filtered_params(filters, SKU_SUPPLIER_MAPPING.values())
-
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
@@ -378,9 +377,9 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
-                                                ('price', result.price), ('costing_type', result.costing_type),
-                                                ('markup_percentage',result.markup_percentage),
-                                                ('margin_percentage', result.margin_percentage), ('DT_RowClass', 'results'),
+                                                ('costing_type', result.costing_type),('price', result.price),
+                                                ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
+                                                ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
 
@@ -1031,14 +1030,14 @@ def check_update_hot_release(data, value):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request, user=''):
     """ Update SKU Details"""
     reversion.set_user(request.user)
+    reversion.set_comment("update_sku")
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
-    storehippo_fulfillments_log = init_logger('logs/storehippo_fulfillments_log_' + today + '.log')
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1098,7 +1097,6 @@ def update_sku(request, user=''):
                 value = 1
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
-                storehippo_sync_price_value(user, {'wms_code':wms_code, 'price':value})
             elif key == 'youtube_url':
                 if data.youtube_url != request.POST.get('youtube_url', ''):
                     youtube_update_flag = True
@@ -1115,12 +1113,12 @@ def update_sku(request, user=''):
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
-        status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        if "python" not in status:
-            sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-            subprocess.call(sku_query, shell=True)
-        else:
-            print "already running"
+        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+        #if "python" not in status:
+        #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+        #    subprocess.call(sku_query, shell=True)
+        #else:
+        #    print "already running"
 
         insert_update_brands(user)
 
@@ -1426,6 +1424,7 @@ def update_sku_supplier_values(request, user=''):
 def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
+    auto_po_switch = get_misc_value('auto_po_switch', user.id)
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
@@ -1451,7 +1450,7 @@ def insert_mapping(request, user=''):
 
         if value != '':
             data_dict[key] = value
-    if user.username not in MILKBASKET_USERS:
+    if auto_po_switch == 'true':
         sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
                                                   sku__user=user.id)
         if sku_supplier:
@@ -2486,11 +2485,12 @@ def get_zones_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     reversion.set_user(request.user)
+    reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']
@@ -2572,12 +2572,12 @@ def insert_sku(request, user=''):
 
         insert_update_brands(user)
         # update master sku txt file
-        status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        if "python" not in status:
-            sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-            subprocess.call(sku_query, shell=True)
-        else:
-            print "already running"
+        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+        #if "python" not in status:
+        #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+        #    subprocess.call(sku_query, shell=True)
+        #else:
+        #    print "already running"
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -4275,7 +4275,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         excel_headers = temp_data['aaData'][0].keys()
     excel_name = request.POST.get('datatable', '')
     if excel_name:
-        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_name = "%s.%s" % (user.username, excel_name.split('=')[-1])
     file_type = 'xls'
     path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):

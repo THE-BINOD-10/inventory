@@ -12,8 +12,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.empty_data = {}
   vm.model_data = {};
   vm.filters_dt_data = {};
-
+  vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
   vm.toggle_sku_wise = false;
+  vm.parent_username = Session.parent.userName;
 
   vm.title = "Purchase Order";
   //GRN Pop Data
@@ -47,6 +48,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.inbound.GrnEdit.GrnEditPopup');
   }
   vm.reports = {}
+
+  vm.validate_weight = function(event, data) {
+     if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
+       data.weight = data.weight.toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');
+       setTimeout(() => { data.weight = data.weight.trim(); }, 100);
+     }
+   }
+
   vm.toggle_grn = function() {
     var send = {};
     var name = 'grn_edit';

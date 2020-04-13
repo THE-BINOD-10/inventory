@@ -14,7 +14,7 @@
                 <select ng-model="uploader.model_data.type" class="form-control" name="selected_type" ng-required="true" ng-change="uploader.changing_value(uploader.model_data.type)" ng-init= "uploader.changing_value(uploader.model_data.type)">
                   <!-- <option value={{uploader.model_data.type}}> {{uploader.model_data.type}}</option> -->
                   <option ng-if = "uploader.model_data.type == 'clusterUpload'" value="clusterUpload">Cluster Upload</option>
-                  <option ng-if= "uploader.model_data.type == 'skuUpload'" value="skuUpload">Sku Upload</option>
+                  <option ng-if= "uploader.model_data.type == 'skuUpload'" value="skuUpload">SKU Upload</option>
                 </select>
               </div>
               <div class="col-lg-4 col-md-4"></div>

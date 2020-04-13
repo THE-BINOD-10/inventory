@@ -4,8 +4,8 @@ django-grappelli==2.6.4
 virtualenv==1.11.4
 requests==2.13.0
 xlwt==1.0.0
-xlrd==0.9.3
-python-dateutil==2.4.2
+xlrd==1.0.0
+python-dateutil==2.5.0
 pyelasticsearch==1.4
 python-crontab==1.9.3
 django-maintenancemode==0.11.2
@@ -20,7 +20,7 @@ longerusername==0.4
 south==1.0.2
 #pythonnet==2.3.0
 Pillow==4.0.0
-pyBarcode==0.7
+pyBarcode==0.8b1
 django-oauth-toolkit==1.0.0
 oauthlib==2.0.1
 django-admin-view-permission==1.9
@@ -36,3 +36,4 @@ httplib2==0.12.1
 paho-mqtt==1.4.0
 lxml==3.3.3
 idna==2.8
+pandas==0.24.2

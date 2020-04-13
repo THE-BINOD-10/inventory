@@ -7,7 +7,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4>
       </div>
       <div class="modal-body" id="update_sku">
-          <div class="row">
+          <div class="row" ng-mouseover="showCase.readonly_permission()">
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" ng-if ="showCase.model_data.serial_number">
               <div class="col-md-11 col-sm-11 col-xs-10">
                 <p align="right">Enable Serial Based</p>
@@ -26,7 +26,7 @@
             <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="" ng-if="showCase.update">
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> WMS SKU Code *</label>
+                <label class="control-label">SKU Code *</label>
                 <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
               </div>
             </div>
@@ -405,7 +405,7 @@
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.submit(form)" ng-disabled="process">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

@@ -116,19 +116,13 @@ def search_pos_customer_data(request, user=''):
 @get_admin_user
 def search_product_data(request, user=''):
     search_key = request.GET['key']
-    brand_name = request.GET.get('brand', '')
     style_switch = True if request.GET['style_search']=='true' else False
     total_data = []
-    filterMap = {'status':1, 'user': user.id}
-    if brand_name:
-        filterMap.update({'sku_brand': brand_name})
-        search_key = check_and_return_barcodeconfig_sku(user, search_key, sku_brand)
-
     if style_switch:
         sku_obj = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                   Q(sku_desc__icontains=search_key) |
                                                                   Q(style_name__icontains=search_key),
-                                                                  **filterMap)
+                                                                  status = 1,user=user.id)
         style = sku_obj[0].style_name if sku_obj else ''
         master_data = SKUMaster.objects.exclude(sku_type='RM').filter(style_name=style, user=user.id)\
                       if style else []
@@ -139,10 +133,10 @@ def search_product_data(request, user=''):
                                                                               Q(sku_desc__icontains=search_key) |
                                                                               Q(ean_number=search_key) |
                                                                               Q(id__in=ean_skus),
-                                                                              **filterMap)
+                                                                              status = 1, user=user.id)
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key), **filterMap)
+                                                                      Q(sku_desc__icontains=search_key),status = 1,user=user.id)
     filt_master_ids = list(master_data.values_list('id', flat=True)[:30])
     stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
         .filter(sku__user=user.id, quantity__gt=0, sku_id__in=filt_master_ids).values_list('sku_id').distinct().\

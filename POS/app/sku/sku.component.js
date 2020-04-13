@@ -19,9 +19,7 @@
       self.querySearch   = querySearch;
       self.selectedItemChange = selectedItemChange;
       self.searchTextChange   = searchTextChange;
-      self.selectedBrandChange = selectedBrandChange;
-      self.searchText;
-      self.brandName = '';
+      self.searchText
 
       self.table_headers = false;
 
@@ -746,28 +744,13 @@
            }
           }
         }
-      self.get_brands_data = get_brands_data;
-      function get_brands_data(key) {
-        var datum = []
-        if(key.length>1){
-            var deferred = $q.defer();
-            return $http.get(urlService.mainUrl+'rest_api/search_sku_brands/?user='+urlService.userData.parent_id+'&q='+key).then(function(data) {
-              return data.data;
-            })
-          }
-        }
 
       function get_product_data(key, style_switch) {
+
           if(key.length>1){
               var deferred = $q.defer();
-              if (self.brandName) {
-                var url = urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key
-                                          + '&style_search=' + style_switch + '&brand=' + self.brandName;
-              } else {
-                var url = urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key
-                                          + '&style_search=' + style_switch;
-              }
-              $http.get(url)
+              $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key
+                                          + '&style_search=' + style_switch)
                 .then( function(data) {
                   if(self.style_switch){
                     self.style_based_sku_data = data.data;
@@ -822,7 +805,14 @@
                       });
                     });
 
-                })
+                }).then(function() {
+                  /*deferred.resolve(querySearch (key));
+                  deferred.promise.then(function(data){
+                    angular.forEach(self.skus, function(value, index) {
+                      self.changeQuantity(value);
+                    });
+                  });*/
+                });
              return deferred.promise;
         }
       return [];
@@ -970,6 +960,7 @@
       function searchTextChange(text) {
         $log.info('Text changed to ' + text);
       }
+
       //multi select sku popup
       // self.all_skus_popup = all_skus_popup;
       // function all_skus_popup() {
@@ -982,12 +973,6 @@
           update_search_results([item], item.SKUCode);
           cal_total();
           self.searchText = "";
-        }
-      }
-
-      function selectedBrandChange(item) {
-        if (item) {
-          self.brandName = item;
         }
       }
 

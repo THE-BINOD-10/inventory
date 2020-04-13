@@ -67,33 +67,7 @@
   </div>
   <div layout="column" style="display:block;" ng-cloak>
   <div class="row">
-    <div class="col-md-4">
-      <md-content layout-padding layout="column">
-        <form ng-submit="$event.preventDefault()">
-          <md-autocomplete
-                  md-selected-item="$ctrl.brandName"
-                  md-search-text="$ctrl.searchBrand"
-                  md-selected-item-change="$ctrl.selectedBrandChange(ite)"
-                  md-items="ite in $ctrl.get_brands_data($ctrl.searchBrand)"
-                  md-item-text="ite"
-                  md-min-length="1"
-                  placeholder="Enter SKUBrand"
-                  ng-model="$ctrl.brandName"
-                  ng-model-options='{ debounce: 200 }'
-                >
-            <md-item-template>
-              <span class="item-title">
-                <span> {{ite}} </span>
-              </span>
-            </md-item-template>
-            <md-not-found>
-              No matches found.
-            </md-not-found>
-          </md-autocomplete>
-        </form>
-      </md-content>
-    </div>
-    <div class="col-md-6">
+    <div class="col-md-10">
       <md-content layout-padding layout="column">
         <form ng-submit="$event.preventDefault()">
           <md-autocomplete
@@ -187,7 +161,7 @@
                                 <th>SKU Code</th>
                                 <th>Description</th>
                                 <th>Stock</th>
-                                <th>Price</th>
+								                <th>Price</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -205,7 +179,7 @@
                                 <td style="">{{item.SKUCode}}</td>
                                 <!--<td class="">{{item.ProductDescription| limitTo : 15 : 0}}</td>-->
                                 <td class="">{{item.ProductDescription}}</td>
-                <td class="">{{item.stock_quantity}}</td>
+								<td class="">{{item.stock_quantity}}</td>
                                 <td class="">{{item.price}} /-</td>
                             </tr>
                         </tbody>
@@ -219,8 +193,8 @@
                 <div type="button" class="btn btn-danger"
                         ng-click=$ctrl.sku_pagination("next")>Next</div>
             </div>
-    </div>
-  </div>
+		</div>
+	</div>
 </div><!--modal-->
 
 <!-- Style based Modal -->
@@ -268,6 +242,6 @@
                 <div type="button" class="btn btn-danger"
                         ng-click=$ctrl.style_confirm()>Confirm</div>
             </div>
-    </div>
-  </div>
+		</div>
+	</div>
  </div><!-- style sku modal-->

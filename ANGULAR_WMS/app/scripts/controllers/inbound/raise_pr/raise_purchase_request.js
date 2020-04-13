@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Total Quantity", "Total Amount", 
+    var columns = [ "PR Number", "Total Quantity", 
                     "PR Created Date", "PR Delivery Date", "Warehouse",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
@@ -474,7 +474,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
         if(data.message){
-          if(data.data == 'Approved Successfully') {
+          if(data.data == 'Converted PR to PO Successfully') {
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {

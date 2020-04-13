@@ -24,13 +24,13 @@ var app = angular.module('urbanApp')
         window.scrollTo(0, 0);
       });
       FastClick.attach(document.body);
-      if(window.location.href.includes('pr_request')){
-        if(window.location.href.split('pr_request')[1].includes('hash_code')) {
+      if(window.location.href.includes('pending_pr_request')){
+        if(window.location.href.split('pending_pr_request')[1].includes('hash_code')) {
           Session.unset();
-          $rootScope.$redirect = 'pr_request';
-          var data = window.location.href.split('pr_request')[1];
+          $rootScope.$redirect = 'pending_pr_request';
+          var data = window.location.href.split('pending_pr_request')[1];
           swal2({
-            title: 'Redirecting to Validate PO',
+            title: 'Redirecting to Validate PR',
             text: 'User Authentication in Progress..',
             imageUrl: 'images/default_loader.gif',
             imageWidth: 150,
@@ -38,7 +38,7 @@ var app = angular.module('urbanApp')
             imageAlt: 'Custom image',
             showConfirmButton:false,
           })
-          $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
+          $http.get(Session.url + 'pending_pr_request/'+data).then(function (resp) {
            if (resp) {
             resp = resp.data;
             $rootScope.$current_pr = resp.aaData['aaData'][0]
@@ -46,7 +46,7 @@ var app = angular.module('urbanApp')
             if (resp.message != "Fail") {
               Session.set(resp.data)
               swal2.close()
-              $state.go("app.inbound.RaisePo");
+              $state.go("app.inbound.RaisePr");
               }
             }
         });

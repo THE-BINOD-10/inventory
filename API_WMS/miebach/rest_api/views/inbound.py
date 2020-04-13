@@ -2294,37 +2294,66 @@ def generateHashCodeForMail(prObj, mailId):
     return hash_code
 
 
-def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None):
+def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True):
     from mail_server import send_mail
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
-    openPRQs = PendingPurchase.objects.filter(pr_number=pr_number, sku__user=user.id)
-    if openPRQs.exists():
-        result = openPRQs[0]
+    filtersMap = {'wh_user': user.id}
+    if poFor:
+        model_name = PendingPO
+        filtersMap['po_number'] = pr_number
+        purchaseNumber = 'po_number'
+    else:
+        model_name = PendingPR
+        filtersMap['pr_number'] = pr_number
+        purchaseNumber = 'pr_number'
+    openPurchaseQs = model_name.objects.filter(**filtersMap)
+    if openPurchaseQs.exists():
+        openPurchaseObj = openPurchaseQs[0]
+        if poFor:
+            lineItems = openPurchaseObj.pending_polineItems
+        else:
+            lineItems = openPurchaseObj.pending_prlineItems
+    if lineItems.exists():
+        result = openPurchaseQs[0]
+        prefix = lineItems.values()[0]['prefix']
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result.prefix, dateforPo, result.po_number)
+        po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
         # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
-        validationLink = "%s/#/pr_request?hash_code=%s" %(urlPath, hash_code)
+        validationLink = "%s/#/pending_pr_request?hash_code=%s" %(urlPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
         pendingLevel = result.pending_level
-        totalAmt = openPRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-        skusWithQty = openPRQs.values_list('sku__sku_code', 'quantity')
+        totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+        skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
         lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
         reqUserMailID = result.requested_user.email
-        if subjectType == 'po_created':
-            subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
-        elif subjectType == 'po_approval_at_last_level':
-            if result.final_status == 'approved':
-                subject = "Your PO %s for %s (%s INR) got approved in All Levels, PO Ready to be confirmed." %(po_reference, requestedBy, totalAmt)
-            elif result.final_status == 'rejected':
-                subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)    
-        elif subjectType == 'po_rejected':
-            subject = "Your PO %s for %s (%s INR) has got Rejected" %(po_reference, requestedBy, totalAmt)
-        elif subjectType == 'po_approval_pending':
-            subject = "Action Required: Pending PO %s for %s (%s INR) At Level %s" %(po_reference, requestedBy, totalAmt, pendingLevel)
+        if poFor:
+            if subjectType == 'po_created':
+                subject = "Action Required: Pending PO %s for %s (%s INR)" %(po_reference, requestedBy, totalAmt)
+            elif subjectType == 'po_approval_at_last_level':
+                if result.final_status == 'approved':
+                    subject = "Your PO %s for %s (%s INR) got approved in All Levels, PO Ready to be confirmed." %(po_reference, requestedBy, totalAmt)
+                elif result.final_status == 'rejected':
+                    subject = "Your PO %s for %s (%s INR) got Rejected" %(po_reference, requestedBy, totalAmt)    
+            elif subjectType == 'po_rejected':
+                subject = "Your PO %s for %s (%s INR) has Rejected" %(po_reference, requestedBy, totalAmt)
+            elif subjectType == 'po_approval_pending':
+                subject = "Action Required: Pending PO %s for %s (%s INR) At Level %s" %(po_reference, requestedBy, totalAmt, pendingLevel)
+        else:
+            if subjectType == 'pr_created':
+                subject = "Action Required: Pending PR %s for %s" %(po_reference, requestedBy)
+            elif subjectType == 'pr_approval_at_last_level':
+                if result.final_status == 'approved':
+                    subject = "Your PR %s for %s got approved in All Levels, PR Ready to be converted to PO." %(po_reference, requestedBy)
+                elif result.final_status == 'rejected':
+                    subject = "Your PR %s for %s got Rejected" %(po_reference, requestedBy)    
+            elif subjectType == 'pr_rejected':
+                subject = "Your PR %s for %s got Rejected" %(po_reference, requestedBy)
+            elif subjectType == 'pr_approval_pending':
+                subject = "Action Required: Pending PR %s for %s At Level %s" %(po_reference, requestedBy, pendingLevel)
         podetails_string = "<p> Pending PO Details </p>  \
         <p>PO Number: %s</p> \
         <p>Order Value : %s </p> \
@@ -2454,16 +2483,6 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.final_status = orderStatus
         pendingPurchaseObj.save()
     else:
-        # prMap = {
-        #     'requested_user': request.user,
-        #     'pr_number': pr_number,
-        #     'wh_user': user,
-        #     'delivery_date': firstEntryValues['pr_delivery_date'],
-        #     'ship_to': firstEntryValues['ship_to'],
-        #     'pending_level': baseLevel,
-        #     'final_status': orderStatus,
-        #     'remarks': firstEntryValues['approval_remarks'],
-        # }
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
 
     totalAmt = 0
@@ -2481,13 +2500,26 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
         
+        if supplier:
+            skuTaxes = get_supplier_sku_price_values(supplier, sku_id[0].sku_code, user)
+            # skuSupMapping = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id).values()
+            # if skuSupMapping.exists():
+            #     value['price'] = skuSupMapping['price']
+            if skuTaxes:
+                skuTaxVal = skuTaxes[0]
+                taxes = skuTaxVal['taxes']
+                if taxes:
+                    value['sgst_tax'] = taxes[0]['sgst_tax']
+                    value['cgst_tax'] = taxes[0]['cgst_tax']
+                    value['igst_tax'] = taxes[0]['igst_tax']
+                value['price'] = skuTaxVal['mrp']
         data_id = value['data_id']
         if data_id:
             record = PendingLineItems.objects.get(id=data_id)
             setattr(record, 'quantity', value['order_quantity'])
-            setamodel_namettr(record, 'price', value['price'])
-            setamodel_namettr(record, 'sgst_tax', value['sgst_tax'])
-            setamodel_namettr(record, 'cgst_tax', value['cgst_tax'])
+            setattr(record, 'price', value['price'])
+            setattr(record, 'sgst_tax', value['sgst_tax'])
+            setattr(record, 'cgst_tax', value['cgst_tax'])
             setattr(record, 'igst_tax', value['igst_tax'])
             if value['measurement_unit']:
                 setattr(record, 'measurement_unit', value['measurement_unit'])
@@ -2598,31 +2630,33 @@ def add_pr(request, user=''):
         
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
-            # prQs = PendingPR.objects.filter(pr_number=pr_number, wh_user=user)
-            # po_number = prQs[0].po_number
         else:
             if is_actual_pr == 'true':
                 pr_number = get_incremental(user, 'ActualPurchaseRequest')
-                # po_number = ''
-            # else:
-            #     pr_number = get_incremental(user, 'PurchaseRequest')
-            #     po_number = get_purchase_order_id(user)
+            else:
+                pr_number = get_incremental(user, 'PurchaseRequest')
+
+        if is_actual_pr:
+            master_type = 'actual_pr_approvals_conf_data'
+            mailSub = 'pr_created'
+        else:
+            master_type = 'pr_approvals_conf_data'
+            mailSub = 'po_created'
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         mailsList = []
         totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
         reqConfigName = findReqConfigName(user, totalAmt)
-        if is_actual_pr == 'true':
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, 
-                                pendingPRObj, master_type='actual_pr_approvals_conf_data')
-        else:
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, pendingPRObj)
-        # TODO
-        # if mailsList:
-        #     for eachMail in mailsList:
-        #         hash_code = generateHashCodeForMail(prObj, eachMail)
-        #         sendMailforPendingPO(pr_number, user, baseLevel, 'po_created', eachMail, urlPath, hash_code)
+        # if is_actual_pr == 'true':
+        prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, 
+                                pendingPRObj, master_type=master_type)
+        # else:
+        #     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, pendingPRObj)
+        if mailsList:
+            for eachMail in mailsList:
+                hash_code = generateHashCodeForMail(prObj, eachMail)
+                sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

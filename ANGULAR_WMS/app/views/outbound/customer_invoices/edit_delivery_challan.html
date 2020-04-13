@@ -105,7 +105,7 @@
              	<tbody>
              		<tr ng-repeat="product in pop.model_data.data">
              			<td>
-             				<input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.sku_code" typeahead-on-select="pop.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? pop.key_event(product, $item) : null" ng-readonly="product.pk > 0">
+             				<input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code/Description" typeahead="address.wms_code for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.sku_code" typeahead-on-select="pop.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? pop.key_event(product, $item) : null" ng-readonly="product.pk > 0">
                       <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="pop.update">
                       <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="pop.update">
              			</td>

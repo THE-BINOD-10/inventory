@@ -901,7 +901,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_upload(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("upload_order")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -943,7 +946,7 @@ def order_form(request, user=''):
     for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_form.xls' % str(user.username))
 
 
 def xls_to_response(xls, fname):
@@ -976,7 +979,7 @@ def sku_form(request, user=''):
 	headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
-    return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -990,7 +993,7 @@ def sales_returns_form(request, user=''):
     if user.userprofile.user_type == 'marketplace_user':
         sales_retun_mapping.append('SOR ID')
     wb, ws = get_work_sheet('returns', sales_retun_mapping)
-    return xls_to_response(wb, '%s.returns_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.returns_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1002,7 +1005,7 @@ def inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1015,7 +1018,7 @@ def supplier_form(request, user=''):
     if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
         supplier_headers.append('EP Supplier(yes/no)')
     wb, ws = get_work_sheet('supplier', supplier_headers)
-    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1025,7 +1028,7 @@ def supplier_sku_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1036,7 +1039,7 @@ def location_form(request, user=''):
         return error_file_download(loc_file)
 
     wb, ws = get_work_sheet('Locations', LOCATION_HEADERS)
-    return xls_to_response(wb, '%s.location_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.location_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1053,7 +1056,7 @@ def purchase_order_form(request, user=''):
     for count, header in enumerate(excel_headers):
         ws.write(0, count, header, header_style)
 
-    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1065,13 +1068,13 @@ def move_inventory_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_move_inventory_excel_upload_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers)
-    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.username))
 
 
 @csrf_exempt
 @get_admin_user
 def marketplace_sku_form(request, user=''):
-    market_list = ['WMS Code']
+    market_list = ['SKU Code']
     market_sku = []
     market_desc = []
     supplier_file = request.GET['download-marketplace-sku-file']
@@ -1084,7 +1087,7 @@ def marketplace_sku_form(request, user=''):
     market_list = market_list + market_sku + market_desc
 
     wb, ws = get_work_sheet('supplier', market_list)
-    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1095,7 +1098,7 @@ def bom_form(request, user=''):
     if bom_file:
         return error_file_download(bom_file)
     wb, ws = get_work_sheet('BOM', BOM_UPLOAD_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.bom_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.bom_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1106,7 +1109,7 @@ def combo_sku_form(request, user=''):
     if combo_sku_file:
         return error_file_download(combo_sku_file)
     wb, ws = get_work_sheet('COMBO_SKU', COMBO_SKU_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.combo_sku_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1118,7 +1121,7 @@ def inventory_adjust_form(request, user=''):
         return error_file_download(inventory_file)
     excel_headers = get_inventory_adjustment_excel_upload_headers(user)
     wb, ws = get_work_sheet('INVENTORY_ADJUST', excel_headers)
-    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1129,7 +1132,7 @@ def vendor_form(request, user=''):
         return error_file_download(vendor_file)
 
     wb, ws = get_work_sheet('vendor', VENDOR_HEADERS)
-    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.vendor_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1140,7 +1143,7 @@ def pricing_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Prices', PRICING_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1151,7 +1154,7 @@ def network_master_form(request, user=''):
         return error_file_download(returns_file)
 
     wb, ws = get_work_sheet('Network', NETWORK_MASTER_HEADERS)
-    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1162,7 +1165,7 @@ def order_label_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Labels', ORDER_LABEL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1173,7 +1176,7 @@ def order_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1184,7 +1187,7 @@ def po_serial_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('PO Serials', PO_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1195,7 +1198,7 @@ def job_order_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Job Order', JOB_ORDER_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1206,7 +1209,7 @@ def marketplace_serial_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Marketplace Serial', MARKETPLACE_SERIAL_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -1217,7 +1220,7 @@ def orderid_awb_mapping_form(request, user=''):
         return error_file_download(label_file)
 
     wb, ws = get_work_sheet('Awb Map', ORDER_ID_AWB_MAP_EXCEL_HEADERS)
-    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.username))
 
 
 def get_orderid_awb_mapping(reader, file_type):
@@ -1724,7 +1727,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
-            storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
         if not sku_data:
@@ -1764,10 +1766,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def sku_upload(request, user=''):
     try:
         reversion.set_user(request.user)
+        reversion.set_comment("upload_sku")
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -1903,18 +1906,19 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
-            data_dict['sku_code'] = sku_master.sku_code
-            data_dict['location'] = location_obj[0].location
-            status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
-        if user.userprofile.industry_type == 'FMCG' and data_dict['sku_id']:
-            if not data_dict.get('manufactured_date', ''):
-                data_dict['manufactured_date'] = datetime.datetime.now()
-            if not data_dict.get('expiry_date', ''):
-                data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
+        if not index_status:
+            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                data_dict['sku_code'] = sku_master.sku_code
+                data_dict['location'] = location_obj[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
+            if user.userprofile.industry_type == 'FMCG' :
+                if not data_dict.get('manufactured_date', ''):
+                    data_dict['manufactured_date'] = datetime.datetime.now()
+                if not data_dict.get('expiry_date', ''):
+                    data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -2379,6 +2383,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     supplier_ids = []
     temp1 = ''
     supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
@@ -2414,10 +2419,11 @@ def validate_supplier_sku_form(open_sheet, user_id):
                         index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                     wms_code1 = cell_data
             if col_idx == 3:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Missing Preference')
-                else:
-                    preference1 = int(cell_data)
+                if auto_po_switch == 'true':
+                    if not cell_data:
+                        index_status.setdefault(row_idx, set()).add('Missing Preference')
+                    else:
+                        preference1 = int(cell_data)
             if col_idx == 6:
                 if cell_data :
                     if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
@@ -2452,7 +2458,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
 
 
 
-        if wms_code1 and preference1 and row_idx > 0:
+        if wms_code1 and preference1 and row_idx > 0 and  auto_po_switch == 'true':
             supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
             if supp_val:
                 temp1 = SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1),
@@ -2517,6 +2523,8 @@ def supplier_sku_upload(request, user=''):
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.supplier_code = cell_data
                     elif col_idx == 3:
+                        if not cell_data:
+                            cell_data = 0
                         supplier_data['preference'] = str(int(cell_data))
                         if supplier_data['preference'] and supplier_sku_instance:
                             supplier_sku_instance.preference = supplier_data['preference']
@@ -3237,9 +3245,10 @@ def purchase_upload_mail(request, data_to_send, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
@@ -3261,7 +3270,10 @@ def purchase_order_upload(request, user=''):
 @login_required
 @get_admin_user
 @csrf_exempt
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload_preview(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
@@ -3513,8 +3525,8 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                 data_dict['sku_code'] = data_dict['wms_code']
                 data_dict['location'] = dest_location[0].location
                 status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
 
             if row_idx not in index_status:
                 stock_dict = {"sku_id": data_dict['sku_id'],
@@ -3592,9 +3604,10 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def move_inventory_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_move_inv")
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -4023,6 +4036,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
                 if user.username in MILKBASKET_USERS:
+                    if isinstance(cell_data, (float)):
+                        cell_data = str(int(cell_data))
                     cell_data = mb_weight_correction(cell_data)
                 data_dict[key] = cell_data
 
@@ -4067,9 +4082,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_inv_adj")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -4134,7 +4150,7 @@ def customer_form(request, user=''):
         return error_file_download(customer_file)
 
     wb, ws = get_work_sheet('customer', CUSTOMER_HEADERS)
-    return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.customer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -5622,7 +5638,7 @@ def seller_transfer_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = get_seller_transfer_excel_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
-    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -6182,7 +6198,7 @@ def stock_transfer_order_form(request, user=''):
     if error_file:
         return error_file_download(error_file)
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
-    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
 def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create=False,
                               order_fields_objs=None):
@@ -6866,7 +6882,7 @@ def skupack_master_download(request, user=''):
     if sku_file:
         return error_file_download(sku_file)
     wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
-    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -7835,7 +7851,7 @@ def brand_level_pricing_form(request, user=''):
         return error_file_download(excel_file)
     excel_headers = copy.deepcopy(BRAND_LEVEL_PRICING_EXCEL_MAPPING)
     wb, ws = get_work_sheet('Brand Level Pricing', excel_headers)
-    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.brand_level_pricing_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -8021,7 +8037,7 @@ def supplier_sku_attributes_form(request, user=''):
     if supplier_file:
         return error_file_download(supplier_file)
     wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_ATTRIBUTE_HEADERS)
-    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.supplier_sku_attributes_form.xls' % str(user.username))
 
 @csrf_exempt
 def validate_supplier_sku_attributes_form(open_sheet, user_id):

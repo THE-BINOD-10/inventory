@@ -8186,7 +8186,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax',
            'st_po__open_st__igst_tax','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax',
            'st_po__open_st__price','status','st_po__open_st__igst_tax','st_po__open_st__price','status']
-    status_map = ['Pick List Generated','Pending','Accepted']
+    status_map = {0: 'Pick List Generated', 1: 'Pending', 2: 'Accepted', 3: 'Cancelled'}
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)

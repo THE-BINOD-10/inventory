@@ -20,7 +20,7 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Source Warehouse Seller * </label>
                 <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id">
@@ -28,7 +28,7 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Destination Warehouse Seller * </label>
                 <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id">
@@ -48,7 +48,7 @@
                     <th>Description </th>
                     <th>Available Quantity*</th>
                     <th>Quantity*</th>
-                    <th ng-if="showCase.industry_type='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th>Price*</th>
                     <th>CGST (%)</th>
                     <th>SGST (%)</th>
@@ -71,7 +71,7 @@
                     <td>
                       <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
                     </td>
-                    <td ng-if="showCase.industry_type='FMCG'">
+                    <td ng-if="showCase.industry_type=='FMCG'">
                       <input type="text" name="mrp" class="form-control" ng-model="data.mrp"  decimal-number>
                     </td>
                     <td>

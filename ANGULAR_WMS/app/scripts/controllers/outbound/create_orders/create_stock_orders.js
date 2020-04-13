@@ -9,9 +9,11 @@ function CreateStockOrders($scope, $http, $q, $state, Session, colFilters, Servi
   vm.tax_cg_sg = false;
   vm.igst_enable = false;
   vm.dest_sellers_list = [];
-  vm.model_data = {}
+  vm.model_data = {};
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: "",
-                            seller_id:""};
+                            source_seller_id:"", dest_seller_id: ""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {

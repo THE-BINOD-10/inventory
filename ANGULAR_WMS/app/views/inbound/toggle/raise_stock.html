@@ -19,7 +19,7 @@
               <input type="text" class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" ng-readonly="showCase.update"/>
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Source Warehouse Seller *</label>
                 <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
@@ -27,7 +27,7 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type='marketplace_user'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Destination Warehouse Seller *</label>
                 <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
@@ -46,7 +46,7 @@
                 <tr>
                   <th> SKU Code* </th>
                   <th> Quantity* </th>
-                  <th ng-if="showCase.industry_type='FMCG'"> MRP </th>
+                  <th ng-if="showCase.industry_type=='FMCG'"> MRP </th>
                   <th> Price </th>
                   <th class="plus"></th>
                 </tr>
@@ -59,7 +59,7 @@
                     <!--<input id="wms1" ng-model="product.wms_code" type="text" name="wms_code" class="form-control mapping-check" ng-required ="$first">-->
                   </td>
                   <td><input id="quant1" ng-model="product.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-required ="$first"> </td>
-                  <td ng-if="showCase.industry_type='FMCG'"><input type="text" ng-model="product.mrp" name="mrp" class="form-control" decimal-number > </td>
+                  <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.mrp" name="mrp" class="form-control" decimal-number > </td>
                   <td><input type="text" ng-model="product.price" name="price" class="form-control" decimal-number > </td>
                   <td> <i ng-click="showCase.update_data($index)" ng-class="showCase.isLast($last)"></i> </td>
                 </tr>

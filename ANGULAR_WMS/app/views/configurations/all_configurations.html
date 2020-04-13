@@ -7,7 +7,7 @@
       <tab heading="Configurations">
         <div ng-include="'views/configurations/common_configurations.html'"></div>
       </tab>
-      <tab heading="BarCodeConfigurations">
+      <tab heading="BarCodeConfigurations" ng-show="show_tab('add_barcodebrandmappingmaster')">
         <div ng-include="'views/configurations/barcode_configurations.html'"></div>
       </tab>
     </tabset>

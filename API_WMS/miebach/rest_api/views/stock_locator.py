@@ -188,7 +188,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
-        temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
                                                 ('Available Quantity', quantity),
@@ -1241,7 +1241,7 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_move_inventory(request, user=''):
     # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     # if not data:
@@ -1250,6 +1250,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
+    reversion.set_comment("insert_move_inv")
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -1593,7 +1594,7 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
-            OrderedDict((('Vendor Name', data['vendor__name']), ('WMS Code', data['sku__wms_code']),
+            OrderedDict((('Vendor Name', data['vendor__name']), ('SKU Code', data['sku__wms_code']),
                          ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
                          ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
                          )))
@@ -1649,7 +1650,7 @@ def warehouse_headers(request, user=''):
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs
-        if size_name:
+        if size_name not in ['', 'undefined']:
             all_sizes = size_master_objs.filter(size_name=size_name)
         sizes = []
         if all_sizes:
@@ -3272,10 +3273,10 @@ def get_skuclassification(start_index, stop_index, temp_data, search_term, order
                          ('sku_code', data['sku__sku_code']), ('sku_name', data['sku__sku_desc']),
                          ('sku_category', data['sku__sku_category']),
                          ('ean_number', data['sku__ean_number']),
-                         ('sheet', sheet),
-                         ('vendor', vendor),
+                         ('Sheet', sheet),
+                         ('Vendor', vendor),
                          ('reset_stock', reset_stock),
-                         ('searchable', searchable),
+                         ('Searchable', searchable),
                          ('aisle', aisle),
                          ('rack', rack),
                          ('shelf', shelf),

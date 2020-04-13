@@ -122,6 +122,9 @@ urlpatterns = [
     url(r'^push_message_notification/$', push_message_notification),
     url(r'^get_zones/$', get_zones),
     url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
+    url(r'^add_update_pr_config/$', add_update_pr_config),
+    url(r'^delete_pr_config/$', delete_pr_config),
+    url(r'^pr_request/$', pr_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -204,6 +207,12 @@ urlpatterns = [
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
     url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+    url(r'^add_pr/$', add_pr),
+    url(r'^generated_pr_data/$', generated_pr_data),
+    url(r'^approve_pr/$', approve_pr),
+    url(r'^print_pending_po_form/$', print_pending_po_form),
+    url(r'^cancel_pr/$', cancel_pr),
+    url(r'^save_pr/$', save_pr),
 
 
 
@@ -535,6 +544,8 @@ urlpatterns = [
     url(r'^print_financial_report_report/$', print_financial_report_report),
     url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
     url(r'^print_bulk_stock_update/$', print_bulk_stock_update),
+    url(r'^get_credit_note_form_report/$', get_credit_note_form_report),
+    # url(r'^print_credit_note_form_report/$', print_credit_note_form_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -612,6 +623,8 @@ urlpatterns += [
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
+    url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
+    url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -901,7 +901,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def order_upload(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("upload_order")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -1071,7 +1074,7 @@ def move_inventory_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def marketplace_sku_form(request, user=''):
-    market_list = ['WMS Code']
+    market_list = ['SKU Code']
     market_sku = []
     market_desc = []
     supplier_file = request.GET['download-marketplace-sku-file']
@@ -1724,7 +1727,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if sku_data:
-            storehippo_sync_price_value(user, {'wms_code':sku_data.wms_code, 'price':sku_data.price})
             sku_data.save()
             all_sku_masters.append(sku_data)
         if not sku_data:
@@ -1764,10 +1766,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def sku_upload(request, user=''):
     try:
         reversion.set_user(request.user)
+        reversion.set_comment("upload_sku")
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
@@ -3261,9 +3264,10 @@ def purchase_upload_mail(request, data_to_send, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     purchase_order_view = get_misc_value('purchase_order_preview', user.id)
     try:
         fname = request.FILES['files']
@@ -3285,7 +3289,10 @@ def purchase_order_upload(request, user=''):
 @login_required
 @get_admin_user
 @csrf_exempt
+@reversion.create_revision(atomic=False, using='reversion')
 def purchase_order_upload_preview(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("upload_po")
     data_list = json.loads(request.POST.get('data_list', ''))
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
@@ -3640,9 +3647,10 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def move_inventory_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_move_inv")
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -4073,6 +4081,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                         index_status.setdefault(row_idx, set()).add('Invalid MRP')
             elif key == 'weight' :
                 if user.username in MILKBASKET_USERS:
+                    if isinstance(cell_data, (float)):
+                        cell_data = str(int(cell_data))
                     cell_data = mb_weight_correction(cell_data)
                 data_dict[key] = cell_data
 
@@ -4117,9 +4127,10 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
+    reversion.set_comment("upload_inv_adj")
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -7985,6 +7996,94 @@ def brand_level_pricing_upload(request, user=''):
         else:
             data_dict['user'] = user.id
             PriceMaster.objects.create(**data_dict)
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_barcode_configuration_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = copy.deepcopy(BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING)
+    wb, ws = get_work_sheet('barcode configuration', excel_headers)
+    return xls_to_response(wb, '%s.brand_level_barcode_configuration_form.xls' % str(user.id))
+
+
+def validate_brand_level_brand_configuration_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    brandMapping = copy.deepcopy(BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, brandMapping)
+    excel_check_list = brandMapping.values()
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    existingConfigs = list(MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration').values_list('misc_value', flat=True))
+    existingBrands = list(SKUMaster.objects.filter(user=user.id).values_list('sku_brand', flat=True).distinct())
+    existingBrandMappings = dict(BarCodeBrandMappingMaster.objects.filter(user=user).values_list('sku_brand', 'configName'))
+    data_list = []
+    for row_idx in range(1, no_of_rows):
+        row_data = OrderedDict()
+        for key, value in excel_mapping.items():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'configName':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Configuration Name')
+                elif cell_data not in existingConfigs:
+                    index_status.setdefault(row_idx, set()).add('Invalid Configuration Name')
+                else:
+                    row_data[key] = cell_data
+            elif key == 'sku_brand':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Brand')
+                elif cell_data not in existingBrands:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                elif cell_data in existingBrandMappings.keys():
+                    index_status.setdefault(row_idx, set()).add('%s is already mapped to config %s' 
+                                                %(cell_data, existingBrandMappings[cell_data]))
+                else:
+                    row_data[key] = cell_data
+        data_list.append(row_data)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_barcode_configuration_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status, final_data = validate_brand_level_brand_configuration_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+    except:
+        return HttpResponse('Invalid File')
+
+    for data_dict in final_data:
+        brandmappingObj = BarCodeBrandMappingMaster.objects.filter(user=user, 
+                                                                 configName=data_dict['configName'],
+                                                                 sku_brand=data_dict['sku_brand'])
+        if not brandmappingObj.exists():
+            data_dict['user'] = user
+            BarCodeBrandMappingMaster.objects.create(**data_dict)
     return HttpResponse("Success")
 
 

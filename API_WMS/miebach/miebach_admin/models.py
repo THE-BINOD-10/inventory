@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
@@ -287,11 +287,11 @@ class SKUSupplier(models.Model):
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.supplier)
 
-
+@reversion.register()
 class OrderDetail(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
-    order_id = models.DecimalField(max_digits=50, decimal_places=0, primary_key=True)
+    order_id = models.DecimalField(max_digits=50, decimal_places=0)
     original_order_id = models.CharField(max_length=128, default='')
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256, default='')
@@ -489,6 +489,81 @@ class OpenPO(models.Model):
 
 
 @reversion.register()
+class PendingPurchase(models.Model):  #OpenPR
+    id = BigAutoField(primary_key=True)
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
+    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    requested_user = models.ForeignKey(User)
+    pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    po_number = models.PositiveIntegerField() # Similar to PurchaseOrder->order_id field
+    prefix = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster, db_index=True)
+    quantity = models.FloatField(default=0, db_index=True)
+    price = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
+    delivery_date = models.DateField(blank=True, null=True)
+    measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=256, default='')
+    pending_level = models.CharField(max_length=64, default='')
+    final_status = models.CharField(max_length=32, default='')
+    remarks = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PENDING_PURCHASE'
+        #unique_together = ('requested_user', 'sku')
+
+
+@reversion.register()
+class PurchaseApprovals(models.Model):  #PRApprovals
+    id = BigAutoField(primary_key=True)
+    openpr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    configName = models.CharField(max_length=64, default='')
+    pr_user = models.ForeignKey(User)
+    level = models.CharField(max_length=64, default='')
+    validated_by = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=32, default='')
+    remarks = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PURCHASE_APPROVALS'
+        #unique_together = ('openpr_number', 'pr_user', 'level', 'validated_by')
+
+
+class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    name = models.CharField(max_length=64, default='')
+    min_Amt = models.FloatField(default=0)
+    max_Amt = models.FloatField(default=0)
+    level  = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PURCHASE_APPROVAL_CONFIG'
+        unique_together = ('user', 'name', 'level')
+
+
+class PurchaseApprovalMails(models.Model):  #PRApprovalMails
+    id = BigAutoField(primary_key=True)
+    pr_approval = models.ForeignKey(PurchaseApprovals)
+    email = models.EmailField(max_length=64)
+    hash_code = models.CharField(max_length=256, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "PURCHASE_APPROVAL_MAILS"
+
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
@@ -497,7 +572,8 @@ class PurchaseOrder(models.Model):
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
-    ship_to = models.CharField(max_length=64, default='')
+    ship_to = models.CharField(max_length=256, default='')
+    priority = models.IntegerField(default=0)
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
@@ -656,7 +732,7 @@ class ASNStockDetail(models.Model):
         db_table = 'ASN_STOCK_DETAIL'
         unique_together = ('asn_po_num', 'sku', 'status')
 
-
+@reversion.register()
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -681,7 +757,7 @@ class Picklist(models.Model):
     def __unicode__(self):
         return str(self.picklist_number)
 
-
+@reversion.register()
 class PicklistLocation(models.Model):
     id = BigAutoField(primary_key=True)
     picklist = models.ForeignKey(Picklist)
@@ -943,6 +1019,7 @@ class SKUStock(models.Model):
         db_table = 'SKU_STOCK'
 
 
+@reversion.register()
 class CustomerMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1504,6 +1581,7 @@ class STOrder(models.Model):
         return str(self.picklist_id) + ":" + str(self.stock_transfer)
 
 
+@reversion.register()
 class CustomerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail)
     discount = models.FloatField(default=0)
@@ -2157,7 +2235,7 @@ class SellerOrderDetail(models.Model):
         unique_together = ('seller_order', 'picklist')
         index_together = ('seller_order', 'picklist')
 
-
+@reversion.register()
 class SellerOrderSummary(models.Model):
     id = BigAutoField(primary_key=True)
     pick_number = models.PositiveIntegerField(default=0)
@@ -3479,9 +3557,24 @@ class ProccessRunning(models.Model):
         unique_together = ('user', 'process_name')
 
 
-
+#Signals
 @receiver(post_save, sender=OrderDetail)
 def save_order_original_quantity(sender, instance, created, **kwargs):
     if created:
         instance.original_quantity = instance.quantity
         instance.save()
+
+
+@receiver(post_save, sender=User)
+def save_user_to_reversion(sender, instance, created, **kwargs):
+    import copy
+    print kwargs.get('update_fields')
+    if kwargs.get('using') =='default' and (kwargs.get('update_fields') or created):
+        instance_copy = copy.deepcopy(User.objects.filter(id=instance.id).values()[0])
+        User.objects.db_manager('reversion').update_or_create(id=instance.id, defaults=instance_copy)
+
+
+@receiver(post_delete, sender=User)
+def delete_user_in_reversion(sender, instance, **kwargs):
+    if kwargs.get('using') =='default':
+        User.objects.using('reversion').filter(id=instance.id).delete()

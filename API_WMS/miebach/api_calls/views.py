@@ -21,14 +21,11 @@ import os
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
+import reversion
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/integrations_' + today + '.log')
 log_err = init_logger('logs/integration_errors.log')
-storehippo_log = init_logger('logs/storehippo_' + today + '.log')
-create_order_storehippo_log = init_logger('logs/storehippo_create_order_log_' + today + '.log')
-create_update_sku_storehippo_log = init_logger('logs/storehippo_create_update_log_' + today + '.log')
-order_edit_storehippo_log = init_logger('logs/order_edit_storehippo_log_' + today + '.log')
 
 # Create your views here.
 
@@ -928,8 +925,8 @@ def get_supplier_data(request):
 @login_required
 def get_skus(request):
     data = []
-    limit = 30
     user = request.user
+    limit = 10
     attr_list = []
     error_status = []
     skus = []
@@ -949,6 +946,8 @@ def get_skus(request):
             warehouse = request_data['warehouse']
             if warehouse.lower() in sister_whs:
                 user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
         search_params = {'user': user.id}
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
@@ -957,12 +956,14 @@ def get_skus(request):
             search_params['sku_code'] = request_data['sku_code']
         if request_data.get('sku_brand'):
             search_params['sku_brand'] = request_data['sku_brand']
+        if request_data.get('sku_category'):
+            search_params['sku_category'] = request_data['sku_category']
         skus = request_data.get('sku_list', [])
         skus = map(lambda sku: str(sku), skus)
         if skus:
             search_params['sku_code__in'] = skus
         if request_data.get('sku_search'):
-            search_query = build_search_term_query(['sku_code', 'sku_desc'], request_data['sku_search'])
+            search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
@@ -990,6 +991,7 @@ def get_skus(request):
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
     sku_records = page_info['data']
     for sku in sku_records:
+        price_filter = {}
         updated = ''
         cgst, sgst, igst, cess = '','','',''
         tax_obj = TaxMaster.objects.filter(product_type=sku.product_type, user=user.id, max_amt__gte=sku.price, min_amt__lte=sku.price)
@@ -1004,18 +1006,40 @@ def get_skus(request):
                 cess = str(intra_tax[0].cess_tax)
         if sku.updation_date:
             updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        # price_filter = {'user': user.id,'attribute_type':'Brand','attribute_value': sku.sku_brand,}
+        # if request_data.has_key('customer_name'):
+        #     price_filter['price_type'] = request_data['customer_name']
+        # price_master_objs = PriceMaster.objects.filter(**price_filter)
+        # if price_master_objs.exists():
+        #     brand_level_discount = price_master_objs[0].discount
+        zone = ''
+        if sku.zone:
+            zone = sku.zone.zone
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
-                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category), ('price', str(sku.price)),
+                                  ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
+                                  ('sku_class',sku.sku_class),
+                                  ('sub_category', sku.sub_category),
+                                  ('sku_type', sku.sku_type),
+                                  ('sku_group',sku.sku_group),
+                                  ('sku_size', sku.sku_size),
+                                  ('style_name',sku.style_name),
+                                  ('price', str(sku.price)),
                                   ('mrp', str(sku.mrp)),
                                   ('cost_price', str(sku.cost_price)),
                                   ('product_type', sku.product_type),
-                                  ('hsn_code', sku.hsn_code),
                                   ('cgst', cgst),
                                   ('sgst', sgst),
                                   ('igst', igst),
                                   ('cess', cess),
+                                  ('hsn_code', sku.hsn_code),
+                                  ('mix_sku',sku.mix_sku),
+                                  ('color', sku.color),
                                   ('ean_number', sku.ean_number),
+                                  ('zone',zone),
+                                  ('threshold_quantity',sku.threshold_quantity),
+                                  ('shelf_life',sku.shelf_life),
                                   ('measurement_type', sku.measurement_type),
+                                  ('image_url',sku.image_url),
                                   ('active', sku.status),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))
@@ -1031,6 +1055,56 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+def get_discount(request):
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    request_data = request.body
+    data_dict = OrderedDict()
+    page_info = {}
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            request_data = {}
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        price_filter = {'user': user.id, 'attribute_type':'Brand'}
+        if request_data.get('limit'):
+            limit = request_data['limit']
+        if request_data.get('sku_code'):
+            price_filter['sku_code'] = request_data['sku_code']
+        if request_data.get('sku_brand'):
+            price_filter['attribute_value'] = request_data['sku_brand']
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Brand name required'}), status=400)
+        if request_data.has_key('customer_id'):
+            customer_id = request_data['customer_id']
+            customer_obj = CustomerMaster.objects.filter(user=user.id,customer_id=customer_id)
+            if customer_obj.exists():
+                customer_name = customer_obj[0].name
+                price_filter['price_type'] = customer_name
+            else:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid customer name'}), status=400)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Customer ID required'}), status=400)
+        price_master_objs = PriceMaster.objects.filter(**price_filter)
+        if price_master_objs.exists():
+            data_dict = OrderedDict((('discount', price_master_objs[0].discount),
+                                     ('customer_name', customer_name),
+                                     ('sku_brand',price_master_objs[0].attribute_value)))
+        page_info['data'] = data_dict
+        page_info['message'] = "Success"
+        return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @login_required
@@ -1176,7 +1250,10 @@ def update_order(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def create_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:
@@ -1205,7 +1282,10 @@ def create_orders(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_sku(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("update_sku_api")
     skus = ''
     try:
         skus = json.loads(request.body)
@@ -1242,15 +1322,18 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        message = update_customers(customers, user=request.user, company_name='mieone')
-        status = {'status': 1, 'message': message}
+        UIN, failed_status = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 200, 'message': 'Success', 'UIN': UIN}
+        if failed_status:
+            status = failed_status[0]
+        return HttpResponse(json.dumps(status))
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(status))
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
 @csrf_exempt
 @login_required
@@ -1322,7 +1405,10 @@ def update_return(request):
 
 @csrf_exempt
 @login_required
+@reversion.create_revision(atomic=False, using='reversion')
 def update_orders(request):
+    reversion.set_user(request.user)
+    reversion.set_comment("order_api")
     try:
         orders = json.loads(request.body)
     except:
@@ -1359,7 +1445,28 @@ def get_orders(request):
     record = []
     limit = request.POST.get('limit', '')
     search_parameters = {}
-    headers, search_params, filter_params = get_search_params(request)
+    user = request.user
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    request_type = 'POST'
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    try:
+        search_params = json.loads(request.body)
+        request_type = 'body'
+        limit = search_params.get('limit', '')
+        if search_params.has_key('from_date'):
+            search_params['from_date'] = parser.parse(search_params['from_date'])
+        if search_params.has_key('to_date'):
+            search_params['to_date'] = parser.parse(search_params['to_date'])
+    except:
+        headers, search_params, filter_params = get_search_params(request)
+    if 'warehouse' in search_params:
+        warehouse = search_params['warehouse']
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -1367,41 +1474,117 @@ def get_orders(request):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'customer_id' in search_params:
+        if type(search_params['customer_id']) == list:
+            search_parameters['customer_id__in'] = search_params['customer_id']
+        else:
+            search_parameters['customer_id'] = search_params['customer_id']
     if 'order_id' in search_params:
-        search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
-    search_parameters['user'] = request.user.id
-    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct()
-    page_info = scroll_data(request, order_records, limit=limit)
+        try:
+            search_parameters['original_order_id__in'] = search_params['order_id'].split(',')
+        except:
+            search_parameters['original_order_id__in'] = search_params['order_id']
+        limit = len(search_parameters['original_order_id__in'])
+    if 'order_reference' in search_params:
+        try:
+            search_parameters['order_reference__in'] = search_params['order_reference'].split(',')
+        except:
+            search_parameters['order_reference__in'] = search_params['order_reference']
+    search_parameters['user'] = user.id
+    order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
+    page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
-        data_dict = OrderDetail.objects.filter(user=request.user.id,original_order_id=order)
+        picked_quantity = 0
+        payment_status = 'Pending'
+        shipment_dict = {}
+        data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
+        shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
+                             values('order_id', 'shipping_quantity')
+        for item in shipment_mapping:
+            if item['order_id'] in shipment_dict:
+                shipment_dict[item['order_id']] += item['shipping_quantity']
+            else:
+                shipment_dict[item['order_id']] = item['shipping_quantity']
+
         shipment = data_dict[0].shipment_date.strftime('%Y-%m-%d %H:%M:%S')
         created = data_dict[0].creation_date.strftime('%Y-%m-%d %H:%M:%S')
+        payment = data_dict.aggregate(invoice_amount_sum = Sum('invoice_amount'),
+                                    payment_received_sum = Sum('payment_received'))
+        if payment['invoice_amount_sum'] == payment['payment_received_sum']:
+            payment_status='Paid'
         items = []
         charge_amount= 0
-        discount_amount = 0
         item_dict = {}
+        order_status = ''
         for data in data_dict:
-            tax_data = CustomerOrderSummary.objects.filter(order_id=data.id)
+            invoice_num_check = ''
+            picked_quantity_sku = 0
+            unit_discount = 0
+            discount_amount = 0
+            dispatched_quantity = 0
+            order_summary = CustomerOrderSummary.objects.filter(order_id=data.id,order__user=user.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
+            seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
+            invoice_num_check = seller_sku.values('invoice_number')
+            if seller_sku.exists():
+                picked_quantity_sku = seller_sku.aggregate(Sum('quantity'))['quantity__sum']
             if charge:
                 charge_amount = charge[0]
-            if tax_data.exists():
-                discount_amount = tax_data[0].discount
-                if tax_data[0].cgst_tax:
-                    item_dict['tax_percent'] = {'CGST': tax_data[0].cgst_tax, 'SGST': tax_data[0].sgst_tax}
-                elif tax_data[0].igst_tax:
-                    item_dict['tax_percent'] = {'IGST': tax_data[0].igst_tax}
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'quantity':data.quantity, 'unit_price':data.unit_price, 'shipment_charge':charge_amount, 'discount_amount':discount_amount}
+            if data.status == '0':
+                sku_status = 'In progress'
+                # if picked_quantity_sku == data.original_quantity:
+                #     sku_status = 'Picked'
+                # else:
+                #     sku_status = 'Partially Picked'
+                # if seller_sku.exists():
+                #     if picked_quantity_sku == data.original_quantity and invoice_num_check:
+                #         sku_status = 'Invoice generated'
+                #     if picked_quantity_sku != data.original_quantity and invoice_num_check:
+                #         sku_status = 'Partial invoice generated'
+            elif data.status == '1':
+                sku_status = 'Open'
+            elif data.status == '2':
+                sku_status = 'Dispatched'
+            elif data.status == '3':
+                sku_status = 'Cancelled'
+            # if picked_quantity_sku == 0:
+            #         sku_status = 'Open'
+            dispatched_quantity = shipment_dict.get(data.id, 0)
+            picked_quantity_sku -= dispatched_quantity
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
+                         'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
+                         'status':sku_status,'unit_price':data.unit_price,
+                         'shipment_charge':charge_amount, 'discount_amount':'',
+                         'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
+            shipping_address = {"address": data_dict[0].address}
+            if order_summary.exists():
+                discount_amount = order_summary[0].discount
+                item_dict['discount_amount'] = discount_amount
+                consignee = order_summary[0].consignee
+                if consignee:
+                    shipping_address["address"] = consignee
+                if order_summary[0].cgst_tax:
+                    item_dict['tax_percent']['CGST'] = order_summary[0].cgst_tax
+                    item_dict['tax_percent']['SGST'] = order_summary[0].sgst_tax
+                elif order_summary[0].igst_tax:
+                    item_dict['tax_percent']['IGST'] = order_summary[0].igst_tax
             items.append(item_dict)       
-        billing_address = {"customer_id": data_dict[0].customer_id,
-               "name": data_dict[0].customer_name,
+        billing_address = {"name": data_dict[0].customer_name,
                "email": data_dict[0].email_id,
                "phone_number": data_dict[0].telephone,
                "address": data_dict[0].address,
                "city": data_dict[0].city,
                "state": data_dict[0].state,
                "pincode": data_dict[0].pin_code}
-        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),('order_date',created),('shipment_date',shipment),('source',data_dict[0].marketplace),('billing_address',billing_address ),('items',items))))
+        record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
+                                    ('order_date',created),('shipment_date',shipment),
+                                    ('order_reference',data_dict[0].order_reference),
+                                    ('payment_status', payment_status),
+                                    ('source',data_dict[0].marketplace),
+                                    ('customer_id', data_dict[0].customer_id),
+                                    ('customer_name',data_dict[0].customer_name),
+                                    ('billing_address',billing_address ),
+                                    ('shipping_address',shipping_address),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
@@ -1703,10 +1886,11 @@ def get_mp_inventory(request):
                     mrp_weight_obj = StockDetail.objects.filter(sku=sku['id'], location__location__in=sellable_bulk_locations)
                     if mrp_weight_obj:
                         mrp_weight_obj = mrp_weight_obj.latest('creation_date')
-                        mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
-                                                                     ('inventory', OrderedDict((('sellable', 0),
-                                                                                                ('on_hold', 0),
-                                                                                                ('bulk_area', 0))))))]
+                        if mrp_weight_obj.batch_detail:
+                            mrp_list = [OrderedDict(( ('mrp', mrp_weight_obj.batch_detail.mrp), ('weight', mrp_weight_obj.batch_detail.weight),
+                                                                         ('inventory', OrderedDict((('sellable', 0),
+                                                                                                    ('on_hold', 0),
+                                                                                                    ('bulk_area', 0))))))]
                 if mrp_list:
                     data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
                 else:
@@ -1832,16 +2016,16 @@ def get_inventory(request,user=''):
             if quantity < 0:
                 quantity = 0
 
-            total_stock_value = 0
-            if quantity:
-                wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
-                                                                                    sku__user=user.id)
-                wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
-                total_wms_qty_unit_price = sum(
-                    wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
-                        'stock_value', flat=True))
-                wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
-                total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
+            # total_stock_value = 0
+            # if quantity:
+            #     wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
+            #                                                                         sku__user=user.id)
+            #     wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
+            #     total_wms_qty_unit_price = sum(
+            #         wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
+            #             'stock_value', flat=True))
+            #     wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            #     total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
             open_order_qty = sku_type_qty.get(data[0], 0)
             data_lis.append(OrderedDict((('sku', data[0]),
                                         ('available_quantity', quantity),
@@ -1862,277 +2046,6 @@ def get_inventory(request,user=''):
         log.info('Get Inventory failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         response_data = {'messages': 'Internal Server Error', 'status': 500}
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=500)
-
-@csrf_exempt
-@login_required
-def rista_update_orders(request):
-    try:
-        orders = json.loads(eval(request.body)['all_orders'])
-        rista_resp = json.loads(eval(request.body)['resp'])
-    except:
-        return HttpResponse(json.dumps({'status': 400, 'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
-    try:
-        if request.user.userprofile.user_type == 'marketplace_user':
-            validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
-                                                                                     company_name='mieone')
-        else:
-            validation_dict, failed_status, final_data_dict = validate_orders_format_rista(orders, user=request.user, company_name='mieone')
-        if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        if failed_status:
-            if type(failed_status) == dict:
-                failed_status.update({'Status': 'Failure'})
-            if type(failed_status) == list:
-                failed_status = failed_status[0]
-                failed_status.update({'Status': 'Failure'})
-            return HttpResponse(json.dumps(failed_status))
-        status = update_order_dicts_rista(final_data_dict, rista_resp, user=request.user, company_name='mieone')
-        log.info(status)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'messages': 'Internal Server Error', 'status': 0}
-    return HttpResponse(json.dumps(status))
-
-
-def store_hippo_line_items(line_items):
-    itemsArr = []
-    for Item in line_items:
-        cgst_percent = 0
-        sgst_percent = 0
-        igst_percent = 0
-        for ind in Item['taxes']:
-            if ind['name'] == "IGST":
-                igst_percent += ind['rate']
-            if ind['name'] == "SGST":
-                sgst_percent += ind['rate']
-            if ind['name'] == "CGST":
-                cgst_percent += ind['rate']
-        obj = {
-            "line_item_id": Item.get('_id',None),
-            "sku": Item.get('sku',None),
-            "name": Item.get('name',None),
-            "quantity": Item.get('quantity',None),
-            "unit_price": Item.get('price',None),
-            "shipping_charge": Item.get('shipping_total',None),
-            "discount_amount": 0,
-            "tax_percent": {
-                "CGST": cgst_percent,
-                "SGST": sgst_percent,
-                "IGST": igst_percent
-            }
-        }
-        itemsArr.append(obj)
-    return itemsArr
-
-
-def create_order_storehippo(store_hippo_data, user_obj):
-    create_order_storehippo_log.info('Create Store Hippo Data' + str(store_hippo_data))
-    allOrders = []
-    create_order = {}
-    customer_obj = store_hippo_data.get('billing_address', '')
-    create_order['source'] = 'store_hippo'
-    create_order['original_order_id'] = store_hippo_data.get('order_id', '')
-    create_order['order_id'] = create_order.get('original_order_id', '')
-    create_order['order_code'] = ''
-    create_order['order_date'] = store_hippo_data['created_on'][0:10] + " " + store_hippo_data['created_on'][11:19]
-    create_order['order_status'] = 'NEW'
-    create_order['billing_address'] = customer_obj
-    create_order['shipping_address'] = store_hippo_data.get('shipping_address', '')
-    create_order['items'] = store_hippo_line_items(store_hippo_data.get('items', ''))
-    create_order['discount'] = store_hippo_data.get('discounts_total', 0)
-    create_order['shipping_charges'] = store_hippo_data.get('shipping_total', 0)
-    create_order['customer_name'] = customer_obj.get('full_name', '')
-    create_order['customer_code'] = ''
-    create_order['item_count'] = store_hippo_data.get('item_count', 0)
-    create_order['all_total_items'] = store_hippo_data.get('sub_total', 0)
-    create_order['all_total_tax'] = store_hippo_data.get('taxes_total', 0)
-    create_order['status'] = store_hippo_data.get('status', 0)
-    create_order['fulfillmentStatus'] = store_hippo_data.get('fulfillment_status', '')
-    create_order['custom_shipping_applied'] = store_hippo_data.get('custom_shipping_applied', 0)
-    create_order['order_reference'] = store_hippo_data.get('_id', '')
-    admin_discounts = store_hippo_data.get('discounts', [])
-    if admin_discounts:
-        admin_discounts = admin_discounts[0].get('saved_amount',0)
-    create_order['invoice_amount'] = create_order.get('all_total_items', 0) + create_order.get('all_total_tax', 0) + create_order.get('shipping_charges', 0) - create_order.get('discount', 0)
-    allOrders.append(create_order)
-    try:
-        validation_dict, failed_status, final_data_dict = validate_orders_format_storehippo(allOrders, user=user_obj, company_name='mieone')
-        if validation_dict:
-            return json.dumps({'messages': validation_dict, 'status': 0})
-        if failed_status:
-            if type(failed_status) == dict:
-                failed_status.update({'Status': 'Failure'})
-            if type(failed_status) == list:
-                failed_status = failed_status[0]
-                failed_status.update({'Status': 'Failure'})
-            return json.dumps(failed_status)
-        create_order_storehippo_log.info('StoreHippo Data Sent to Stockone ' + str(final_data_dict))
-        status = update_order_dicts(final_data_dict, user=user_obj, company_name='storehippo')
-        create_order_storehippo_log.info(status)
-        return status
-    except Exception as e:
-        import traceback
-        create_order_storehippo_log.debug(traceback.format_exc())
-        create_order_storehippo_log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user_obj.username), str(request.body), str(e)))
-        status = {'messages': 'Internal Server Error', 'status': 0}
-        return status
-
-
-def create_update_sku_storehippo(store_hippo_data, user_obj):
-    create_update_sku_storehippo_log.info('StoreHippo Data ' + str(store_hippo_data))
-    try:
-        stockone_data = {}
-        sku_code = store_hippo_data.get('uniquesku', '')
-        if sku_code:
-            sku_code = sku_code[0]
-        categories = store_hippo_data.get('categories', '')
-        if categories:
-            categories = categories[0]
-        image = store_hippo_data.get('images','')
-        if image:
-            image = image[0]['tempSrc']
-        desc = store_hippo_data.get('description', '')
-        if desc:
-            desc = desc.replace('<p>', '')
-            desc = desc.replace('</p>', '')
-        variants = store_hippo_data.get('variants', [])
-        for var_obj in variants:
-            sku_code = var_obj.get('sku', '')
-            stockone_data['sku_code'] = sku_code
-            stockone_data['wms_code'] = sku_code
-            stockone_data['sku_desc'] = desc
-            stockone_data['sku_group'] = ''
-            stockone_data['sku_type'] = ''
-            stockone_data['sku_category'] = categories
-            stockone_data['sku_class'] = ''
-            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
-            stockone_data['online_percentage'] = 0
-            stockone_data['image_url'] = image
-            stockone_data['qc_check'] = 0
-            stockone_data['status'] = store_hippo_data.get('publish', 0)
-            stockone_data['relation_type'] = ''
-            stockone_data['discount_percentage'] = 0
-            stockone_data['price'] = var_obj.get('price', 0)
-            stockone_data['product_type'] = ''
-            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
-            stockone_data['sku_size'] = ''
-            stockone_data['style_name'] = var_obj.get('variant_id','')
-            stockone_data['mrp'] = var_obj.get('compare_price', 0)
-            stockone_data['sequence'] = 0
-            stockone_data['measurement_type'] = ''
-            stockone_data['sale_through'] = ''
-            stockone_data['color'] = ''
-            stockone_data['mix_sku'] = ''
-            stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = ''
-            stockone_data['sub_category'] = ''
-            stockone_data['primary_category'] = ''
-            stockone_data['cost_price'] = var_obj.get('price', 0)
-            stockone_data['shelf_life'] = 0
-            stockone_data['enable_serial_based'] = 0
-            stockone_data['youtube_url'] = ''
-            stockone_data['user'] = user_obj.id
-            try:
-		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
-		if not sku_obj:
-		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
-		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
-		else:
-		    sku_query_obj = sku_obj.update(**stockone_data)
-		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
-            except:
-		sku_query_obj = "Error Occured"
-		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
-        else:
-            stockone_data['sku_code'] = sku_code
-            stockone_data['wms_code'] = sku_code
-            stockone_data['sku_desc'] = desc
-            stockone_data['sku_group'] = ''
-            stockone_data['sku_type'] = ''
-            stockone_data['sku_category'] = categories
-            stockone_data['sku_class'] = ''
-            stockone_data['threshold_quantity'] = store_hippo_data.get('inventory_low_stock_quantity', 0)
-            stockone_data['online_percentage'] = 0
-            stockone_data['image_url'] = image
-            stockone_data['qc_check'] = 0
-            stockone_data['status'] = store_hippo_data.get('publish', 0)
-            stockone_data['relation_type'] = ''
-            stockone_data['discount_percentage'] = 0
-            stockone_data['price'] = store_hippo_data.get('price', 0)
-            stockone_data['product_type'] = ''
-            stockone_data['sku_brand'] = store_hippo_data.get('brand', '')
-            stockone_data['sku_size'] = ''
-            stockone_data['style_name'] = ''
-            stockone_data['mrp'] = store_hippo_data.get('compare_price', 0)
-            stockone_data['sequence'] = 0
-            stockone_data['measurement_type'] = ''
-            stockone_data['sale_through'] = ''
-            stockone_data['color'] = ''
-            stockone_data['mix_sku'] = ''
-            stockone_data['load_unit_handle'] = ''
-            stockone_data['hsn_code'] = ''
-            stockone_data['sub_category'] = ''
-            stockone_data['primary_category'] = ''
-            stockone_data['cost_price'] = store_hippo_data.get('price', 0)
-            stockone_data['shelf_life'] = 0
-            stockone_data['enable_serial_based'] = 0
-            stockone_data['youtube_url'] = ''
-            stockone_data['user'] = user_obj.id
-            try:
-		sku_obj = SKUMaster.objects.filter(**{'user':user_obj.id, 'sku_code':sku_code})
-		if not sku_obj:
-		    sku_query_obj = SKUMaster.objects.create(**stockone_data)
-		    create_update_sku_storehippo_log.info('Created SKU ' + str(stockone_data))
-		else:
-		    sku_query_obj = sku_obj.update(**stockone_data)
-		    create_update_sku_storehippo_log.info('Updated SKU '+ str(stockone_data))
-            except:
-		sku_query_obj = "Error Occured"
-		create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo')
-    except:
-        create_update_sku_storehippo_log.info('Error Occured in create_update_sku_storehippo function')
-        return "Error Occured"
-    return sku_query_obj
-
-
-def order_edit_storehippo(store_hippo_data, user_obj):
-    order_edit_storehippo_log.info('Input Data - For User '+ user_obj.username + ' , ' + str(store_hippo_data))
-    order_id_list = []
-    if store_hippo_data['status'] == 'cancelled':
-        order_id = store_hippo_data.get('order_id', '')
-        order_id_list.append(order_id)
-	ids_of_orders = list(set(OrderDetail.objects.filter(original_order_id__in=order_id_list).values_list('id', flat=True)))
-        order_edit_storehippo_log.info('Input List of Order IDs sent' + str(ids_of_orders))
-	cancel_order = order_cancel_functionality(ids_of_orders)
-        order_edit_storehippo_log.info('Output Response' + str(cancel_order))
-    return store_hippo_data
-
-
-def store_hippo(request):
-    a = datetime.datetime.now()
-    api_type = request.META['HTTP_TYPE']
-    store_hippo_data = json.loads(request.body)
-    storehippo_log.info('------------API Type -' + api_type + '------------')
-    status_resp = ''
-    try:
-        user_obj = User.objects.get(username='acecraft')
-    except:
-        storehippo_log.info("User Not Found")
-        return HttpResponse("User Not found")
-    if api_type == 'add_order':
-        status_resp = create_order_storehippo(store_hippo_data, user_obj)
-    if api_type in ['add_sku', 'edit_sku']:
-        status_resp = create_update_sku_storehippo(store_hippo_data, user_obj)
-    if api_type == 'order_edit':
-        status_resp = order_edit_storehippo(store_hippo_data, user_obj)
-    b = datetime.datetime.now()
-    delta = b - a
-    time_taken = str(delta.total_seconds())
-    storehippo_log.info('------------End Time Taken in Seconds --- ' + time_taken + '-----')
-    return HttpResponse(json.dumps(status_resp.sku_code))
 
 
 @login_required
@@ -2175,7 +2088,15 @@ def get_customers(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
-                           'last_name': data.last_name, 'address': data.address,
+                           'last_name': data.last_name, 'billing_address': data.address,
+                           'shipping_address': data.shipping_address,
+                           'shipping_city':data.city,'shipping_state': data.state,
+                           'shipping_country':data.country,
+                           'spoc_name': data.spoc_name,
+                           'gst_number': data.tin_number,
+                           'pan_number': data.pan_number,
+                           'tax_type': data.tax_type,
+                           'price_type':data.price_type,
                            'phone_number': str(data.phone_number), 'email': data.email_id,
                            'customer_type':data.customer_type})
     page_info['data'] = total_data

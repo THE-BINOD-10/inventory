@@ -5019,7 +5019,7 @@ def get_order_summary_data(search_params, user, sub_user):
             if not invoice_qty_filter.get('full_invoice_number',''):
                 quantity = 0
             if seller_order_objects.exists():
-                if 'cancelled' in list(seller_order_objects.values_list('order_status_flag' ,flat=True))
+                if 'cancelled' in list(seller_order_objects.values_list('order_status_flag' ,flat=True)):
                     cancelled_qty = quantity
                 else:
                     cancelled_qty = 0

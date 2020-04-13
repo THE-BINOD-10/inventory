@@ -1119,7 +1119,7 @@ def print_po_reports(request, user=''):
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
                                                            'mrp': mrp})
                     grouped_data[grouping_key]['received_quantity'] += quantity
-                    grouped_data[grouping_key]['amount'] += amount
+                    grouped_data[grouping_key]['amount'] += float("%.2f" % amount)
                     total += amount
                     total_qty += quantity
                     total_tax += gst_tax
@@ -1141,7 +1141,7 @@ def print_po_reports(request, user=''):
                                          'received_quantity': quantity, 'measurement_unit': open_data.measurement_unit,
                                          'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
                                          'sgst_tax': open_data.sgst_tax, 'igst_tax': open_data.igst_tax,
-                                         'utgst_tax': open_data.utgst_tax, 'amount': amount,
+                                         'utgst_tax': open_data.utgst_tax, 'amount': float("%.2f" % amount),
                                          'sku_desc': open_data.sku.sku_desc, 'mrp': mrp})
                 total += amount
                 total_qty += quantity
@@ -1164,7 +1164,7 @@ def print_po_reports(request, user=''):
                                      'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
                                      'sgst_tax': open_data.sgst_tax,
                                      'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
-                                     'amount': amount, 'sku_desc': open_data.sku.sku_desc,
+                                     'amount': float("%.2f" % amount), 'sku_desc': open_data.sku.sku_desc,
                                      'mrp': mrp})
             total += amount
             total_qty += po_order.received_quantity
@@ -1223,12 +1223,12 @@ def print_po_reports(request, user=''):
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
+                   'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
-                   'net_amount': net_amount,
+                   'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
                    'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
 

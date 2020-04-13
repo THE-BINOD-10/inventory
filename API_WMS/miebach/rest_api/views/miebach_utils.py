@@ -3180,7 +3180,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                             ('Quantity', data.order.original_quantity),
                                                             ('Picked Quantity', picked_quantity),
                                                             ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])),
-                                                            ('Selling Price', data.order.unit_price), ('Sale Tax Percent', tax_percent),
+                                                            ('Selling Price', float("%.2f" % data.order.unit_price)), ('Sale Tax Percent', tax_percent),
                                                             ('Cost Price', cost_price), ('Cost Tax Percent', cost_tax_percent),
                                                             ('Customer Name', customer_name),
                                                             ('Batch Number', batch_number), ('MRP', batchDetail_mrp),
@@ -3617,7 +3617,6 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         #     margin_price = 0
         # margin_price = "%.2f" % (margin_price * float(data['total_received']))
         final_price = '%.2f'% (aft_unit_price)
-        post_amount = '%2f'% (post_amount)
         invoice_total_amount = float(final_price) * float(data['total_received'])
         #invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
@@ -3665,8 +3664,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('SKU Category', data['purchase_order__open_po__sku__sku_category']),
                             ('Sub Category', data['purchase_order__open_po__sku__sub_category']),
                             ('Received Qty', data['total_received']),
-                            ('Unit Rate', price), ('MRP', mrp),
-                            ('Pre-Tax Received Value', amount),
+                            ('Unit Rate', float("%.2f" % price)), ('MRP', float("%.2f" % mrp)),
+                            ('Pre-Tax Received Value', float("%.2f" % amount)),
                             ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
                             ('SGST(%)', data['purchase_order__open_po__sgst_tax']),
                             ('IGST(%)', data['purchase_order__open_po__igst_tax']),
@@ -3679,11 +3678,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('UTGST', truncate_float((amount/100)* data['purchase_order__open_po__utgst_tax'], 2)),
                             ('CESS', truncate_float((amount/100)* data['purchase_order__open_po__cess_tax'], 2)),
                             ('APMC', truncate_float((amount / 100) * data['purchase_order__open_po__apmc_tax'], 2)),
-                            ('Post-Tax Received Value', post_amount),
+                            ('Post-Tax Received Value', float("%.2f" % post_amount)),
                             ('Margin %', data['seller_po__margin_percent']),
                             ('Margin', margin_price),
                             ('Invoiced Unit Rate', final_price),
-                            ('Invoiced Total Amount', invoice_total_amount),
+                            ('Invoiced Total Amount', float("%.2f" % invoice_total_amount)),
                             ('Invoice Number', data['invoice_number']),
                             ('Overall Discount',data['overall_discount']),
                             ('Invoice Date', invoice_date),
@@ -5059,8 +5058,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('SKU Class', data['sku__sku_class']),
                                                     ('SKU Size', data['sku__sku_size']), ('SKU Description', data['sku__sku_desc']),
                                                     ('SKU Code', data['sku__sku_code']), ('Order Qty', int(data['original_quantity'])),
-                                                    ('MRP', mrp_price), ('Unit Price', float(unit_price_inclusive_tax)),
-                                                    ('Discount', discount),
+                                                    ('MRP', float("%.2f" % mrp_price)), ('Unit Price', float("%.2f" % unit_price_inclusive_tax)),
+                                                    ('Discount', float("%.2f" % discount)),
                                                     ('Serial Number',serial_number),
                                                     ('Invoice Number',invoice_number),
                                                     ('Challan Number', challan_number),
@@ -5073,11 +5072,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                                     ('Invoice Tax Amt', invoice_tax),
                                                     ('Order Tax Amt',("%.2f"%tax)),('Invoice Amount', invoice_amount_picked),
                                                     ('City', data['city']), ('State', data['state']), ('Marketplace', data['marketplace']),
-                                                    ('Total Order Amt', float(invoice_amount)),('EwayBill Number', ewaybill_number),
+                                                    ('Total Order Amt', float("%.2f" % invoice_amount)),('EwayBill Number', ewaybill_number),
                                                     ('Cancelled Order Qty', cancelled_qty),
                                                     ('Cancelled Order Amt', cancelled_amt),
                                                     ('Net Order Qty', net_qty), ('Net Order Amt', net_amt),
-                                                    ('Price', data['sku__price']),
+                                                    ('Price', float("%.2f" % data['sku__price'])),
                                                     ('Status', status), ('Order Status', order_status),('Customer GST Number',gst_number),
                                                     ('Remarks', remarks),
                                                     ('Invoice Date',invoice_date),("Billing Address",billing_address),("Shipping Address",shipping_address),
@@ -5130,8 +5129,8 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('Main Location', 'Main Location'),
                               ('Stock item', data['sku__sku_desc']),
                               ('Qty', quantity),
-                              ('Rate', float(data['unit_price'])),
-                              ('Disc%', round(discount_percent)),
+                              ('Rate', float("%.2f" % data['unit_price'])),
+                              ('Disc%', float("%.2f" % discount_percent)),
                               ('Sales Ledger', 'Sales'),
                               ('Sales Amount', float(taxable_amount)),
                               ('Sgst Ledger', 'SGST'),
@@ -5143,8 +5142,8 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('Part Number', data['sku__sku_code']),
                               ('Unit', 'PC'),
                               ('Group', 'Roche'),
-                              ('MRP', mrp_price),
-                              ('Selling price(inc Tax)', round(selling_price)),
+                              ('MRP', float("%.2f" % mrp_price)),
+                              ('Selling price(inc Tax)', float("%.2f" % selling_price)),
                               ('Cost price (Inc Tax)', 0),
                               ('Invoice Amount', invoice_amount_picked),
                               ('HSN Code', data['sku__hsn_code']),
@@ -8296,7 +8295,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
 
         ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
                                                 ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
-                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
+                                                ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',float("%.2f" %price)),('Total Value',float("%.2f" % total)),\
                                                 ('Source Location',user.username),('Destination',destination)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer

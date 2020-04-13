@@ -71,6 +71,8 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     return_objs = dict(all_sku_stats.filter(transact_type='return').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    cancelled_objs = dict(all_sku_stats.filter(transact_type='cancelled_location').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     jo_putaway_objs = dict(all_sku_stats.filter(transact_type='jo').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist').\
@@ -82,6 +84,8 @@ class Command(BaseCommand):
                     stock_quantity = stock_objs.get(sku.id, 0)
                     closing_stock_value = stock_value_objs.get(sku.id, 0)
                     return_quantity = return_objs.get(sku.id, 0)
+                    cancelled_quantity = cancelled_objs.get(sku.id, 0)
+                    return_quantity += cancelled_quantity
                     adjusted = adjust_objs.get(sku.id, 0)
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)

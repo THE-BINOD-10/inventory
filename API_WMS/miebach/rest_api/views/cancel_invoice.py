@@ -4,7 +4,6 @@ from utils import *
 from common import *
 from outbound import *
 
-
 log = init_logger('logs/cancel_invoice.log')
 
 
@@ -51,12 +50,16 @@ def cancel_invoice(request, user=''):
             picklist.cancelled_quantity = picklist.cancelled_quantity + cancelled_quantity
             picklist.save()
             if picklist.stock:
-                CancelledLocation.objects.create(picklist=picklist, quantity=cancelled_quantity,
-                                             cancel_invoice_serial=cancel_invoice_serial,
-                                             status=1, location=picklist.stock.location)
+                cancel_params = {'picklist' : picklist, 'quantity': cancelled_quantity,
+                                 'cancel_invoice_serial': cancel_invoice_serial,
+                                 'status': 1, 'location': picklist.stock.location}
+                if market_place:
+                    if picklist.stock.sellerstock_set.filter():
+                        cancel_params['seller_id'] = picklist.stock.sellerstock_set.filter()[0].seller.id
+                CancelledLocation.objects.create(**cancel_params)
         seller_orders_summaries.update(order_status_flag='cancelled')
         inc_object = inc_obj
-        inc_object.value=float(cancel_invoice_serial)+1
+        inc_object.value = float(cancel_invoice_serial) + 1
         inc_object.save()
 
     except Exception as e:
@@ -67,7 +70,3 @@ def cancel_invoice(request, user=''):
         return HttpResponse('Failed To Cancel the Invoice')
 
     return HttpResponse('Succuess Fully Cancelled the Invoice')
-
-
-
-

@@ -493,6 +493,7 @@ class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    priority = models.IntegerField(default=0)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)

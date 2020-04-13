@@ -39,6 +39,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         angular.copy(vm.empty_data, vm.model_data);
         vm.dtOptions = datam.dtOptions;
         vm.dtColumns = datam.dtColumns;
+        if(vm.industry_type =='FMCG'){
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Manufactured Date').withTitle('Manufactured Date'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Expiry Date').withTitle('Expiry Date'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Weight').withTitle('Weight'))
+        }
         vm.datatable = true;
         vm.dtInstance = {};
       })

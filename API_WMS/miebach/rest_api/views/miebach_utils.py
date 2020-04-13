@@ -4975,6 +4975,8 @@ def get_order_summary_data(search_params, user, sub_user):
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
         invoice_number,invoice_date,quantity,challan_number= '','',0,''
+        if data['status'] and int(data['status']) == 3:
+            cancelled_qty = data['quantity']
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__full_invoice_number']
             challan_number = data['sellerordersummary__challan_number']
@@ -5003,17 +5005,24 @@ def get_order_summary_data(search_params, user, sub_user):
                 invoice_qty_filter['seller_order__order_id'] = data['id']
                 if data['sellerordersummary__full_invoice_number']:
                     invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
-                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
+                seller_order_objects = SellerOrderSummary.objects.filter(**invoice_qty_filter)
+                quantity = seller_order_objects.aggregate(Sum('quantity'))['quantity__sum']
             else:
                 invoice_qty_filter['order_id'] = data['id']
                 if data['sellerordersummary__full_invoice_number']:
                     invoice_qty_filter['full_invoice_number'] = data['sellerordersummary__full_invoice_number']
                 else:
                     invoice_date = ''
-                quantity = SellerOrderSummary.objects.filter(**invoice_qty_filter).aggregate(Sum('quantity'))['quantity__sum']
-                if not invoice_qty_filter.get('full_invoice_number',''):
-                    quantity = 0
+                seller_order_objects = SellerOrderSummary.objects.filter(**invoice_qty_filter)
+                quantity = seller_order_objects.aggregate(Sum('quantity'))['quantity__sum']
 
+            if not invoice_qty_filter.get('full_invoice_number',''):
+                quantity = 0
+            if seller_order_objects.exists():
+                if 'cancelled' in list(seller_order_objects.values_list('order_status_flag' ,flat=True))
+                    cancelled_qty = quantity
+                else:
+                    cancelled_qty = 0
         try:
             #serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
             serial_number = OrderIMEIMapping.objects.filter(order__id=data['id'])
@@ -5045,12 +5054,9 @@ def get_order_summary_data(search_params, user, sub_user):
 
         amount = (float(unit_price) * float(quantity)) - (unit_discount * float(quantity))
         invoice_tax = "%.2f" % ((amount/100)*(tax_percent))
+        cancelled_amt = cancelled_qty * unit_invoice_amt
 
         invoice_amount_picked = "%.2f" % (amount + float(invoice_tax))
-
-        if data['status'] and int(data['status']) == 3:
-            cancelled_qty = data['quantity']
-            cancelled_amt = cancelled_qty * unit_invoice_amt
         net_qty = data['original_quantity'] - cancelled_qty
         net_amt = invoice_amount - cancelled_amt
 
@@ -5069,9 +5075,6 @@ def get_order_summary_data(search_params, user, sub_user):
             order_user_obj = User.objects.filter(username=order_taken_by)
             if order_user_obj:
                 order_user = order_user_obj[0].id
-        if not quantity and cancelled_qty:
-            cancelled_qty = 0
-            cancelled_amt = 0
         if cancelled_qty:
             status = 'Cancelled'
         aaData = OrderedDict((('User ID', order_user),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),

@@ -2134,7 +2134,7 @@ class SellerStock(models.Model):
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
         index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
-                            ('stock',))
+                            ('stock',), ('seller', 'quantity'))
 
 
 class SellerMarginMapping(models.Model):

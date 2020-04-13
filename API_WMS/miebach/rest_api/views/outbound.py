@@ -3564,8 +3564,8 @@ def st_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
+
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -3577,7 +3577,9 @@ def st_generate_picklist(request, user=''):
         bulk_zone_name = MILKBASKET_BULK_ZONE
         bulk_zones = get_all_zones(user, zones=[bulk_zone_name])
         zones = list(chain(zones, bulk_zones))
-        sku_stocks.filter(location__zone__zone__in=zones)
+        sku_stocks = sku_stocks.filter(location__zone__zone__in=zones)
+    else:
+        sku_stocks = sku_stocks.exclude(location__zone__zone__in=picklist_exclude_zones)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')

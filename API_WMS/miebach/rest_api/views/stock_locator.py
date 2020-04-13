@@ -1744,28 +1744,12 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
     if order_term == 'desc':
         order_data = '-%s' % order_data
 
-    search_params['stock__sku_id__in'] = sku_master_ids
+    #search_params['stock__sku_id__in'] = sku_master_ids
 
     all_seller_stock = SellerStock.objects.filter(seller__user=user.id)
     dis_seller_ids = all_seller_stock.values_list('seller__seller_id', flat=True).distinct()
     sell_stock_ids = all_seller_stock.values('seller__seller_id', 'stock_id')
 
-    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user)
-    '''reserved_dict = OrderedDict()
-    raw_reserved_dict = OrderedDict()
-    for seller in dis_seller_ids:
-        pick_params = {'status': 1, 'picklist__order__user': user.id}
-        rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
-        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
-        if stock_id_dict:
-            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
-            pick_params['stock_id__in'] = stock_ids
-            rm_params['stock_id__in'] = stock_ids
-        reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params).\
-                                     values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
-                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
-                                           annotate(rm_reserved=Sum('reserved')))'''
 
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
@@ -1773,33 +1757,33 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
 
     categories = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_category'))
     if search_term:
-        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list(
+        master_data = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0).values_list(
             'seller__seller_id',
             'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
             'stock__sku__sku_brand').distinct(). \
             annotate(total=Sum('quantity')). \
-            filter(search_term_query, stock__sku__user=user.id, **search_params).order_by(order_data)
+            filter(search_term_query, **search_params).order_by(order_data)
         search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
-        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0). \
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(seller__user=user.id, quantity__gt=0). \
             values('seller__seller_id', 'seller__name',
                    'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
                    'stock__sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(search_term_query, stock__sku__user=user.id,
+            annotate(total=Sum('quantity')).filter(search_term_query,
                                                    **search_params)
 
     else:
-        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list(
+        master_data = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0).values_list(
             'seller__seller_id',
             'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
             'stock__sku__sku_brand').distinct(). \
             annotate(total=Sum('quantity')). \
-            filter(stock__sku__user=user.id, **search_params).order_by(order_data)
+            filter(**search_params).order_by(order_data)
         search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
-        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0). \
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(seller__user=user.id, quantity__gt=0). \
             values('seller__seller_id', 'seller__name',
                    'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
                    'stock__sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(stock__sku__user=user.id, **search_params)
+            annotate(total=Sum('quantity')).filter(**search_params)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -1810,6 +1794,8 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
     if stop_index and not custom_search:
         master_data = master_data[start_index:stop_index]
 
+    stock_objs = StockDetail.objects.filter(id__in=list(master_data.values_list('stock_id', flat=True))).only('id')
+    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, stock_objs, user)
     for data in master_data:
         quantity = 0
         reserved = 0

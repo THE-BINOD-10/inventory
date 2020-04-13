@@ -5705,15 +5705,16 @@ def check_ean_number(sku_code, ean_number, user):
     return ean_check, mapped_check
 
 
-def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
+def get_seller_reserved_stocks(dis_seller_ids, stock_objs, user):
     reserved_dict = OrderedDict()
     raw_reserved_dict = OrderedDict()
     for seller in dis_seller_ids:
         pick_params = {'status': 1, 'picklist__order__user': user.id}
         rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
-        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
-        if stock_id_dict:
-            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
+        #stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
+        if stock_objs:
+            #stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
+            stock_ids = stock_objs.filter(sellerstock__seller__seller_id=seller).values_list('id', flat=True).distinct()
             pick_params['stock_id__in'] = stock_ids
             rm_params['stock_id__in'] = stock_ids
         reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params). \

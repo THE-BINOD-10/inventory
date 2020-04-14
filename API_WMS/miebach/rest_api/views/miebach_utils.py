@@ -944,7 +944,7 @@ STOCK_TRANSFER_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Sku Code', 'name': 'sku_code', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'Order ID', 'Source Location', 'Destination Location', 'SKU Code', 'SKU Description','Quantity','Price','Net Amount','CGST%','SGST%','IGST%','CGST','SGST','IGST','Total Amount','Status'],
+    'dt_headers': ['Date', 'Order ID','Invoice Number', 'Source Location', 'Destination Location', 'SKU Code', 'SKU Description','Quantity','Price','Net Amount','CGST%','SGST%','IGST%','CGST','SGST','IGST','Total Amount','Status'],
     'mk_dt_headers': ['Date', 'Invoice Number', 'Source Location', 'Destination', 'SKU Code', 'SKU Description', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','Price','Net Value','CGST','SGST','IGST','Total Value','Status'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
     'print_url': 'print_stock_transfer_report',
@@ -2161,7 +2161,7 @@ WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'P
                                'Total Amount']
 WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Invoice Date&Time', 'Invoice Amount(w/o tax)','Tax Amount','Total Amount']
 
-STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time','Invoice Number','Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time']
@@ -8182,7 +8182,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['creation_date','order_id','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
+    lis = ['creation_date','order_id','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','st_po__open_st__sku__user','sku__sku_code','sku__sku_desc',\
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax',
            'st_po__open_st__igst_tax','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax',
            'st_po__open_st__price','status','st_po__open_st__igst_tax','st_po__open_st__price','status']
@@ -8247,29 +8247,31 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        stock_transfer_id = data.id
-        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id, stock_transfer=stock_transfer_id).values(
+        batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id, stock_transfer=data.id).values(
             'picklist__stock__batch_detail__weight', 'picklist__stock__batch_detail__batch_no',
             'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
         batch_number = ''
         weight = ''
         expiry_date = ''
         manufactured_date = ''
+        invoice_number = ''
+        if data.stocktransfersummary_set.filter():
+            invoice_number = data.stocktransfersummary_set.filter()[0].full_invoice_number
         if batch_data.exists():
             batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
             weight = batch_data[0]['picklist__stock__batch_detail__weight']
             expiry_date =  batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
             manufactured_date =  batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
         if user.userprofile.industry_type == 'FMCG' :
-            ord_dict = OrderedDict((('Date',date),('Order ID', data.order_id),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),\
+            ord_dict = OrderedDict((('Date',date),('Order ID', data.order_id),('Invoice Number',invoice_number),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),\
                                                 ('Quantity',quantity ),('Status',status),('Net Amount',net_value),\
                                                 ('Batch Number',batch_number),('Manufactured Date',manufactured_date),('Expiry Date', expiry_date),('Weight',weight),
                                                 ('CGST%',cgst),('SGST%',sgst),('IGST%',igst),('CGST',cgst_value),('SGST',sgst_value),('IGST',igst_value),\
                                                 ('Price',price),('Total Amount',total),\
                                                 ('Source Location',user.username),('Destination Location',destination)))
         else:
-            ord_dict = OrderedDict((('Date', date), ('Order ID', data.order_id), ('SKU Code', data.sku.sku_code),
-                                    ('SKU Description', data.sku.sku_desc), \
+            ord_dict = OrderedDict((('Date', date), ('Order ID', data.order_id), ('Invoice Number',invoice_number),
+                                    ('SKU Code', data.sku.sku_code),('SKU Description', data.sku.sku_desc), \
                                     ('Quantity', quantity), ('Status', status), ('Net Amount', net_value), \
                                     ('CGST%', cgst), ('SGST%', sgst), ('IGST%', igst), ('CGST', cgst_value),
                                     ('SGST', sgst_value), ('IGST', igst_value), \

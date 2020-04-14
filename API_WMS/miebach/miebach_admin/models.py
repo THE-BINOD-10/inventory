@@ -180,7 +180,7 @@ class IncrementalTable(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     type_name = models.CharField(max_length=64)
-    value = models.PositiveIntegerField()
+    value = models.BigIntegerField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

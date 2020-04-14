@@ -1376,6 +1376,36 @@ def orderid_awb_upload(request, user=''):
                                                                                                   str(e)))
     return HttpResponse("OrderId-AWB Map Upload Failed")
 
+@csrf_exempt
+def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    index_status = {}
+    for row_idx in range(1, no_of_rows):
+        cell_data = reader.row_values(row_idx)
+        skus = map(lambda sku: str(sku), cell_data)
+        for sku in skus:
+            if 'invalid' in sku.lower():
+                skus.remove(sku)
+        skus = ' '.join(skus).split()
+        sku_records = SKUMaster.objects.filter(user=user.id, sku_code__in=skus).values('sku_code', 'id')
+        error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
+        if error_skus:
+            index_status.setdefault(row_idx, set()).add('Invalid sku codes %s' % (','.join(str(s) for s in error_skus)))
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name 
 
 @csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={}):
@@ -1791,6 +1821,56 @@ def sku_upload(request, user=''):
         return HttpResponse("SKU Master Upload Failed")
 
     return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def sku_substitutes_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        substitutes_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('SKU Master substitutes Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("SKU Master substitutes Upload Failed")
+
+    return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def sku_substitutes_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = copy.deepcopy(SKU_SUBSTITUTES_EXCEL_MAPPING)
+    wb, ws = get_work_sheet('SKU substitutes', excel_headers)
+    return xls_to_response(wb, '%s.sku_substitutes_form.xls' % str(user.id))
+
+@csrf_exempt
+def substitutes_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    for row_idx in range(1, no_of_rows):
+        cell_data = reader.row_values(row_idx)
+        skus = map(lambda sku: str(sku), cell_data)
+        for sku in skus:
+            if 'invalid' in sku.lower():
+                skus.remove(sku)
+        skus = ' '.join(skus).split()
+        for sku in skus:
+            substitutes_list = skus
+            sku_obj = SKUMaster.objects.get(user = user.id, sku_code = sku)
+            substitutes_list.remove(sku)
+            for substitutes in substitutes_list:
+                sub_obj = SKUMaster.objects.get(user=user.id, sku_code=substitutes)
+                sku_obj.substitutes.add(sub_obj) 
 
 
 def get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, inv_mapping):

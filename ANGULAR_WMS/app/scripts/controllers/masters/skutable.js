@@ -298,6 +298,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     elem = elem[0];
     elem = $(elem).serializeArray();
     elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
+    elem.push({name:'substitutes', value:$('.substitutes').val()});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];

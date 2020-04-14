@@ -272,6 +272,13 @@ BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Ca
                                                   ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
                                                   ('Price', 'price'), ('Discount', 'discount')))
 
+SKU_SUBSTITUTES_EXCEL_MAPPING = OrderedDict((('SKU Code 1', 'sku_code'),
+                                            ('SKU Code 2', 'sku_code'),
+                                            ('SKU Code 3', 'sku_code'),
+                                            ('SKU Code 4', 'sku_code'), ('SKU Code 5', 'sku_code'),
+                                            ('SKU Code 6', 'sku_code'), ('SKU Code 7', 'sku_code'),
+                                            ('SKU Code 8', 'sku_code'), ('SKU Code 9', 'sku_code'),
+                                            ('SKU Code 10', 'sku_code')))
 BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING =  OrderedDict((('Configuration Name', 'configName'),
                                                   ('SKU Brand', 'sku_brand')))
 
@@ -5097,7 +5104,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if milkbasket_user :
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
-        if admin_user.username.lower() == 'gomechanic_admin' and search_params.has_key('tally_report'):
+        if search_params.has_key('tally_report'):
             tally_report = tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary)
             if tally_report:
               temp_data['aaData'].append(tally_report)

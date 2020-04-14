@@ -9641,6 +9641,27 @@ def send_push_notification(contents, users_list):
         PushNotifications.objects.create(user_id=user, message=contents['en'])
     return req.status_code, req.reason
 
+def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=False):
+    subs_status = ''
+    existing_substitutes = list(data.substitutes.all().values_list('sku_code', flat=True))
+    rem_ean_list = []
+    error_subs = []
+    if remove_existing:
+        rem_subs_list = list(set(existing_substitutes) - set(substitutes))
+    for rem_subs in rem_subs_list:
+        rem_sub_obj = SKUMaster.objects.get(user=user.id, sku_code=rem_subs)
+        data.substitutes.remove(rem_sub_obj)
+    subs_list = [item for item in substitutes if not item in existing_substitutes]        
+    for subs in subs_list:
+        try:
+            sub_obj = SKUMaster.objects.get(user=user.id, sku_code=subs)
+            data.substitutes.add(sub_obj)
+        except:
+            error_subs.append(subs)
+    if error_subs:
+        subs_status = "%s sku codes doesnot exists" %(str(','.join(error_subs)))
+    return subs_status
+
 
 def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''

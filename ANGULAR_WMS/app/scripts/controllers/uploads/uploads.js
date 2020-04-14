@@ -348,6 +348,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_pricemaster",
                  },
                  {
+                   title: "SKU Substitutes Download/ Upload",
+                   download: "Download SKU Substitute Form",
+                   upload: "Upload SKU Substitute Form",
+                   durl: "sku_substitutes_form/",
+                   uurl: "sku_substitutes_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: true,
+                   perm: "add_skumaster"
+                 },
+                 {
                    title: "Brand Level Barcode Configuration Download/ Upload",
                    download: "Brand Level Barcode Configuration Download Form",
                    upload: "Brand Level Barcode Configuration Upload Form",

@@ -1015,6 +1015,9 @@ def get_skus(request):
         zone = ''
         if sku.zone:
             zone = sku.zone.zone
+        substitutes_list = []
+        if sku.substitutes:
+            substitutes_list = list(sku.substitutes.all().values_list('sku_code', flat=True))
         data_dict = OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc),
                                   ('sku_brand', sku.sku_brand), ('sku_category', sku.sku_category),
                                   ('sku_class',sku.sku_class),
@@ -1041,6 +1044,7 @@ def get_skus(request):
                                   ('measurement_type', sku.measurement_type),
                                   ('image_url',sku.image_url),
                                   ('active', sku.status),
+                                  ('substitutes', substitutes_list),
                                   ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                                   ('updated_at', updated )))
         for attr_name in attr_list:

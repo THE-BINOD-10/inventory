@@ -243,9 +243,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     });
 
     }
-    if ($rootScope.$current_pr != '') {
-      vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
-      vm.dynamic_route($rootScope.$current_pr);
+    if ($rootScope.$current_po != '') {
+      vm.supplier_id = $rootScope.$current_po['Supplier ID'];
+      vm.dynamic_route($rootScope.$current_po);
     }
     vm.base = function() {
       vm.title = "Raise PO";

@@ -490,11 +490,10 @@ class OpenPO(models.Model):
 @reversion.register()
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
-    requested_user = models.ForeignKey(User)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     delivery_date = models.DateField(blank=True, null=True)
-    measurement_unit = models.CharField(max_length=32, default='')
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='')
@@ -512,11 +511,10 @@ class PendingPO(models.Model):
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     pending_prs = models.ManyToManyField(PendingPR)
-    requested_user = models.ForeignKey(User)
+    requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPOs')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     delivery_date = models.DateField(blank=True, null=True)
-    measurement_unit = models.CharField(max_length=32, default='')
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
     final_status = models.CharField(max_length=32, default='')
@@ -535,7 +533,7 @@ class PendingLineItems(models.Model):
     pending_po = models.ForeignKey(PendingPO, related_name='pending_polineItems', blank=True, null=True)
     purchase_type = models.CharField(max_length=32, default='')
     prefix = models.CharField(max_length=32, default='')
-    sku = models.ForeignKey(SKUMaster, db_index=True)
+    sku = models.ForeignKey(SKUMaster, related_name='pendingLineItems', db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
     measurement_unit = models.CharField(max_length=32, default='')
@@ -556,7 +554,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True)
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     configName = models.CharField(max_length=64, default='')
-    pr_user = models.ForeignKey(User)
+    pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
     validated_by = models.TextField(default='')
     status = models.CharField(max_length=32, default='')

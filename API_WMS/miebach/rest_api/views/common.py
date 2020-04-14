@@ -846,19 +846,42 @@ def pr_request(request):
     if not prApprQs.exists():
         return HttpResponse("Error")
     prApprObj = prApprQs[0]
-    if prApprObj.pending_po:
-        lineItems = prApprObj.pending_po.pending_polineItems
-        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
-                        'pending_po__requested_user__username', 'pending_po__po_number', 
-                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
-                        'prefix', 'pending_po__delivery_date']
-    else:
+    fieldsMap = {}
+    if prApprObj.pending_pr:
         lineItems = prApprObj.pending_pr.pending_prlineItems
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 
                         'pending_pr__requested_user__username', 'pending_pr__pr_number', 
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',  
                         'prefix', 'pending_pr__delivery_date']
-    
+        fieldsMap = {
+                    'requested_user': 'pending_pr__requested_user',
+                    'first_name': 'pending_pr__requested_user__first_name',
+                    'username': 'pending_pr__requested_user__username',
+                    'purchase_number': 'pending_pr__pr_number',
+                    'final_status': 'pending_pr__final_status',
+                    'pending_level': 'pending_pr__pending_level',
+                    'remarks': 'pending_pr__remarks',
+                    'prefix': 'prefix',
+                    'delivery_date': 'pending_pr__delivery_date',
+                }
+    else:
+        lineItems = prApprObj.pending_po.pending_polineItems
+        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
+                        'pending_po__requested_user__username', 'pending_po__po_number', 
+                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
+                        'prefix', 'pending_po__delivery_date']
+        fieldsMap = {
+                    'requested_user': 'pending_po__requested_user',
+                    'first_name': 'pending_po__requested_user__first_name',
+                    'username': 'pending_po__requested_user__username',
+                    'purchase_number': 'pending_po__po_number',
+                    'final_status': 'pending_po__final_status',
+                    'pending_level': 'pending_po__pending_level',
+                    'remarks': 'pending_po__remarks',
+                    'prefix': 'prefix',
+                    'delivery_date': 'pending_po__delivery_date',
+                }
+
     parentUser = prApprObj.pr_user
     sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
@@ -886,25 +909,25 @@ def pr_request(request):
     #Data Table Data
     temp_data = {'aaData':[]}
     user = parentUser
-    filtersMap = {'sku__user':user.id, 'open_po_id': None, 'pr_number': purchase_number}
+    # filtersMap = {'sku__user':user.id, 'open_po_id': None, 'pr_number': purchase_number}
 
     results = lineItems.values(*values_list).distinct().annotate(total_qty=Sum('quantity')). \
                 annotate(total_amt=Sum(F('quantity')*F('price')))
 
-    resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list(fieldsMap['purchase_number'], 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
     for result in results:
         warehouse = user.first_name
-        po_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
+        po_created_date = resultsWithDate.get(result[fieldsMap['purchase_number']])
         po_date = po_created_date.strftime('%d-%m-%Y')
-        po_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
+        po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['pending_pr__pr_number'])
+        po_reference = '%s%s_%s' % (result[fieldsMap['prefix']], dateInPO, result[fieldsMap['purchase_number']])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_pr__pr_number'], result['total_amt'])
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'], 
-                        pr_user=user, level=result['pending_pr__pending_level'])
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], result['total_amt'])
+        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']], 
+                        pr_user=user, level=result[fieldsMap['pending_level']])
         if not prApprQs.exists():
             continue
 
@@ -912,38 +935,41 @@ def pr_request(request):
         last_updated_time = ''
         last_updated_remarks = ''
         validated_by = prApprQs[0].validated_by
-        if result['pending_pr__pending_level'] != 'level0':
-            prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
-            prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_numberpr_number'], 
+        pending_level = result[fieldsMap['pending_level']]
+        final_status = result[fieldsMap['final_status']]
+        purchase_number = result[fieldsMap['purchase_number']]
+        if pending_level != 'level0':
+            prev_level = 'level' + str(int(pending_level.replace('level', '')) - 1)
+            prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
                 pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
-        elif result['pending_pr__pending_level'] == 'level0':
-            if result['pending_pr__final_status'] == 'pending':
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'], 
-                                pr_user=user, level=result['pending_pr__pending_level'])
-                last_updated_remarks = result['pending_pr__remarks']
+        elif pending_level == 'level0':
+            if final_status == 'pending':
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                                pr_user=user, level=pending_level)
+                last_updated_remarks = result[fieldsMap['remarks']]
             else:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'], 
-                                pr_user=user, level=result['pending_pr__pending_level'])
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                                pr_user=user, level=pending_level)
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
-                                                ('PR Number', result['pending_pr__pr_number']),
+                                                ('PR Number', purchase_number),
                                                 ('PO Number', po_reference),
-                                                ('Supplier ID', result.get('pending_pr__supplier_id', '')),
-                                                ('Supplier Name', result.get('pending_pr__supplier__name', '')),
+                                                ('Supplier ID', result.get('pending_po__supplier_id', '')),
+                                                ('Supplier Name', result.get('pending_po__supplier__name', '')),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
                                                 ('Warehouse', warehouse),
-                                                ('PO Raise By', result['pending_pr__requested_user__first_name']),
-                                                ('Requested User', result['pending_pr__requested_user__username']),
-                                                ('Validation Status', result['pending_pr__final_status']),
-                                                ('Pending Level', '%s Of %s' %(result['pending_pr__pending_level'], lastLevel)),
+                                                ('PO Raise By', result[fieldsMap['first_name']]),
+                                                ('Requested User', result[fieldsMap['username']]),
+                                                ('Validation Status', final_status),
+                                                ('Pending Level', '%s Of %s' %(pending_level, lastLevel)),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),

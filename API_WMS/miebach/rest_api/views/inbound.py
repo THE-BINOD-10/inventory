@@ -48,7 +48,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data', email_id=currentUserEmailId)
+        memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data', 
+                                                  email_id=currentUserEmailId)
         for memObj in memQs:
             master_id = memObj.master_id
             prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
@@ -2322,7 +2323,11 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
-        validationLink = "%s/#/pending_pr_request?hash_code=%s" %(urlPath, hash_code)
+        if poFor:
+            reqURLPath = 'pending_po_request'
+        else:
+            reqURLPath = 'pending_pr_request'    
+        validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
         pendingLevel = result.pending_level
@@ -2395,10 +2400,14 @@ def approve_pr(request, user=''):
         master_type = 'actual_pr_approvals_conf_data'
         model_name = PendingPR
         filtersMap['pr_number'] = pr_number
+        mailSubTypePrefix = 'pr'
+        poFor = False
     else:
         master_type = 'pr_approvals_conf_data'
         model_name = PendingPO
         filtersMap['po_number'] = pr_number
+        mailSubTypePrefix = 'po'
+        poFor = True
 
     currentUserEmailId = request.user.email
     if not pr_number:
@@ -2431,20 +2440,24 @@ def approve_pr(request, user=''):
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
         updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, remarks)
-        # sendMailforPendingPO(pr_number, pr_user, pending_level, 'po_approval_at_last_level', requestedUserEmail)
+        sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix, 
+                            requestedUserEmail, poFor=poFor)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
             updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, remarks)
-            # sendMailforPendingPO(pr_number, pr_user, pending_level, 'po_rejected', requestedUserEmail)
+
+            sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix, 
+                            requestedUserEmail, poFor=poFor)
         else:
             PRQs.update(pending_level=nextLevel)
             updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, remarks)
             prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj, master_type=master_type)
             for eachMail in mailsList:
                 hash_code = generateHashCodeForMail(prObj, eachMail)
-                # sendMailforPendingPO(pr_number, pr_user, nextLevel, 'po_approval_pending', eachMail, urlPath, hash_code)
+                sendMailforPendingPO(pr_number, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix, 
+                        eachMail, urlPath, hash_code, poFor=poFor)
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -2571,6 +2584,7 @@ def splitPRtoPO(all_data, user):
 @login_required
 @get_admin_user
 def convert_pr_to_po(request, user=''):
+    urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Converted PR to PO Successfully'
     try:
         log.info("PR Convertion for user %s and request params are %s" % (user.username, str(request.POST.dict())))
@@ -2595,6 +2609,7 @@ def convert_pr_to_po(request, user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         orderStatus = 'pending'
+        mailSub = 'po_created'
         poSuppliers = splitPRtoPO(all_data, user)
 
         for supplier, skusInPO in poSuppliers.items():
@@ -2605,6 +2620,10 @@ def convert_pr_to_po(request, user=''):
             pendingPoObj.pending_prs.add(existingPRObj)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
             prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
+            if mailsList:
+                for eachMail in mailsList:
+                    hash_code = generateHashCodeForMail(prObj, eachMail)
+                    sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
     except Exception as e:
@@ -2639,6 +2658,7 @@ def add_pr(request, user=''):
         if is_actual_pr:
             master_type = 'actual_pr_approvals_conf_data'
             mailSub = 'pr_created'
+            poFor = False
         else:
             master_type = 'pr_approvals_conf_data'
             mailSub = 'po_created'

@@ -16,42 +16,50 @@ var app = angular.module('urbanApp')
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
         }
       }
-      $rootScope.$redirect = '';
-      $rootScope.$current_pr ='';
-      $rootScope.$state = $state;
-      $rootScope.$stateParams = $stateParams;
-      $rootScope.$on('$stateChangeSuccess', function () {
-        window.scrollTo(0, 0);
-      });
-      FastClick.attach(document.body);
-      if(window.location.href.includes('pending_pr_request')){
-        if(window.location.href.split('pending_pr_request')[1].includes('hash_code')) {
-          Session.unset();
-          $rootScope.$redirect = 'pending_pr_request';
-          var data = window.location.href.split('pending_pr_request')[1];
-          swal2({
-            title: 'Redirecting to Validate PR',
-            text: 'User Authentication in Progress..',
-            imageUrl: 'images/default_loader.gif',
-            imageWidth: 150,
-            imageHeight: 150,
-            imageAlt: 'Custom image',
-            showConfirmButton:false,
-          })
-          $http.get(Session.url + 'pending_pr_request/'+data).then(function (resp) {
-           if (resp) {
-            resp = resp.data;
-            $rootScope.$current_pr = resp.aaData['aaData'][0]
-            localStorage.clear();
-            if (resp.message != "Fail") {
-              Session.set(resp.data)
-              swal2.close()
-              $state.go("app.inbound.RaisePr");
-              }
-            }
-        });
-        }
-      } else {
+     $rootScope.$redirect = '';
+     $rootScope.$current_pr ='';
+     $rootScope.$current_po = '';
+     $rootScope.$state = $state;
+     $rootScope.$stateParams = $stateParams;
+     $rootScope.$on('$stateChangeSuccess', function () {
+       window.scrollTo(0, 0);
+     });
+     FastClick.attach(document.body);
+     if(window.location.href.includes('pending_pr_request') || window.location.href.includes('pending_po_request')){
+       var tmp_route = window.location.href.includes('pending_pr_request') ? 'pending_pr_request' : 'pending_po_request';
+       if(window.location.href.split(tmp_route)[1].includes('hash_code')) {
+         Session.unset();
+         $rootScope.$redirect = tmp_route;
+         var data = window.location.href.split(tmp_route)[1];
+         swal2({
+           title: 'Redirecting to Validate PO',
+           text: 'User Authentication in Progress..',
+           imageUrl: 'images/default_loader.gif',
+           imageWidth: 150,
+           imageHeight: 150,
+           imageAlt: 'Custom image',
+           showConfirmButton:false,
+         })
+         $http.get(Session.url + tmp_route +'/'+data).then(function (resp) {
+          if (resp) {
+           resp = resp.data;
+           if (tmp_route == 'pending_pr_request') {
+             var main_route = "app.inbound.RaisePr";
+             $rootScope.$current_pr = resp.aaData['aaData'][0]
+           } else {
+             var main_route = "app.inbound.RaisePo";
+             $rootScope.$current_po = resp.aaData['aaData'][0]
+           }
+           localStorage.clear();
+           if (resp.message != "Fail") {
+             Session.set(resp.data)
+             swal2.close()
+             $state.go(main_route);
+             }
+           }
+       });
+       }
+     } else {
         var skipAsync = false;
         var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
           $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {

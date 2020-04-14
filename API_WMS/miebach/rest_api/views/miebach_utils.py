@@ -515,7 +515,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['PO Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
             #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -1080,10 +1080,9 @@ INVENTORY_VALUE_REPORT_DICT = {
 
 DISCREPANCY_REPORT_DICT = {
     'filters': [
-        {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'PO Number', 'name': 'order_id', 'type': 'input'},
         {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
-        {'label': 'Supplier ID', 'name': 'supplier_name', 'type': 'input'},
-        {'label': 'Supplier Name', 'name': 'supplier_name', 'type': 'input'},
+        {'label': 'Supplier ID/Name', 'name': 'supplier_id', 'type': 'supplier_search'},
     ],
     'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
     'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
@@ -3727,7 +3726,7 @@ def get_po_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity']
+    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity','received_quantity']
     unsorted_dict = {}
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
@@ -3810,19 +3809,28 @@ def get_po_filter_data(search_params, user, sub_user):
         else:
             po_number = '%s/%s' % (po_number, receipt_no)
         received_qty = data['total_received']
+        discrepancy_filter = {}
         if data.get('sellerposummary__receipt_number', ''):
+            discrepancy_filter['receipt_number'] = data['sellerposummary__receipt_number']
             received_qty =  po_result.filter(sellerposummary__receipt_number=data['sellerposummary__receipt_number']).aggregate(
                 Sum(rec_quan1))[rec_quan1 + '__sum']
             if not received_qty:
                 received_qty = 0
         #if data['grn_rec']:
         #    received_qty = data['grn_rec']
+        discrepancy_quantity = 0
+        if user.userprofile.industry_type == 'FMCG':
+            discrepancy_filter['user'] = user.id
+            discrepancy_filter['purchase_order__order_id'] =data[field_mapping['order_id']]
+            discrepancy_quantity = sum(list(Discrepancy.objects.exclude(purchase_order=None).filter(**discrepancy_filter)\
+                                            .values_list('quantity',flat=True)))
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('PO Reference', po_reference_name),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
                                                 ('Order Quantity', total_ordered),
                                                 ('Received Quantity', received_qty),
+                                                ('Discrepancy Quantity', discrepancy_quantity),
                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
                                             )))
@@ -9865,6 +9873,15 @@ def get_discrepancy_report_data(search_params, user, sub_user):
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['creation_date__lte'] = search_params['to_date']
+    if 'order_id' in search_params:
+        search_parameters['purchase_order__order_id'] = search_params['order_id']
+    if 'discrepancy_number' in search_params:
+        search_parameters['discrepancy_number'] = search_params['discrepancy_number']
+    if 'supplier_id' in search_params and ':' in search_params['supplier_id']:
+            search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+                search_params['supplier_id'].split(':')[0]
+
+
     search_parameters['user'] = user.id
     master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\
         .order_by(order_data).values('po_number','discrepancy_number','purchase_order__open_po__supplier__id','purchase_order__open_po__supplier__name').distinct()

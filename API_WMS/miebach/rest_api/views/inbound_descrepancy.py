@@ -71,6 +71,8 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
                     datetime.datetime.now()) + '/' + str(discrepency_number).zfill(4)
                 discrepency_dict['discrepancy_number'] = full_discrepancy_number
                 discrepency_dict['po_number'] = po_number
+                if receipt_number:
+                    discrepency_dict['receipt_number'] = receipt_number
                 discrepency_dict['user_id'] = user.id
                 Discrepancy.objects.create(**discrepency_dict)
         discrpency_po_dict = {'discrepency_quantity': discrepency_quantity,

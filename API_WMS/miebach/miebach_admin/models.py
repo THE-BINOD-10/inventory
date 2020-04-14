@@ -3586,6 +3586,7 @@ class Discrepancy(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     discrepancy_number = models.CharField(max_length=32, default='')
+    receipt_number  = models.PositiveIntegerField(default=0)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     new_data = models.TextField(default='')
     quantity = models.FloatField(default=0)

@@ -486,7 +486,7 @@ def get_search_params(request, user=''):
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
-                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
+                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status','discrepancy_number':'discrepancy_number',
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'grn_from_date':'grn_from_date','grn_to_date':'grn_to_date',

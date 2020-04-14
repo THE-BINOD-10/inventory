@@ -4120,7 +4120,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
-                                'tax_value': tax_value,
+                                'tax_value': tax_value, 'receipt_number':seller_receipt_id,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -7265,6 +7265,7 @@ def cancelled_putaway_data(request, user=''):
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
                 mod_locations.append(new_stock.location.location)
+
             if cancelled_data.seller_id:
                 seller_stock_obj = SellerStock.objects.filter(stock_id=new_stock.id, seller_id=cancelled_data.seller_id)
                 if seller_stock_obj:

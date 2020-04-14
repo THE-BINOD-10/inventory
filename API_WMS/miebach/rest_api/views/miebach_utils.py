@@ -1272,7 +1272,7 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
-                         'Return Date(YYYY-MM-DD)', 'Reason']
+                         'Return Date(YYYY-MM-DD)', 'Manufacture Date(YYYY-MM-DD)', 'Expiry date(YYYY-MM-DD)', 'Batch Number', 'MRP', 'Weight', 'Buy Price', 'Reason']
 
 INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('SKU Code', 'wms_code'),
                               ('Location', 'location'), ('Quantity', 'quantity'),
@@ -1683,7 +1683,8 @@ UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code'
 
 # ---  Returns Default headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
-                                    ('return_id', 0), ('return_date', 5), ('reason', 6)))
+                                    ('return_id', 0), ('return_date', 5), ('manufactured_date', 6), ('expiry_date', 7),
+                                    ('batch_no', 8), ('mrp', 9), ('weight', 10), ('buy_price', 11), ('reason', 12)))
 
 # ---  Shotang Returns headers --
 SHOTANG_RETURN_EXCEL = OrderedDict(

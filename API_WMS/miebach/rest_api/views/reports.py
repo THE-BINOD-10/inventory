@@ -700,15 +700,26 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
 
             temp = OrderedDict((('sku_code', data.sku.sku_code),
-                                ('sku_category', data.sku.sku_category),
-                                ('sub_category', data.sku.sub_category),
-                                ('sku_brand', data.sku.sku_brand),
-                                ('order_id', order_id), ('id', data.id),
-                                ('customer_id', customer_id), ('return_date', return_date),
-                                ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                                ('quantity', data.quantity), ('reasons_data', reasons_data),
-                                ('customer_name', customer_name),
-                                ('description', data.sku.sku_desc)))
+                         ('sku_category', data.sku.sku_category),
+                         ('sub_category', data.sku.sub_category),
+                         ('sku_brand', data.sku.sku_brand),
+                         ('order_id', order_id), ('id', data.id),
+                         ('customer_id', customer_id), ('return_date', return_date),
+                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
+                         ('quantity', data.quantity), ('reasons_data', reasons_data),
+                         ('customer_name', customer_name),
+                         ('description', data.sku.sku_desc)))
+            if user.userprofile.industry_type == 'FMCG':
+                temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
+                batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))
+                if batch_detail_list:
+                    batch_data = BatchDetail.objects.filter(transact_id__in=batch_detail_list, transact_type='return_loc')
+                    if batch_data.exists():
+                        batch_data = batch_data[0]
+                        temp['manufactured_date'] = batch_data.manufactured_date
+                        temp['expiry_date'] = batch_data.expiry_date
+                        temp['batch_no'] = batch_data.batch_no
+                        temp['mrp'] = batch_data.mrp
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                 temp['Manufacturer'] = manufacturer
                 temp['Searchable'] = searchable

@@ -4805,7 +4805,7 @@ def confirm_sales_return(request, user=''):
                 try:
                     buy_price = float(return_dict.get('buy_price', 0))
                 except:
-                    buy_price = 0
+                    buy_price = order_returns[0].sku.cost_price
                 try:
                     mrp = float(return_dict.get('mrp', 0))
                 except:

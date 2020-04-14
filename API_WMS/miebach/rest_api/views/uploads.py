@@ -1895,18 +1895,12 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 if user.username in MILKBASKET_USERS and not cell_data:
                     index_status.setdefault(row_idx, set()).add('MRP is Mandatory')
             elif key == 'price':
-                if cell_data >=0:
-                    if user.userprofile.industry_type == 'FMCG':
-                        data_dict['batch_detail__buy_price'] = cell_data
+                if cell_data >= 0:
                     data_dict['unit_price'] = cell_data
                 else:
                     if not index_status:
-                        custom_price = SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price']
-                        if user.userprofile.industry_type == 'FMCG':
-                            data_dict['batch_detail__buy_price'] = custom_price
-                            data_dict['price_type'] = "Cost Price"
-                        data_dict['unit_price'] = custom_price
-                        data_dict['price_type'] = "Cost Price"
+                        custom_price = SKUMaster.objects.filter(id=data_dict['sku_id']).values('cost_price')[0]['cost_price']
+                        data_dict['price_type'] = "cost_price"
             elif key in number_fields:
                 try:
                     if key == 'quantity':
@@ -1978,7 +1972,9 @@ def inventory_excel_upload(request, user, data_list):
                 seller_receipt_dict[str(seller_id)] = receipt_number
             del inventory_data['seller_id']
         receipt_date = inventory_data['receipt_date']
+
         if inventory_data.get('sku_id', '') and inventory_data.get('location_id', ''):
+            sku_master = SKUMaster.objects.get(id=inventory_data['sku_id'])
             pallet_number = inventory_data.get('pallet_number', '')
             if 'pallet_number' in inventory_data.keys():
                 del inventory_data['pallet_number']
@@ -1997,14 +1993,19 @@ def inventory_excel_upload(request, user, data_list):
             exp_date = inventory_data.get('expiry_date', '')
             if 'expiry_date' in inventory_data.keys():
                 del inventory_data['expiry_date']
-            buy_price = inventory_data.get('unit_price','')
-            if 'buy_price' in inventory_data.keys():
-                del inventory_data['buy_price']
-            unit_price = ''
             stock_query_filter = {'sku_id': inventory_data.get('sku_id', ''),
                                   'location_id': inventory_data.get('location_id', ''),
-                                  'receipt_number': receipt_number, 'sku__user': user.id,
-                                  'unit_price':inventory_data.get('unit_price','')}
+                                  'receipt_number': receipt_number, 'sku__user': user.id}
+            unit_price = inventory_data.get('unit_price', 0)
+            if unit_price:
+                if user.userprofile.industry_type == 'FMCG':
+                    stock_query_filter['batch_detail__buy_price'] = unit_price
+                else:
+                    stock_query_filter['unit_price'] = unit_price
+            elif unit_price == '':
+                unit_price = sku_master.cost_price
+                inventory_data['unit_price'] = unit_price
+                inventory_data['price_type'] = 'cost_price'
             if pallet_number:
                 pallet_data = {'pallet_code': pallet_number, 'quantity': int(inventory_data['quantity']),
                                'user': user.id,
@@ -2014,7 +2015,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no or mfg_date or exp_date or weight or unit_price or buy_price:
+            if mrp or batch_no or mfg_date or exp_date or weight or unit_price:
                 try:
                     mrp = float(mrp)
                 except:
@@ -2028,9 +2029,9 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['expiry_date'] = exp_date
                 if weight:
                     batch_dict['weight'] = weight
-                if buy_price:
-                    batch_dict["buy_price"] = float(buy_price)
-                add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
+                if unit_price:
+                    batch_dict["buy_price"] = float(unit_price)
+                add_ean_weight_to_batch_detail(sku_master, batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2041,11 +2042,12 @@ def inventory_excel_upload(request, user, data_list):
                 inventory_data['creation_date'] = str(datetime.datetime.now())
                 inventory_data['receipt_date'] = receipt_date
                 inventory_data['receipt_number'] = receipt_number
-                sku_master = SKUMaster.objects.get(id=inventory_data['sku_id'])
                 if not sku_master.zone:
                     location_master = LocationMaster.objects.get(id=inventory_data['location_id'])
                     sku_master.zone_id = location_master.zone_id
                     sku_master.save()
+                if 'batch_detail__buy_price' in inventory_data.keys():
+                    del inventory_data['batch_detail__buy_price']
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
                 if seller_id:
@@ -3598,11 +3600,11 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         stock_dict['batch_detail__buy_price'] = custom_price
                         reserved_dict["stock__batch_detail__buy_price"] = custom_price
                         raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price
-                        stock_dict['price_type'] = "Cost Price"
+                        stock_dict['price_type'] = "cost_price"
                     stock_dict['unit_price'] = custom_price
                     reserved_dict["stock__unit_price"] = custom_price
                     raw_reserved_dict['stock__unit_price'] = custom_price
-                    stock_dict['price_type'] = "Cost Price"
+                    stock_dict['price_type'] = "cost_price"
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')
@@ -4020,7 +4022,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    excel_check_list = ['wms_code', 'location', 'quantity', 'reason', 'price']
+    excel_check_list = ['wms_code', 'location', 'quantity', 'reason', 'unit_price']
     if user.userprofile.user_type == 'marketplace_user':
         excel_check_list.append('seller_id')
     if user.userprofile.industry_type == 'FMCG':
@@ -4172,17 +4174,11 @@ def inventory_adjust_upload(request, user=''):
             mrp = final_dict['mrp']
         if final_dict.get('weight', ''):
             weight = final_dict['weight']
-        if final_dict.get('price', 0) or final_dict.get('price', ''):
-            if user.userprofile.industry_type =='FMCG':
-                price = final_dict['price']
-            price = final_dict['price']
-            price_type = "UserInput Type"
-        else:
-            custom_price = float(SKUMaster.objects.filter(user=user.id,sku_code=wms_code).values('cost_price')[0]['cost_price'])
-            if user.userprofile.industry_type =='FMCG':
-                price = custom_price
-            price = custom_price
-            price_type = "Cost Price"
+        if final_dict.get('unit_price', 0) != '':
+            price = final_dict['unit_price']
+        # else:
+        #     price = final_dict['sku_master'].cost_price
+        #     price_type = "cost_price"
 
         if str(seller_master_id) in seller_receipt_dict.keys():
             receipt_number = seller_receipt_dict[str(seller_master_id)]

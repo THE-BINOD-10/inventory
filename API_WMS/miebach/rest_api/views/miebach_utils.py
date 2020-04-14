@@ -49,7 +49,7 @@ MILKBASKET_BULK_ZONE = 'Bulk Zone'
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('SKU Code', 'wms_code'),
                                             ('Location', 'location'),
                                             ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
-                                            ('MRP', 'mrp'), ('Weight', 'weight'), ('Reason', 'reason'),("Price", 'price')))
+                                            ('MRP', 'mrp'), ('Weight', 'weight'), ('Reason', 'reason'),("Price", 'unit_price')))
 
 SUB_CATEGORIES = OrderedDict((('mens_polo', 'MENS POLO'), ('ladies_polo', 'LADIES POLO'),
                               ('round_neck', 'ROUND NECK'), ('hoodie', 'HOODIE'), ('jackets', 'JACKETS'),

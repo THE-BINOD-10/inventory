@@ -2017,7 +2017,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = batch_obj
             if batch_obj:
                 batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
-                                      'quantity__gt': 0, 'batch_detail_buy_price':batch_obj.buy_price}
+                                      'quantity__gt': 0, 'batch_detail__buy_price':batch_obj.buy_price}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
@@ -2233,18 +2233,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
-    if price or price == 0:
+    if price != '':
         if user.userprofile.industry_type == 'FMCG':
             stock_dict['batch_detail__buy_price'] = float(price)
-        stock_dict['unit_price'] = float(price)
-    else:
-        custom_price = SKUMaster.objects.filter(user=user.id, id=sku_id)
-        if custom_price.exists():
-            if user.userprofile.industry_type == 'FMCG':
-                stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
-            stock_dict['unit_price'] = custom_price[0].cost_price
         else:
-            return "Invalid SKU"
+            stock_dict['unit_price'] = float(price)
+    # else:
+    #     if user.userprofile.industry_type == 'FMCG':
+    #         stock_dict['batch_detail__buy_price'] = sku[0].cost_price
+    #     stock_dict['unit_price'] = custom_price[0].cost_price
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -2327,26 +2324,30 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
 
-            latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
-                                                    exclude(batch_detail__isnull=True)
-            if latest_batch.exists():
-                batch_obj = latest_batch.latest('id').batch_detail
-                batch_dict['buy_price'] = batch_obj.buy_price
-                batch_dict['tax_percent'] = batch_obj.tax_percent
-                add_ean_weight_to_batch_detail(sku[0], batch_dict)
-
-            #latest_stock = StockDetail.objects.filter(**stock_dict1)
-            #if latest_stock.exists():
-                #latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
-                #                                        exclude(batch_detail__isnull=True).latest('id')
-                #latest_stock_obj = latest_stock.latest('id')
-                #batch_obj = latest_stock_obj.batch_detail
-                #if batch_obj:
-                #    stock_dict["batch_detail_id"] = batch_obj.id
-            if batch_dict.keys():
-                batch_obj = BatchDetail.objects.create(**batch_dict)
-                stock_dict["batch_detail_id"] = batch_obj.id
-                stock_dict["batch_detail__buy_price"] = batch_obj.price
+            if price == '':
+                price = sku[0].cost_price
+                stock_dict['unit_price'] = price
+                stock_dict['price_type'] = 'cost_price'
+            else:
+                stock_dict['unit_price'] = price
+            if user.userprofile.industry_type == 'FMCG':
+                if 'batch_detail__buy_price' in stock_dict.keys():
+                    del stock_dict['batch_detail__buy_price']
+                latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
+                                                        exclude(batch_detail__isnull=True)
+                if latest_batch.exists():
+                    batch_obj = latest_batch.latest('id').batch_detail
+                    batch_dict['buy_price'] = batch_obj.buy_price
+                    batch_dict['tax_percent'] = batch_obj.tax_percent
+                    add_ean_weight_to_batch_detail(sku[0], batch_dict)
+                if price:
+                    batch_dict['buy_price'] = price
+                elif not (price and batch_dict.get('buy_price', 0)):
+                    batch_dict['buy_price'] = sku[0].cost_price
+                if batch_dict.keys():
+                    batch_obj = BatchDetail.objects.create(**batch_dict)
+                    stock_dict["batch_detail_id"] = batch_obj.id
+                    #stock_dict["batch_detail__buy_price"] = batch_obj.price
             if pallet:
                 del stock_dict['pallet_detail_id']
             del stock_dict["sku__user"]

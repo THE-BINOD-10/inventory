@@ -9952,6 +9952,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
         data_dict['supplier_email'] = get_po.supplier.email_id
+        data_dict['supplier_id'] = get_po.supplier.id
         data_dict['supplier_gstin'] = get_po.supplier.tin_number
         data_dict['phone_number'] = get_po.supplier.phone_number
         data_dict['city'] = get_po.supplier.city
@@ -10205,6 +10206,17 @@ def create_rtv(request, user=''):
             show_data_invoice = get_debit_note_data(rtv_number, user)
             if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
+                supplier_id = show_data_invoice.get('supplier_id', '')
+                supplier_email_id = []
+                supplier_email_id.insert(0, supplier_email)
+                if supplier_id:
+                    secondary_supplier_email = list(
+                        MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
+                                                      master_type='supplier').values_list(
+                            'email_id', flat=True).distinct())
+
+                    supplier_email_id.extend(secondary_supplier_email)
+
                 data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
                                 'po_reference': show_data_invoice.get('grn_no',''),
                                 'invoice_number': invoice_number,
@@ -10216,7 +10228,7 @@ def create_rtv(request, user=''):
                 supplier_phone_number = show_data_invoice.get('phone_number', '')
                 company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
                 write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
-                                   supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
+                                   supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
                                    '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)

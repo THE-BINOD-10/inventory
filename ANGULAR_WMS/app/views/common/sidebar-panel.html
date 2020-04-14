@@ -713,6 +713,11 @@
             <span>Bulk Stock Update</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_sellerordersummary')">
+          <a ui-sref="app.reports.CancelledInvoicesReport">
+            <span>Cancel Invoice Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="user.userName == 'ola_admin'">
           <a ui-sref="app.reports.creditNoteForm">
             <span>Credit Note Form (ORACLE Upload File)</span>

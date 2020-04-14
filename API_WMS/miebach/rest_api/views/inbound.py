@@ -7262,6 +7262,8 @@ def cancelled_putaway_data(request, user=''):
                 setattr(cancelled_data, 'location_id', location_id[0].id)
             cancelled_data.save()
             status = 'Updated Successfully'
+            save_sku_stats(user, new_stock.sku.id, data_id, 'cancelled_location', quantity, new_stock,
+                           stock_stats_objs=None)
 
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)

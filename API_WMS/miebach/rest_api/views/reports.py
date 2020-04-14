@@ -2206,3 +2206,11 @@ def get_credit_note_form_report(request, user=''):
     temp_data = get_credit_note_form_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_cancel_invoice_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_cancel_invoice_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

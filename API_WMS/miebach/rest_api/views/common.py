@@ -2017,7 +2017,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 dest_batch = batch_obj
             if batch_obj:
                 batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id,
-                                      'quantity__gt': 0, 'batch_detail__buy_price':batch_obj.buy_price}
+                                      'quantity__gt': 0}
                 if dest_seller_id:
                     batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
                 dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)

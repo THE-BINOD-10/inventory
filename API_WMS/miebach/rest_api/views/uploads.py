@@ -3585,26 +3585,17 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                     stock_dict['sellerstock__quantity__gt'] = 0
                     reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
                     raw_reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
-                if data_dict.get('price','') == 0 or data_dict.get('price', '') :
+                if data_dict.get('price','') != '':
                     price = float(data_dict['price'])
                     if user.userprofile.industry_type == 'FMCG':
                         stock_dict['batch_detail__buy_price'] = price
                         reserved_dict["stock__batch_detail__buy_price"] = price
                         raw_reserved_dict['stock__batch_detail__buy_price'] = price
-                    stock_dict['unit_price'] = price
-                    reserved_dict["stock__unit_price"] = price
-                    raw_reserved_dict['stock__unit_price'] = price
-                else:
-                    custom_price = float(SKUMaster.objects.filter(user=user.id, wms_code=data_dict['wms_code']).values('cost_price')[0]['cost_price'])
-                    if user.userprofile.industry_type == 'FMCG':
-                        stock_dict['batch_detail__buy_price'] = custom_price
-                        reserved_dict["stock__batch_detail__buy_price"] = custom_price
-                        raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price
-                        stock_dict['price_type'] = "cost_price"
-                    stock_dict['unit_price'] = custom_price
-                    reserved_dict["stock__unit_price"] = custom_price
-                    raw_reserved_dict['stock__unit_price'] = custom_price
-                    stock_dict['price_type'] = "cost_price"
+                    else:
+                        stock_dict['unit_price'] = price
+                        reserved_dict["stock__unit_price"] = price
+                        raw_reserved_dict['stock__unit_price'] = price
+
                 stocks = StockDetail.objects.filter(**stock_dict)
                 if not stocks:
                     index_status.setdefault(row_idx, set()).add('No Stocks Found')

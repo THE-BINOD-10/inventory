@@ -8186,7 +8186,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
            'quantity', 'st_po__open_st__price','st_po__open_st__sku__user','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax',
            'st_po__open_st__igst_tax','st_po__open_st__cgst_tax','st_po__open_st__sgst_tax','st_po__open_st__igst_tax',
            'st_po__open_st__price','status','st_po__open_st__igst_tax','st_po__open_st__price','status']
-    status_map = {0: 'Pick List Generated', 1: 'Pending', 2: 'Accepted', 3: 'Cancelled'}
+    status_map = ['Pick List Generated','Pending','Accepted']
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
     col_num = search_params.get('order_index', 0)
@@ -8224,7 +8224,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
     for data in  (stock_transfer_data[start_index:stop_index]):
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id = data.st_po.open_st.sku.user)
-        status = status_map.get(data.status, '')
+        status = status_map[data.status]
         destination = destination.username
         cgst = data.st_po.open_st.cgst_tax
         sgst = data.st_po.open_st.sgst_tax

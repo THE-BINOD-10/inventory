@@ -2877,6 +2877,7 @@ class StockStats(models.Model):
     adjustment_qty = models.FloatField(default=0)
     consumed_qty = models.FloatField(default=0)
     rtv_quantity = models.FloatField(default=0)
+    cancelled_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     closing_stock_value = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)

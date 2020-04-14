@@ -85,7 +85,6 @@ class Command(BaseCommand):
                     closing_stock_value = stock_value_objs.get(sku.id, 0)
                     return_quantity = return_objs.get(sku.id, 0)
                     cancelled_quantity = cancelled_objs.get(sku.id, 0)
-                    return_quantity += cancelled_quantity
                     adjusted = adjust_objs.get(sku.id, 0)
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
@@ -107,7 +106,7 @@ class Command(BaseCommand):
                                  'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
                                  'dispatch_qty': dispatched, 'return_qty': return_quantity,'rtv_quantity':rtv_quantity,
                                  'adjustment_qty': adjusted, 'closing_stock': stock_quantity,'closing_stock_value': closing_stock_value,
-                                  'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed,
+                                  'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed, 'cancelled_qty':cancelled_quantity,
                                   'creation_date': today
                                 }
                     if not stock_stat:

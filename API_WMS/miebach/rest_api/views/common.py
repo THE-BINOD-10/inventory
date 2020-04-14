@@ -320,11 +320,11 @@ def add_user_type_permissions(user_profile):
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                     'corporatemaster', 'corpresellermapping', 'staffmaster']
+                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                    'corporatemaster', 'corpresellermapping', 'staffmaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -570,7 +570,7 @@ data_datatable = {  # masters
     'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count', \
     'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory', \
     'InventoryModification' : 'get_inventory_modification', \
-    'ConfirmCycleCount': '`get_cycle_confirmed`', 'VendorStockTable': 'get_vendor_stock', \
+    'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
@@ -588,6 +588,7 @@ data_datatable = {  # masters
     'CustomOrders': 'get_custom_order_data', 'CentralOrders': 'get_central_orders_data',
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'OrderApprovals': 'get_order_approval_statuses',
+    'ShipmentPickedInvoice': 'get_invoice_shipment',
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
@@ -811,16 +812,19 @@ def add_extra_permissions(user):
 def findReqConfigName(user, totalAmt):
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user)
-    for confName, priceRanges in configNameRangesMap.items():  #Used For..else
-        min_Amt, max_Amt = priceRanges
-        if totalAmt <= min_Amt:
+    if configNameRangesMap:
+        for confName, priceRanges in configNameRangesMap.items():  #Used For..else
+            min_Amt, max_Amt = priceRanges
+            if totalAmt <= min_Amt:
+                reqConfigName = confName
+                break
+            elif min_Amt <= totalAmt <= max_Amt:
+                reqConfigName = confName
+                break
+        else:
             reqConfigName = confName
-            break
-        elif min_Amt <= totalAmt <= max_Amt:
-            reqConfigName = confName
-            break
     else:
-        reqConfigName = confName
+        reqConfigName = ''
     return reqConfigName
 
 
@@ -840,9 +844,11 @@ def pr_request(request):
     # if storedData:
     prApprId = storedData[0].pr_approval_id
     email_id = storedData[0].email
+
     prApprObj = PurchaseApprovals.objects.filter(id=prApprId)
     # if prApprObj:
     parentUser = prApprObj[0].pr_user
+    toBeValidateLevel = prApprObj[0].level
     sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
@@ -926,6 +932,7 @@ def pr_request(request):
                                                 ('Requested User', result['requested_user__username']),
                                                 ('Validation Status', result['final_status']),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
+                                                ('LevelToBeApproved', toBeValidateLevel),
                                                 ('To Be Validated By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -949,7 +956,11 @@ def add_update_pr_config(request,user=''):
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
         if tobeDeletedLevels:
             for eachLevel in tobeDeletedLevels:
-                pr_approvals.filter(level=eachLevel).delete()
+                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
+                if tobeDeleteQs.exists():
+                    tobeDeleteId = tobeDeleteQs[0].id
+                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete() 
+                    tobeDeleteQs.delete()               
         for level, mails in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
@@ -1005,7 +1016,12 @@ def delete_pr_config(request, user=''):
     toBeDeleteData = eval(request.POST.get('data', []))
     if toBeDeleteData:
         configName = toBeDeleteData[0].get('name')
-        PurchaseApprovalConfig.objects.filter(user=user, name=configName).delete()
+        pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName)
+        if pacQs.exists():
+            for pacObj in pacQs:
+                configId = pacObj.id
+                MasterEmailMapping.objects.filter(master_id=configId).delete()
+            pacQs.delete()
         status = 'Deleted Successfully'
     else:
         status = 'Something Went Wrong, Please check with Tech Team'
@@ -1312,7 +1328,7 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table
                 total_quantity += int(po[table_headers.index('Qty')])
                 total_amount += float(po[table_headers.index('Amt')])
             else:
-                total_quantity += int(po[5])
+                total_quantity += int(po[4])
                 total_amount += float(po[7])
     else:
         for po in po_data:
@@ -1321,7 +1337,7 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag, table
                 total_quantity += int(po[table_headers.index('Qty')])
                 total_amount += float(po[table_headers.index('Amt')])
             else:
-                total_quantity += int(po[4])
+                total_quantity += int(po[3])
                 total_amount += float(po[6])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
@@ -3278,26 +3294,6 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     seller_order_summary_ids = []
-    '''if user.userprofile.user_type == 'marketplace_user':
-        seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
-                                                                   seller_order__order_id__in=order_ids)
-        if seller_order_summary.exists():
-            order_obj = seller_order_summary[0].seller_order.order
-            exist_sos = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
-                                                          seller_order__order__order_id=order_obj.order_id,
-                                                          seller_order__order__order_code=order_obj.order_code,
-                                                          seller_order__order__original_order_id=order_obj.original_order_id)
-    else:
-        seller_order_summary = SellerOrderSummary.objects.filter(order__id__in=order_ids)
-        if seller_order_summary.exists():
-            order_obj = seller_order_summary[0].order
-            exist_sos = SellerOrderSummary.objects.filter(order__user=user.id,
-                                                      order__order_id=order_obj.order_id,
-                                                      order__order_code=order_obj.order_code,
-                                                      order__original_order_id=order_obj.original_order_id)
-            if not exist_sos.filter(full_invoice_number='').exists():
-                return exist_sos[0].full_invoice_number, exist_sos[0].invoice_number'''
-
     if invoice_no_gen:
         if user.userprofile.user_type == 'marketplace_user':
             seller_order_summary = SellerOrderSummary.objects.filter(seller_order__order__user=user.id,
@@ -3314,7 +3310,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 order = seller_order_summary[0].order
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
-            if user.userprofile.user_type == 'marketplace_user':
+            '''if user.userprofile.user_type == 'marketplace_user':
                 invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
                                 exclude(invoice_number='')
             else:
@@ -3330,19 +3326,25 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 seller_order_summary_update = seller_order_summary.filter(invoice_number='')
                 update_multiple_records(seller_order_summary_update, {'invoice_number': order_no})
                 inv_no = order_no
-            elif invoice_no_gen[0].misc_value == 'true':
-                if invoice_sequence:
+            elif invoice_no_gen[0].misc_value == 'true':'''
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+            seller_order_summary_update = seller_order_summary.filter(invoice_number='')
+            if sell_ids:
+                seller_order_summary_update = seller_order_summary_update.filter(**sell_ids)
+            if invoice_no_gen[0].misc_value == 'true':
+                if invoice_sequence and seller_order_summary_update:
                     invoice_seq = invoice_sequence[0]
                     inv_no = int(invoice_seq.value)
                     order_no = str(inv_no).zfill(3)
-                    #seller_order_summary.update(invoice_number=order_no)
-                    update_multiple_records(seller_order_summary, {'invoice_number': order_no})
                     invoice_seq.value = inv_no + 1
                     invoice_seq.save()
+                    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
+                    update_multiple_records(seller_order_summary_update, {'invoice_number': order_no,
+                                                                            'full_invoice_number': invoice_number})
             else:
-                #seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-                seller_order_summary_update = seller_order_summary.filter(invoice_number='')
-                update_multiple_records(seller_order_summary_update, {'invoice_number': order_no})
+                invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date, pick_number='')
+                update_multiple_records(seller_order_summary_update, {'invoice_number': order_no,
+                                                                        'full_invoice_number': invoice_number})
 
     else:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -5605,16 +5607,6 @@ def get_sku_stock_check(request, user=''):
         skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
         if skuPack_data:
             skuPack_quantity = skuPack_data[0].pack_quantity
-    load_unit_handle = ''
-    if stock_data:
-        load_unit_handle = stock_data[0].sku.load_unit_handle
-    else:
-        if sku_pack_config:
-            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
-                'intransit_quantity': 0, 'skuPack_quantity': skuPack_quantity}))
-        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
-    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     po_search_params = {'open_po__sku__user': user.id, 
                         'open_po__sku__sku_code': sku_code,
                         }
@@ -5627,6 +5619,31 @@ def get_sku_stock_check(request, user=''):
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
 
+
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    '''
+    po_search_params = {'open_po__sku__user': user.id, 
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        print "poOrderedQty:%s, poReceivedQty:%s" %(poOrderedQty, poReceivedQty)
+        intransitQty = poOrderedQty - poReceivedQty
+    '''
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
 

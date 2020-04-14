@@ -46,6 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'move_inventory_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'mandate_ewaybill_number':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -81,6 +82,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
+                     106: 'mandate_ewaybill_number',
                      }
 
   vm.check_box_data = [
@@ -616,7 +618,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-
+{
+   name: "Mandate EwayBillNumber in ShipmentInfo",
+   model_name: "mandate_ewaybill_number",
+   param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};
@@ -839,7 +847,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     } else if (operation == 'save') {
       angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
         angular.forEach(Object.keys(tuple['mail_id']), function(level) {
-          var values = tuple.name+level
+          var values = tuple.min_Amt+level
           var emails = $("."+values).val();
           tuple['mail_id'][level] = emails;
         })

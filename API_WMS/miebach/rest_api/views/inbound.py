@@ -139,8 +139,9 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('Warehouse', warehouse),
                                                 ('PO Raise By', result['requested_user__first_name']),
                                                 ('Requested User', result['requested_user__username']),
-                                                ('Validation Status', result['final_status']),
+                                                ('Validation Status', result['final_status'].title()),
                                                 ('Pending Level', '%s Of %s' %(result['pending_level'], lastLevel)),
+                                                ('LevelToBeApproved', result['pending_level']),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -1046,10 +1047,7 @@ def print_pending_po_form(request, user=''):
     address = '\n'.join(address.split(','))
     if order.ship_to:
         ship_to_address = order.ship_to
-        if user.userprofile.wh_address:
-            company_address = user.userprofile.wh_address
-        else:
-            company_address = user.userprofile.address
+        company_address = user.userprofile.address
     else:
         ship_to_address, company_address = get_purchase_company_address(user.userprofile)
     ship_to_address = '\n'.join(ship_to_address.split(','))
@@ -1106,6 +1104,7 @@ def print_pending_po_form(request, user=''):
         'ship_to_address': ship_to_address,
         'wh_telephone': wh_telephone,
         'wh_gstin': profile.gst_number,
+        'wh_pan': profile.pan_number,
         'terms_condition': terms_condition,
         'total_amt_in_words': total_amt_in_words,
         'show_cess_tax': 'show_cess_tax',
@@ -1422,6 +1421,7 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2179,11 +2179,13 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
 @login_required
 @get_admin_user
 def approve_pr(request, user=''):
+    log.info("Cancel PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Approved Failed'
     pr_number = request.POST.get('pr_number', '')
     validation_type = request.POST.get('validation_type', '')
     validated_by = request.POST.get('validated_by', '')
+    levelToBeValidatedFor = request.POST.get('pending_level', '')
     remarks = request.POST.get('remarks', '')
     currentUserEmailId = request.user.email
     if not pr_number:
@@ -2199,6 +2201,12 @@ def approve_pr(request, user=''):
 
     totalAmt = PRQs.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
     pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
+    if levelToBeValidatedFor != pending_level:
+        validatedPR = PurchaseApprovals.objects.filter(openpr_number=pr_number, pr_user=user.id, level=levelToBeValidatedFor)
+        if validatedPR.exists():
+            validation_status = validatedPR[0].status
+            status = "This PO has been already %s. Further action cannot be made." %validation_status
+            return HttpResponse(status)
     reqConfigName, lastLevel = findLastLevelToApprove(user, pr_number, totalAmt)
     if currentUserEmailId not in validated_by:
         confObj = PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName, level=pending_level)
@@ -2370,6 +2378,7 @@ def save_pr(request, user=''):
 @login_required
 @get_admin_user
 def cancel_pr(request, user=''):
+    log.info("Cancel PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     pr_number = request.POST.get('pr_number', '')
     supplier_id = request.POST.get('supplier_id', '')
     if not pr_number:
@@ -6255,8 +6264,11 @@ def confirm_add_po(request, sales_data='', user=''):
         if purchase_order.ship_to:
             ship_to_address = purchase_order.ship_to
             if user.userprofile.wh_address:
-                company_address = user.userprofile.wh_address
+                company_address = user.userprofile.address
+                # Company Address should be address only.
+                # Didn't change the same for Milkbasket after checking with Sreekanth
                 if user.username in MILKBASKET_USERS:
+                    company_address = user.userprofile.wh_address
                     if user.userprofile.user.email:
                         company_address = ("%s, Email:%s") % (company_address, user.userprofile.user.email)
                     if user.userprofile.phone_number:

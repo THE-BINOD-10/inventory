@@ -84,7 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'], pending_level:aData['LevelToBeApproved']};
             vm.dynamic_route(aData);
         });
       });
@@ -228,11 +228,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
           vm.pr_number = aData['PR Number']
-          vm.validated_by = aData['To Be Validated By']
+          vm.validated_by = aData['To Be Approved By']
           vm.pending_status = aData['Validation Status']
-          if (aData['Validation Status'] == 'approved'){
+          vm.pending_level = aData['LevelToBeApproved']
+          if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else if (aData['Validation Status'] == 'saved'){
+          } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
             $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
           } else {
@@ -438,6 +439,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
       }
+      if (vm.pending_level){
+        elem.push({name:'pending_level', value:vm.pending_level})
+      }
+
       if (validation_type == 'approved'){
         elem.push({name: 'validation_type', value: 'approved'})
       } else{
@@ -748,10 +753,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
         if(data.message) {
-          if(data.data.available_quantity) {
+          //if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
-          }
+          //}
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
           }

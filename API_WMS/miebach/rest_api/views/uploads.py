@@ -8023,6 +8023,94 @@ def brand_level_pricing_upload(request, user=''):
 
 
 @csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_barcode_configuration_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = copy.deepcopy(BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING)
+    wb, ws = get_work_sheet('barcode configuration', excel_headers)
+    return xls_to_response(wb, '%s.brand_level_barcode_configuration_form.xls' % str(user.id))
+
+
+def validate_brand_level_brand_configuration_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    brandMapping = copy.deepcopy(BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, brandMapping)
+    excel_check_list = brandMapping.values()
+    if not set(excel_check_list).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    existingConfigs = list(MiscDetail.objects.filter(user=user.id, misc_type__contains='barcode_configuration').values_list('misc_value', flat=True))
+    existingBrands = list(SKUMaster.objects.filter(user=user.id).values_list('sku_brand', flat=True).distinct())
+    existingBrandMappings = dict(BarCodeBrandMappingMaster.objects.filter(user=user).values_list('sku_brand', 'configName'))
+    data_list = []
+    for row_idx in range(1, no_of_rows):
+        row_data = OrderedDict()
+        for key, value in excel_mapping.items():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'configName':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Configuration Name')
+                elif cell_data not in existingConfigs:
+                    index_status.setdefault(row_idx, set()).add('Invalid Configuration Name')
+                else:
+                    row_data[key] = cell_data
+            elif key == 'sku_brand':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Brand')
+                elif cell_data not in existingBrands:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Attribute Value')
+                elif cell_data in existingBrandMappings.keys():
+                    index_status.setdefault(row_idx, set()).add('%s is already mapped to config %s' 
+                                                %(cell_data, existingBrandMappings[cell_data]))
+                else:
+                    row_data[key] = cell_data
+        data_list.append(row_data)
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, []
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def brand_level_barcode_configuration_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status, final_data = validate_brand_level_brand_configuration_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+    except:
+        return HttpResponse('Invalid File')
+
+    for data_dict in final_data:
+        brandmappingObj = BarCodeBrandMappingMaster.objects.filter(user=user, 
+                                                                 configName=data_dict['configName'],
+                                                                 sku_brand=data_dict['sku_brand'])
+        if not brandmappingObj.exists():
+            data_dict['user'] = user
+            BarCodeBrandMappingMaster.objects.create(**data_dict)
+    return HttpResponse("Success")
+
+
+@csrf_exempt
 @get_admin_user
 def supplier_sku_attributes_form(request, user=''):
     supplier_file = request.GET['download-supplier-sku-attributes-file']

@@ -625,6 +625,8 @@ urlpatterns += [
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
     url(r'^sku_substitutes_form/$', sku_substitutes_form),
     url(r'^sku_substitutes_upload/$', sku_substitutes_upload),
+    url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
+    url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

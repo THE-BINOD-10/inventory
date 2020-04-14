@@ -8562,6 +8562,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     temp_data['recordsFiltered'] = mapping_results.count()
 
     index = 0
+    po_list = list(PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('open_po__po_name', flat=True))
     all_seller_orders = SellerOrder.objects.filter(order__user=user.id)
     order_summary_objs = CustomerOrderSummary.objects.filter(order__user=user.id).values('order__order_id', \
                                                                                          'shipment_time_slot', 'status',
@@ -8574,6 +8575,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         cust_status = ''
         time_slot = ''
         order_taken_val = ''
+        po_status = ''
         if cust_status_obj:
             cust_status = cust_status_obj[0]['status']
             time_slot = cust_status_obj[0]['shipment_time_slot']
@@ -8607,6 +8609,8 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
             'quantity__sum']
         if seller_order:
             tot_quantity = seller_order
+        if order_id in po_list:
+            po_status = 'PO Raised'
 
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Customer Name', dat['customer_name']),
                                                 ('Order ID', order_id), ('Market Place', dat['marketplace']),
@@ -8614,7 +8618,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('Creation Date', creation_data),
                                                 ('Shipment Date', shipment_data), ('Order Taken By', order_taken_val),
                                                 ('Status', cust_status), ('Order Reference', order_reference), ('id', index), ('DT_RowClass', 'results'),
-                                                ('data_value', check_values))))
+                                                ('data_value', check_values),('PO Status', po_status))))
         index += 1
 
     if stop_index and custom_search:

@@ -498,7 +498,8 @@ def get_search_params(request, user=''):
                       'search4': 'search_4', 'search5': 'search_5',
                       'search6': 'search_6', 'search7': 'search_7',
                       'search8': 'search_8', 'search9': 'search_9',
-                      'search10': 'search_10', 'search11': 'search_11'}
+                      'search10': 'search_10', 'search11': 'search_11',
+                      'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -2004,6 +2005,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                            'updation_date': datetime.datetime.now(),
                            'location_id': dest[0].id, 'sku_id': sku_id,
                            'receipt_type': receipt_type}
+            if stocks:
+                dict_values['unit_price'] = stocks[0].unit_price
+
             if mrp_dict:
                 mrp_dict['creation_date'] = datetime.datetime.now()
                 new_batch = BatchDetail.objects.create(**mrp_dict)
@@ -2041,7 +2045,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
-                        weight='', receipt_number='', receipt_type='',reason=''):
+                        weight='', receipt_number='', price ='', receipt_type='', reason=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     try:
         sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -2090,6 +2094,26 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
             stock_dict['sellerstock__seller_id'] = seller_id
             reserved_dict["stock__sellerstock__seller_id"] = seller_id
             raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
+        if price != '':
+            if user.userprofile.industry_type == 'FMCG':
+                stock_dict['batch_detail__buy_price'] = price
+                reserved_dict['stock__batch_detail__buy_price'] = price
+                raw_reserved_dict['stock__batch_detail__buy_price'] = price
+            else:
+                stock_dict['unit_price'] = price
+                reserved_dict['stock__unit_price'] = price
+                raw_reserved_dict['stock__unit_price'] = price
+        # else:
+        #     custom_price = SKUMaster.objects.filter(user=user.id,id=sku_id)
+        #     if custom_price.exists():
+        #         if user.userprofile.industry_type == 'FMCG':
+        #             stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
+        #             reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+        #             raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+        #         stock_dict['unit_price'] = custom_price[0].cost_price
+        #         reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+        #         raw_reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+
         stocks = StockDetail.objects.filter(**stock_dict).distinct()
         if not stocks:
             return 'No Stocks Found'
@@ -2139,6 +2163,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
         result_data = []
         log.info('move stock location failed  for {} source location {} destination location {} quantity {}'
                  .format(wms_code, source_loc, dest_loc, quantity))
+        return 'Failed'
 
 
 def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',
@@ -2173,7 +2198,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
 
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
-                          seller_master_id='', weight='', receipt_number=1, receipt_type='',):
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='', price =''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
@@ -2211,6 +2236,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
+    if price != '':
+        if user.userprofile.industry_type == 'FMCG':
+            stock_dict['batch_detail__buy_price'] = float(price)
+        else:
+            stock_dict['unit_price'] = float(price)
+    # else:
+    #     if user.userprofile.industry_type == 'FMCG':
+    #         stock_dict['batch_detail__buy_price'] = sku[0].cost_price
+    #     stock_dict['unit_price'] = custom_price[0].cost_price
     total_stock_quantity = 0
     dest_stocks = ''
 
@@ -2232,7 +2266,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     else:
         dat = CycleCount(**data_dict)
         dat.save()
-
     if quantity:
         #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('-id')
@@ -2293,25 +2326,31 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                 del stock_dict["batch_detail__weight"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
-                                                    exclude(batch_detail__isnull=True)
-            if latest_batch.exists():
-                batch_obj = latest_batch.latest('id').batch_detail
-                batch_dict['buy_price'] = batch_obj.buy_price
-                batch_dict['tax_percent'] = batch_obj.tax_percent
-                add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
-            #latest_stock = StockDetail.objects.filter(**stock_dict1)
-            #if latest_stock.exists():
-                #latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
-                #                                        exclude(batch_detail__isnull=True).latest('id')
-                #latest_stock_obj = latest_stock.latest('id')
-                #batch_obj = latest_stock_obj.batch_detail
-                #if batch_obj:
-                #    stock_dict["batch_detail_id"] = batch_obj.id
-            if batch_dict.keys():
-                batch_obj = BatchDetail.objects.create(**batch_dict)
-                stock_dict["batch_detail_id"] = batch_obj.id
+            if price == '':
+                price = sku[0].cost_price
+                stock_dict['unit_price'] = price
+                stock_dict['price_type'] = 'cost_price'
+            else:
+                stock_dict['unit_price'] = price
+            if user.userprofile.industry_type == 'FMCG':
+                if 'batch_detail__buy_price' in stock_dict.keys():
+                    del stock_dict['batch_detail__buy_price']
+                latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id, receipt_number=1).\
+                                                        exclude(batch_detail__isnull=True)
+                if latest_batch.exists():
+                    batch_obj = latest_batch.latest('id').batch_detail
+                    batch_dict['buy_price'] = batch_obj.buy_price
+                    batch_dict['tax_percent'] = batch_obj.tax_percent
+                    add_ean_weight_to_batch_detail(sku[0], batch_dict)
+                if price:
+                    batch_dict['buy_price'] = price
+                elif not (price and batch_dict.get('buy_price', 0)):
+                    batch_dict['buy_price'] = sku[0].cost_price
+                if batch_dict.keys():
+                    batch_obj = BatchDetail.objects.create(**batch_dict)
+                    stock_dict["batch_detail_id"] = batch_obj.id
+                    #stock_dict["batch_detail__buy_price"] = batch_obj.price
             if pallet:
                 del stock_dict['pallet_detail_id']
             del stock_dict["sku__user"]
@@ -6874,7 +6913,9 @@ def check_and_update_order_status(shipped_orders_dict, user):
 
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
-    filt_params = {'order_id': order_detail_id, 'order__sku__sku_code': sku_code, 'order__user': user.id}
+    filt_params = {'order__sku__sku_code': sku_code, 'order__user': user.id}
+    if order_detail_id:
+        filt_params['order_id'] = order_detail_id,
     if sor_id:
         filt_params['sor_id'] = sor_id
     seller_order = SellerOrder.objects.filter(**filt_params)
@@ -7153,7 +7194,7 @@ def save_order_tracking_data(order, quantity, status='', imei=''):
         order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
         if order_tracking:
             order_tracking = order_tracking[0]
-            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.quantity = float(order_tracking.quantity) + float(quantity)
             order_tracking.save()
         else:
             OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity,
@@ -8989,27 +9030,26 @@ def user_type_sequence_obj(user, type_name, type_value):
 def create_update_batch_data(batch_dict):
     batch_obj = None
     batch_dict1 = copy.deepcopy(batch_dict)
-    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict1):
-        if batch_dict1['expiry_date']:
-            batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
-        else:
-            batch_dict1['expiry_date'] = None
-        if batch_dict1['manufactured_date']:
-            batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
-        else:
-            batch_dict1['manufactured_date'] = None
-        number_fields = ['mrp', 'buy_price', 'tax_percent']
-        for field in number_fields:
-            try:
-                batch_dict1[field] = float(batch_dict1.get(field, 0))
-            except:
-                batch_dict1[field] = 0
-        batch_objs = BatchDetail.objects.filter(**batch_dict1)
-        if not batch_objs.exists():
-            batch_dict1['creation_date'] = datetime.datetime.now()
-            batch_obj = BatchDetail.objects.create(**batch_dict1)
-        else:
-            batch_obj = batch_objs[0]
+    if batch_dict1['expiry_date']:
+        batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
+    else:
+        batch_dict1['expiry_date'] = None
+    if batch_dict1['manufactured_date']:
+        batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
+    else:
+        batch_dict1['manufactured_date'] = None
+    number_fields = ['mrp', 'buy_price', 'tax_percent']
+    for field in number_fields:
+        try:
+            batch_dict1[field] = float(batch_dict1.get(field, 0))
+        except:
+            batch_dict1[field] = 0
+    batch_objs = BatchDetail.objects.filter(**batch_dict1)
+    if not batch_objs.exists():
+        batch_dict1['creation_date'] = datetime.datetime.now()
+        batch_obj = BatchDetail.objects.create(**batch_dict1)
+    else:
+        batch_obj = batch_objs[0]
     return batch_obj
 
 
@@ -9415,7 +9455,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
             break
 
 
-def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',
+def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',price ='',
                           seller_master_id='', weight=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
@@ -9451,6 +9491,10 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         stock_dict["batch_detail__weight"] = weight
     if seller_master_id:
         stock_dict['sellerstock__seller_id'] = seller_master_id
+    if price:
+        if user.userprofile.industry_type == 'FMCG':
+            stock_dict["batch_detail__buy_price"] = float(price)
+        stock_dict['unit_price'] = float(price)
 
     total_stock_quantity = 0
     if quantity:
@@ -9470,6 +9514,7 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         data_dict['status'] = 0
         data_dict['creation_date'] = now
         data_dict['updation_date'] = now
+        data_dict['price'] = price
         cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
         if cycle_obj:
             cycle_obj = cycle_obj[0]
@@ -9597,6 +9642,27 @@ def send_push_notification(contents, users_list):
     for user in users_list:
         PushNotifications.objects.create(user_id=user, message=contents['en'])
     return req.status_code, req.reason
+
+def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=False):
+    subs_status = ''
+    existing_substitutes = list(data.substitutes.all().values_list('sku_code', flat=True))
+    rem_ean_list = []
+    error_subs = []
+    if remove_existing:
+        rem_subs_list = list(set(existing_substitutes) - set(substitutes))
+    for rem_subs in rem_subs_list:
+        rem_sub_obj = SKUMaster.objects.get(user=user.id, sku_code=rem_subs)
+        data.substitutes.remove(rem_sub_obj)
+    subs_list = [item for item in substitutes if not item in existing_substitutes]        
+    for subs in subs_list:
+        try:
+            sub_obj = SKUMaster.objects.get(user=user.id, sku_code=subs)
+            data.substitutes.add(sub_obj)
+        except:
+            error_subs.append(subs)
+    if error_subs:
+        subs_status = "%s sku codes doesnot exists" %(str(','.join(error_subs)))
+    return subs_status
 
 
 def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):

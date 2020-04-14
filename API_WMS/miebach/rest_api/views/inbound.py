@@ -2406,6 +2406,7 @@ def insert_inventory_adjust(request, user=''):
     quantity = request.GET['quantity']
     reason = request.GET['reason']
     loc = request.GET['location']
+    price = request.GET.get('price', '')
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
@@ -2430,10 +2431,10 @@ def insert_inventory_adjust(request, user=''):
             return HttpResponse("Invalid Seller ID")
         seller_master_id = seller_master[0].id
     if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp, price=price,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
     if stock_stats_objs:
@@ -4553,84 +4554,97 @@ def get_return_segregation_locations(order_returns, batch_dict, data, user):
     return data
 
 def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False,
-                          batch_dict=None):
-    order_returns = order_returns[0]
-    zone = order_returns.sku.zone
-    if zone:
-        put_zone = zone.zone
-    else:
-        put_zone = 'DEFAULT'
-
-    all_data.append({'received_quantity': float(order_returns.quantity), 'put_zone': put_zone})
-    if damaged_quantity:
-        all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
-        all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
-    for data in all_data:
-        temp_dict = {'received_quantity': float(order_returns.quantity), 'data': "", 'user': user.id, 'pallet_data': '',
-                     'pallet_number': '',
-                     'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
-                     'sku': order_returns.sku}
-        received_quantity = data['received_quantity']
-        if not received_quantity:
-            continue
-        if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
-            data = get_return_segregation_locations(order_returns, batch_dict, data, user)
-        if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
-            locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
-            if not locations:
-                locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
-        else:
-            locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
-
-        if not locations:
-            return 'Locations not Found'
-        for location in locations:
-            total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
-                                                       location__zone__user=user.id).aggregate(Sum('quantity'))[
-                'quantity__sum']
-            if not total_quantity:
-                total_quantity = 0
-            filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
-                                                         sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-            if not filled_capacity:
-                filled_capacity = 0
-            filled_capacity = float(total_quantity) + float(filled_capacity)
-            remaining_capacity = float(location.max_capacity) - float(filled_capacity)
-            if location.zone.zone in ['DEFAULT', 'DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']:
-                remaining_capacity = received_quantity
-            if remaining_capacity <= 0:
-                continue
-            elif remaining_capacity < received_quantity:
-                location_quantity = remaining_capacity
-                received_quantity -= remaining_capacity
-            elif remaining_capacity >= received_quantity:
-                location_quantity = received_quantity
-                received_quantity = 0
-            return_location = ReturnsLocation.objects.filter(returns_id=order_returns.id, location_id=location.id,
-                                                             status=1)
-            if not return_location:
-                location_data = {'returns_id': order_returns.id, 'location_id': location.id,
-                                 'quantity': location_quantity, 'status': 1}
-                returns_data = ReturnsLocation(**location_data)
-                returns_data.save()
-                if batch_dict:
-                    batch_dict1 = copy.deepcopy(batch_dict)
-                    batch_dict1['transact_id'] = returns_data.id
-                    batch_dict1['transact_type'] = 'return_loc'
-                    create_update_batch_data(batch_dict1)
+                          batch_dict=None, upload=False):
+    try:
+        for order_return in order_returns:
+            zone = order_return.sku.zone
+            if zone:
+                put_zone = zone.zone
             else:
-                return_location = return_location[0]
-                setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
-                return_location.save()
-                if batch_dict:
-                    batch_dict1 = copy.deepcopy(batch_dict)
-                    batch_dict1['transact_id'] = return_location.id
-                    batch_dict1['transact_type'] = 'return_loc'
+                put_zone = 'DEFAULT'
+
+            all_data.append({'received_quantity': float(order_return.quantity), 'put_zone': put_zone})
+            if damaged_quantity:
+                all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
+                all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
+        for data in all_data:
+            batch_dict1 = {}
+            temp_dict = {'received_quantity': float(order_return.quantity), 'data': "", 'user': user.id, 'pallet_data': '',
+                         'pallet_number': '',
+                         'wms_code': order_return.sku.wms_code, 'sku_group': order_return.sku.sku_group,
+                         'sku': order_return.sku}
+            received_quantity = data['received_quantity']
+            if not received_quantity:
+                continue
+            if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
+                data = get_return_segregation_locations(order_return, batch_dict, data, user)
+            if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
+                locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
+                if not locations:
+                    locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
+            else:
+                locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
+
+            if not locations:
+                return 'Locations not Found'
+            for location in locations:
+                total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
+                                                           location__zone__user=user.id).aggregate(Sum('quantity'))[
+                    'quantity__sum']
+                if not total_quantity:
+                    total_quantity = 0
+                filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
+                                                             sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+                if not filled_capacity:
+                    filled_capacity = 0
+                filled_capacity = float(total_quantity) + float(filled_capacity)
+                remaining_capacity = float(location.max_capacity) - float(filled_capacity)
+                if location.zone.zone in ['DEFAULT', 'DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']:
+                    remaining_capacity = received_quantity
+                if remaining_capacity <= 0:
+                    continue
+                elif remaining_capacity < received_quantity:
+                    location_quantity = remaining_capacity
+                    received_quantity -= remaining_capacity
+                elif remaining_capacity >= received_quantity:
+                    location_quantity = received_quantity
+                    received_quantity = 0
+                return_location = ReturnsLocation.objects.filter(returns_id=order_return.id, location_id=location.id,
+                                                                 status=1)
+                if not return_location:
+                    location_data = {'returns_id': order_return.id, 'location_id': location.id,
+                                     'quantity': location_quantity, 'status': 1}
+                    returns_data = ReturnsLocation(**location_data)
+                    returns_data.save()
+                    if batch_dict:
+                        batch_dict1 = copy.deepcopy(batch_dict)
+                        batch_dict1['transact_id'] = returns_data.id
+                        batch_dict1['transact_type'] = 'return_loc'
+                else:
+                    return_location = return_location[0]
+                    setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
+                    return_location.save()
+                    if batch_dict:
+                        batch_dict1 = copy.deepcopy(batch_dict)
+                        batch_dict1['transact_id'] = return_location.id
+                        batch_dict1['transact_type'] = 'return_loc'
+                if upload:
+                    batch_objs = BatchDetail.objects.filter(**batch_dict1)
+                    if not batch_objs.exists():
+                        batch_dict1['creation_date'] = datetime.datetime.now()
+                        batch_obj = BatchDetail.objects.create(**batch_dict1)
+                else:
                     create_update_batch_data(batch_dict1)
-            if received_quantity == 0:
-                order_returns.status = 0
-                order_returns.save()
-                break
+                if received_quantity == 0:
+                    order_return.status = 0
+                    order_return.save()
+                    break
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Sale return  failed for params " + order_returns + " on " + \
+                     str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+        return HttpResponse("Updation Failed")
     return 'Success'
 
 
@@ -4804,7 +4818,7 @@ def confirm_sales_return(request, user=''):
                 try:
                     buy_price = float(return_dict.get('buy_price', 0))
                 except:
-                    buy_price = 0
+                    buy_price = order_returns[0].sku.cost_price
                 try:
                     mrp = float(return_dict.get('mrp', 0))
                 except:
@@ -4813,6 +4827,7 @@ def confirm_sales_return(request, user=''):
                     tax_percent = float(return_dict.get('tax_percent', 0))
                 except:
                     tax_percent = 0
+
                 batch_dict = {'mrp': mrp,
                               'manufactured_date': return_dict.get('manufactured_date', ''),
                               'expiry_date': return_dict.get('expiry_date', ''),
@@ -7261,6 +7276,8 @@ def cancelled_putaway_data(request, user=''):
                 setattr(cancelled_data, 'location_id', location_id[0].id)
             cancelled_data.save()
             status = 'Updated Successfully'
+            save_sku_stats(user, new_stock.sku.id, data_id, 'cancelled_location', quantity, new_stock,
+                           stock_stats_objs=None)
 
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)

@@ -992,6 +992,7 @@ def sales_returns_form(request, user=''):
     sales_retun_mapping = copy.deepcopy(SALES_RETURNS_HEADERS)
     if user.userprofile.user_type == 'marketplace_user':
         sales_retun_mapping.append('SOR ID')
+        sales_retun_mapping.append('Seller ID')
     wb, ws = get_work_sheet('returns', sales_retun_mapping)
     return xls_to_response(wb, '%s.returns_form.xls' % str(user.username))
 
@@ -4493,6 +4494,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
     if not order_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
+        order_detail = ''
         for key, value in order_mapping.iteritems():
             if isinstance(order_mapping[key], list):
                 cell_data = ''
@@ -4525,8 +4527,12 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         order_filter['order_code'] = order_code
                     order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
                                                               sku_id__sku_code=sku_code, user=user.id)
+
+
                     if not order_detail:
                         index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
+                    else:
+                        order_detail = order_detail[0]
                         # elif int(order_detail[0].status) == 4:
                         #    index_status.setdefault(row_idx, set()).add("Order Processed already")
 
@@ -4542,7 +4548,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add('Return Quantity should not be in negative')
                 if isinstance(cell_data, float):
                     get_decimal_data(cell_data, index_status, row_idx, user)
-
+                    quantity = cell_data
             elif key == 'damaged_quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     if not cell_data.isdigit():
@@ -4553,6 +4559,23 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add('Damaged Quantity should not be in negative')
                 if isinstance(cell_data, float):
                     get_decimal_data(cell_data, index_status, row_idx, user)
+
+            elif key in ['mrp', 'buy_price']:
+                if cell_data and isinstance(cell_data, (int, float)):
+                    if int(cell_data) < 0:
+                        index_status.setdefault(row_idx, set()).add(key + ' should not be in negative')
+                if isinstance(cell_data, float):
+                    get_decimal_data(cell_data, index_status, row_idx, user)
+
+            elif key in ['manufactured_date', 'expiry_date']:
+                if cell_data:
+                    try:
+                        if isinstance(cell_data, str):
+                            datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                        else:
+                            xldate_as_tuple(cell_data, 0)
+                    except:
+                        index_status.setdefault(row_idx, set()).add(key + ' in wrong format')
 
             elif key == 'return_id':
                 sku_cod = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
@@ -4572,18 +4595,47 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     order_id = str(int(order_id))
                 if isinstance(sku_code, float):
                     sku_code = str(int(sku_code))
-
                 order_id_search = ''.join(re.findall('\d+', order_id))
                 order_code_search = ''.join(re.findall('\D+', order_id))
+                filter_params ={}
+                if order_id:
+                    filter_params = {Q(order__order_id=order_id_search, order__order_code=order_code_search) |
+                                     Q(order__original_order_id=order_id)}
+
                 if sor_id:
-                    seller_order = SellerOrder.objects.filter(
-                        Q(order__order_id=order_id_search, order__order_code=order_code_search) |
-                        Q(order__original_order_id=order_id), sor_id=sor_id,
-                        order__sku__sku_code=sku_code, order__user=user.id)
+                    seller_order = SellerOrder.objects.filter(sor_id=sor_id,
+                        order__sku__sku_code=sku_code, order__user=user.id,**filter_params)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
-                else:
-                    index_status.setdefault(row_idx, set()).add('SOR ID is mandatory')
+                    if not order_detail:
+                        order_detail = seller_order[0].order
+            elif key == 'seller_id':
+                seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if seller_id:
+                    seller = SellerMaster.objects.filter(user=user.id,seller_id = seller_id)
+                    if not seller.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                    else:
+                       orders =  OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,sellerorder__seller__seller_id=seller_id,sku__wms_code=sku_code). \
+                            annotate(ret=Sum(F('orderreturns__quantity')),
+                                     dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
+                            filter(Q(tot__isnull=True) | Q(original_quantity__gt=F('tot')))
+                       if not orders:
+                           index_status.setdefault(row_idx, set()).add('No Order Data Found to Return or Returned Completly')
+
+        if not index_status:
+            if not order_detail:
+                continue
+            return_quantity = OrderReturns.objects.filter(order_id=order_detail.id).aggregate(qt=Sum('quantity'))[
+                'qt']
+            if not return_quantity:
+                return_quantity = 0
+            order_quantity = order_detail.original_quantity
+            if order_detail.status == 3:
+                order_quantity = order_quantity - order_detail.quantity
+            if order_quantity  < return_quantity + float(quantity):
+                index_status.setdefault(row_idx, set()).add(
+                    'Returned Quantity is more than Order Quantity {} Quantity Already Returned ', return_quantity)
 
     if not index_status:
         return 'Success'
@@ -4608,12 +4660,16 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     index_status = {}
     order_mapping = get_sales_returns_mapping(reader, file_type, user)
     count = 1
+    returns_list  = []
 
     for row_idx in range(1, no_of_rows):
         all_data = []
         order_data = copy.deepcopy(UPLOAD_SALES_ORDER_DATA)
+        seller_order,seller = '',''
+        batch_data = {}
         if not order_mapping:
             break
+        order_object = ''
         for key, value in order_mapping.iteritems():
             if key == 'sku_id':
                 sku_code = ""
@@ -4639,12 +4695,8 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_code = ''.join(re.findall('\D+', cell_data))
                     if order_code:
                         order_filter['order_code'] = order_code
-                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                    order_detail = OrderDetail.objects.exclude(status=1).filter(Q(original_order_id=cell_data) | Q(**order_filter),
                                                               sku_id__sku_code=sku_code, user=user.id)
-                    if order_detail:
-                        order_data[key] = order_detail[0].id
-                        order_detail[0].status = 4
-                        order_detail[0].save()
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, order_mapping[key], reader, file_type))
                 if not order_data[key]:
@@ -4663,7 +4715,21 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                             order_data[key] = datetime.datetime.now()
                     else:
                         order_data[key] = xldate_as_tuple(cell_data, 0)
-
+            elif key in ['manufactured_date', 'expiry_date']:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    if isinstance(cell_data, str):
+                        try:
+                            batch_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        except:
+                            batch_data[key] = datetime.datetime.now()
+                    else:
+                        year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                        batch_data[key] = (datetime.datetime(year, month, day, hour, minute, second)).strftime("%m/%d/%Y")
+            elif key in ['batch_no', 'mrp', 'weight', 'buy_price']:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    batch_data[key] = cell_data
             elif key == 'marketplace':
                 order_data[key] = value
             elif key == 'channel':
@@ -4672,12 +4738,19 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 sor_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if isinstance(sor_id, float):
                     sor_id = str(int(sor_id))
-                seller_order = ''
                 if sor_id:
                     seller_order = get_returns_seller_order_id(order_data['order_id'], sku_code, user, sor_id=sor_id)
                 if seller_order:
                     order_data[key] = seller_order.id
                     order_data['seller_id'] = seller_order.seller_id
+            elif key == 'seller_id':
+                seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
+                                                                      sellerorder__seller__seller_id=seller_id,
+                                                                      sku__wms_code=sku_code). \
+                    annotate(ret=Sum(F('orderreturns__quantity')),
+                             dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
+                    filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
@@ -4685,6 +4758,8 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
 
             if "quantity" not in order_mapping.keys():
                 order_data['quantity'] = 1
+        if seller_order:
+            order_detail = OrderDetail.objects.filter(id=seller_order.order.id)
 
         if not order_data['return_date']:
             order_data['return_date'] = datetime.datetime.now()
@@ -4694,17 +4769,59 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
         if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
             # if order_data.get('seller_order_id', '') and 'order_id' in order_data.keys():
             #    del order_data['order_id']
-            returns = OrderReturns(**order_data)
-            returns.save()
+            order_quantity = float(order_data['quantity'])
+            for order in  order_detail:
+                if order_quantity <= 0 :
+                    continue
+                order_object = order
+                original_quantity = order_object.original_quantity
+                if order_object.status==3:
+                    original_quantity = original_quantity - order_object.quantity
+                if original_quantity >= order_quantity:
+                    order_data['quantity'] = order_quantity
+                    order_quantity = 0
+                else:
+                    order_data['quantity'] = original_quantity
+                    order_quantity -= original_quantity
+                order_data['order_id'] = order.id
+                order_object.status = 4
+                order_object.save()
+                returns = OrderReturns.objects.create(**order_data)
+                if not returns.return_id:
+                    returns.return_id = 'MN%s' % returns.id
+                returns.save()
+                returns_list.append(returns)
+                order_tracking = OrderTracking.objects.filter(order_id=order_object.id, status='returned')
+                if order_tracking.exists():
+                    order_tracking = order_tracking[0]
+                    order_tracking.quantity = float(order_tracking.quantity) + order_data['quantity']
+                    order_tracking.save()
+                else:
+                    OrderTracking.objects.create(order_id=order_object.id, status='returned', quantity=order_data['quantity'],
+                                         creation_date=datetime.datetime.now(),
+                                         updation_date=datetime.datetime.now())
+            if order_quantity:
+                del order_data['order_id']
+                order_data['quantity'] = order_quantity
+                returns = OrderReturns.objects.create(**order_data)
+                if not returns.return_id:
+                    returns.return_id = 'MN%s' % returns.id
+                returns.save()
+                returns_list.append(returns)
+
             if order_data.get('seller_order_id', ''):
                 SellerOrder.objects.filter(id=order_data['seller_order_id']).update(status=4)
 
-            if not returns.return_id:
-                returns.return_id = 'MN%s' % returns.id
-            returns.save()
 
-            if not order_data.get('seller_order_id', ''):
-                save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user)
+            if not batch_data:
+                if order_detail:
+                    if order_detail[0].picklist_set.filter():
+                        if order_detail[0].picklist_set.filter()[0].stock:
+                            batch_detail = order_detail[0].picklist_set.filter()[0].stock.batch_detail
+                            batch_data = batch_detail.__dict__
+                            del batch_data['_state']
+                            del batch_data['id']
+            save_return_locations(returns_list, all_data, order_data['damaged_quantity'], request, user, batch_dict = batch_data, upload=True)
     return 'Success'
 
 
@@ -4713,7 +4830,8 @@ def get_sales_returns_mapping(reader, file_type, user):
     if get_cell_data(0, 0, reader, file_type) == 'Return ID':
         order_mapping = copy.deepcopy(GENERIC_RETURN_EXCEL)
         if user.userprofile.user_type == 'marketplace_user':
-            order_mapping['seller_order_id'] = 7
+            order_mapping['seller_order_id'] = 13
+            order_mapping['seller_id'] = 14
     elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':

@@ -58,9 +58,10 @@
     <div class="layout-body">
 	  <div class="col-md-12 col-sm-12 col-xs-12">
       <div class="panel" ng-if="showCase.datatable">
-        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note' || ($state.current.data.title | lowercase) == 'stock transfer goods receipt note'">
 		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
-			<span>Toggle GRN</span>
+			<span ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">Toggle GRN</span>
+      <span ng-if="($state.current.data.title | lowercase) == 'stock transfer goods receipt note'">Toggle Stock Transfer GRN</span>
 		  </div>
 		  <div class="col-md-1 col-sm-1 col-xs-1">
 			<label class="switch switch-sm square mt5">

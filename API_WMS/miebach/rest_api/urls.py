@@ -442,6 +442,7 @@ urlpatterns = [
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
+    url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),

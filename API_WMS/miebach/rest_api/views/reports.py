@@ -170,7 +170,6 @@ def print_stock_location(request, user=''):
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_po_filter_data(search_params, user, request.user)
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -180,7 +179,6 @@ def get_po_filter(request, user=''):
 def get_st_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_st_po_filter_data(search_params, user, request.user)
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -201,6 +199,13 @@ def get_sku_wise_po_filter(request, user=''):
     temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_st_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_st_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required

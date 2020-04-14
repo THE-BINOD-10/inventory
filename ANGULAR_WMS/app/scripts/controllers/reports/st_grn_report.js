@@ -4,57 +4,6 @@ angular.module('urbanApp', ['datatables'])
   .controller('STGoodsReceiptNoteCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
-
-    /*var vm = this;
-    vm.colFilters = colFilters;
-    vm.service = Service;
-    vm.service.print_enable = false;
-
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'get_po_filter/',
-              type: 'GET',
-              data: vm.model_data,
-              xhrFields: {
-                withCredentials: true
-              },
-              data: vm.model_data
-           })
-       .withDataProp('data')
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true}).success(function(data, status, headers, config) {
-
-                  console.log(data);
-                  var html = $(data);
-                  vm.print_page = $(html).clone();
-                  html = $(html).find(".modal-body > .form-group");
-                  $(html).find(".modal-footer").remove()
-                  $(".modal-body").html(html);
-                });
-                $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-            });
-        });
-        return nRow;
-    }
-
-  */
   var vm = this;
   vm.service = Service;
   vm.datatable = false;
@@ -94,7 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var send = {};
   	var name;
   	if (vm.toggle_sku_wise) {
-      name = 'sku_wise_grn_report';
+      name = 'sku_wise_st_grn_report';
     } else {
       name = 'st_grn_report';
     }

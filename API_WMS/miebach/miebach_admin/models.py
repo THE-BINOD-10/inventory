@@ -698,6 +698,7 @@ class StockDetail(models.Model):
     receipt_date = models.DateTimeField()
     receipt_type = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
+    price_type = models.CharField(max_length=32, default='user_input')
     location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)

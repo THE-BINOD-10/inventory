@@ -179,6 +179,7 @@
                         'dest_loc': '',
                         'quantity': '',
                         'reason':'',
+                        'price':'',
                       }
       vm.model_data = {};
       angular.copy(vm.empty_data, vm.model_data);

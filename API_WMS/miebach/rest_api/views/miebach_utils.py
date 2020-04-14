@@ -2442,7 +2442,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
 STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
                                       ('Warehouse Name', 'warehouse_name'), ('Source Warehouse Seller ID', 'source_seller_id'),
                                       ('Destination Warehouse Seller ID', 'dest_seller_id'), ('SKU Code', 'wms_code'),
-                                      ('Quantity', 'quantity'), ('Price', 'price'), ('Cgst(%)','cgst_tax'),
+                                      ('Quantity', 'quantity'), ('Price', 'price'), ('MRP', 'mrp'), ('Cgst(%)','cgst_tax'),
                                       ('Sgst(%)','sgst_tax'),('Igst(%)','igst_tax')
                                    ))
 

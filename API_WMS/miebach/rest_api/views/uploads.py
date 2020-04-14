@@ -6201,6 +6201,8 @@ def stock_transfer_order_form(request, user=''):
     if user.userprofile.user_type != 'marketplace_user':
         del headers['Source Warehouse Seller ID']
         del headers['Destination Warehouse Seller ID']
+    if user.userprofile.industry_type != 'FMCG':
+        del headers['MRP']
     wb, ws = get_work_sheet('stock_transfer_order_form', headers)
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
@@ -6817,7 +6819,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             if status:
                 index_status.setdefault(count, set()).add(status)
         number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax',
-                         'igst_tax': 'IGST Tax'}
+                         'igst_tax': 'IGST Tax', 'mrp': 'MRP'}
         for key, value in number_fields.iteritems():
             if order_mapping.has_key(key):
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)

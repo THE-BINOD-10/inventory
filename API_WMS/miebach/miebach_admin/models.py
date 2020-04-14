@@ -127,6 +127,7 @@ class SKUMaster(models.Model):
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
     block_options = models.CharField(max_length=5, default='')
+    substitutes = models.ManyToManyField("self", blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -698,6 +699,7 @@ class StockDetail(models.Model):
     receipt_date = models.DateTimeField()
     receipt_type = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
+    price_type = models.CharField(max_length=32, default='user_input')
     location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
@@ -3554,7 +3556,6 @@ class ProccessRunning(models.Model):
     class Meta:
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
-
 
 #Signals
 @receiver(post_save, sender=OrderDetail)

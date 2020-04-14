@@ -49,7 +49,7 @@ MILKBASKET_BULK_ZONE = 'Bulk Zone'
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('SKU Code', 'wms_code'),
                                             ('Location', 'location'),
                                             ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
-                                            ('MRP', 'mrp'), ('Weight', 'weight'), ('Reason', 'reason')))
+                                            ('MRP', 'mrp'), ('Weight', 'weight'), ('Reason', 'reason'),("Price", 'unit_price')))
 
 SUB_CATEGORIES = OrderedDict((('mens_polo', 'MENS POLO'), ('ladies_polo', 'LADIES POLO'),
                               ('round_neck', 'ROUND NECK'), ('hoodie', 'HOODIE'), ('jackets', 'JACKETS'),
@@ -224,13 +224,14 @@ RAISE_PO_FIELDS1 = OrderedDict(
     [('WMS Code *', 'wms_code'), ('Supplier Code', 'supplier_code'), ('Quantity *', 'order_quantity'),
      ('Price', 'price')])
 
-MOVE_INVENTORY_FIELDS = ((('SKU Code *', 'wms_code'), ('Source Location *', 'source_loc')),
-                         (('Destination Location *', 'dest_loc'), ('Quantity *', 'quantity')),)
+MOVE_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Source Location *', 'source_loc')),
+                         (('Destination Location *', 'dest_loc'), ('Quantity *', 'quantity'), ('Price', 'price')),)
 
 ADJUST_INVENTORY_FIELDS = ( (('SKU Code *','wms_code'),('Location *','location')),
                             (('Physical Quantity *','quantity'),('Reason','reason')),
                             (('Physical Quantity *','quantity'),('Reason','reason')),
                             (('Pallet Code', 'pallet_no'),) )
+
 
 #MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
@@ -238,7 +239,7 @@ MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('SKU Co
                                             ('Source Location', 'source'),
                                             ('Destination Location', 'destination'),
                                             ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
-                                            ('MRP', 'mrp'), ('Weight', 'weight'),('Reason', 'reason')))
+                                            ('MRP', 'mrp'), ('Weight', 'weight'),('Reason', 'reason'),('Price', 'price')))
 
 SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Source SKU Code', 'source_sku_code'),
                                               ('Source Location', 'source_location'),
@@ -271,6 +272,13 @@ BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Ca
                                                   ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
                                                   ('Price', 'price'), ('Discount', 'discount')))
 
+SKU_SUBSTITUTES_EXCEL_MAPPING = OrderedDict((('SKU Code 1', 'sku_code'),
+                                            ('SKU Code 2', 'sku_code'),
+                                            ('SKU Code 3', 'sku_code'),
+                                            ('SKU Code 4', 'sku_code'), ('SKU Code 5', 'sku_code'),
+                                            ('SKU Code 6', 'sku_code'), ('SKU Code 7', 'sku_code'),
+                                            ('SKU Code 8', 'sku_code'), ('SKU Code 9', 'sku_code'),
+                                            ('SKU Code 10', 'sku_code')))
 BRAND_LEVEL_BARCODE_CONFIGURATION_MAPPING =  OrderedDict((('Configuration Name', 'configName'),
                                                   ('SKU Brand', 'sku_brand')))
 
@@ -1257,7 +1265,7 @@ INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Da
                               ('Batch Number', 'batch_no'), ('MRP', 'mrp'),
                               ('Manufactured Date(YYYY-MM-DD)', 'manufactured_date'),
                               ('Expiry Date(YYYY-MM-DD)', 'expiry_date'),
-                              ('Weight', 'weight')
+                              ('Weight', 'weight'), ('Price','price')
                             ))
 
 SKU_EXCEL = (
@@ -3485,8 +3493,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number','purchase_order__id','price']
+                         'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
+                         'purchase_order__id','price'
+                         ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
     rec_quan = 'quantity'
@@ -5099,7 +5108,7 @@ def get_order_summary_data(search_params, user, sub_user):
         if milkbasket_user :
             aaData.update(OrderedDict(cost_price_dict))
         aaData.update(OrderedDict(order_extra_fields))
-        if admin_user.username.lower() == 'gomechanic_admin' and search_params.has_key('tally_report'):
+        if search_params.has_key('tally_report'):
             tally_report = tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst_number,unit_discount,discount, taxable_amount, tax_percent, mrp_price, data,billing_address,customer_name,invoice_number, invoice_date, quantity, order_summary)
             if tally_report:
               temp_data['aaData'].append(tally_report)

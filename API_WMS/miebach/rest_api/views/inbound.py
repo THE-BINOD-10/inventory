@@ -2406,6 +2406,7 @@ def insert_inventory_adjust(request, user=''):
     quantity = request.GET['quantity']
     reason = request.GET['reason']
     loc = request.GET['location']
+    price = request.GET.get('price', '')
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
@@ -2430,10 +2431,10 @@ def insert_inventory_adjust(request, user=''):
             return HttpResponse("Invalid Seller ID")
         seller_master_id = seller_master[0].id
     if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp, price=price,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment')
     if stock_stats_objs:
@@ -4804,7 +4805,7 @@ def confirm_sales_return(request, user=''):
                 try:
                     buy_price = float(return_dict.get('buy_price', 0))
                 except:
-                    buy_price = 0
+                    buy_price = order_returns[0].sku.cost_price
                 try:
                     mrp = float(return_dict.get('mrp', 0))
                 except:

@@ -100,6 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       'wms_code':'',
                       'location': '',
                       'quantity': '',
+                      'price': '',
                       'reason': ''
                     }
     vm.model_data = {};

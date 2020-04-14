@@ -3688,6 +3688,7 @@ def stock_detail_update(request, user=''):
     try:
         data = request.POST
         id = request.POST['id']
+        sku_codes = []
         if user.username in MILKBASKET_USERS:
             if not data['mrp'] or not data['weight']:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'Weight and MRP Should not be Empty'}))
@@ -3720,8 +3721,9 @@ def stock_detail_update(request, user=''):
                 if old_batch_dict[key] != new_batch_dict[key]:
                     updated_batch_dict[key] = new_batch_dict[key]
                     create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key], new_batch_dict[key])
-            stock_check = StockDetail.objects.filter(sku__user=user.id,quantity__gt=0,batch_detail_id=id)
-            if stock_check.count() >=2 and updated_batch_dict:
+            stock_check = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, batch_detail_id=id)
+            sku_codes = list(stock_check.values_list('sku__wms_code', flat=True).distinct())
+            if stock_check.count() >= 2 and updated_batch_dict:
                 new_batch_object = BatchDetail.objects.get(id=id).__dict__
                 del new_batch_object['_state']
                 del new_batch_object['id']
@@ -3730,6 +3732,7 @@ def stock_detail_update(request, user=''):
                 BatchDetail.objects.filter(id=updated_batch.id).update(**updated_batch_dict)
             else:
                 BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
+            if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
             return HttpResponse(json.dumps({'status': 1, 'message': 'Successfully Updated'}))
     except Exception as e:
         import traceback

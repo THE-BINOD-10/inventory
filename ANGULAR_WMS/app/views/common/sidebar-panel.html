@@ -2,7 +2,7 @@
 
   <!-- toggle small sidebar menu -->
   <a href="javascript:;" class="toggle-sidebar hidden-xs hamburger-icon v3" data-ng-click="app.layout.isSmallSidebar = !app.layout.isSmallSidebar">
-    <img ng-if="user.parent.parent_username != 'gomechanic_admin'"  src="images/stockone_logo.png" height="15" alt="">
+    <img ng-if="user.parent.parent_username != 'gomechanic_admin' || user.parent.parent_username != 'gm_admin'" src="images/stockone_logo.png" height="15" alt="">
 
   </a>
   <!-- /toggle small sidebar menu -->
@@ -12,7 +12,7 @@
     <img ng-if="user.userName != 'sagar_fab' && user.userName != '72Networks' && !user.parent['72networks']" data-ng-src="images/stockone_logo_text.png" alt="">
     <img ng-if="user.userName == 'sagar_fab'" data-ng-src="images/sagar_fab.png" alt="">
     <img ng-if="user.userName == '72Networks'" data-ng-src="images/72networks.png" alt="" style="padding-left:35px">
-    <img ng-if="user.parent.parent_username == 'gomechanic_admin'" data-ng-src="images/go_logo.png" alt="" style="background: #242629; height: 60px; top:-2px">
+    <img ng-if="user.parent.parent_username == 'gomechanic_admin' || user.parent.parent_username == 'gm_admin' " data-ng-src="images/go_logo.png" alt="" style="background: #242629; height: 60px; top:-2px">
     <img ng-if="user.parent['72networks']" data-ng-src="images/72networks.png" alt="" style="padding-left:35px;width=100%">
 
     <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
@@ -197,7 +197,13 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo') || show_tab('add_intransitorders')" ui-sref-active="active">
+        <!-- <li ng-show="show_tab('add_openpr') || show_tab('change_openpr')" ui-sref-active="active">
+          <a ui-sref="app.inbound.RaisePr">
+            <span>Raise PR</span>
+          </a>
+        </li> -->
+        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo') || show_tab('add_intransitorders') || 
+                     show_tab('add_pendingpurchase') || show_tab('change_pendingpurchase') || show_tab('view_pendingpurchase')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePo">
             <span>Raise PO</span>
           </a>
@@ -411,13 +417,13 @@
     </li>
     <!-- /maps -->
 
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && show_tab('invoice_based_payment_tracker')">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTracker">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
       </a>
     </li>
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTrackerInvBased">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
@@ -705,6 +711,16 @@
         <li ui-sref-active="active" ng-show="user.user_profile.user_type == 'marketplace_user' && user.user_profile.industry_type == 'FMCG'">
           <a ui-sref="app.reports.BulkStockUpdate">
             <span>Bulk Stock Update</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_sellerordersummary')">
+          <a ui-sref="app.reports.CancelledInvoicesReport">
+            <span>Cancel Invoice Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.userName == 'ola_admin'">
+          <a ui-sref="app.reports.creditNoteForm">
+            <span>Credit Note Form (ORACLE Upload File)</span>
           </a>
         </li>
       </ul>

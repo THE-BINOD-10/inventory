@@ -88,7 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
-                      "po_name": "",
+                      "po_name": data.data.po_name ? data.data.po_name : "",
                       "ship_to": data.data.ship_to,
                       "terms_condition": data.data.terms_condition,
                       "receipt_type": data.data.receipt_type,
@@ -102,12 +102,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               };
               vm.model_data = {};
               angular.copy(empty_data, vm.model_data);
-
               vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
-
               vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
               vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
-
               angular.forEach(vm.model_data.data, function(data){
                 if (!data.fields.cess_tax) {
                   data.fields.cess_tax = 0;
@@ -122,19 +119,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                 if (data.message) {
                   var seller_data = data.data.sellers;
                   vm.model_data.tax = data.data.tax;
+                  vm.model_data.ship_addr_names = data.data.shipment_add_names;
+                  vm.model_data.shipment_addresses = data.data.shipment_addresses;
                   vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
                   vm.model_data.seller_type = vm.dedicated_seller;
-                  vm.model_data.warehouse_names = data.data.warehouse
+                  vm.model_data.warehouse_names = data.data.warehouse;
+                  if (vm.model_data.ship_to && vm.model_data.ship_addr_names.length > 0) {
+                    var addr_name = vm.model_data.ship_to.split(',')[0];
+                    vm.model_data.shipment_addresses.forEach(function(record){
+                      if (record['addr_name'] == addr_name){
+                        vm.model_data.shipment_address_select = record['title'];
+                      }
+                    })
+                  }
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
-
                   angular.forEach(vm.model_data.data, function(data){
-
                     data.fields.dedicated_seller = vm.dedicated_seller;
                   })
-
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
                   vm.seller_change1 = function(type) {
@@ -238,7 +242,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
     vm.base();
-
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
@@ -246,12 +249,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
-          vm.model_data.seller_supplier_map = data.data.seller_supplier_map
-          vm.model_data.terms_condition = data.data.raise_po_terms_conditions
-          vm.model_data.ship_addr_names = data.data.shipment_add_names
-          vm.model_data.shipment_addresses = data.data.shipment_addresses
-          vm.model_data.warehouse_names = data.data.warehouse
+          vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+          vm.model_data.ship_addr_names = data.data.shipment_add_names;
+          vm.model_data.shipment_addresses = data.data.shipment_addresses;
+          vm.model_data.warehouse_names = data.data.warehouse;
           vm.model_data["receipt_types"] = data.data.receipt_types;
+          vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
@@ -465,9 +468,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
       if (vm.wh_purchase_order){
         elem.push({name:'wh_purchase_order', value:true})
-      }
-      if (vm.model_data.terms_condition) {
-        elem.push({name: "terms_condition", value:vm.model_data.terms_condition});
       }
       vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {

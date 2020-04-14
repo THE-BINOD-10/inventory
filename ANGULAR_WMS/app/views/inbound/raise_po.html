@@ -1,20 +1,23 @@
-<div class="page-layout">
+<div class="page-layout" ng-controller="RaisePurchaseOrderCtrl as showCase">
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
   <div class="layout-body"> 
     <tabset class="box-tab">
-      <tab heading="Raise Purchase Order">
+      <tab heading="Raise Purchase Order" ng-if="!showCase.permissions.enable_pending_approval_pos">
         <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
       </tab>
-      <tab heading="Raise Stock Transfer" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
+      <tab heading="Raise Stock Transfer" ng-if="(show_tab('multi_warehouse') || show_tab('add_openst')) && (!showCase.permissions.enable_pending_approval_pos)">
         <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
       </tab>
-      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders')">
+      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders') && (!showCase.permissions.enable_pending_approval_pos)">
         <div ng-include="'views/inbound/raise_po/raise_intransit_orders.html'"></div>
       </tab>
-      <tab heading="Past Purchase Order" ng-if = "show_tab('repeat_po')">
+      <tab heading="Past Purchase Order" ng-if = "show_tab('repeat_po') && (!showCase.permissions.enable_pending_approval_pos)">
         <div ng-include="'views/inbound/raise_po/repeat_purchase_order.html'"></div>
+      </tab>
+      <tab heading="Pending For Approval Purchase Orders" ng-if="showCase.permissions.enable_pending_approval_pos">
+        <div ng-include="'views/inbound/raise_po/raise_purchase_request.html'"></div>
       </tab>
     </tabset>
   </div>

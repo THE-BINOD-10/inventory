@@ -1315,8 +1315,8 @@ def excel_reports(request, user=''):
         headers = report_data['aaData'][0].keys()
     if temp[1] in ['order_summary_report'] or 'tally_report' in excel_name:
         headers.extend(["Billing Address" ,"Shipping Address"])
-        headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
-        if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+        headers.extend(["Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
+        if search_params.get('tally_report'):
             headers = ['Voucher Type', 'Invoice Number','Invoice Date','Party Name','Address1','Address2','Address3','State Name',
                         'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Discount Amount','Sales Ledger',
                         'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',

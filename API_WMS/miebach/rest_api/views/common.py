@@ -2093,24 +2093,25 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
             stock_dict['sellerstock__seller_id'] = seller_id
             reserved_dict["stock__sellerstock__seller_id"] = seller_id
             raw_reserved_dict["stock__sellerstock__seller_id"] = seller_id
-        if price:
+        if price != '':
             if user.userprofile.industry_type == 'FMCG':
                 stock_dict['batch_detail__buy_price'] = price
                 reserved_dict['stock__batch_detail__buy_price'] = price
                 raw_reserved_dict['stock__batch_detail__buy_price'] = price
-            stock_dict['unit_price'] = price
-            reserved_dict['stock__unit_price'] = price
-            raw_reserved_dict['stock__unit_price'] = price
-        else:
-            custom_price = SKUMaster.objects.filter(user=user.id,id=sku_id)
-            if custom_price.exists():
-                if user.userprofile.industry_type == 'FMCG':
-                    stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
-                    reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
-                    raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
-                stock_dict['unit_price'] = custom_price[0].cost_price
-                reserved_dict['stock__unit_price'] = custom_price[0].cost_price
-                raw_reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+            else:
+                stock_dict['unit_price'] = price
+                reserved_dict['stock__unit_price'] = price
+                raw_reserved_dict['stock__unit_price'] = price
+        # else:
+        #     custom_price = SKUMaster.objects.filter(user=user.id,id=sku_id)
+        #     if custom_price.exists():
+        #         if user.userprofile.industry_type == 'FMCG':
+        #             stock_dict['batch_detail__buy_price'] = custom_price[0].cost_price
+        #             reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+        #             raw_reserved_dict['stock__batch_detail__buy_price'] = custom_price[0].cost_price
+        #         stock_dict['unit_price'] = custom_price[0].cost_price
+        #         reserved_dict['stock__unit_price'] = custom_price[0].cost_price
+        #         raw_reserved_dict['stock__unit_price'] = custom_price[0].cost_price
 
         stocks = StockDetail.objects.filter(**stock_dict).distinct()
         if not stocks:
@@ -2161,6 +2162,7 @@ def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_i
         result_data = []
         log.info('move stock location failed  for {} source location {} destination location {} quantity {}'
                  .format(wms_code, source_loc, dest_loc, quantity))
+        return 'Failed'
 
 
 def create_invnetory_adjustment_record(user, dat, quantity, reason, location, now, pallet_present, stock='', seller_id='',

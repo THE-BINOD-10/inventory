@@ -271,6 +271,14 @@ BRAND_LEVEL_PRICING_EXCEL_MAPPING =  OrderedDict((('SKU Attribute Type(Brand, Ca
                                                   ('Min Range', 'min_unit_range'), ('Max Range', 'max_unit_range'),
                                                   ('Price', 'price'), ('Discount', 'discount')))
 
+ATTRIBUTE_PRICING_EXCEL_MAPPING =  OrderedDict((
+                                                  ('attribute_type',0),
+                                                  ('attribute_value',1),
+                                                  ('price_type',2),
+                                                  ('min_unit_range',3), ('max_unit_range',4),
+                                                  ('price',5), ('discount',6)
+                                              ))
+
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
@@ -281,15 +289,15 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
-CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
+CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Period', 'CST Number', 'GSTIN Number', 'PAN Number', 'Email',
                     'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
-                    'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
+                    'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name', 'Customer Type']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('customer_code', 2), ('credit_period', 3), ('cst_number', 4), ('tin_number', 5),
      ('pan_number', 6), ('email_id', 7), ('phone_number', 8), ('city', 9), ('state', 10), ('country', 11),
      ('pincode', 12), ('address', 13), ('shipping_address', 14), ('price_type', 15), ('tax_type', 16),
-     ('discount_percentage', 17), ('markup', 18), ('spoc_name', 19),
+     ('discount_percentage', 17), ('markup', 18), ('spoc_name', 19),('customer_type', 20),
     ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
@@ -2124,6 +2132,8 @@ BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratie
                         'sindhihebbal_retail': 'Scholar Clothing Co.', 'stjosephs_retail': 'Scholar Clothing Co.'}
 
 PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Min Range', 'Max Range', 'Price', 'Discount']
+
+PRICING_MASTER_ATTRIBUTE_HEADERS = ['Attribute Name', 'Attribute Value', 'Selling Price Type', 'Min Unit Range', 'Max Unit Range', 'Price', 'Discount']
 
 PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
                                ('min_unit_range', 2), ('max_unit_range', 3),
@@ -5131,6 +5141,7 @@ def tally_dump(user,order_id,invoice_amount_picked,unit_price_inclusive_tax, gst
                               ('Qty', quantity),
                               ('Rate', float("%.2f" % data['unit_price'])),
                               ('Disc%', float("%.2f" % discount_percent)),
+                              ('Discount Amount', float("%.2f" % discount)),
                               ('Sales Ledger', 'Sales'),
                               ('Sales Amount', float(taxable_amount)),
                               ('Sgst Ledger', 'SGST'),

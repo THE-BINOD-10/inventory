@@ -211,6 +211,73 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     path_to_file = '../' + path
     return path_to_file
 
+@fn_timer
+def attribute_pricing_excel_download(search_params, temp_data, headers, user, request):
+    headers = copy.deepcopy(PRICING_MASTER_ATTRIBUTE_HEADERS)
+    excel_mapping = copy.deepcopy(ATTRIBUTE_PRICING_EXCEL_MAPPING)
+
+    status_dict = {'1': 'Active', '0': 'Inactive'}
+
+    search_terms = {}
+    if search_params.get('search_0',''):
+        search_terms["attribute_type__icontains"] = search_params.get('search_0','')
+    if search_params.get('search_1',''):
+        search_terms["attribute_value__icontains"] = search_params.get('search_1','')
+    if search_params.get('search_2',''):
+        search_terms["price_type__icontains"] = search_params.get('search_2','')
+    if search_params.get('search_3',''):
+        search_terms["min_unit_range__icontains"] = search_params.get('search_3','')
+    if search_params.get('search_4',''):
+        search_terms["max_unit_range__icontains"] = search_params.get('search_4','')
+    if search_params.get('search_5',''):
+        search_terms["price__icontains"] = search_params.get('search_5','')
+    if search_params.get('search_6',''):
+        search_terms["discount__icontains"] = search_params.get('search_6','')
+    
+    search_terms["user"] =  user.id
+    price_master = PriceMaster.objects.filter(user=request.user.id)
+    excel_headers = headers
+
+    file_type = 'xls'
+    wb, ws = get_work_sheet('price', excel_headers)
+    file_name = "%s.%s" % (user.username, 'Attribute Wise Price Master')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if price_master.count() > 65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+        ws = ''
+    path = folder_path + file_name + '.' + file_type
+
+    data_count = 0
+    for data in price_master:
+        data_count += 1
+
+        ws = write_excel(ws, data_count, excel_mapping['attribute_type'], data.attribute_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['attribute_value'], data.attribute_value, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price_type'], data.price_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['min_unit_range'], data.min_unit_range, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['max_unit_range'], data.max_unit_range, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price'], data.price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['discount'], data.discount, file_type)
+        
+        if file_type == 'csv':
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
+
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
+    path_to_file = '../' + path
+    return path_to_file
+
 
 @fn_timer
 def central_orders_excel_download(filter_params, user, request):
@@ -401,6 +468,9 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'CentralOrders' and request.user.username.lower() == '72networks':
             excel_data = central_orders_excel_download(filter_params, user, request)
             return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'AttributePricingMaster':
+            excel_data = attribute_pricing_excel_download(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
     temp_data['draw'] = search_params.get('draw')
     start_index = search_params.get('start')
     stop_index = start_index + search_params.get('length')
@@ -432,6 +502,9 @@ def results_data(request, user=''):
             if not ('search' in key or key in ['datatable', 'excel']):
                 headers[key] = value
         #excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
+        if request.POST.get('datatable', '') == 'CustomerMaster':
+            headers.update({'credit_period':'Credit Period','pan_number':'PAN Number', 'city':'City','state':'State','country':'Country',
+                'tin_number':'GSTIN Number', 'customer_type':'Customer Type', 'shipping_address':'Shipping Address','discount_percentage':'Discount Percentage' })
         file_type = 'xls'
         if len(temp_data['aaData']) > 65535:
             file_type = 'csv'

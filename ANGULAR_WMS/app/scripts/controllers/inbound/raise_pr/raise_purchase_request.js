@@ -453,7 +453,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
-            vm.service.pop_msg(data.data);
+            vm.service.showNoty(data.data);
           }
         }
       })
@@ -485,9 +485,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
+      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true', {withCredential: true})
       .success(function(data, status, headers, config) {
-        vm.service.print_data(data, vm.model_data.po_number);
+        vm.service.print_data(data, vm.model_data.pr_number);
       });
     }
 
@@ -694,13 +694,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
           data.push({name: 'pr_number', value: temp['_aData']["PR Number"]});
           data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
+          data.push({name: 'is_actual_pr', value:true});
         }
       });
       vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
         if(data.message) {
-           vm.bt_disable = true;
-           vm.selectAll = false;
-           vm.service.refresh(vm.dtInstance);
+          if (data.data == 'Deleted Successfully') {
+            vm.bt_disable = true;
+            vm.selectAll = false;
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
         }
       });
    }

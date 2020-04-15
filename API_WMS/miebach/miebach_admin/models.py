@@ -491,6 +491,7 @@ class OpenPO(models.Model):
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    prefix = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     delivery_date = models.DateField(blank=True, null=True)
@@ -514,6 +515,7 @@ class PendingPO(models.Model):
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPOs')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
+    prefix = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
@@ -532,7 +534,6 @@ class PendingLineItems(models.Model):
     pending_pr = models.ForeignKey(PendingPR, related_name='pending_prlineItems', blank=True, null=True)
     pending_po = models.ForeignKey(PendingPO, related_name='pending_polineItems', blank=True, null=True)
     purchase_type = models.CharField(max_length=32, default='')
-    prefix = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster, related_name='pendingLineItems', db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)

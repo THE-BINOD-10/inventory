@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "Total Quantity", "Total Amount", 
+    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "Approved PRs", "Total Quantity", "Total Amount", 
                     "PO Created Date", "PO Delivery Date", "Warehouse",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];
@@ -179,6 +179,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
+            }
+            if (!data.fields.utgst_tax) {
+              data.fields.utgst_tax = 0;
             }
           });
 
@@ -453,40 +456,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
-            vm.service.pop_msg(data.data);
+            vm.service.showNoty(data.data);
           }
         }
       })
     }
 
     vm.print_pending_po = function(form, validation_type) {
-      // var elem = angular.element($('form'));
-      // elem = elem[0];
-      // elem = $(elem).serializeArray();
-      // // if (vm.is_purchase_request){
-      //   elem.push({name:'is_purchase_request', value:true})
-      // }
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
       $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
       .success(function(data, status, headers, config) {
-//        $(".modal-body").html($(data).html());
           vm.service.print_data(data, vm.model_data.po_number);
-//        vm.print_page = $($(data).html()).clone();
-//        vm.print_enable = true;
       });      
-
-      // vm.service.apiCall('print_pending_po_form/', 'POST', elem, true).then(function(data){
-      //   if(data.message){
-      //     if(data.data == 'Approved Successfully') {
-      //       vm.close();
-      //       vm.service.refresh(vm.dtInstance);
-      //     } else {
-      //       vm.service.pop_msg(data.data);
-      //     }
-      //   }
-      // })
     }
 
     vm.barcode = function() {
@@ -696,9 +676,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
       vm.service.apiCall('cancel_pr/', 'POST', data, true).then(function(data){
         if(data.message) {
-           vm.bt_disable = true;
-           vm.selectAll = false;
-           vm.service.refresh(vm.dtInstance);
+          if (data.data == 'Deleted Successfully') {
+            vm.bt_disable = true;
+            vm.selectAll = false;
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
         }
       });
    }

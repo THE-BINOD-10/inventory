@@ -849,10 +849,11 @@ def pr_request(request):
     fieldsMap = {}
     if prApprObj.pending_pr:
         lineItems = prApprObj.pending_pr.pending_prlineItems
+        prefix = prApprObj.pending_pr.prefix
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 
                         'pending_pr__requested_user__username', 'pending_pr__pr_number', 
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',  
-                        'prefix', 'pending_pr__delivery_date']
+                        'pending_pr__delivery_date']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -861,15 +862,15 @@ def pr_request(request):
                     'final_status': 'pending_pr__final_status',
                     'pending_level': 'pending_pr__pending_level',
                     'remarks': 'pending_pr__remarks',
-                    'prefix': 'prefix',
                     'delivery_date': 'pending_pr__delivery_date',
                 }
     else:
         lineItems = prApprObj.pending_po.pending_polineItems
+        prefix = prApprObj.pending_po.prefix
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
                         'pending_po__requested_user__username', 'pending_po__po_number', 
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
-                        'prefix', 'pending_po__delivery_date']
+                        'pending_po__delivery_date']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -878,7 +879,6 @@ def pr_request(request):
                     'final_status': 'pending_po__final_status',
                     'pending_level': 'pending_po__pending_level',
                     'remarks': 'pending_po__remarks',
-                    'prefix': 'prefix',
                     'delivery_date': 'pending_po__delivery_date',
                 }
 
@@ -923,7 +923,7 @@ def pr_request(request):
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result[fieldsMap['prefix']], dateInPO, result[fieldsMap['purchase_number']])
+        po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], result['total_amt'])
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']], 

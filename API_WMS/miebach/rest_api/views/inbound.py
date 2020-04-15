@@ -185,7 +185,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                     'pending_po__requested_user__username', 'pending_po__po_number', 
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level', 
                     'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name', 
-                    'prefix', 'pending_po__delivery_date']
+                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -205,13 +205,18 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
+    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
+    POtoPRsMap = {}
+    for eachPO, pr_number in approvedPRQs:
+        POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
     for result in results[start_index: stop_index]:
         warehouse = user.first_name
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
+        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['prefix'], dateInPO, result['pending_po__po_number'])
+        po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'])
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user, 
@@ -241,12 +246,11 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                 else:
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], 
                                         pr_user=user, level=result['pending_po__pending_level'])
-                    # last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                    # last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
+                                                ('Approved PRs', approvedPRs),
                                                 ('Supplier ID', result['pending_po__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
@@ -1119,116 +1123,85 @@ def generated_actual_pr_data(request, user=''):
 @get_admin_user
 def print_pending_po_form(request, user=''):
     po_id = request.GET.get('po_id', '')
+    is_actual_pr = request.GET.get('is_actual_pr', '')
+    purchase_number = int(po_id.split('_')[-1])
+    filtersMap = {'wh_user': user.id}
+    if is_actual_pr == 'true':
+        model_name = PendingPR
+        filtersMap['pr_number'] = purchase_number
+    else:
+        model_name = PendingPO
+        filtersMap['po_number'] = purchase_number
     total_qty = 0
     total = 0
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
-    po_number = int(po_id.split('_')[-1])
-    pendingPO = PendingPurchase.objects.filter(sku__user=user.id, po_number=po_number)
-    po_sku_ids = pendingPO.values_list('sku_id', flat=True)
-    # ean_flag = False
-    # ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
-    #                                     id__in=po_sku_ids, user=user.id)
-    # if ean_data:
-    #     ean_flag = True
-    # show_cess_tax = pendingPO.filter(open_po__cess_tax__gt=0).exists()
-    # show_apmc_tax = pendingPO.filter(open_po__apmc_tax__gt=0).exists()
+    pendingPurchaseQs = model_name.objects.filter(**filtersMap)
+    if pendingPurchaseQs.exists():
+        pendingPurchaseObj = pendingPurchaseQs[0]
+        if is_actual_pr == 'true':
+            lineItems = pendingPurchaseObj.pending_prlineItems
+        else:
+            lineItems = pendingPurchaseObj.pending_polineItems
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
-    if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-        # if user.username in MILKBASKET_USERS:
-        #     table_headers.insert(4, 'Weight')
-    else:
-        table_headers = ['SKU Code','SKU Desc','Supplier Code', 'Qty', 'UOM', 'Unit Price',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-    # if ean_flag:
-    #     table_headers.insert(1, 'EAN')
+    table_headers = ['SKU Code','SKU Desc','Supplier Code', 'Qty', 'UOM', 'Unit Price',
+                     'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if display_remarks == 'true':
         table_headers.append('Remarks')
-    # if show_cess_tax:
-    #     table_headers.insert(table_headers.index('Total'), 'CESS (%)')
-    # if show_apmc_tax:
-    #     table_headers.insert(table_headers.index('Total'), 'APMC (%)')
-    for order in pendingPO:
+    values_list = ['quantity', 'price', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax',
+        'sku__sku_code', 'sku__sku_desc', 'measurement_unit']
+    for order in lineItems.values(*values_list):
         # open_po = order.open_po
-        total_qty += order.quantity
-        amount = order.quantity * order.price
-        tax = order.cgst_tax + order.sgst_tax + order.igst_tax + order.utgst_tax
+        total_qty += order['quantity']
+        amount = order['quantity'] * order['price']
+        tax = order['cgst_tax'] + order['sgst_tax'] + order['igst_tax'] + order['utgst_tax']
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (tax) * (amount / 100)
         total_sku_amt = total_tax_amt + amount
-        # if user.userprofile.industry_type == 'FMCG':
-        #     po_temp_data = [order.sku.sku_code, order.supplier_code, order.sku.sku_desc,
-        #                     order.order_quantity, order.measurement_unit, order.price, order.mrp, amount,
-        #                     order.sgst_tax, order.cgst_tax, order.igst_tax,
-        #                     order.utgst_tax, total_sku_amt]
-        #     if user.username in MILKBASKET_USERS:
-        #         weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
-        #             only('attribute_value')
-        #         weight = ''
-        #         if weight_obj.exists():
-        #             weight = weight_obj[0].attribute_value
-        #         po_temp_data.insert(4, weight)
-        # else:
-        po_temp_data = [order.sku.sku_code, order.sku.sku_desc,'',
-                        order.quantity, order.measurement_unit, order.price, amount,
-                        order.sgst_tax, order.cgst_tax, order.igst_tax,
-                        order.utgst_tax, total_sku_amt]
+        po_temp_data = [order['sku__sku_code'], order['sku__sku_desc'],'',
+                        order['quantity'], order['measurement_unit'], order['price'], amount,
+                        order['sgst_tax'], order['cgst_tax'], order['igst_tax'],
+                        order['utgst_tax'], total_sku_amt]
 
-        # if ean_flag:
-        #     ean_number = ''
-        #     eans = get_sku_ean_list(open_po.sku)
-        #     if eans:
-        #         ean_number = eans[0]
-        #     po_temp_data.insert(1, ean_number)
-        # if show_cess_tax:
-        #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
-        # if show_apmc_tax:
-        #     po_temp_data.insert(table_headers.index('APMC (%)'), open_po.apmc_tax)
-        if display_remarks == 'true':
-            po_temp_data.append(open_po.remarks)
-        # if show_cess_tax:
-        #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
         po_data.append(po_temp_data)
-    order = pendingPO[0]
-    # open_po = order.open_po
-    address = order.supplier.address
-    address = '\n'.join(address.split(','))
-    # vendor_name = ''
-    # vendor_address = ''
-    # vendor_telephone = ''
-    # if open_po.order_type == 'VR':
-    #     vendor_address = open_po.vendor.address
-    #     vendor_address = '\n'.join(vendor_address.split(','))
-    #     vendor_name = open_po.vendor.name
-    #     vendor_telephone = open_po.vendor.phone_number
-    telephone = order.supplier.phone_number
-    name = order.supplier.name
-    order_id = order.po_number
-    gstin_no = order.supplier.tin_number
-    # if open_po:
-    address = order.supplier.address
-    address = '\n'.join(address.split(','))
+    order = pendingPurchaseQs[0]
+    terms_condition = ''
+    if is_actual_pr != 'true':
+        order_id = order.po_number
+        address = order.supplier.address
+        address = '\n'.join(address.split(','))
+        telephone = order.supplier.phone_number
+        name = order.supplier.name
+        gstin_no = order.supplier.tin_number
+        address = order.supplier.address
+        address = '\n'.join(address.split(','))
+        telephone = order.supplier.phone_number
+        name = order.supplier.name
+        supplier_email = order.supplier.email_id
+        gstin_no = order.supplier.tin_number
+        if order.supplier.lead_time:
+            lead_time_days = order.supplier.lead_time
+            replace_date = get_local_date(request.user,
+                                          order.creation_date + datetime.timedelta(days=int(lead_time_days)),
+                                          send_date='true')
+            date_replace_terms = replace_date.strftime("%d-%m-%Y")
+            terms_condition = terms_condition.replace("%^PO_DATE^%", date_replace_terms)
+        else:
+            terms_condition = terms_condition.replace("%^PO_DATE^%", '')
+    else:
+        order_id = order.pr_number
+        address = ''
+        telephone = ''
+        name = ''
+        supplier_email = ''
+        gstin_no = ''
     if order.ship_to:
         ship_to_address = order.ship_to
-        if user.userprofile.wh_address:
-            company_address = user.userprofile.wh_address
-        else:
-            company_address = user.userprofile.address
+        company_address = user.userprofile.address
     else:
         ship_to_address, company_address = get_purchase_company_address(user.userprofile)
     ship_to_address = '\n'.join(ship_to_address.split(','))
-    telephone = order.supplier.phone_number
-    name = order.supplier.name
-    supplier_email = order.supplier.email_id
-    gstin_no = order.supplier.tin_number
-    # if open_po.order_type == 'VR':
-    #     vendor_address = open_po.vendor.address
-    #     vendor_address = '\n'.join(vendor_address.split(','))
-    #     vendor_name = open_po.vendor.name
-    #     vendor_telephone = open_po.vendor.phone_number
     terms_condition = ''
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
@@ -1244,15 +1217,6 @@ def print_pending_po_form(request, user=''):
     tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
-    if order.supplier.lead_time:
-        lead_time_days = order.supplier.lead_time
-        replace_date = get_local_date(request.user,
-                                      order.creation_date + datetime.timedelta(days=int(lead_time_days)),
-                                      send_date='true')
-        date_replace_terms = replace_date.strftime("%d-%m-%Y")
-        terms_condition = terms_condition.replace("%^PO_DATE^%", date_replace_terms)
-    else:
-        terms_condition = terms_condition.replace("%^PO_DATE^%", '')
 
     data_dict = {
         'table_headers': table_headers,
@@ -2315,9 +2279,10 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             lineItems = openPurchaseObj.pending_polineItems
         else:
             lineItems = openPurchaseObj.pending_prlineItems
+        prefix = openPurchaseObj.prefix
     if lineItems.exists():
         result = openPurchaseQs[0]
-        prefix = lineItems.values()[0]['prefix']
+        # prefix = lineItems.values()[0]['prefix']
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
         # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
@@ -2474,6 +2439,9 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
             'final_status': orderStatus,
             'remarks': firstEntryValues['approval_remarks'],
         }
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    if user_profile:
+        purchaseMap['prefix'] = user_profile[0].prefix
     if is_po_creation:
         model_name = PendingPO
         purchaseMap['po_number'] = purchase_number
@@ -2545,9 +2513,6 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
             'purchase_type': purchase_type,
             'sku_id': sku_id[0].id,
         }
-        user_profile = UserProfile.objects.filter(user_id=user.id)
-        if user_profile:
-            pendingLineItems['prefix'] = user_profile[0].prefix
         try:
             pendingLineItems['quantity'] = float(value['order_quantity'])
         except:
@@ -2723,9 +2688,17 @@ def save_pr(request, user=''):
 def cancel_pr(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     supplier_id = request.POST.get('supplier_id', '')
+    is_actual_pr = request.POST.get('is_actual_pr', '')
     if not pr_number:
         return HttpResponse("Please Select PO to Delete")
-    prQs = PendingPurchase.objects.filter(pr_number=pr_number, sku__user=user.id)
+    filtersMap = {'wh_user': user.id}
+    if is_actual_pr == 'true':
+        model_name = PendingPR
+        filtersMap['pr_number'] = pr_number
+    else:
+        model_name = PendingPO
+        filtersMap['po_number'] = pr_number
+    prQs = model_name.objects.filter(**filtersMap)
     if prQs.exists():
         prQs.update(final_status='cancelled')
     return HttpResponse("Deleted Successfully")

@@ -638,13 +638,18 @@ def get_or_none(model_obj, search_params):
     return data
 
 
-def get_misc_value(misc_type, user, number=False):
+def get_misc_value(misc_type, user, number=False,boolean=False):
     misc_value = 'false'
     if number:
         misc_value = 0
     data = MiscDetail.objects.filter(user=user, misc_type=misc_type)
     if data:
         misc_value = data[0].misc_value
+    if boolean:
+        if misc_value == 'true':
+            return True
+        else:
+            return False
     return misc_value
 
 
@@ -10888,3 +10893,5 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
+
+

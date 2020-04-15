@@ -4607,7 +4607,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         order__sku__sku_code=sku_code, order__user=user.id,**filter_params)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
-                    if not order_detail:
+                    if not order_detail and seller_order.exists() :
                         order_detail = seller_order[0].order
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
@@ -4635,7 +4635,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 order_quantity = order_quantity - order_detail.quantity
             if order_quantity  < return_quantity + float(quantity):
                 index_status.setdefault(row_idx, set()).add(
-                    'Returned Quantity is more than Order Quantity {} Quantity Already Returned ', return_quantity)
+                    'Returned Quantity is more than Order Quantity  Quantity Already Returned '+str(return_quantity))
 
     if not index_status:
         return 'Success'
@@ -4665,6 +4665,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     for row_idx in range(1, no_of_rows):
         all_data = []
         order_data = copy.deepcopy(UPLOAD_SALES_ORDER_DATA)
+        order_detail = []
         seller_order,seller = '',''
         batch_data = {}
         if not order_mapping:
@@ -4745,12 +4746,16 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_data['seller_id'] = seller_order.seller_id
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
+                if get_misc_value('auto_allocate_sale_order',user.id,number=True,boolean=True):
+                    order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
                                                                       sellerorder__seller__seller_id=seller_id,
                                                                       sku__wms_code=sku_code). \
-                    annotate(ret=Sum(F('orderreturns__quantity')),
-                             dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
-                    filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+                        annotate(ret=Sum(F('orderreturns__quantity')),
+                                dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
+                        filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+                    if user.username in MILKBASKET_USERS:
+                        order_detail = order_detail.order_by('-creation_date')
+
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:

@@ -47,6 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
                     'mandate_ewaybill_number':false,
+                    'auto_allocate_sale_order':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -83,6 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
+                     107: 'auto_allocate_sale_order',
                      }
 
   vm.check_box_data = [
@@ -622,6 +624,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Mandate EwayBillNumber in ShipmentInfo",
    model_name: "mandate_ewaybill_number",
    param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Auto Allocate Sale Order",
+   model_name: "auto_allocate_sale_order",
+   param_no: 107,
    class_name: "fa fa-server",
    display: true
   },

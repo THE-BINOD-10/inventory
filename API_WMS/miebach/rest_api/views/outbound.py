@@ -12049,6 +12049,8 @@ def generate_stock_transfer_invoice(request, user=''):
                         stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)
             else:
                 total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
+                stock_transfer_summary.update(invoice_number=invoice_number, full_invoice_number=full_invoice_number,
+                                              invoice_date=invoice_date)
             price = rate * total_picked_quantity
             total_quantity+=total_picked_quantity
             cgst_amt, sgst_amt ,igst_amt,gst = 0,0,0,0

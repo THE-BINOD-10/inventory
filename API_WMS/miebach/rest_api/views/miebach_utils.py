@@ -534,7 +534,7 @@ STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_d
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'WareHouse Name', 'name': 'sister_warehouse', 'type': 'select'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-            'dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
+            'dt_headers': ['GRN Number', 'Warehouse ID', 'Warehouse Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
             'dt_url': 'get_st_po_filter', 'excel_name': 'st_goods_receipt', 'print_url': '',
             }
@@ -591,7 +591,7 @@ SKU_WISE_ST_GRN_DICT = {'filters' : [
                         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
                         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
             ],
-        'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+        'dt_headers': ["Received Date", "PO Date", "GRN Number", "Warehouse ID", "Warehouse Name", "Recepient",
                        "SKU Code", "SKU Description", "SKU Category","Sub Category","SKU Brand", "HSN Code", "SKU Class", "SKU Style Name",
                        "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "CGST",
@@ -3892,9 +3892,9 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
             gst_num = user_profile.gst_number
         ord_dict = OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
-                            ('PO Number', po_number),
-                            ('Supplier ID', data[field_mapping['supplier_id']]),
-                            ('Supplier Name', data[field_mapping['supplier_name']]),
+                            ('GRN Number', po_number),
+                            ('Warehouse ID', data[field_mapping['supplier_id']]),
+                            ('Warehouse Name', data[field_mapping['supplier_name']]),
                             ('Recepient', user.userprofile.company_name),
                             ('SKU Code', data['purchase_order__stpurchaseorder__open_st__sku__sku_code']),
                             ('SKU Description', data['purchase_order__stpurchaseorder__open_st__sku__sku_desc']),
@@ -4131,9 +4131,9 @@ def get_st_po_filter_data(search_params, user, sub_user):
                 received_qty = 0
         #if data['grn_rec']:
         #    received_qty = data['grn_rec']
-        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
-                                                ('WareHouse ID', data[field_mapping['supplier_id']]),
-                                                ('WareHouse Name', data[field_mapping['supplier_name']]),
+        temp_data['aaData'].append(OrderedDict((('GRN Number', po_number),
+                                                ('Warehouse ID', data[field_mapping['supplier_id']]),
+                                                ('Warehouse Name', data[field_mapping['supplier_name']]),
                                                 ('Order Quantity', total_ordered),
                                                 ('Received Quantity', received_qty),
                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),

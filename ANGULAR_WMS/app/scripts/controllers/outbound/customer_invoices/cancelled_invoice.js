@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CustomerInvoicesTabCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', ServerSideProcessingCtrl]);
+  .controller('CancelInvoicesTabCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal) {
 
@@ -21,7 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var send = {'tabType': 'CustomerInvoices'};
     vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
       if(data.message) {
-        vm.filters = {'datatable': 'CustomerInvoicesTab', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+        vm.filters = {'datatable': 'CustomerInvoicesTab', 'search0':'', 'search1':'', 'search2': '', 'search3': '','cancel_invoice':1}
         vm.dtOptions = DTOptionsBuilder.newOptions()
           .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -202,11 +202,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                             }
                           });
                         }
-                  
+
                         if(status) {
                           vm.service.showNoty("Please select same "+field_name+"'s");
                         } else {
-                  
+
                           var ids = data.join(",");
                           var url = 'move_to_inv/';
                           var send = {seller_summary_id: ids};
@@ -614,18 +614,3 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
 }
 stockone = angular.module('urbanApp');
-
-stockone.controller('EditInvoice', ['$scope', '$http', '$q', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
-
-stockone.directive('genericCustomerInvoiceData', function() {
-  return {
-    restrict: 'E',
-    scope: {
-      invoice_data: '=data',
-    },
-    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
-    link: function(scope, element, attributes, $http, Service){
-      console.log(scope);
-    }
-  };
-});

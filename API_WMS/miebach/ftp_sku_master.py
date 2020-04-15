@@ -87,7 +87,7 @@ def make_df_from_excel(file_name, nrows):
     st = validate_(df,file_split,file_name)
     if not st:
         return False
-    gomech_users = ['gomechanic_admin', 'gomechanic_gurgaon','gomechanic_mumbai', 'gomechanic_bangalore']
+    gomech_users = ['GM_admin', 'GM_BOM', 'GM_DEL', 'GM_BLR']
     for username in gomech_users:
         print(username)
         user = User.objects.get(username=username)

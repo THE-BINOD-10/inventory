@@ -1557,13 +1557,13 @@ def get_orders(request):
             picked_quantity_sku -= dispatched_quantity
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
-                         'status':sku_status,'unit_price':data.unit_price,
-                         'shipment_charge':charge_amount, 'discount_amount':'',
+                         'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
+                         'shipment_charge':float('%.2f' % charge_amount), 'discount_amount':'',
                          'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
             shipping_address = {"address": data_dict[0].address}
             if order_summary.exists():
                 discount_amount = order_summary[0].discount
-                item_dict['discount_amount'] = discount_amount
+                item_dict['discount_amount'] = float('%.2f' % discount_amount)
                 consignee = order_summary[0].consignee
                 if consignee:
                     shipping_address["address"] = consignee

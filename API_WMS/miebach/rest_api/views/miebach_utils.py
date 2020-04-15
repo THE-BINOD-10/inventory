@@ -8348,7 +8348,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     bundle = attribute.attribute_value
 
         ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
-                                                ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
+                                                ('Quantity',quantity ),('Status',status),('Net Value',float("%.2f" % net_value)),\
                                                 ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',float("%.2f" %price)),('Total Value',float("%.2f" % total)),\
                                                 ('Source Location',user.username),('Destination',destination)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':

@@ -11979,7 +11979,8 @@ def generate_stock_transfer_invoice(request, user=''):
     warehouse_id = get_stock_transfer[0].st_po.open_st.sku.user
     order_date = get_stock_transfer[0].creation_date
     invoice_date = ''
-    interfix , prefix, date_type = '','',''
+
+    interfix , prefix, date_type,full_invoice_number, invoice_number = '','','','',''
     prefix_obj= UserTypeSequence.objects.filter(user=user.id,type_name='stock_transfer_invoice',type_value = 'Offline')
     if prefix_obj.exists():
         interfix = prefix_obj[0].interfix
@@ -12020,37 +12021,38 @@ def generate_stock_transfer_invoice(request, user=''):
                 stock_transfer_summary =StockTransferSummary.objects.filter(stock_transfer_id=stock_transfer.id,pick_number__in=data.get('pick_number'))
                 if not stock_transfer_summary.exists():
                     continue
+                if full_invoice_number:
+                    stock_transfer_summary.update(invoice_number=invoice_number,
+                                                  full_invoice_number=full_invoice_number, invoice_date=invoice_date)
+
                 total_picked_quantity = stock_transfer_summary.aggregate(tot_quantity=Sum('quantity'))['tot_quantity']
-                if not full_invoice_number :
-                    if stock_transfer_summary[0].invoice_number:
-                        invoice_number = stock_transfer_summary[0].invoice_number
-                        full_invoice_number = stock_transfer_summary[0].full_invoice_number
-                        invoice_date = stock_transfer_summary[0].invoice_date
+                if stock_transfer_summary[0].invoice_number:
+                    invoice_number = stock_transfer_summary[0].invoice_number
+                    full_invoice_number = stock_transfer_summary[0].full_invoice_number
+                    invoice_date = stock_transfer_summary[0].invoice_date
+                else:
+                    invoice_date = stock_transfer_summary[0].creation_date
+                    in_obj = IncrementalTable.objects.filter(user=user.id,type_name='stock_transfer_invoice')
+                    if in_obj.exists():
+                        invoice_number = in_obj[0].value
+                        in_obj.update(value=invoice_number+1)
                     else:
-                        invoice_date = stock_transfer_summary[0].creation_date
-                        in_obj = IncrementalTable.objects.filter(user=user.id,type_name='stock_transfer_invoice')
-                        if in_obj.exists():
-                            invoice_number = in_obj[0].value
-                            in_obj.update(value=invoice_number+1)
-                        else:
-                            invoice_number = 1
-                            in_obj = IncrementalTable.objects.create(user=user, type_name='stock_transfer_invoice',value =invoice_number+1)
-                        date_format = invoice_date.strftime('%m%y')
-                        if prefix:
-                            if date_type == 'financial':
-                                date_format = get_financial_year(invoice_date)
-                            full_invoice_number = '{}/{}/{}'.format(prefix,
-                                                                       date_format,
-                                                                       str(invoice_number).zfill(3))
-                        else:
-                            full_invoice_number = '{}/{}/{}'.format(user_profile.prefix,
-                                                                         date_format,
-                                                                       str(invoice_number).zfill(3))
-                        stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)
+                        invoice_number = 1
+                        in_obj = IncrementalTable.objects.create(user=user, type_name='stock_transfer_invoice',value =invoice_number+1)
+                    date_format = invoice_date.strftime('%m%y')
+                    if prefix:
+                        if date_type == 'financial':
+                            date_format = get_financial_year(invoice_date)
+                        full_invoice_number = '{}/{}/{}'.format(prefix,
+                                                                   date_format,
+                                                                   str(invoice_number).zfill(3))
+                    else:
+                        full_invoice_number = '{}/{}/{}'.format(user_profile.prefix,
+                                                                     date_format,
+                                                                   str(invoice_number).zfill(3))
+                    stock_transfer_summary.update(invoice_number=invoice_number,full_invoice_number =full_invoice_number,invoice_date=invoice_date)
             else:
                 total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
-                stock_transfer_summary.update(invoice_number=invoice_number, full_invoice_number=full_invoice_number,
-                                              invoice_date=invoice_date)
             price = rate * total_picked_quantity
             total_quantity+=total_picked_quantity
             cgst_amt, sgst_amt ,igst_amt,gst = 0,0,0,0

@@ -77,9 +77,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).bind('click', function() {
             if (vm.g_data.view == 'StockSummary'){
             $scope.$apply(function() {
-                vm.service.apiCall('stock_summary_data', 'GET', {wms_code: aData['WMS Code']}).then(function(data){
+                vm.service.apiCall('stock_summary_data', 'GET', {wms_code: aData['SKU Code']}).then(function(data){
                   if(data.message) {
-                    vm.wms_code = aData['WMS Code'];
+                    vm.wms_code = aData['SKU Code'];
                     angular.copy(data.data, vm.model_data);
                     vm.model_data["sku_data"] = aData;
                     $state.go('app.stockLocator.StockSummary.Detail');

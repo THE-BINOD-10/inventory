@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 return vm.service.frontHtml + meta.row + vm.service.endHtml+full[""];
             }).notSortable(),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Physical Quantity').withTitle('Physical Quantity'),

@@ -172,7 +172,7 @@
         <tbody>
           <tr ng-repeat="data in showCase.model_data.data">
             <td>
-	          <input type="text" autocomplete="off" placeholder="Search WMS Code" 
+	          <input type="text" autocomplete="off" placeholder="Search SKU Code"
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
 	          typeahead-loading="loadingLocations"class="form-control" name="item_code" ng-model="data.item_code" 
 	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">

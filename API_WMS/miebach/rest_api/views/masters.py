@@ -227,7 +227,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
         temp_data['aaData'].append(OrderedDict(
-            (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
+            (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),

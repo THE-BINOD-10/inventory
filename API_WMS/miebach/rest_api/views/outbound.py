@@ -12020,7 +12020,7 @@ def generate_stock_transfer_invoice(request, user=''):
     for stock_transfer in get_stock_transfer:
         try:
             shipment_date = str(stock_transfer.updation_date)
-            invoice_date = str(stock_transfer.creation_date)
+            invoice_date = stock_transfer.creation_date
             cgst_tax = stock_transfer.st_po.open_st.cgst_tax
             sgst_tax = stock_transfer.st_po.open_st.sgst_tax
             igst_tax = stock_transfer.st_po.open_st.igst_tax
@@ -12079,14 +12079,14 @@ def generate_stock_transfer_invoice(request, user=''):
             hsn_code = stock_transfer.sku.hsn_code
         except:
             continue
-        data = {'order_id' : order_id, 'picked_quantity' : total_picked_quantity,'price':price,
+        final_data = {'order_id' : order_id, 'picked_quantity' : total_picked_quantity,'price':price,
                 'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'unit_price' : rate,
                 'igst_amt':igst_amt, 'cgst_amt':cgst_amt , 'sgst_amt':sgst_amt,'hsn_code':hsn_code,
                 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
                 'sku_code' : sku, 'invoice_date' : '',
                 'to_warehouse' : to_warehouse, 'title' : sku_description,
                 'invoice_number' : '' }
-        resp_list['data'].append(data)
+        resp_list['data'].append(final_data)
     if invoice_date:
         invoice_date = invoice_date.strftime("%d %b %Y")
     order_date =  order_date.strftime("%d %b %Y")

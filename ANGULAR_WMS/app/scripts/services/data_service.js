@@ -158,7 +158,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Quantity', 'Picked Quantity']}
                            }
@@ -170,7 +170,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
@@ -179,9 +179,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
+                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity','Cancelled Quantity']}
                            }
     }
 

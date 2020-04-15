@@ -849,6 +849,11 @@ def get_sku_data(request, user=''):
     sku_data['block_options'] = 'No'
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
+    substitutes_list = []
+    if data.substitutes:
+        substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
+    substitutes_list = ','.join(map(str, substitutes_list))
+    sku_data['substitutes'] = substitutes_list
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1083,6 +1088,11 @@ def update_sku(request, user=''):
                 ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
                 if ean_status:
                     return HttpResponse(ean_status)
+            elif key == 'substitutes':
+                substitutes = value.split(',')
+                subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
+                if subs_status:
+                    return HttpResponse(subs_status)
 
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')

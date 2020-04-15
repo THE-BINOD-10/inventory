@@ -8266,7 +8266,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
             invoice_number = data.stocktransfersummary_set.filter()[0].full_invoice_number
             for invoice_no in data.stocktransfersummary_set.filter():
                 invoice_number = invoice_no.full_invoice_number
-                invoice_data = StockTransferSummary.objects.filter(stock_transfer__sku__sku_user = user.id,
+                invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
                                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values('quantity')
                 if invoice_data.exists():
                     invoice_quantity = invoice_data[0]['quantity']

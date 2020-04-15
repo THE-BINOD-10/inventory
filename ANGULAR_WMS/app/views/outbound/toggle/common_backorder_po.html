@@ -69,7 +69,7 @@
                     <input type="text" name="quantity" class="form-control" ng-model="product.quantity" ng-class="service.get_decimal_perm()">
                   </td>
                   <td>
-                    <input type="text" name="price" ng-model="product.price" class="form-control" decimal-number>
+                    <input type="text" name="price" ng-model="product.price" class="form-control" decimal-number title="{{product.price}}">
                   </td>
                   <td>
                     <input type="text" ng-model="product.taxes.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="pop.taxChange(product);" ng-debounce readonly>

@@ -606,7 +606,7 @@ SKU_WISE_ST_GRN_DICT = {'filters' : [
                             "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
                            "Challan Number", "Challan Date", "Remarks", "Updated User", "GST NO", "LR-NUMBER"],
-        'dt_url': 'get_sku_wise_st_po_filter', 'excel_name': 'st_goods_receipt', 'print_url': '',
+        'dt_url': 'get_sku_wise_st_po_filter', 'excel_name': 'sku_wise_st_goods_receipt', 'print_url': '',
        }
 
 SKU_WISE_RTV_DICT = {'filters' : [

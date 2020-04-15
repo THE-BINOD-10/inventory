@@ -8331,7 +8331,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
                                             'remarks': data['remarks'],
                                             'customer_name':data['order__customer_name'],
                                             'customer_id': data['order__customer_id'],
-                                            'invoice_amount': round(picked_amount),
+                                            'invoice_amount': float('%.2f' % picked_amount),
                                             'payment_received':0
                                             })
         data_dict[grouping_key]['payment_received'] += data['payments_received'] 
@@ -8339,6 +8339,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
     temp_data['recordsTotal'] =len(order_data_loop)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data1 in order_data_loop[start_index:stop_index]:
+        data1['payment_received'] = float('%.2f' % data1['payment_received'])
         temp_data['aaData'].append(data1)
 
 

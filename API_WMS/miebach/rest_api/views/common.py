@@ -9030,18 +9030,18 @@ def user_type_sequence_obj(user, type_name, type_value):
 def create_update_batch_data(batch_dict):
     batch_obj = None
     batch_dict1 = copy.deepcopy(batch_dict)
-    if batch_dict1['expiry_date']:
+    if batch_dict1.get('expiry_date',''):
         batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
     else:
         batch_dict1['expiry_date'] = None
-    if batch_dict1['manufactured_date']:
+    if batch_dict1.get('manufactured_date',''):
         batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
     else:
         batch_dict1['manufactured_date'] = None
     number_fields = ['mrp', 'buy_price', 'tax_percent']
     for field in number_fields:
         try:
-            batch_dict1[field] = float(batch_dict1.get(field, 0))
+            batch_dict1.get(field) = float(batch_dict1.get(field, 0))
         except:
             batch_dict1[field] = 0
     batch_objs = BatchDetail.objects.filter(**batch_dict1)

@@ -6,7 +6,7 @@ from ftp_file_upload import file_upload
 from mail_server import *
 
 class DBBackup:
-    def __init__(self, dir_path):
+    def __init__(self, dir_path, running_type):
         self.dir_path = dir_path
         self.settings_dir = os.path.join(self.dir_path, '../miebach/')
         sys.path.append(self.settings_dir)
@@ -17,10 +17,14 @@ class DBBackup:
         self.password = self.default['PASSWORD']
         self.host = self.default.get('HOST', 'localhost')
         self.user = self.default['USER']
+        self.running_type = running_type
 
     def mysql_backup(self):
         bdate = datetime.now().strftime('%Y%m%d%H%M')
-        bfile =  self.db_name+'_'+bdate+'.sql'
+        if self.running_type == 'hourly':
+            bfile =  self.db_name+'_'+bdate+'.sql'
+        else:
+            bfile =  self.db_name+'_'+bdate+'_daily.sql'
         dumpfile = open(os.path.join(self.backup_path, bfile), 'w')
         cmd = ['mysqldump', '--host='+self.host, '--user='+self.user, '--password='+self.password, self.db_name]
         p = subprocess.Popen(cmd, stdout=dumpfile)
@@ -41,7 +45,10 @@ class DBBackup:
         tar.add(os.path.join(self.backup_path, bfile), arcname=bfile)
         tar.close()
         os.remove(os.path.join(self.backup_path, bfile))
-        status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1)
+        if self.running_type == 'hourly':
+            status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1, 3)
+        else:
+            status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1, 30)
         if not status:
             self.sending_mail('Error')
         else:
@@ -65,7 +72,8 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     if args:
         dir_path = args[0]
-        OBJ = DBBackup(dir_path)
+        running_type = args[1]
+        OBJ = DBBackup(dir_path, running_type)
         OBJ.mysql_backup()
     else:
         print 'Working directory is not defined'

@@ -8,4 +8,4 @@ PYTHON_PATH=$1'/'$PYTHON_PATH
 
 cd $1
 
-$PYTHON_PATH db_backup.py $1 
+$PYTHON_PATH db_backup.py $1 $2

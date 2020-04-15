@@ -15,8 +15,8 @@ def login_to_ftp_server(server, user_name, password):
     return ftp
 
 
-def remove_old_files(ftp):
-    old_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+def remove_old_files(ftp, backup_days):
+    old_date = (datetime.now() - timedelta(days=backup_days)).strftime('%Y%m%d')
 
     try:
         for f_name in ftp.nlst():
@@ -28,7 +28,7 @@ def remove_old_files(ftp):
             print "Empty Directory"
 
 
-def file_upload(file_name, dest_dir, server, user_name, password, old_files):
+def file_upload(file_name, dest_dir, server, user_name, password, old_files, backup_days):
     status = 0
 
     ftp = login_to_ftp_server(server, user_name, password)
@@ -41,7 +41,7 @@ def file_upload(file_name, dest_dir, server, user_name, password, old_files):
         status = 1
 
         if old_files:
-            remove_old_files(ftp)
+            remove_old_files(ftp, backup_days)
     except:
         print traceback.print_exc()
 

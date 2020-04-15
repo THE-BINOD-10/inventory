@@ -9041,7 +9041,7 @@ def create_update_batch_data(batch_dict):
     number_fields = ['mrp', 'buy_price', 'tax_percent']
     for field in number_fields:
         try:
-            batch_dict1.get(field) = float(batch_dict1.get(field, 0))
+            batch_dict1[field] = float(batch_dict1.get(field, 0))
         except:
             batch_dict1[field] = 0
     batch_objs = BatchDetail.objects.filter(**batch_dict1)

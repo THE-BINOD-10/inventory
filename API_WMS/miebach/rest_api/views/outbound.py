@@ -979,7 +979,7 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
                 if stock_id.batch_detail:
-                    #mrp = stock_id.batch_detail.mrp
+                    mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
@@ -3565,13 +3565,14 @@ def st_generate_picklist(request, user=''):
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
 
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
+                                    exclude(location__zone__zone__in=picklist_exclude_zones)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                    'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
-    if user.username in MILKBASKET_USERS:
+    '''if user.username in MILKBASKET_USERS:
         zones  = get_all_sellable_zones(user)
         locations = []
         bulk_zone_name = MILKBASKET_BULK_ZONE
@@ -3579,7 +3580,7 @@ def st_generate_picklist(request, user=''):
         zones = list(chain(zones, bulk_zones))
         sku_stocks = sku_stocks.filter(location__zone__zone__in=zones)
     else:
-        sku_stocks = sku_stocks.exclude(location__zone__zone__in=picklist_exclude_zones)
+        sku_stocks = sku_stocks.exclude(location__zone__zone__in=picklist_exclude_zones)'''
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')

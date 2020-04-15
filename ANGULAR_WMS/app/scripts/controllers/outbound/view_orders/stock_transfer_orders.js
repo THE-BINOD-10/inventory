@@ -410,6 +410,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
             reloadData();
+            pop_msg(data.data.stock_status);
           }
         });
         vm.generate_data = [];
@@ -575,7 +576,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.message = msg;
       $timeout(function () {
           vm.message = "";
-      }, 2000);
+      }, 10000);
       reloadData();
     }
 

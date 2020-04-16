@@ -8328,7 +8328,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                      ('Source Warehouse', user.username), ('Destination Warehouse', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
-                     ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount)
+                     ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
                      ('Unit Price', price), ('Tax Percentage', tax_percentage),
                      ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
                      ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),

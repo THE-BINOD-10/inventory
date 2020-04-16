@@ -8261,8 +8261,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
                 invoice_number = invoice_no.full_invoice_number
-                invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
-                                                                   stock_transfer__sku__sku_code=data.sku.sku_code).values('quantity')
+                invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,stock_transfer__sku__sku_code=data.sku.sku_code).values('quantity')
                 if invoice_data.exists():
                     invoice_quantity = invoice_data[0]['quantity']
                     invoice_wo_tax_amount = invoice_quantity * price
@@ -8270,39 +8269,32 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 if user.userprofile.industry_type == 'FMCG':
                     batch_number = ''
-                    weight = ''
                     expiry_date = ''
                     manufactured_date = ''
-                    batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                        stock_transfer=data.id).values(
-                        'picklist__stock__batch_detail__weight', 'picklist__stock__batch_detail__batch_no',
-                        'picklist__stock__batch_detail__manufactured_date',
-                        'picklist__stock__batch_detail__expiry_date')
+                    batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,stock_transfer=data.id).values('picklist__stock__batch_detail__batch_no',
+                        'picklist__stock__batch_detail__manufactured_date','picklist__stock__batch_detail__expiry_date')
                     if batch_data.exists():
                         batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                        weight = batch_data[0]['picklist__stock__batch_detail__weight']
                         expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
-                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                            "%d %b, %Y")
+                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
 
-                        ord_dict = OrderedDict(
-                            (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                             ('Source Warehouse', user.username), ('Destination Warehouse', destination),
-                             ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                             ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
-                             ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount)
-                             ('Unit Price', price), ('Tax Percentage', tax_percentage),
-                             ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                             ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
-                             ('HSN Code', data.sku.hsn_code), ('Status', status),
-                             ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
-                             ('Expiry Date', expiry_date), ('Weight', weight),
-                             ))
-                else:
                     ord_dict = OrderedDict(
                         (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
                          ('Source Warehouse', user.username), ('Destination Warehouse', destination),
                          ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                         ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
+                         ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount)
+                         ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                         ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
+                         ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
+                         ('HSN Code', data.sku.hsn_code), ('Status', status),
+                         ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                         ('Expiry Date', expiry_date)))
+                else:
+                    ord_dict = OrderedDict(
+                        (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                         ('Source Warehouse', user.username), ('Destination Warehouse', destination),
+                         ('SKU Code', da   ta.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                          ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
                          ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount),
                          ('Unit Price', price), ('Tax Percentage', tax_percentage),
@@ -8322,7 +8314,6 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
             invoice_total_amount = ''
             if user.userprofile.industry_type == 'FMCG':
                 batch_number = ''
-                weight = ''
                 expiry_date = ''
                 manufactured_date = ''
                 batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
@@ -8334,22 +8325,19 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                     weight = batch_data[0]['picklist__stock__batch_detail__weight']
                     expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
-                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
-                        "%d %b, %Y")
-
-                    ord_dict = OrderedDict(
-                        (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                         ('Source Warehouse', user.username), ('Destination Warehouse', destination),
-                         ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                         ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
-                         ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount)
-                         ('Unit Price', price), ('Tax Percentage', tax_percentage),
-                         ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
-                         ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
-                         ('HSN Code', data.sku.hsn_code), ('Status', status),
-                         ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
-                         ('Expiry Date', expiry_date), ('Weight', weight),
-                         ))
+                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
+                ord_dict = OrderedDict(
+                    (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                     ('Source Warehouse', user.username), ('Destination Warehouse', destination),
+                     ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                     ('Order Quantity', quantity), ('Order Amount(w/o tax)', order_wo_amount),
+                     ('Order Tax Amount', order_tax_amount), ('Total Order Amount', total_order_amount)
+                     ('Unit Price', price), ('Tax Percentage', tax_percentage),
+                     ('Invoice Quantity', invoice_quantity), ('Invoice Amount(w/o tax)', invoice_wo_tax_amount),
+                     ('Invoice Tax Amount', invoice_tax_amount), ('Total Invoice Amount', invoice_total_amount),
+                     ('HSN Code', data.sku.hsn_code), ('Status', status),
+                     ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                     ('Expiry Date', expiry_date)))
             else:
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
@@ -8366,7 +8354,6 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                 ord_dict['Searchable'] = searchable
                 ord_dict['Bundle'] = bundle
             temp_data['aaData'].append(ord_dict)
-
     return temp_data
 
 

@@ -8317,13 +8317,10 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                 expiry_date = ''
                 manufactured_date = ''
                 batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
-                                                    stock_transfer=data.id).values(
-                    'picklist__stock__batch_detail__weight', 'picklist__stock__batch_detail__batch_no',
-                    'picklist__stock__batch_detail__manufactured_date',
-                    'picklist__stock__batch_detail__expiry_date')
+                                                    stock_transfer=data.id).values('picklist__stock__batch_detail__batch_no',
+                    'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
                 if batch_data.exists():
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                    weight = batch_data[0]['picklist__stock__batch_detail__weight']
                     expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
                     manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
                 ord_dict = OrderedDict(

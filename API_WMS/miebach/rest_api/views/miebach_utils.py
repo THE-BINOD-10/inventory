@@ -948,7 +948,7 @@ STOCK_TRANSFER_REPORT_DICT = {
     ],
     'dt_headers': ['Date', 'Order ID','Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount','Total Order Amount','Tax Percentage','Invoice Quantity','Invoice Amount(w/o tax)', 'Total Invoice Amount', 'HSN Code','Status'],
     'mk_dt_headers': ['Date', 'Order ID','Invoice Number', 'Source Warehouse', 'Destination Warehouse', 'SKU Code', 'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount','Total Order Amount','Tax Percentage','Invoice Quantity','Invoice Amount(w/o tax)', 'Total Invoice Amount', 'HSN Code','Status',
-                      'Batch Number', 'Manufactured Date', 'Expiry Date']
+                      'Batch Number', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_stock_transfer_report', 'excel_name': 'get_stock_transfer_report',
     'print_url': 'print_stock_transfer_report',
 }

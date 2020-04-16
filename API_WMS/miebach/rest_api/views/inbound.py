@@ -9953,6 +9953,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
         data_dict['supplier_email'] = get_po.supplier.email_id
+        data_dict['owner_email'] = get_po.supplier.owner_email_id
         data_dict['supplier_id'] = get_po.supplier.id
         data_dict['supplier_gstin'] = get_po.supplier.tin_number
         data_dict['phone_number'] = get_po.supplier.phone_number
@@ -10208,6 +10209,7 @@ def create_rtv(request, user=''):
             if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
                 supplier_id = show_data_invoice.get('supplier_id', '')
+                owner_email = show_data_invoice.get('owner_email', '')
                 supplier_email_id = []
                 supplier_email_id.insert(0, supplier_email)
                 if supplier_id:
@@ -10217,7 +10219,8 @@ def create_rtv(request, user=''):
                             'email_id', flat=True).distinct())
 
                     supplier_email_id.extend(secondary_supplier_email)
-
+                if owner_email:
+                    supplier_email_id.append(owner_email)
                 data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
                                 'po_reference': show_data_invoice.get('grn_no',''),
                                 'invoice_number': invoice_number,

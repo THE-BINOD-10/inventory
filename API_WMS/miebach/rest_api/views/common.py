@@ -423,7 +423,6 @@ def status(request):
     """
     Checks if user is a valid user or not
     """
-
     response_data = {'data': {}, 'message': 'Fail'}
     status_dict = {1: 'true', 0: 'false'}
 
@@ -775,6 +774,11 @@ def add_user(request, user=''):
             user_dict[key] = value
     user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
+    all_sub_users = get_sub_users(user)
+    existing_emails = all_sub_users.values_list('email', flat=True)
+    if user_dict.get('email', ''):
+        if user_dict['email'] in existing_emails:
+            return HttpResponse("Duplicate Email Id")
     if not user_exists:
         new_user = User.objects.create_user(**user_dict)
         admin_group = AdminGroups.objects.filter(user_id=user.id)

@@ -10263,6 +10263,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
             st_dict['sku_id'] = sku_id
             if user.userprofile.user_type == 'marketplace_user':
                 st_dict['st_seller_id'] = key[3].id
+            TempJson.objects.filter(model_id=open_st.id, model_name='open_st').delete()
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
             open_st.status = 0

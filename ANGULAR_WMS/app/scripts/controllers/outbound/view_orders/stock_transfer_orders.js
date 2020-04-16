@@ -124,6 +124,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
            })
        .withDataProp('data')
        .withOption('order', [1, 'desc'])
+       .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('drawCallback', function(settings) {
           vm.service.make_selected(settings, vm.selected);
         })

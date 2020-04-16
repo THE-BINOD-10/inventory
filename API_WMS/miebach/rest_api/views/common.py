@@ -9656,8 +9656,9 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     subs_list = [item for item in substitutes if not item in existing_substitutes]        
     for subs in subs_list:
         try:
-            sub_obj = SKUMaster.objects.get(user=user.id, sku_code=subs)
-            data.substitutes.add(sub_obj)
+            sub_obj = SKUMaster.objects.filter(user=user.id, sku_code=subs)
+            if sub_obj.exists():
+                data.substitutes.add(sub_obj)
         except:
             error_subs.append(subs)
     if error_subs:

@@ -72,6 +72,10 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     rtv_objs = dict(all_sku_stats.filter(transact_type='rtv').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    dest_substitute = dict(all_sku_stats.filter(transact_type='dest_substitute').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    src_substitue = dict(all_sku_stats.filter(transact_type='src_substitute').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
 
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
@@ -81,6 +85,10 @@ class Command(BaseCommand):
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
                     consumed = rm_picklist_objs.get(sku.id, 0)
+                    dest_substitute_quantity = dest_substitute.get(sku.id, 0)
+                    src_substitue_quantity = src_substitue.get(sku.id, 0)
+                    produced_quantity += dest_substitute_quantity
+                    consumed += src_substitue_quantity
                     rtv_quantity = rtv_objs.get(sku.id,0)
                     openinig_stock = stock_quantity+rtv_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
                                                        produced_quantity) + (dispatched + consumed) - adjusted

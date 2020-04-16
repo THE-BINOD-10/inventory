@@ -670,6 +670,7 @@ class Picklist(models.Model):
     order_type = models.CharField(max_length=100, default='')
     damage_suggested = models.IntegerField(default=0)
     status = models.CharField(max_length=32)
+    cancelled_quantity = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

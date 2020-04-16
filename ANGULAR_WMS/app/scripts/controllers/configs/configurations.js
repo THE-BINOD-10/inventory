@@ -767,12 +767,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.add_empty_index('', 'save', 'pr_save');
       console.log(vm.model_data['selected_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_pr_config_data'];
+      var permGivenMails = vm.model_data['pr_permissive_emails'];
+      if (permGivenMails.length == 0){
+        Service.showNoty("No Users have Change PO Permissions.")
+      }
+      if(permGivenMails.length != 0) {
+        var emailsToUpdate = toBeUpdateData[0]['mail_id'];
+        var notPresentEmails = [];
+        angular.forEach(emailsToUpdate, function(eachLevelEmails){
+          angular.forEach(eachLevelEmails.split(","), function(eachMail){
+            if (!(permGivenMails.includes(eachMail))) {
+              notPresentEmails.push(eachMail);
+            }
+          });
+        });
+      }
+      console.log(notPresentEmails);
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
+      } else if (notPresentEmails.length != 0){
+          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
       } else {
         vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'pr_save'}).then(function(data){
           if(data.message) {
@@ -803,12 +821,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.add_empty_index('', 'save', 'actual_pr_save');
       console.log(vm.model_data['selected_actual_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_actual_pr_config_data'];
+      var permGivenMails = vm.model_data['actual_pr_permissive_emails'];
+      if (permGivenMails.length == 0){
+        Service.showNoty("No Users have Change PO Permissions.")
+      }
+      if(permGivenMails.length != 0) {
+        var emailsToUpdate = toBeUpdateData[0]['mail_id'];
+        var notPresentEmails = [];
+        angular.forEach(emailsToUpdate, function(eachLevelEmails){
+          angular.forEach(eachLevelEmails.split(","), function(eachMail){
+            if (!(permGivenMails.includes(eachMail))) {
+              notPresentEmails.push(eachMail);
+            }
+          });
+        });
+      }
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
+      } else if (notPresentEmails.length != 0){
+          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
       } else {
         vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'actual_pr_save'}).then(function(data){
           if(data.message) {

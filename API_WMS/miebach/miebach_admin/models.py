@@ -1518,9 +1518,11 @@ class LocationGroups(models.Model):
 class OpenST(models.Model):
     id = BigAutoField(primary_key=True)
     warehouse = models.ForeignKey(User)
+    po_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='po_seller')
     sku = models.ForeignKey(SKUMaster)
     order_quantity = models.FloatField(default=0)
-    price = models.FloatField()
+    mrp = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
@@ -1553,6 +1555,7 @@ class StockTransfer(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.BigIntegerField()
     st_po = models.ForeignKey(STPurchaseOrder)
+    st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
@@ -2135,7 +2138,7 @@ class SellerStock(models.Model):
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
         index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
-                            ('stock',))
+                            ('stock',), ('seller', 'quantity'))
 
 
 class SellerMarginMapping(models.Model):

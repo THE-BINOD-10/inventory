@@ -3508,9 +3508,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'purchase_order__open_po__apmc_tax','batch_detail__weight',
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
-                         'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
+                         'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount', 'invoice_date',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
-                         'purchase_order__id','price'
+                         'purchase_order__id','price','invoice_number','challan_number',
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'

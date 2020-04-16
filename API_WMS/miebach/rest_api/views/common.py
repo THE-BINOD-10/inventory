@@ -9030,11 +9030,11 @@ def user_type_sequence_obj(user, type_name, type_value):
 def create_update_batch_data(batch_dict):
     batch_obj = None
     batch_dict1 = copy.deepcopy(batch_dict)
-    if batch_dict1['expiry_date']:
+    if batch_dict1.get('expiry_date',''):
         batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
     else:
         batch_dict1['expiry_date'] = None
-    if batch_dict1['manufactured_date']:
+    if batch_dict1.get('manufactured_date',''):
         batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
     else:
         batch_dict1['manufactured_date'] = None
@@ -9656,8 +9656,9 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     subs_list = [item for item in substitutes if not item in existing_substitutes]        
     for subs in subs_list:
         try:
-            sub_obj = SKUMaster.objects.get(user=user.id, sku_code=subs)
-            data.substitutes.add(sub_obj)
+            sub_obj = SKUMaster.objects.filter(user=user.id, sku_code=subs)
+            if sub_obj.exists():
+                data.substitutes.add(sub_obj)
         except:
             error_subs.append(subs)
     if error_subs:

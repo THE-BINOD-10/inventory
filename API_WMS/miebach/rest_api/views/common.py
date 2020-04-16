@@ -1110,6 +1110,15 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
 
     return totalConfigData.values()
 
+def get_permission_based_sub_users_emails(user, permission_name):
+    emails = []
+    groupQs = user.groups.exclude(name=user.username).filter(permissions__name__contains=permission_name)
+    if not groupQs.exists():
+        return emails
+    for grp in groupQs:
+        gp = Group.objects.get(id=grp.id)
+        emails.extend(list(gp.user_set.filter().exclude(id=user.id).values_list('email', flat=True)))
+    return emails
 
 @csrf_exempt
 @login_required
@@ -1156,9 +1165,11 @@ def configurations(request, user=''):
 
     config_dict['pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PO').values_list('name', flat=True))
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
+    config_dict['pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending po')
 
     config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
+    config_dict['actual_pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending pr')
 
     config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
                                             type_name='credit_note_sequence').exclude(type_value=''). \

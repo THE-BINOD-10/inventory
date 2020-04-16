@@ -151,10 +151,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 }).notSortable(),
             DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
-            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
-            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
+//            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+//            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+//            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         ];
+                if(vm.user_type=='marketplace_user') {
+          vm.dtColumns.push(DTColumnBuilder.newColumn('Seller ID').withTitle('Seller ID'))
+          vm.dtColumns.push(DTColumnBuilder.newColumn('Seller Name').withTitle('Seller Name'))
+        }
+        vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
       }
     }
 
@@ -403,6 +410,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
             reloadData();
+            pop_msg(data.data.stock_status);
           }
         });
         vm.generate_data = [];
@@ -568,7 +576,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.message = msg;
       $timeout(function () {
           vm.message = "";
-      }, 2000);
+      }, 10000);
       reloadData();
     }
 

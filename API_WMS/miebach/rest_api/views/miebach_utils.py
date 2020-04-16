@@ -4836,7 +4836,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 #if not unit_price:
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
-                amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
+                amt = unit_price * float(data['original_quantity'])
                 tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)

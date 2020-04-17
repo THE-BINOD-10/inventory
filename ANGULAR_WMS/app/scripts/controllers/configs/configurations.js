@@ -46,6 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'move_inventory_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'mandate_ewaybill_number':false,
                     'enable_pending_approval_prs': false,
                   };
   vm.all_mails = '';

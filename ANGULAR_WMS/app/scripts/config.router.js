@@ -744,7 +744,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.inbound.RaisePr', {
           url: '/RaisePR',
-          permission: 'add_pendingpurchase|change_pendingpurchase',
+          permission: 'add_pendingpr|change_pendingpr|view_pendingpr',
           templateUrl: 'views/inbound/raise_pr.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -784,7 +784,7 @@ var app = angular.module('urbanApp')
 
         .state('app.inbound.RaisePo', {
           url: '/RaisePO',
-          permission: 'add_openpo|change_openpo|add_intransitorders|add_pendingpurchase|change_pendingpurchase|view_pendingpurchase',
+          permission: 'add_openpo|change_openpo|add_intransitorders|add_pendingpo|change_pendingpo|view_pendingpo',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -834,11 +834,11 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/inbound/toggle/raise_pending_purchase.html'
           })
           .state('app.inbound.RaisePo.ApprovePurchaseRequest', {
-          url: '/ApprovePR',
+          url: '/ApprovePendingPO',
           templateUrl: 'views/inbound/toggle/approve_pending_purchase.html'
           })
           .state('app.inbound.RaisePo.SavedPurchaseRequest', {
-          url: '/SavedPR',
+          url: '/SavedPendingPO',
           templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
           })
 

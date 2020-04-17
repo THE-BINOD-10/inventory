@@ -250,7 +250,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
-                                                ('Approved PRs', approvedPRs),
+                                                # ('Approved PRs', approvedPRs),
                                                 ('Supplier ID', result['pending_po__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
@@ -2428,7 +2428,7 @@ def approve_pr(request, user=''):
 
 
 def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, orderStatus='pending', 
-                                    prObj=None, is_po_creation=False, skusInPO=[], supplier=None):
+                                    prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False):
     firstEntryValues = all_data.values()[0]
     purchaseMap = {
             'requested_user': request.user,
@@ -2445,7 +2445,10 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
     if is_po_creation:
         model_name = PendingPO
         purchaseMap['po_number'] = purchase_number
-        purchaseMap['supplier_id'] = supplier
+        if supplier:
+            purchaseMap['supplier_id'] = supplier
+        else:
+            purchaseMap['supplier_id'] = firstEntryValues.get('supplier_id', '')
         purchase_type = 'PO'
         apprType = 'pending_po'
     else:
@@ -2468,7 +2471,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
 
     totalAmt = 0
     for key, value in all_data.iteritems():
-        if is_po_creation and key not in skusInPO:
+        if convertPRtoPO and is_po_creation and key not in skusInPO:
             continue
         wms_code = key
         if not wms_code:
@@ -2481,7 +2484,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
         
-        if supplier:
+        if convertPRtoPO and supplier:
             skuTaxes = get_supplier_sku_price_values(supplier, sku_id[0].sku_code, user)
             # skuSupMapping = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id).values()
             # if skuSupMapping.exists():
@@ -2581,7 +2584,7 @@ def convert_pr_to_po(request, user=''):
             po_number = get_incremental(user, 'PurchaseRequest')
             totalAmt, pendingPoObj = createPRObjandRertunOrderAmt(request, myDict, all_data, user, po_number, 
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
-                                        supplier=supplier)
+                                        supplier=supplier, convertPRtoPO=True)
             pendingPoObj.pending_prs.add(existingPRObj)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
             prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
@@ -2620,7 +2623,7 @@ def add_pr(request, user=''):
             else:
                 pr_number = get_incremental(user, 'PurchaseRequest')
 
-        if is_actual_pr:
+        if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
             mailSub = 'pr_created'
             poFor = False
@@ -2631,17 +2634,26 @@ def add_pr(request, user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         mailsList = []
-        totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
-        reqConfigName = findReqConfigName(user, totalAmt)
-        # if is_actual_pr == 'true':
-        prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, 
-                                pendingPRObj, master_type=master_type)
-        # else:
-        #     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, pendingPRObj)
-        if mailsList:
-            for eachMail in mailsList:
-                hash_code = generateHashCodeForMail(prObj, eachMail)
-                sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+        if is_actual_pr == 'true':
+            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
+            reqConfigName = findReqConfigName(user, totalAmt)
+            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, 
+                                    pendingPRObj, master_type=master_type)
+            if mailsList:
+                for eachMail in mailsList:
+                    hash_code = generateHashCodeForMail(prObj, eachMail)
+                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+        else:
+            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, 
+                                        baseLevel, is_po_creation=True)
+            import pdb; pdb.set_trace()
+            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
+            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number, 
+                                    pendingPRObj, master_type=master_type, forPO=True)
+            if mailsList:
+                for eachMail in mailsList:
+                    hash_code = generateHashCodeForMail(prObj, eachMail)
+                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2666,15 +2678,22 @@ def save_pr(request, user=''):
             pr_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
-                pr_number = get_incremental(user, 'ActualPurchaseRequest')
-            # else:
-            #     pr_number = get_incremental(user, 'PurchaseRequest')
-            #     po_number = get_purchase_order_id(user)
+                purchase_number = get_incremental(user, 'ActualPurchaseRequest')
+            else:
+                # purchase_number = get_purchase_order_id(user)
+                purchase_number = get_incremental(user, 'PurchaseRequest')
+        supplier = myDict.get('supplier_id', '')
+        if supplier:
+            supplier = supplier[0]
         
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         orderStatus = 'saved'
-        createPRObjandRertunOrderAmt(request,myDict, all_data, user, pr_number, baseLevel, orderStatus=orderStatus)
+        if is_actual_pr == 'true':
+            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel, orderStatus=orderStatus)
+        else:
+            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel, 
+                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

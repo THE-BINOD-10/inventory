@@ -10150,7 +10150,8 @@ def get_sub_users(user):
 
 def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
-        for val in value:
+        for val_idx, val in enumerate(value):
+            print val_idx
             if val[6]:
                 open_st = OpenST.objects.get(id=val[6])
                 open_st.warehouse_id = User.objects.get(username=key[0]).id
@@ -10190,7 +10191,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             order_id = int(stock_transfer_obj[0].order_id) + 1
         else:
             order_id = 1001
-        for val in value:
+        for val_idx, val in enumerate(value):
+            print 'Confirming: %s' % val_idx
             open_st = OpenST.objects.get(id=val[6])
             sku_id = SKUMaster.objects.get(user=warehouse.id, sku_code=val[0]).id
             user_profile = UserProfile.objects.filter(user_id=user.id)

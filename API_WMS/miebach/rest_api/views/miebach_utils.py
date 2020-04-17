@@ -2839,7 +2839,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        ord_dict = OrderedDict((('PO Number', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+        ord_dict = OrderedDict((('PO Number', po_reference), ('SKU Code', data.open_po.sku.wms_code),
                                                 ('SKU Category', data.open_po.sku.sku_category),
                                                 ('SKU Sub Category', data.open_po.sku.sub_category),
                                                 ('Sku Brand', data.open_po.sku.sku_brand),

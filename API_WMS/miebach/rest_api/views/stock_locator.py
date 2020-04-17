@@ -2060,6 +2060,8 @@ def confirm_sku_substitution(request, user=''):
     ''' Moving stock from one location to other location with SKU substitution '''
     data_dict = dict(request.POST.iterlists())
     src_list = []
+    src_objects = []
+    dest_objects = []
     seller_id = request.POST.get('seller_id', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
@@ -2118,10 +2120,10 @@ def confirm_sku_substitution(request, user=''):
         elif src_stock_count < src_qty:
             return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
         src_details = {'src_stocks': src_stocks, 'src_sku': source_sku, 'src_qty': src_qty,
-                       'src_location': source_location}
+                       'src_location': source_location,}
         src_list.append(src_details)
-        save_sku_stats(user, source_sku.id, transact_number, 'src_substitute', src_qty, stock_detail=src_stocks[0],
-                       stock_stats_objs=None, )
+        src_objects = save_sku_stats(user, source_sku.id, transact_number, 'src_substitute', src_qty,
+                                     stock_detail=src_stocks[0], stock_stats_objs=src_objects, bulk_insert=True)
 
     dest_list = []
     for ind in range(0, len(data_dict['dest_sku_code'])):
@@ -2160,10 +2162,9 @@ def confirm_sku_substitution(request, user=''):
         if seller_id:
             dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)
+
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
-                          'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
-        save_sku_stats(user, dest_sku[0].id, transact_number, 'dest_substitute', dest_qty, stock_detail=dest_stocks[0],
-                       stock_stats_objs=None, )
+                          'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict , 'dest_filter': dest_filter})
     source_updated = False
 
     dest_updated = False
@@ -2180,6 +2181,18 @@ def confirm_sku_substitution(request, user=''):
                                      user, seller_id, source_updated, dest_dict['mrp_dict'], transact_number,
                                      dest_updated)
         dest_updated = True
+
+    for dest_dict in dest_list:
+        dest_stocks = StockDetail.objects.filter(**dest_dict.get('dest_filter'))
+        if not dest_stocks:
+            return HttpResponse('Some thing Went Wrong')
+
+        dest_objects = save_sku_stats(user, dest_dict['dest_sku'].id, transact_number, 'dest_substitute',
+                                      dest_dict['dest_qty'], stock_detail=dest_stocks[0],
+                                      stock_stats_objs=dest_objects, bulk_insert=True)
+    SKUDetailStats.objects.bulk_create(dest_objects)
+    SKUDetailStats.objects.bulk_create(src_objects)
+
 
     return HttpResponse('Successfully Updated')
 

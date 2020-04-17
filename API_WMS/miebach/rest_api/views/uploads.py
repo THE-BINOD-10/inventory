@@ -7141,7 +7141,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
-        all_data = insert_st_gst(all_data, warehouse)
+    all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 
     if status.status_code == 200:

@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
+from rest_api.views.cancel_invoice import *
 #urlpatterns = patterns('rest_api.views',
 tally_api = TallyAPI()
 
@@ -548,6 +549,8 @@ urlpatterns = [
     url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
     url(r'^print_bulk_stock_update/$', print_bulk_stock_update),
     url(r'^get_credit_note_form_report/$', get_credit_note_form_report),
+    url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
+    url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     # url(r'^print_credit_note_form_report/$', print_credit_note_form_report),
 ]
 
@@ -626,6 +629,10 @@ urlpatterns += [
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
+    url(r'^sku_substitutes_form/$', sku_substitutes_form),
+    url(r'^sku_substitutes_upload/$', sku_substitutes_upload),
+    url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
+    url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -651,7 +658,8 @@ urlpatterns += [
     url(r'^save_update_classification/$',save_update_classification),
     url(r'^delete_classification/$',delete_classification),
 
-
+    #cancel_invoice
+    url(r'^cancel_invoice/$', cancel_invoice),
 
 
 

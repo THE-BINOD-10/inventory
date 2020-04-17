@@ -82,7 +82,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
-                     106: 'enable_pending_approval_prs',
+                     106: 'mandate_ewaybill_number',
+                     107: 'enable_pending_approval_prs',
                      }
 
   vm.check_box_data = [
@@ -614,7 +615,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   {
    name: "Enable Pending For Approval PRs",
    model_name: "enable_pending_approval_prs",
-   param_no: 106,
+   param_no: 107,
    class_name: "fa fa-server",
    display: true
   },
@@ -625,7 +626,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-
+{
+   name: "Mandate EwayBillNumber in ShipmentInfo",
+   model_name: "mandate_ewaybill_number",
+   param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};

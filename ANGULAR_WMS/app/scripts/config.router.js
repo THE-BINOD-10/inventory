@@ -1746,7 +1746,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Create Orders',
+            title: 'Create Stock Transfer',
           }
         })
         .state('app.outbound.CustomerInvoices', {
@@ -1763,6 +1763,10 @@ var app = angular.module('urbanApp')
                   }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/outbound/customer_invoices/customer_invoices.js'
+                    ])
+                  }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/outbound/customer_invoices/cancelled_invoice.js'
                     ])
                   });
               }]
@@ -2598,6 +2602,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'BASA Report',
+          }
+        })
+        .state('app.reports.CancelledInvoicesReport', {
+          url: '/CancelInvoiceReport',
+          templateUrl: 'views/reports/cancel_invoice_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/cancel_invoice_report.js');
+              }]
+          },
+          data: {
+            title: 'Cancelled Invoices Report',
           }
         })
         .state('app.reports.BulkStockUpdate', {

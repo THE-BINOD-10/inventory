@@ -195,7 +195,7 @@ angular
           return false;
         } else if (data == 'add_orderdetail' && Session.parent['72networks']){
           return false;
-        }  else if (data == 'add_openpo' && Session.roles.permissions.enable_pending_approval_pos){
+        } else if (data == 'add_openpo' && Session.roles.permissions.enable_pending_approval_pos){
           return false;
         } else {
           return true;

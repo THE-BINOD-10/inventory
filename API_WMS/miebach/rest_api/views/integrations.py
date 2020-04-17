@@ -894,7 +894,12 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             except:
                 value = 0
         elif key == 'hsn_code':
-            if not value:
+            try:
+                if isinstance(value, unicode):
+                    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore')
+                else:
+                    value = str(value)
+            except:
                 value = ''
         elif key == 'size_type':
             sku_size = sku_data.get('sku_size', '')
@@ -983,7 +988,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                             error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
                             update_error_message(failed_status, 5031, error_message, sku_code,
                                                  field_key='sku_code')
-            else:
+            elif sku_master:
                 EANNumbers.objects.filter(sku_id=sku_master.id).delete()
                 sku_obj = sku_master
                 sku_obj.ean_number = ''
@@ -1052,7 +1057,10 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             if option['name'] in option_not_created:
                 continue
             try:
-                option['name'] = str(option['name'])
+                if isinstance(option['name'], unicode):
+                    option['name'] = unicodedata.normalize('NFKD', option['name']).encode('ascii', 'ignore')
+                else:
+                    option['name'] = str(option['name'])
             except:
                 log.info(option['name'])
                 log.info("Ascii Code Error Name for %s" % str(sku_master.sku_code))
@@ -1060,7 +1068,10 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 update_error_message(failed_status, 5033, error_message, sku_code,
                                      field_key='sku_code')
             try:
-                option['value'] = str(option['value'])
+                if isinstance(option['value'], unicode):
+                    option['value'] = unicodedata.normalize('NFKD', option['value']).encode('ascii', 'ignore')
+                else:
+                    option['value'] = str(option['value'])
             except:
                 log.info(option['value'])
                 log.info("Ascii Code Error Value for %s" % str(sku_master.sku_code))

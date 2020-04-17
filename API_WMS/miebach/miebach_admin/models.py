@@ -127,6 +127,7 @@ class SKUMaster(models.Model):
     youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
     block_options = models.CharField(max_length=5, default='')
+    substitutes = models.ManyToManyField("self", blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -733,6 +734,7 @@ class StockDetail(models.Model):
     receipt_date = models.DateTimeField()
     receipt_type = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
+    price_type = models.CharField(max_length=32, default='user_input')
     location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
@@ -778,6 +780,7 @@ class Picklist(models.Model):
     remarks = models.CharField(max_length=100)
     order_type = models.CharField(max_length=100, default='')
     damage_suggested = models.IntegerField(default=0)
+    cancelled_quantity = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1465,6 +1468,7 @@ class CancelledLocation(models.Model):
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=0)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    cancel_invoice_serial = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1549,9 +1553,11 @@ class LocationGroups(models.Model):
 class OpenST(models.Model):
     id = BigAutoField(primary_key=True)
     warehouse = models.ForeignKey(User)
+    po_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='po_seller')
     sku = models.ForeignKey(SKUMaster)
     order_quantity = models.FloatField(default=0)
-    price = models.FloatField()
+    mrp = models.FloatField(default=0)
+    price = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
@@ -1584,6 +1590,7 @@ class StockTransfer(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.BigIntegerField()
     st_po = models.ForeignKey(STPurchaseOrder)
+    st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)
     invoice_amount = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
@@ -2166,7 +2173,7 @@ class SellerStock(models.Model):
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
         index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'),
-                            ('stock',))
+                            ('stock',), ('seller', 'quantity'))
 
 
 class SellerMarginMapping(models.Model):
@@ -2910,6 +2917,7 @@ class StockStats(models.Model):
     adjustment_qty = models.FloatField(default=0)
     consumed_qty = models.FloatField(default=0)
     rtv_quantity = models.FloatField(default=0)
+    cancelled_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     closing_stock_value = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3589,7 +3597,6 @@ class ProccessRunning(models.Model):
     class Meta:
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
-
 
 #Signals
 @receiver(post_save, sender=OrderDetail)

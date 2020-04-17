@@ -3600,11 +3600,22 @@ def st_generate_picklist(request, user=''):
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
             'location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-    sku_stocks = stock_detail1 | stock_detail2
+    all_sku_stocks = stock_detail1 | stock_detail2
+    seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
         order_data = StockTransfer.objects.filter(id=key)
         if order_data and order_data[0].st_seller:
-            sku_stocks = sku_stocks.filter(sellerstock__seller_id=order_data[0].st_seller_id).distinct()
+            sku_stocks = all_sku_stocks
+            seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(order_data[0].st_seller_id),
+                                       seller_stocks)
+            if seller_stock_dict:
+                sell_stock_ids = map(lambda person: person['stock_id'], seller_stock_dict)
+                sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+            else:
+                sku_stocks = sku_stocks.filter(id=0)
+            #seller_stock_ids = list(SellerStock.objects.filter(seller_id=order_data[0].st_seller_id,
+            #                        stock_id__in=sku_stocks.values_list('id', flat=True), quantity__gt=0).values_list('stock_id', flat=True))
+            #sku_stocks = sku_stocks.filter(id__in=seller_stock_ids).distinct()
         stock_status, picklist_number = picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                             sku_combos, sku_stocks, switch_vals)
         if stock_status:

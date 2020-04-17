@@ -7011,6 +7011,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
     for row_idx in range(1, no_of_rows):
+        print 'Validation : %s' % str(row_idx)
         user_obj = ''
         if not order_mapping:
             break
@@ -7090,6 +7091,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     interm_order_id = ''
     all_data = {}
     for row_idx in range(1, no_of_rows):
+        print 'Saving : %s' % str(row_idx)
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -7135,7 +7137,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 if igst_tax == '':
                     igst_tax = 0
 
-        warehouse = User.objects.get(username__iexact=warehouse)
+        warehouse = User.objects.get(username=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])

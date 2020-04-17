@@ -10153,8 +10153,8 @@ def insert_st_gst(all_data, user):
         for val in value:
             if val[6]:
                 open_st = OpenST.objects.get(id=val[6])
-                open_st.warehouse_id = User.objects.get(username__iexact=key[0]).id
-                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+                open_st.warehouse_id = User.objects.get(username=key[0]).id
+                open_st.sku_id = SKUMaster.objects.get(user=user.id, sku_code=val[0]).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
                 open_st.cgst_tax = float(val[3])
@@ -10164,8 +10164,8 @@ def insert_st_gst(all_data, user):
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
-            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key[0]).id
-            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+            stock_dict['warehouse_id'] = User.objects.get(username=key[0]).id
+            stock_dict['sku_id'] = SKUMaster.objects.get(user=user.id, sku_code=val[0]).id
             stock_dict['order_quantity'] = float(val[1])
             stock_dict['price'] = float(val[2])
             stock_dict['cgst_tax'] = float(val[3])
@@ -10192,7 +10192,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             order_id = 1001
         for val in value:
             open_st = OpenST.objects.get(id=val[6])
-            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            sku_id = SKUMaster.objects.get(user=warehouse.id, sku_code=val[0]).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
             if user_profile:
@@ -10452,6 +10452,8 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
                         temp_json['mrp'] = batch_detail.mrp
                         temp_json['weight'] = batch_detail.weight
                         temp_json['batch_no'] = batch_detail.batch_no
+                        temp_json['buy_price'] = batch_detail.buy_price
+                        temp_json['tax_percent'] = batch_detail.tax_percent
                         if batch_detail.manufactured_date:
                             temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                         if batch_detail.expiry_date:

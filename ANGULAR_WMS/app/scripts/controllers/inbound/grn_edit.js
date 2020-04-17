@@ -28,7 +28,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // $http.get(Session.url+'get_grn_level_data/', {withCredential: true, 'po_number': aData['PO Number']}).success(function(data, status, headers, config) {
     //   console.log(data)
     // });
-    vm.service.apiCall('get_grn_level_data/', 'GET', {po_number: aData['PO Number']}).then(function(data){
+    var data_to_send = {
+      'po_number': aData['PO Number'],
+      'prefix': aData['prefix']
+    }
+    vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
       vm.model_data = data.data;
       if (vm.industry_type == 'FMCG') {
         vm.extra_width = {

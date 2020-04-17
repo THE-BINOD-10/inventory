@@ -6980,11 +6980,13 @@ def get_purchase_order_id(user):
     #     po_id = 1
     # else:
     #     po_id = int(order_ids[0]) + 1
-
     po_id = get_incremental(user, 'po', default_val=1)
     po_id = po_id - 1
     return po_id
 
+def get_st_purchase_order_id(user):
+    st_po_id = get_incremental(user, 'stpo', default_val=1)
+    return st_po_id
 
 def get_jo_reference(user):
     ''' It Provides New Jo Reference Number '''
@@ -9828,7 +9830,10 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
-        po_id = get_purchase_order_id(user) + 1
+        st_po_id = get_st_purchase_order_id(user)
+        prefix = get_misc_value('st_po_prefix', user.id)
+        if prefix == 'false':
+            prefix = 'STPO'
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -9838,10 +9843,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             open_st = OpenST.objects.get(id=val[6])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+            po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
@@ -9860,7 +9862,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, po_id)
+        check_purchase_order_created(user, st_po_id)
     return HttpResponse("Confirmed Successfully")
 
 def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):

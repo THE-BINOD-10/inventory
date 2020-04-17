@@ -2395,6 +2395,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'weight_integration_name': 'weight_integration_name',
                      'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                      'order_prefix': 'order_prefix',
+                     'st_po_prefix':'st_po_prefix',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -8465,7 +8466,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id, prefix=data['prefix'])
         result = po_result[0]
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
         if not total_ordered:
@@ -8483,7 +8484,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                ('Order Quantity', total_ordered),
+                                                ('Order Quantity', total_ordered),('prefix', data['prefix']),
                                                 ('Received Quantity', received_qty),
                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),

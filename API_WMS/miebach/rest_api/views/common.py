@@ -831,9 +831,9 @@ def findReqConfigName(user, totalAmt, purchase_type='PR'):
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR'):
     finalLevel = 'level0'
-    reqConfigName = findReqConfigName(user, totalAmt)
+    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type)
     configQs = list(PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
@@ -868,13 +868,14 @@ def pr_request(request):
                     'remarks': 'pending_pr__remarks',
                     'delivery_date': 'pending_pr__delivery_date',
                 }
+        purchase_type = 'PR'
     else:
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
                         'pending_po__requested_user__username', 'pending_po__po_number', 
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
-                        'pending_po__delivery_date']
+                        'pending_po__delivery_date', 'pending_po__supplier_id', 'pending_po__supplier__name']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -885,8 +886,10 @@ def pr_request(request):
                     'remarks': 'pending_po__remarks',
                     'delivery_date': 'pending_po__delivery_date',
                 }
+        purchase_type = 'PO'
 
     parentUser = prApprObj.pr_user
+    toBeValidateLevel = prApprObj.level
     sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
@@ -929,7 +932,8 @@ def pr_request(request):
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], result['total_amt'])
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], 
+                                    result['total_amt'], purchase_type=purchase_type)
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']], 
                         pr_user=user, level=result[fieldsMap['pending_level']])
         if not prApprQs.exists():

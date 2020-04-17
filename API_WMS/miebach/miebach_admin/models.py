@@ -509,8 +509,8 @@ class PendingPR(models.Model):
 @reversion.register()
 class PendingPO(models.Model):
     id = BigAutoField(primary_key=True)
-    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
-    open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
+    open_po = models.ForeignKey(OpenPO, blank=True, null=True, related_name='pendingpos')
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPOs')
@@ -554,6 +554,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     pending_pr = models.ForeignKey(PendingPR, related_name='pending_prApprovals', blank=True, null=True)
     pending_po = models.ForeignKey(PendingPO, related_name='pending_poApprovals', blank=True, null=True)
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
+    purchase_type = models.CharField(max_length=32, default='PO')
     configName = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
@@ -588,6 +589,7 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
     id = BigAutoField(primary_key=True)
     pr_approval = models.ForeignKey(PurchaseApprovals)
     email = models.EmailField(max_length=64)
+    # approval_user = models.ForeignKey(User, blank=True, related_name='approval_user')
     hash_code = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)

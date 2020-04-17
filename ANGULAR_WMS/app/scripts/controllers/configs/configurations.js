@@ -925,7 +925,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     } else if (operation == 'save') {
       angular.forEach(prConfigData, function(tuple, index){
         angular.forEach(Object.keys(tuple['mail_id']), function(level) {
-          var values = tuple.name+level
+          var values = tuple.min_Amt+level
           var emails = $("."+values).val();
           tuple['mail_id'][level] = emails;
         })

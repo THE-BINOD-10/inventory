@@ -84,7 +84,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'], 
+                      pending_level:aData['LevelToBeApproved']};
             vm.dynamic_route(aData);
         });
       });
@@ -148,30 +149,27 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
-                  "po_name": "",
-                  "ship_to": data.data.ship_to,
-                  "terms_condition": data.data.terms_condition,
-                  "receipt_type": data.data.receipt_type,
-                  "seller_types": [],
-                  'is_approval':data.data.is_approval,
-                  "validateFlag": data.data.validateFlag,
-                  "total_price": 0,
-                  "tax": "",
-                  "sub_total": "",
-                  "pr_delivery_date": data.data.pr_delivery_date,
-                  "pr_created_date": data.data.pr_created_date,
-                  "supplier_name": data.data.supplier_name,
-                  "warehouse": data.data.warehouse,
-                  "data": data.data.data,
+            "po_name": "",
+            "ship_to": data.data.ship_to,
+            "terms_condition": data.data.terms_condition,
+            "receipt_type": data.data.receipt_type,
+            "seller_types": [],
+            'is_approval':data.data.is_approval,
+            "validateFlag": data.data.validateFlag,
+            "total_price": 0,
+            "tax": "",
+            "sub_total": "",
+            "pr_delivery_date": data.data.pr_delivery_date,
+            "pr_created_date": data.data.pr_created_date,
+            "supplier_name": data.data.supplier_name,
+            "warehouse": data.data.warehouse,
+            "data": data.data.data,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
-
           vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
-
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
-
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {
@@ -184,7 +182,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               data.fields.utgst_tax = 0;
             }
           });
-
           vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
@@ -197,22 +194,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               angular.forEach(seller_data, function(seller_single){
                 vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
               });
-
               angular.forEach(vm.model_data.data, function(data){
-
                 data.fields.dedicated_seller = vm.dedicated_seller;
-              })
-
+              });
               vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
               vm.getCompany();
               vm.seller_change1 = function(type) {
-
                 if(vm.model_data.receipt_type == 'Hosted Warehouse') {
-
                   angular.forEach(vm.model_data.data, function(data){
-
                     data.fields.dedicated_seller = type;
-                  })
+                  });
                 } else {
                   vm.selected_seller = type;
                   vm.default_status = false;
@@ -222,7 +213,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
-
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
@@ -234,17 +224,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
-          if (aData['Validation Status'] == 'approved'){
+          vm.pending_level = aData['LevelToBeApproved']
+          if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
-          } else if (aData['Validation Status'] == 'saved'){
+          } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
             $state.go('app.inbound.RaisePo.SavedPurchaseRequest');
           } else {
             $state.go('app.inbound.RaisePo.ApprovePurchaseRequest');
           }
         }
-    });
-
+      });
     }
     if ($rootScope.$current_po != '') {
       vm.supplier_id = $rootScope.$current_po['Supplier ID'];
@@ -444,6 +434,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       if (vm.requested_user){
         elem.push({name:'requested_user', value:vm.requested_user})
+      }
+      if (vm.pending_level){
+        elem.push({name:'pending_level', value:vm.pending_level})
       }
       if (validation_type == 'approved'){
         elem.push({name: 'validation_type', value: 'approved'})

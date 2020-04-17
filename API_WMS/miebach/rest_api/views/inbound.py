@@ -4976,7 +4976,8 @@ def validate_putaway(all_data, user):
         if validate_po_id:
             po_location = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id = validate_po_id)
             for pol in po_location:
-                validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+                if pol.purchase_order.open_po:
+                    validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
 

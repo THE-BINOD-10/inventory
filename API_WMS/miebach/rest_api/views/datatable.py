@@ -82,6 +82,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     if master_data.count():
         for market in marketplaces:
             headers = headers + [market + ' SKU', market + ' Description']
+    headers = headers + ['Substitutes']
     excel_headers = headers
 
     data_count = 0
@@ -141,6 +142,12 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
         ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)
+        substitutes_list = []
+        field_count = max(excel_mapping.values()) + 1
+        if data.substitutes:
+            substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
+        substitutes_list = ','.join(map(str, substitutes_list))
+        ws = write_excel(ws, data_count, field_count, substitutes_list, file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()
         if data.ean_number:

@@ -831,7 +831,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       var toBeUpdateData = vm.model_data['selected_actual_pr_config_data'];
       var permGivenMails = vm.model_data['actual_pr_permissive_emails'];
       if (permGivenMails.length == 0){
-        Service.showNoty("No Users have Change PO Permissions.")
+        Service.showNoty("No Users have Change PR Permissions.")
       }
       if(permGivenMails.length != 0) {
         var emailsToUpdate = toBeUpdateData[0]['mail_id'];

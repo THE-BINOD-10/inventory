@@ -45,13 +45,14 @@ def get_filtered_params(filters, data_list):
 
 @csrf_exempt
 def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PR'} #'pending_pr__wh_user':user
+    filtersMap = {'purchase_type': 'PR'} #'pending_pr__wh_user':use
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data', 
                                                   email_id=currentUserEmailId)
-        for memObj in memQs:
+        if memQs.exists() and memQs.count() == 1:
+            memObj = memQs[0]
             master_id = memObj.master_id
             prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
             if prApprObj.exists():
@@ -141,8 +142,9 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                                                 ('Warehouse', warehouse),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
-                                                ('Validation Status', result['pending_pr__final_status']),
+                                                ('Validation Status', result['pending_pr__final_status'].title()),
                                                 ('Pending Level', '%s Of %s' %(result['pending_pr__pending_level'], lastLevel)),
+                                                ('LevelToBeApproved', result['pending_pr__pending_level']),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -265,7 +267,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
                                                 ('Pending Level', '%s Of %s' %(result['pending_po__pending_level'], lastLevel)),
-                                                ('LevelToBeApproved', result['pending_level']),
+                                                ('LevelToBeApproved', result['pending_po__pending_level']),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -2481,7 +2483,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['pr_number'] = purchase_number
         purchase_type = 'PR'
         apprType = 'pending_pr'
-        filtersMap['po_number'] = purchase_number
+        filtersMap['pr_number'] = purchase_number
 
     if myDict.get('pr_number') and not convertPRtoPO:
         pr_number = int(myDict.get('pr_number')[0])

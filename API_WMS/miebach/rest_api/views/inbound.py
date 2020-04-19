@@ -2360,8 +2360,10 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def approve_pr(request, user=''):
-    log.info("Cancel PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
+    reversion.set_user(request.user)
+    log.info("Approve PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Approved Failed'
     pr_number = request.POST.get('pr_number', '')
@@ -2381,6 +2383,7 @@ def approve_pr(request, user=''):
         mailSubTypePrefix = 'pr'
         poFor = False
         purchase_type = 'PR'
+        reversion.set_comment("ValidatePendingPR")
     else:
         master_type = 'pr_approvals_conf_data'
         model_name = PendingPO
@@ -2388,7 +2391,7 @@ def approve_pr(request, user=''):
         mailSubTypePrefix = 'po'
         poFor = True
         purchase_type = 'PO'
-
+        reversion.set_comment("ValidatePendingPO")
 
     currentUserEmailId = request.user.email
     if not pr_number:
@@ -2583,7 +2586,10 @@ def splitPRtoPO(all_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def convert_pr_to_po(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("convertPRtoPO")
     urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Converted PR to PO Successfully'
     try:
@@ -2638,15 +2644,19 @@ def convert_pr_to_po(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def add_pr(request, user=''):
     urlPath = request.META.get('HTTP_ORIGIN')
     try:
+        reversion.set_user(request.user)
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
+            reversion.set_comment("addPendingPR")
         else:
             is_actual_pr = 'false'
+            reversion.set_comment("addPendingPO")
         
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
@@ -2698,14 +2708,18 @@ def add_pr(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
 def save_pr(request, user=''):
     try:
-        log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
+        reversion.set_user(request.user)
+        log.info("Save PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
+            reversion.set_comment("SavePendingPR")
         else:
             is_actual_pr = 'false'
+            reversion.set_comment("SavePendingPO")
 
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
@@ -6377,22 +6391,10 @@ def confirm_add_po(request, sales_data='', user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     supplier_mapping = get_misc_value('supplier_mapping', user.id)
-    if not sales_data:
-        po_id = get_purchase_order_id(user)
-        if po_sub_user_prefix == 'true':
-            po_id = update_po_order_prefix(request.user, po_id)
-    else:
-        if sales_data['po_order_id'] == '':
-            po_id = get_purchase_order_id(user)
-            if po_sub_user_prefix == 'true':
-                po_id = update_po_order_prefix(request.user, po_id)
-        else:
-            po_id = int(sales_data['po_order_id'])
-            po_order_id = int(sales_data['po_order_id'])
-
     po_creation_date = ''
     delivery_date = ''
     is_purchase_request = request.POST.get('is_purchase_request', '')
+    po_id = ''
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
         prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
@@ -6402,6 +6404,20 @@ def confirm_add_po(request, sales_data='', user=''):
             po_id = prObj.po_number
             po_order_id = prObj.po_number
             delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
+    
+    if not po_id:
+        if not sales_data:
+            po_id = get_purchase_order_id(user)
+            if po_sub_user_prefix == 'true':
+                po_id = update_po_order_prefix(request.user, po_id)
+        else:
+            if sales_data['po_order_id'] == '':
+                po_id = get_purchase_order_id(user)
+                if po_sub_user_prefix == 'true':
+                    po_id = update_po_order_prefix(request.user, po_id)
+            else:
+                po_id = int(sales_data['po_order_id'])
+                po_order_id = int(sales_data['po_order_id'])
 
     ids_dict = {}
     po_data = []

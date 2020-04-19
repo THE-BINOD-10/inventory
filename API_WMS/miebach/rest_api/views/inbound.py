@@ -154,7 +154,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
 
 @csrf_exempt
 def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
+    filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.    
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -167,7 +167,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                 configName = prApprObj[0].name
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
-                                level=currentUserLevel).distinct().values_list('purchase_number', flat=True))
+                                level=currentUserLevel,
+                                status='').distinct().values_list('purchase_number', flat=True))
             else:
                 pr_numbers = []
             filtersMap.setdefault('pending_po__po_number__in', [])
@@ -176,7 +177,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             filtersMap['pending_po__requested_user'] = request.user.id
     sku_master, sku_master_ids = get_sku_master(user, user)
     lis = ['-pending_po__po_number','pending_po__supplier_id', 'pending_po__supplier__name', 
-            'pending_po__po_number__in', 'total_qty', 'total_amt', 'creation_date', 
+            'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date', 
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username', 
             'pending_po__final_status', 'pending_po__pending_level',
             'pending_po__po_number__in', 'pending_po__po_number__in', 'pending_po__po_number__in', 
@@ -2402,6 +2403,9 @@ def approve_pr(request, user=''):
         return HttpResponse(status)
 
     pendingPRObj = PRQs[0]
+    if pendingPRObj.final_status == 'cancelled':
+        status = "This PO has been already Cancelled. Further action cannot be made."
+        return HttpResponse(status)
     if is_actual_pr:
         totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
     else:
@@ -2426,7 +2430,7 @@ def approve_pr(request, user=''):
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
-        updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, 
+        updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type, 
                             remarks, purchase_type=purchase_type)
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix, 
                             requestedUserEmail, poFor=poFor)
@@ -2434,13 +2438,13 @@ def approve_pr(request, user=''):
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, 
+            updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type, 
                                 remarks, purchase_type=purchase_type)
             sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix, 
                             requestedUserEmail, poFor=poFor)
         else:
             PRQs.update(pending_level=nextLevel)
-            updatePRApproval(pr_number, pr_user, pending_level, validated_by, validation_type, 
+            updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type, 
                                 remarks, purchase_type=purchase_type)
             prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj, 
                                     master_type=master_type, forPO=poFor)
@@ -2609,7 +2613,8 @@ def convert_pr_to_po(request, user=''):
         poSuppliers = splitPRtoPO(all_data, user)
 
         for supplier, skusInPO in poSuppliers.items():
-            po_number = get_incremental(user, 'PurchaseRequest')
+            # po_number = get_incremental(user, 'PurchaseRequest')
+            po_number = get_purchase_order_id(user)
             totalAmt, pendingPoObj = createPRObjandRertunOrderAmt(request, myDict, all_data, user, po_number, 
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
                                         supplier=supplier, convertPRtoPO=True)
@@ -2649,7 +2654,8 @@ def add_pr(request, user=''):
             if is_actual_pr == 'true':
                 pr_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
-                pr_number = get_incremental(user, 'PurchaseRequest')
+                # pr_number = get_incremental(user, 'PurchaseRequest')
+                pr_number = get_purchase_order_id(user)
 
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
@@ -2707,8 +2713,8 @@ def save_pr(request, user=''):
             if is_actual_pr == 'true':
                 purchase_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
-                # purchase_number = get_purchase_order_id(user)
-                purchase_number = get_incremental(user, 'PurchaseRequest')
+                purchase_number = get_purchase_order_id(user)
+                # purchase_number = get_incremental(user, 'PurchaseRequest')
         supplier = myDict.get('supplier_id', '')
         if supplier:
             supplier = supplier[0]

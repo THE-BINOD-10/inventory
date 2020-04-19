@@ -10883,7 +10883,9 @@ def validate_mrp_weight(data_dict, user):
     if data_dict['location'] in sellable_bulk_locations:
         sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
                                              location__location__in=sellable_bulk_locations).\
-                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
+                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).\
+                            exclude(batch_detail__mrp=None, batch_detail__weight=None).\
+                            values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
         if sku_mrp_weight_map:
             for sku_code, mrp, weight_dict in sku_mrp_weight_map:
                 mrp_weight_dict = {'mrp':[str(mrp)], 'weight':[weight_dict]}

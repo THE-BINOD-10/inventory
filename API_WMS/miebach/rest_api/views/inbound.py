@@ -1562,6 +1562,7 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'sku_packs_invoice':'sku_packs_invoice',
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                        }
         toggle_field, selection = "", ""
@@ -2958,8 +2959,8 @@ def get_supplier_data(request, user=''):
                                     'value': temp_json.get('quantity', 0),
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price': order_data['price'],
-                                    'mrp': temp_json.get('mrp', 0),
+                                    'price':float("%.2f"% order_data['price']),
+                                    'mrp': float("%.2f" % temp_json.get('mrp', 0)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
                                     'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
@@ -2988,9 +2989,9 @@ def get_supplier_data(request, user=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': get_decimal_limit(user.id, order.saved_quantity),
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': order_data['price'],
-                                'grn_price':order_data['price'],
-                                'mrp': order_data['mrp'],
+                                'price': float("%.2f"% order_data['price']),
+                                'grn_price':float("%.2f"% order_data['price']),
+                                'mrp': float("%.2f"% order_data['mrp']),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'],
                                 'dis': True,'wrong_sku':0,
@@ -4394,7 +4395,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
-                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
                                                'mrp': key[13]})
             else:
@@ -4404,7 +4405,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'received_quantity': value,
                                               'measurement_unit': key[2], 'price': key[3],
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
-                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
                                               'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
@@ -4476,6 +4477,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             if total_price:
                 tax_value = (total_price * total_tax)/(100 + total_tax)
                 tax_value = ("%.2f" % tax_value)
+                total_price = float("%.2f" % total_price)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
@@ -6571,6 +6573,7 @@ def confirm_add_po(request, sales_data='', user=''):
                                             receipt_type=value['receipt_type'])
 
             amount = float(purchase_order.order_quantity) * float(purchase_order.price)
+            amount = float("%.2f" % amount)
             tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax'] + \
                   value['apmc_tax'] + value['cess_tax']
             if not tax:
@@ -6585,6 +6588,7 @@ def confirm_add_po(request, sales_data='', user=''):
 
             if industry_type == 'FMCG':
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
@@ -6602,6 +6606,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
@@ -9762,7 +9767,7 @@ def payment_supplier_invoice_data(request, user=''):
         payment_obj = POPaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__open_po__sku__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
-        payment_receivable = tot_amt - round(payment_received)
+        payment_receivable = tot_amt - payment_received
         if invoice_date:
             invoice_date = (invoice_date).strftime("%d %b %Y")
         grouping_key = data['invoice_number']
@@ -9771,9 +9776,9 @@ def payment_supplier_invoice_data(request, user=''):
                                             'po_number':order_reference,
                                             'invoice_number': data['invoice_number'],
                                             'supplier_name':data['purchase_order__open_po__supplier__name'],
-                                            'invoice_amount': round(tot_amt),
-                                            'payment_received': round(payment_received),
-                                            'payment_receivable': round(payment_receivable)
+                                            'invoice_amount': float("%.2f" % tot_amt),
+                                            'payment_received': float("%.2f" % payment_received),
+                                            'payment_receivable': float("%.2f" % payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []
@@ -9839,12 +9844,15 @@ def invoice_payment_tracker(request,user=''):
                                                 'payment_received': 0,
                                                 'payment_receivable': 0
                                                 })
-            data_dict[grouping_key]['invoice_amount'] +=round(tot_amt)
-            data_dict[grouping_key]['payment_received'] +=round(payment_received)
-            data_dict[grouping_key]['payment_receivable'] +=round(receivable)
+            data_dict[grouping_key]['invoice_amount'] +=tot_amt
+            data_dict[grouping_key]['payment_received'] +=payment_received
+            data_dict[grouping_key]['payment_receivable'] +=receivable
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
+        data1['invoice_amount'] = float("%.2f" % data1['invoice_amount'])
+        data1['payment_received'] = float("%.2f" % data1['payment_received'])
+        data1['payment_receivable'] = float("%.2f" % data1['payment_receivable'])
         supplier_data.append(data1)
     response["data"] = supplier_data
     response.update({'total_payment_received': "%.2f" % total_payment_received,
@@ -10044,7 +10052,7 @@ def get_inbound_payment_report(start_index, stop_index, temp_data, search_term, 
         data_dict = OrderedDict((('payment_id', data['payment_id']),
                                 ('invoicee_number', data['invoice_number']),
                                 ('supplier_name', data['order__open_po__supplier__name']),
-                                ('invoice_amount', round(tot_amt)),
+                                ('invoice_amount', float('%.2f' % tot_amt)),
                                 ('payment_date', payment_date),
                                 ('due_date', payment_date),
                                 ('order_id', data['order_id']),

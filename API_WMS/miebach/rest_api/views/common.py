@@ -3537,7 +3537,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address, email = '', '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
-    total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
+    total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax,total_sku_packs = 0, 0, 0, 0, 0, 0, 0, 0
     taxable_cal = 0.0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
@@ -3567,6 +3567,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_mrp = get_misc_value('show_mrp', user.id)
     show_sno = get_misc_value('sno_in_invoice',user.id)
     is_sample_option =  get_misc_value('create_order_po', user.id)
+    sku_packs_invoice = get_misc_value('sku_packs_invoice', user.id)
+    if sku_packs_invoice == 'true':
+        sku_packs_invoice = True
+    else:
+        sku_packs_invoice = False
+
     count = 0
 
     if len(invoice_remarks.split("<<>>")) > 1:
@@ -3655,7 +3661,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         for dat in order_data:
             count += 1
-            profit_price,marginal_flag = 0, 0
+            profit_price,marginal_flag ,pack_quantity =  0, 0 ,0
             order_id = dat.original_order_id
             advance_amount += dat.payment_received
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
@@ -3750,6 +3756,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if dat.sku.sku_code:
                 sku_attr_obj = SKUAttributes.objects.filter(sku_id=dat.sku_id,
                                         attribute_name='MARGINAL GST').only('attribute_value')
+                if sku_packs_invoice:
+                    pack_quantity = SKUPackMaster.objects.filter(sku__user=user.id,sku__sku_code=dat.sku.sku_code)
+                    if pack_quantity.exists():
+                        pack_quantity = pack_quantity[0].pack_quantity
                 imei_data_sku_wise = []
                 if sku_attr_obj.exists() and sku_attr_obj[0].attribute_value.upper() == 'YES':
                     marginal_flag = 1
@@ -3770,24 +3780,23 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                             seller_summary_imei = seller_summary.filter(order_id = dat.id, id= seller_id_value)
                         if profit_price < 1:
                             cgst_tax,sgst_tax,igst_tax,utgst_tax = 0, 0 ,0, 0
-
                         arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
                                     'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
-                                    'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                    'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,"sku_packs":pack_quantity,
                                     'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                     'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
                                     'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal, 'taxes_dict':taxes_dict, 'seller_summary_imei':seller_summary_imei, 'imei_data_sku_wise':imei_data_sku_wise}
-                        data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
+                        data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price, pack_quantity = common_calculations(arg_data)
 
                 else:
                     arg_data = {'unit_price':unit_price,'quantity':quantity,'discount':discount,'dat':dat,'is_gst_invoice':is_gst_invoice,'marginal_flag':marginal_flag,
                                         'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'utgst_tax':utgst_tax,'cess_tax':cess_tax,'profit_price':profit_price,'hsn_summary':hsn_summary,
-                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,
+                                        'total_quantity':total_quantity,'partial_order_quantity_price':partial_order_quantity_price,'_total_tax':_total_tax,"sku_packs":pack_quantity,
                                         'total_invoice':total_invoice,'total_taxable_amt':total_taxable_amt,'display_customer_sku':display_customer_sku,'customer_sku_codes':customer_sku_codes,
                                         'user':user,'sor_id':sor_id,'sell_ids':sell_ids,'seller_summary':seller_summary,'data':data,'order_id':order_id,'title':title,'tax_type':tax_type,'vat':vat,'mrp_price':mrp_price,
                                         'shipment_date':shipment_date,'count':count,'total_taxes':total_taxes,'imei_data':imei_data,'taxable_cal':taxable_cal,'taxes_dict':taxes_dict, 'seller_summary_imei':'','imei_data_sku_wise':imei_data_sku_wise}
-                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price = common_calculations(arg_data)
-
+                    data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price,pack_quantity = common_calculations(arg_data)
+                    total_sku_packs+=pack_quantity
     is_cess_tax_flag = 'true'
     for ord_dict in data:
         if ord_dict['taxes'].get('cess_tax', 0):
@@ -3902,7 +3911,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,'company_pan_number':pan_number,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
-                    'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
+                    'total_quantity': total_quantity,'total_sku_packs':total_sku_packs, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax,
                     'total_mrp': total_mrp,'extra_fields':extra_fields,
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date,
@@ -3927,7 +3936,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,'challan_sequence':challan_sequence,
-                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
+                    'show_mrp': show_mrp, 'sku_packs_invoice':sku_packs_invoice, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,''
                     'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag, 'advance_amount':str(advance_amount), 'terms_condition': dc_terms_conditions}
     return invoice_data
 
@@ -4048,6 +4057,11 @@ def common_calculations(arg_data):
         quantity = int(quantity)
     quantity = get_decimal_limit(user.id ,quantity)
     invoice_amount = get_decimal_limit(user.id ,invoice_amount ,'price')
+    if sku_packs:
+        sku_packs = int(quantity //sku_packs)
+    else:
+        sku_packs= 0
+
     data.append(
         {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
          'title': title, 'invoice_amount': str(invoice_amount),
@@ -4056,8 +4070,8 @@ def common_calculations(arg_data):
          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt':amt, 'taxes': taxes_dict,
          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
          'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
-         'measurement_type': measurement_type})
-    return data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price
+         'measurement_type': measurement_type, 'sku_packs':sku_packs})
+    return data,total_invoice,_total_tax,total_taxable_amt,taxable_cal,total_quantity, partial_order_quantity_price, sku_packs
 
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
@@ -4796,8 +4810,8 @@ def get_customer_sku_prices(request, user=""):
                 if skuPack_data:
                     skuPack_quantity = skuPack_data[0].pack_quantity
             result_data.append(
-                {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount, 'sku_pack_quantity': skuPack_quantity,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
+                {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': float("%.2f" % price), 'discount': discount, 'sku_pack_quantity': skuPack_quantity,
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': float("%.2f" % data.mrp), 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
         import traceback
@@ -6527,11 +6541,14 @@ def update_seller_order(seller_order_dict, order, user):
 def get_invoice_html_data(invoice_data):
     show_mrp = invoice_data.get('show_mrp', 'false')
     show_sno = invoice_data.get('show_sno', 'false')
+    sku_packs_invoice = invoice_data.get('sku_packs_invoice', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 11, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
         data['columns'] += 1
     if show_sno == 'true' :
         data['columns'] += 1
+    if sku_packs_invoice :
+        data['columns'] +=1
     if invoice_data.get('is_cess_tax_flag', '') == 'false':
         data['columns'] -= 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
@@ -8246,6 +8263,10 @@ def get_user_profile_data(request, user=''):
     data['wh_phone_number'] = main_user.wh_phone_number
     data['pan_number'] = main_user.pan_number
     data['phone_number'] = main_user.phone_number
+    data['sign_signature'] = None
+    master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
+    if master_docs_obj.exists():
+        data['sign_signature'] = master_docs_obj[0].uploaded_file.url
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 @login_required
@@ -8317,8 +8338,8 @@ def change_user_password(request, user=''):
 @login_required
 @get_admin_user
 def update_profile_data(request, user=''):
+    from masters import upload_master_file
     ''' will update profile data '''
-
     address = request.POST.get('address', '')
     gst_number = request.POST.get('gst_number', '')
     company_name = request.POST.get('company_name', '')
@@ -8328,6 +8349,7 @@ def update_profile_data(request, user=''):
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
     phone_number = request.POST.get('phone_number', '')
+    sign_file = request.FILES.get('signature_logo', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
@@ -8340,7 +8362,10 @@ def update_profile_data(request, user=''):
     main_user.save()
     user.email = email
     user.save()
-    return HttpResponse('Success')
+    response_dict = {'msg':1, 'data': 'Success'}
+    if sign_file:
+        response = upload_master_file(request, user, user.id, 'auth_sign_copy', master_file=sign_file)
+    return HttpResponse(json.dumps(response_dict))
 
 @csrf_exempt
 @login_required

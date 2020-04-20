@@ -46,6 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'move_inventory_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'enable_pending_approval_prs': false,
                   };
@@ -82,6 +83,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
+                     105: 'sku_packs_invoice',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
@@ -614,15 +616,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-   name: "Enable Pending For Approval PRs",
-   model_name: "enable_pending_approval_prs",
-   param_no: 107,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Pending For Approval POs",
-   model_name: "enable_pending_approval_pos",
+   name: "Display SKU Packs In Invoice",
+   model_name: "sku_packs_invoice",
    param_no: 105,
    class_name: "fa fa-server",
    display: true
@@ -631,6 +626,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Mandate EwayBillNumber in ShipmentInfo",
    model_name: "mandate_ewaybill_number",
    param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
+{
+   name: "Enable Pending For Approval PRs",
+   model_name: "enable_pending_approval_prs",
+   param_no: 107,
    class_name: "fa fa-server",
    display: true
   },

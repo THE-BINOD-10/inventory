@@ -60,6 +60,7 @@ vm.changeUnitPrice = function(data){
   else{
     data.total_price += cgst_percentage + sgst_percentage;
   }
+  data.total_price = (data.total_price).toFixed(3).slice(0,-1);
 }
   vm.warehouse_list = [];
   vm.service.apiCall('get_warehouses_list/').then(function(data){

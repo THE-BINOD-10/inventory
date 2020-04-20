@@ -927,6 +927,7 @@ def get_skus(request):
     data = []
     user = request.user
     limit = 10
+    total_count = 0
     attr_list = []
     error_status = []
     skus = []
@@ -983,6 +984,7 @@ def get_skus(request):
                 search_params['id__in'] = attr_filter_ids
     sku_records = SKUMaster.objects.filter(search_query, **search_params)
     error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
+    total_count = sku_records.count()
     for error_sku in error_skus:
         error_status.append({'sku': error_sku, 'message': 'SKU Not found'})
     page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
@@ -1053,6 +1055,7 @@ def get_skus(request):
 
     page_info['data'] = data
     page_info['message'] = "Success"
+    page_info['page_info']['total_count'] = total_count
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
@@ -1447,6 +1450,7 @@ def get_orders(request):
     limit = request.POST.get('limit', '')
     search_parameters = {}
     user = request.user
+    total_count = 0
     sister_whs = []
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     request_type = 'POST'
@@ -1493,6 +1497,7 @@ def get_orders(request):
             search_parameters['order_reference__in'] = search_params['order_reference']
     search_parameters['user'] = user.id
     order_records = OrderDetail.objects.filter(**search_parameters).values_list('original_order_id',flat= True).distinct().order_by('-creation_date')
+    total_count = order_records.count()
     page_info = scroll_data(request, order_records, limit=limit, request_type=request_type)
     for order in page_info['data']:
         picked_quantity = 0
@@ -1588,6 +1593,7 @@ def get_orders(request):
                                     ('shipping_address',shipping_address),('items',items))))
     page_info['data'] = record
     page_info['message'] = 'success'
+    page_info['page_info']['total_count'] = total_count
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @csrf_exempt

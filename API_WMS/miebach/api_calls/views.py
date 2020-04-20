@@ -952,12 +952,6 @@ def get_skus(request):
         attributes = get_user_attributes(user, 'sku')
         if request_data.get('limit'):
             limit = request_data['limit']
-        if request_data.get('sku_code'):
-            search_params['sku_code'] = request_data['sku_code']
-        if request_data.get('sku_brand'):
-            search_params['sku_brand'] = request_data['sku_brand']
-        if request_data.get('sku_category'):
-            search_params['sku_category'] = request_data['sku_category']
         skus = request_data.get('sku_list', [])
         skus = map(lambda sku: str(sku), skus)
         if skus:
@@ -972,7 +966,10 @@ def get_skus(request):
             attr_found = False
             for key, value in request_data.items():
                 if key in sku_model:
-                    search_params[key] = request_data[key]
+                    if type(request_data[key]) == list:
+                        search_params[key+'__in'] = request_data[key]
+                    else:
+                        search_params[key] = request_data[key]
                 elif key in attr_list:
                     attr_found = True
                     attr_ids = SKUAttributes.objects.filter(sku__user=user.id, attribute_name=key,

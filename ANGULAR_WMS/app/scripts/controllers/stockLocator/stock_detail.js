@@ -36,7 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Receipt ID').withTitle('Receipt ID'),
         DTColumnBuilder.newColumn('Receipt Date').withTitle('Receipt Date'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),

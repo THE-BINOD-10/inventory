@@ -29,7 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('warehouse_name').withTitle('Warehouse Name'),
-        DTColumnBuilder.newColumn('wms_code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('wms_code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('priority').withTitle('Priority'),
         DTColumnBuilder.newColumn('moq').withTitle('MOQ'),
         DTColumnBuilder.newColumn('price').withTitle('Price'),

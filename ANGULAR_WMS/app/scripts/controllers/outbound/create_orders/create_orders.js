@@ -745,6 +745,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
 
     }
+    data.total_amount = (data.total_amount).toFixed(3).slice(0,-1);
 
 
     if(!no_total) {
@@ -774,7 +775,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       data.discount_percentage = "";
     }
     var temp_perc = Number(data.discount_percentage);
-    data.discount = (Number(data.invoice_amount)*temp_perc)/100;
+    data.discount = ((Number(data.invoice_amount)*temp_perc)/100).toFixed(3).slice(0,-1);
   }
 
   vm.lions = false;

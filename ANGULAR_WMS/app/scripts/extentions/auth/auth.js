@@ -1,9 +1,9 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state",
+  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", 
 
-    function ($q, $http, Session, $state) {
+    function ($q, $http, Session, $state, $rootScope) {
 
       var deferredStatus = null;
 
@@ -43,7 +43,6 @@
 
         return !!(session && session.userId);
       };
-
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
@@ -55,7 +54,9 @@
       };
 
       this.status = function () {
-
+        if ($rootScope.$redirect == 'pr_request'){
+          return;
+        }
         if (deferredStatus) {
 
           return deferredStatus.promise;
@@ -80,7 +81,6 @@
           }
           resp = resp.data;
           update_manifest(resp.data);
-
           if ((resp.message != "Fail") && resp.data.userId) {
              //setloginStatus(resp);
              Session.set(resp.data);
@@ -90,14 +90,10 @@
               $state.go("app.Register");
             }
           } else {
-
             $state.go("user.signin");
           }
-
           deferredStatus.resolve(resp.message);
-
         }).catch(function(err){
-
             /*getloginStatus().then(function(resp){
               if((resp.message != "Fail") && resp.data.userId) {
                  //TODO add the statusinto indexDb
@@ -117,9 +113,9 @@
                }
            });*/
        });
-
         return deferredStatus.promise;
       };
+
 
       this.update = function () {
 
@@ -132,7 +128,6 @@
           if ((resp.message != "Fail") && resp.data.userId) {
              /*setloginStatus(resp);*/
              Session.set(resp.data);
-
           }
 
           deferredStatus.resolve(resp.message);

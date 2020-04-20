@@ -19,7 +19,7 @@
                 </div>
                 <div class="form-group" ng-if="!showCase.toggle_brand">
                     <label class="control-label"> SKU Code * </label>
-                    <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code" ng-readonly="showCase.update" required>
+                    <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code" ng-readonly="showCase.update" required>
                   </div>
               </div>
               <div class="col-md-4" ng-if="showCase.toggle_brand">

@@ -2690,7 +2690,7 @@ def get_grn_json_data(order, user, request):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
     table_headers = (
-        'WMS Code', 'Supplier Code', 'Description', 'Brand', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
+        'SKU Code', 'Supplier Code', 'Description', 'Brand', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
         'Remarks')
     profile = UserProfile.objects.get(user=user.id)
     w_address, company_address = get_purchase_company_address(profile)

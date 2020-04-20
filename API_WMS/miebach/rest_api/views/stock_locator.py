@@ -188,7 +188,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
-        temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
                                                 ('Available Quantity', quantity),
@@ -1241,7 +1241,7 @@ def confirm_move_location_inventory(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision(atomic=False)
+@reversion.create_revision(atomic=False, using='reversion')
 def insert_move_inventory(request, user=''):
     # data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     # if not data:
@@ -1250,6 +1250,7 @@ def insert_move_inventory(request, user=''):
     #     cycle_id = data[0].cycle + 1
 
     reversion.set_user(request.user)
+    reversion.set_comment("insert_move_inv")
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -1267,6 +1268,7 @@ def insert_move_inventory(request, user=''):
     mrp = request.GET.get('mrp', '')
     reason = request.GET.get('reason', '')
     weight = request.GET.get('weight', '')
+    price = request.GET.get('price', '')
     if user.username in MILKBASKET_USERS:
         if not mrp or not weight:
             return HttpResponse("MRP and Weight are Mandatory")
@@ -1287,7 +1289,7 @@ def insert_move_inventory(request, user=''):
             receipt_number = get_stock_receipt_number(user)
             seller_receipt_dict[str(seller_id)] = receipt_number
     status = move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id,
-                                 batch_no=batch_no, mrp=mrp, weight=weight,
+                                 batch_no=batch_no, mrp=mrp, weight=weight, price=price,
                                  receipt_number=receipt_number, receipt_type='move-inventory', reason=reason)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
@@ -1592,7 +1594,7 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
-            OrderedDict((('Vendor Name', data['vendor__name']), ('WMS Code', data['sku__wms_code']),
+            OrderedDict((('Vendor Name', data['vendor__name']), ('SKU Code', data['sku__wms_code']),
                          ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
                          ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
                          )))
@@ -1648,7 +1650,7 @@ def warehouse_headers(request, user=''):
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs
-        if size_name:
+        if size_name not in ['', 'undefined']:
             all_sizes = size_master_objs.filter(size_name=size_name)
         sizes = []
         if all_sizes:
@@ -1743,28 +1745,12 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
     if order_term == 'desc':
         order_data = '-%s' % order_data
 
-    search_params['stock__sku_id__in'] = sku_master_ids
+    #search_params['stock__sku_id__in'] = sku_master_ids
 
     all_seller_stock = SellerStock.objects.filter(seller__user=user.id)
     dis_seller_ids = all_seller_stock.values_list('seller__seller_id', flat=True).distinct()
     sell_stock_ids = all_seller_stock.values('seller__seller_id', 'stock_id')
 
-    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user)
-    '''reserved_dict = OrderedDict()
-    raw_reserved_dict = OrderedDict()
-    for seller in dis_seller_ids:
-        pick_params = {'status': 1, 'picklist__order__user': user.id}
-        rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
-        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
-        if stock_id_dict:
-            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
-            pick_params['stock_id__in'] = stock_ids
-            rm_params['stock_id__in'] = stock_ids
-        reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params).\
-                                     values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
-                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
-                                           annotate(rm_reserved=Sum('reserved')))'''
 
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
@@ -1772,33 +1758,33 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
 
     categories = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_category'))
     if search_term:
-        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list(
+        master_data = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0).values_list(
             'seller__seller_id',
             'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
             'stock__sku__sku_brand').distinct(). \
             annotate(total=Sum('quantity')). \
-            filter(search_term_query, stock__sku__user=user.id, **search_params).order_by(order_data)
+            filter(search_term_query, **search_params).order_by(order_data)
         search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
-        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0). \
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(seller__user=user.id, quantity__gt=0). \
             values('seller__seller_id', 'seller__name',
                    'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
                    'stock__sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(search_term_query, stock__sku__user=user.id,
+            annotate(total=Sum('quantity')).filter(search_term_query,
                                                    **search_params)
 
     else:
-        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list(
+        master_data = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0).values_list(
             'seller__seller_id',
             'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
             'stock__sku__sku_brand').distinct(). \
             annotate(total=Sum('quantity')). \
-            filter(stock__sku__user=user.id, **search_params).order_by(order_data)
+            filter(**search_params).order_by(order_data)
         search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
-        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0). \
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(seller__user=user.id, quantity__gt=0). \
             values('seller__seller_id', 'seller__name',
                    'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
                    'stock__sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(stock__sku__user=user.id, **search_params)
+            annotate(total=Sum('quantity')).filter(**search_params)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -1809,6 +1795,8 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
     if stop_index and not custom_search:
         master_data = master_data[start_index:stop_index]
 
+    stock_objs = StockDetail.objects.filter(id__in=list(master_data.values_list('stock_id', flat=True))).only('id')
+    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, stock_objs, user)
     for data in master_data:
         quantity = 0
         reserved = 0
@@ -3708,6 +3696,7 @@ def stock_detail_update(request, user=''):
     try:
         data = request.POST
         id = request.POST['id']
+        sku_codes = []
         if user.username in MILKBASKET_USERS:
             if not data['mrp'] or not data['weight']:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'Weight and MRP Should not be Empty'}))
@@ -3740,7 +3729,18 @@ def stock_detail_update(request, user=''):
                 if old_batch_dict[key] != new_batch_dict[key]:
                     updated_batch_dict[key] = new_batch_dict[key]
                     create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key], new_batch_dict[key])
-            BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
+            stock_check = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, batch_detail_id=id)
+            sku_codes = list(stock_check.values_list('sku__wms_code', flat=True).distinct())
+            if stock_check.count() >= 2 and updated_batch_dict:
+                new_batch_object = BatchDetail.objects.get(id=id).__dict__
+                del new_batch_object['_state']
+                del new_batch_object['id']
+                updated_batch = BatchDetail.objects.create(**new_batch_object)
+                stock_check.filter(location__location=data.get('location', '')).update(batch_detail_id=updated_batch.id)
+                BatchDetail.objects.filter(id=updated_batch.id).update(**updated_batch_dict)
+            else:
+                BatchDetail.objects.filter(id=id).update(**updated_batch_dict)
+            if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
             return HttpResponse(json.dumps({'status': 1, 'message': 'Successfully Updated'}))
     except Exception as e:
         import traceback

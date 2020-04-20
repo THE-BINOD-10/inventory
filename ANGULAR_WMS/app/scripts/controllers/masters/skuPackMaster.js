@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('sku').withTitle('Sku Code'),
+        DTColumnBuilder.newColumn('sku').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('pack_id').withTitle('Pack ID'),
         DTColumnBuilder.newColumn('pack_quantity').withTitle('Pack Quantity'),
     ];

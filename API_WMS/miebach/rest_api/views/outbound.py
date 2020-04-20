@@ -11859,6 +11859,7 @@ def generate_customer_invoice_tab(request, user=''):
 
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
         # invoice_date = get_local_date(user, invoice_date, send_date='true')
+        invoice_data['sale_signature'] = get_auth_signature(request, user, invoice_date)
         inv_month_year = invoice_date.strftime("%m-%y")
         invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
         invoice_date = invoice_date.strftime("%d %b %Y")
@@ -16328,3 +16329,19 @@ def generate_dc(request , user = ''):
                 invoice_data['dc_number'] = dc_number_obj
                 invoice_data['total_quantity'] = total_qty
     return render(request, 'templates/toggle/delivery_challan_batch_level.html', invoice_data)
+
+def get_auth_signature(request, user, inv_date):
+    auth_signature = ''
+    master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
+    if master_docs_obj.exists():
+        url = request.META.get('wsgi.url_scheme')+'://'+request.META.get('HTTP_HOST')+'/'
+        if len(master_docs_obj) > 1:
+            for auth_sign in master_docs_obj:
+                if inv_date > auth_sign.creation_date:
+                    auth_signature = url+auth_sign.uploaded_file.url
+                    break
+                else:
+                    auth_signature = url+auth_sign.uploaded_file.url
+        if len(master_docs_obj) == 1 or (not auth_signature):
+            auth_signature = url+master_docs_obj[0].uploaded_file.url
+    return auth_signature

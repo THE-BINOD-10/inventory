@@ -2641,7 +2641,7 @@ def generate_rm_po_data(request, user=''):
 
 
 def get_grn_json_data(order, user, request):
-    purchase_order_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=order.order_id)
+    purchase_order_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=order.order_id, prefix=order.prefix)
     total = 0
     total_qty = 0
     po_data = []

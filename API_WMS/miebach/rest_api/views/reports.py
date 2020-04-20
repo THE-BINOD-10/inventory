@@ -535,7 +535,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     else:
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user=user.id, **search_parameters)
-    purchase_orders = suppliers.values('order_id', 'status').distinct().annotate(
+    purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity')). \
         order_by(order_val)
@@ -551,7 +551,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         purchase_orders = purchase_orders[start_index:stop_index]
 
     for purchase_order in purchase_orders:
-        po_data = suppliers.filter(order_id=purchase_order['order_id'])
+        po_data = suppliers.filter(order_id=purchase_order['order_id'], prefix=purchase_order['prefix'])
         total_amt = 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity

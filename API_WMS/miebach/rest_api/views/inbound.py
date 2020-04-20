@@ -2650,7 +2650,7 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
 def get_seller_receipt_id(purchase_order):
     receipt_number = 1
     summary = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=purchase_order.open_po.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id).\
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
                                         order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
@@ -2661,7 +2661,7 @@ def get_st_seller_receipt_id(purchase_order):
     receipt_number = 1
     open_st = purchase_order.stpurchaseorder_set.filter()[0].open_st
     summary = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=open_st.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id).\
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
                                         order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
@@ -7373,7 +7373,7 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         temp_data['aaData'].append({'DT_RowId': order.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
-                                    ' Order ID': order.order_id,
+                                    ' Order ID': order.order_id, 'prefix': order.prefix,
                                     'Order Date': get_local_date(request.user, order.creation_date),
                                     'DT_RowClass': 'results', 'PO Number': po_reference,
                                     'DT_RowAttr': {'data-id': order.order_id}})
@@ -7392,9 +7392,10 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 def get_po_segregation_data(request, user=''):
     segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
+    po_prefix = request.GET['prefix']
     offer_check = False
     segregations = segregations.select_related('purchase_order', 'batch_detail').\
-                                filter(purchase_order__order_id=order_id)
+                                filter(purchase_order__order_id=order_id, purchase_order__prefix=po_prefix)
     if not segregations:
         return HttpResponse("No Data found")
 
@@ -7800,7 +7801,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -7850,11 +7851,11 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'])[0]
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
-                                            purchase_order__order_id=data['purchase_order__order_id'],\
+                                            purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
 
         tot_amt, rem_quantity = 0, 0
@@ -7904,7 +7905,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
-    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -7944,11 +7945,11 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'])[0]
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
-                                            purchase_order__order_id=data['purchase_order__order_id'],\
+                                            purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
 
         tot_amt = 0
@@ -8997,11 +8998,11 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
+                                                                   'creation_date','open_po__order_type', 'prefix').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type', 'prefix').order_by(order_data)
 
     temp_data['recordsTotal'] = len(result)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -9011,7 +9012,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         po_date = get_local_date(request.user, data['creation_date'],send_date=True).strftime("%d %b, %Y")
         temp_data['aaData'].append(OrderedDict((('Supplier ID', data['open_po__supplier__id']),
                                                 ('Supplier Name', data['open_po__supplier__name']),
-                                                ('PO Number', data['order_id']), ('PO Date', po_date),
+                                                ('PO Number', data['order_id']), ('PO Date', po_date),('prefix', data['prefix']),
                                                 ('Total Amount', ''),('id', ''),('Order Type', order_type),
                                                 ('DT_RowClass', 'results'))))
 

@@ -47,6 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
                     'mandate_ewaybill_number':false,
+                    'allow_partial_picklist': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -83,6 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
+                     107: 'allow_partial_picklist',
                      }
 
   vm.check_box_data = [
@@ -618,10 +620,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
    name: "Mandate EwayBillNumber in ShipmentInfo",
    model_name: "mandate_ewaybill_number",
    param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Allow Partial Picklist Generation",
+   model_name: "allow_partial_picklist",
+   param_no: 107,
    class_name: "fa fa-server",
    display: true
   },

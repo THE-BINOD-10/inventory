@@ -8966,7 +8966,8 @@ def order_category_generate_picklist(request, user=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                   'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     if enable_damaged_stock  == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
@@ -9261,21 +9262,26 @@ def picklist_delete(request, user=""):
                 for order in order_objs:
                     combo_picklists = picklist_objs.filter(order_type='combo', order_id=order.id)
                     if combo_picklists:
-                        is_picked = combo_picklists.filter(picked_quantity__gt=0, order_id=order.id)
-                        remaining_qty = order.quantity
-                        if is_picked:
-                            #status_message = 'Partial Picked Picklist not allowed to cancel'
-                            #cancel_combo_partial_orders(combo_picklists, order, user)
-                            remaining_qty = combo_picklists.filter(picked_quantity__gt=0).\
-                                                        aggregate(Min('reserved_quantity'))['reserved_quantity__min']
-                            #order_ids.remove(order.id)
-                            #continue
+                        #is_picked = combo_picklists.filter(picked_quantity__gt=0, order_id=order.id)
+                        #remaining_qty = order.quantity
+                        #if is_picked:
+                        remaining_qty_objs = combo_picklists.values('stock__sku_id').\
+                                                    annotate(res_qty=Sum('reserved_quantity'))
+                        if remaining_qty_objs:
+                            remaining_qty_objs = remaining_qty_objs[0]
+                            combo_qty = SKURelation.objects.\
+                                        filter(member_sku_id=remaining_qty_objs['stock__sku_id'])[0].quantity
+                            remaining_qty = float(remaining_qty_objs['res_qty'])/combo_qty
                     else:
                         remaining_qty = picklist_objs.filter(order_id=order).\
                             aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
 
                     if remaining_qty and remaining_qty > 0:
-                        order.status, order.quantity = 1, remaining_qty
+                        order.status = 1
+                        if order.original_quantity == order.quantity:
+                            order.quantity = remaining_qty
+                        else:
+                            order.quantity = order.quantity + remaining_qty
                         order.save()
                         seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                         if seller_orders:

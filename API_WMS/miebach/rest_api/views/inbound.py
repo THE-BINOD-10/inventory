@@ -1422,6 +1422,7 @@ def switches(request, user=''):
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
                        'mandate_ewaybill_number':'mandate_ewaybill_number',
+                       'allow_partial_picklist': 'allow_partial_picklist',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

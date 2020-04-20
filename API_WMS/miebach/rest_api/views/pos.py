@@ -822,8 +822,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                                                       'sgst_percent': tax_master["sgst_tax"],
                                                       'sgst': 0,
                                                       'cgst': 0})
-        gst_based[tax_master['cgst_tax']]['taxable_amt'] += (order.unit_price - \
-                                  order_summary[0].discount)*float(order.quantity)
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += (order.unit_price)*float(order.quantity)
         gst_based[tax_master['cgst_tax']]['sgst'] += (order.unit_price * tax_master["sgst_tax"] / 100) * float(order.quantity)
         gst_based[tax_master['cgst_tax']]['cgst'] += (order.unit_price * tax_master["cgst_tax"] / 100) * float(order.quantity)
         stock_quantity = 0

@@ -396,10 +396,10 @@
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * (agg/100));
             }
-            urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += tax_amt;
+            urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += agg;
         } else {
             urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
-                          {"taxable_amt": tax_amt,
+                          {"taxable_amt": agg,
                            "cgst_percent" : self.skus[i].cgst_percent,
                            "sgst_percent" : self.skus[i].sgst_percent,
                            "cgst": (self.skus[i].cgst_percent *(agg/100)),
@@ -534,7 +534,6 @@
       function print_order(data,user) {
 
         var date = new Date().toDateString();
-
         if (data.summary.issue_type == 'Delivery Challan') {
           if(self.send_email)
           {

@@ -2423,6 +2423,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'enable_pending_approval_pos':'enable_pending_approval_pos',
                         'enable_pending_approval_prs': 'enable_pending_approval_prs',
                         'mandate_invoice_number':'mandate_invoice_number',
+                        'sku_packs_invoice':'sku_packs_invoice',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
                         }
 

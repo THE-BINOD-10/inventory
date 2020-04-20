@@ -910,7 +910,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                 tot_cgst += gst_based[item]['cgst']
             summary = {'total_quantity': total_quantity,
                        'total_amount': total_amount,
-                       'total_discount': total_discount,
+                       'total_discount': round(total_discount),
                        'subtotal': subtotal ,
                        'cgst': tot_cgst,
                        'sgst': tot_sgst,

@@ -126,7 +126,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'SKUView': 'batch_generate_picklist/',
                                                    'SellerOrderView': 'seller_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status', 'PO Status':'PO Status'},
                                       'CustomerCategoryView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Category': 'Category', 'Total Quantity': 'Total Quantity', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
                                       'SKUView': {'SKU Code': 'SKU Code', 'Title': 'Title', 'Total Quantity': 'Total Quantity'},
                                       'OrderView': {'Order ID': 'Order ID', 'Address': 'Address', 'SKU Code': 'SKU Code', 'Title': 'Title', 'Product Quantity': 'Product Quantity', 'Shipment Date': 'Exp Delivery Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},

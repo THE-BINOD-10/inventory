@@ -125,7 +125,8 @@ urlpatterns = [
     url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
     url(r'^add_update_pr_config/$', add_update_pr_config),
     url(r'^delete_pr_config/$', delete_pr_config),
-    url(r'^pr_request/$', pr_request),
+    url(r'^pending_pr_request/$', pr_request),
+    url(r'^pending_po_request/$', pr_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -214,6 +215,8 @@ urlpatterns = [
     url(r'^print_pending_po_form/$', print_pending_po_form),
     url(r'^cancel_pr/$', cancel_pr),
     url(r'^save_pr/$', save_pr),
+    url(r'^generated_actual_pr_data/$', generated_actual_pr_data),
+    url(r'^convert_pr_to_po/$', convert_pr_to_po),
 
 
 

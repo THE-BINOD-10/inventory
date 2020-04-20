@@ -1994,14 +1994,14 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            data_dict['sku_code'] = sku_master.sku_code
+            data_dict['location'] = location_obj[0].location
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         if not index_status:
-            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-                data_dict['sku_code'] = sku_master.sku_code
-                data_dict['location'] = location_obj[0].location
-                status = validate_mrp_weight(data_dict,user)
-                if status:
-                    index_status.setdefault(row_idx, set()).add(status)
             if user.userprofile.industry_type == 'FMCG' :
                 if not data_dict.get('manufactured_date', ''):
                     data_dict['manufactured_date'] = datetime.datetime.now()
@@ -3627,7 +3627,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                     else:
                         data_dict[key] = cell_data
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
                 data_dict['sku_code'] = data_dict['wms_code']
                 data_dict['location'] = dest_location[0].location
                 status = validate_mrp_weight(data_dict,user)
@@ -4165,7 +4165,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -7141,7 +7141,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
-        all_data = insert_st_gst(all_data, warehouse)
+    all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 
     if status.status_code == 200:

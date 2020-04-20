@@ -1863,8 +1863,10 @@ PERMISSION_DICT = OrderedDict((
                        ("Returns Putaway", "add_returnslocation"),
                        ("RTV", "add_returntovendor"), ("Seller Invoices", "add_sellerpo"),
                        ("Supplier Invoices", "change_sellerposummary"), ("GRN Edit", "delete_sellerposummary"),
-                       ("View PendingPO", "view_pendingpurchase"), ("Add PendingPO", "add_pendingpurchase"),
-                       ("Change PendingPO", "change_pendingpurchase"),
+                       ("View PendingPO", "view_pendingpo"), ("Add PendingPO", "add_pendingpo"),
+                       ("Change PendingPO", "change_pendingpo"),
+                       ("View PendingPR", "view_pendingpr"), ("Add PendingPR", "add_pendingpr"),
+                       ("Change PendingPR", "change_pendingpr"),
                        )),
 
     # Production
@@ -2419,6 +2421,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'display_dc_invoice': 'display_dc_invoice',
                         'display_order_reference': 'display_order_reference',
                         'enable_pending_approval_pos':'enable_pending_approval_pos',
+                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                         'mandate_invoice_number':'mandate_invoice_number',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
                         }
@@ -2937,7 +2940,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
-        ord_dict = OrderedDict((('PO Number', po_reference), ('WMS Code', data.open_po.sku.wms_code),
+        ord_dict = OrderedDict((('PO Number', po_reference), ('SKU Code', data.open_po.sku.wms_code),
                                                 ('SKU Category', data.open_po.sku.sku_category),
                                                 ('SKU Sub Category', data.open_po.sku.sub_category),
                                                 ('Sku Brand', data.open_po.sku.sku_brand),

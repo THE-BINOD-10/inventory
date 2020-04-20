@@ -803,7 +803,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
             #total_discount  += (order_summary[0].discount * order.quantity)
-            total_discount += order_summary[0].discount
+            total_discount += round(order_summary[0].discount, 2)
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}

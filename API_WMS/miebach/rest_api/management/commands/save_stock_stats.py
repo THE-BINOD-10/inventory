@@ -34,13 +34,21 @@ class Command(BaseCommand):
     help = "Save Stock Stats everyday"
 
     def handle(self, *args, **options):
+        users_list = []
         self.stdout.write("Started Updating")
         today = datetime.datetime.now().date()
         tomorrow = today + datetime.timedelta(1)
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True).order_by('-last_login')
+        run_users = ['GGN01', 'ggn01_con','TranceHomeLinen', 'ola_admin', 'creation_overseas', 
+                    'savis_retail', 'GM_admin', 'grandspitstop', 'aidin_technologies']
+        for username in run_users:
+            user_objs = UserGroups.objects.filter(admin_user__username=username)
+            users_list.append(username)
+            for user_obj in user_objs:
+                users_list.append(user_obj.user.username)
+        users = User.objects.filter(is_staff=True, username__in=users_list).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)

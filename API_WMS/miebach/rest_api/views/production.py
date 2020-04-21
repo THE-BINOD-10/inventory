@@ -1030,7 +1030,9 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': w_address,
                  'company_name': profile.company_name, 'company_address': company_address,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-    check_purchase_order_created(user, po_id)
+    check_prefix = ''
+    check_prefix = UserProfile.objects.get(user_id=rw_order.vendor.user).prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':

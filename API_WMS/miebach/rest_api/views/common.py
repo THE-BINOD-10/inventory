@@ -1885,7 +1885,7 @@ def auto_po(wms_codes, user):
                                                      received_quantity=0, po_date=datetime.datetime.now(),
                                                      prefix=user_profile.prefix,
                                                      creation_date=datetime.datetime.now())
-                        check_purchase_order_created(User.objects.get(id=user), po_order_id)
+                        check_purchase_order_created(User.objects.get(id=user), po_order_id, user_profile.prefix)
             else:
                 automated_po = automated_po[0]
                 automated_po.order_quantity += order_quantity
@@ -8822,10 +8822,13 @@ def create_order_pos(user, order_objs, admin_user=None):
         else:
             log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), '' ))
-        check_purchase_order_created(user, po_id)
+        check_po_prefix = ''
+        if user_profile:
+            check_po_prefix = user_profile.prefix
+        check_purchase_order_created(user, po_id, check_po_prefix)
     except Exception as e:
         if po_id:
-            check_purchase_order_created(user, po_id)
+            check_purchase_order_created(user, po_id, check_po_prefix)
         import traceback
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
@@ -9424,10 +9427,10 @@ def check_picklist_number_created(user, picklist_number):
         check_and_update_incremetal_type_val(picklist_number, user, 'picklist')
 
 
-def check_purchase_order_created(user, po_id):
+def check_purchase_order_created(user, po_id, po_prefix):
     po_data = PurchaseOrder.objects.filter(Q(open_po__sku__user=user.id) |
                                            Q(stpurchaseorder__open_st__sku__user=user.id),
-                                           order_id=po_id)
+                                           order_id=po_id, prefix=po_prefix)
     if not po_data.exists():
         check_and_update_incremetal_type_val(po_id, user, 'po')
 
@@ -10293,7 +10296,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, st_po_id)
+        check_purchase_order_created(user, st_po_id, prefix)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -10388,6 +10391,10 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
         sub_user = request.user
     warehouse = User.objects.get(username__iexact=warehouse_name)
     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    prefix = ''
+    if user_profile:
+        prefix = user_profile[0].prefix
     for key, value in all_data.iteritems():
         po_id = get_purchase_order_id(user) + 1
         if po_sub_user_prefix == 'true':
@@ -10400,11 +10407,6 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
             po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
@@ -10427,7 +10429,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, po_id)
+        check_purchase_order_created(user, po_id, prefix)
     return HttpResponse("Confirmed Successfully")
 
 

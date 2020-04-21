@@ -1903,7 +1903,11 @@ def confirm_po(request, user=''):
                                str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-    check_purchase_order_created(user, po_id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    check_prefix = ''
+    if user_profile:
+        check_prefix = user_profile[0].prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 @csrf_exempt
@@ -6227,7 +6231,7 @@ def get_po_data(request):
                           values_list('order_id', flat=True)[:limit])
 
     all_pos = PurchaseOrder.objects.exclude(status='').filter(open_po__sku__user=user.id, order_id__in=allowed_orders)
-    purchase_order = all_pos.values('order_id', 'open_po__creation_date', 'updation_date', 'open_po__supplier_id',
+    purchase_order = all_pos.values('order_id', 'prefix', 'open_po__creation_date', 'updation_date', 'open_po__supplier_id',
                                     'open_po__supplier__name').distinct().annotate(total=Sum('open_po__price'))
     for orders in purchase_order:
         po_data = OrderedDict(
@@ -6633,10 +6637,17 @@ def confirm_add_po(request, sales_data='', user=''):
                         order_id = get_order_id(actUserId)
                     createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
-                check_purchase_order_created(user, po_id)
+                check_prefix = ''
+                if user_profile:
+                    check_prefix = user_profile[0].prefix
+                check_purchase_order_created(user, po_id, check_prefix)
                 return HttpResponse(str(order.id) + ',' + str(order.order_id))
         if status and not suggestion:
-            check_purchase_order_created(user, po_id)
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile[0].prefix
+            check_purchase_order_created(user, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
@@ -6735,7 +6746,11 @@ def confirm_add_po(request, sales_data='', user=''):
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
                 write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-        check_purchase_order_created(user, po_id)
+        user_profile = UserProfile.objects.filter(user_id=user.id)
+        check_prefix = ''
+        if user_profile:
+            check_prefix = user_profile[0].prefix
+        check_purchase_order_created(user, po_id, check_prefix)
 
     except Exception as e:
         import traceback
@@ -7046,7 +7061,11 @@ def confirm_po1(request, user=''):
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-    check_purchase_order_created(user, po_id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    check_prefix = ''
+    if user_profile:
+        check_prefix = user_profile[0].prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -7290,7 +7309,7 @@ def check_imei_exists(request, user=''):
 @get_admin_user
 def create_purchase_order(request, myDict, i, user='', exist_id=0):
     po_order = PurchaseOrder.objects.filter(id=myDict['id'][exist_id], open_po__sku__user=user.id)
-    purchase_order = PurchaseOrder.objects.filter(order_id=po_order[0].order_id,
+    purchase_order = PurchaseOrder.objects.filter(order_id=po_order[0].order_id, prefix=po_order[0].prefix,
                                                   open_po__sku__wms_code=myDict['wms_code'][i],
                                                   open_po__sku__user=user.id)
     if purchase_order:
@@ -11466,7 +11485,10 @@ def confirm_central_po(request, user=''):
             setattr(suggestion, 'status', 0)
             suggestion.save()
         if status and not suggestion:
-            check_purchase_order_created(warehouse, po_id)
+            check_prefix = ''
+            if warehouse.userprofile:
+                check_prefix = warehouse.userprofile.prefix
+            check_purchase_order_created(warehouse, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
@@ -11534,7 +11556,10 @@ def confirm_central_po(request, user=''):
         if get_misc_value('raise_po', warehouse.id) == 'true':
 	    data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
             write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-        check_purchase_order_created(warehouse, po_id)
+        check_prefix = ''
+        if warehouse.userprofile:
+            check_prefix = warehouse.userprofile.prefix
+        check_purchase_order_created(warehouse, po_id, check_prefix)
         return render(request, 'templates/toggle/po_template.html', data_dict)
     except Exception as e:
         import traceback

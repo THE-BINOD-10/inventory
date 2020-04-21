@@ -580,7 +580,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
                                                     ('Ordered Quantity', purchase_order['total_ordered']),
-                                                    ('Amount', total_amt),
+                                                    ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status_var), ('order_id', po_obj.order_id))))
     # supplier_data['total_charge'] = total_charge
@@ -1064,6 +1064,7 @@ def print_po_reports(request, user=''):
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
+    po_pre = request.GET.get('prefix', '')
     utgst_tax , cess_tax , apmc_tax,measurement_unit = 0, 0, 0,''
     data_dict = ''
     bill_no = ''
@@ -1081,7 +1082,7 @@ def print_po_reports(request, user=''):
     else:
         filter_params['open_po__sku__user'] = user.id
     if po_id:
-        results = PurchaseOrder.objects.filter(order_id=po_id, **filter_params)
+        results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre, **filter_params)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
@@ -1094,7 +1095,7 @@ def print_po_reports(request, user=''):
     for data in results:
         receipt_type = ''
         lr_number = ''
-        lr_number_obj = LRDetail.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id)
+        lr_number_obj = LRDetail.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id, purchase_order__prefix=data.prefix)
         if lr_number_obj.exists():
             lr_number = lr_number_obj[0].lr_number
         if po_id:
@@ -1884,11 +1885,12 @@ def print_stock_cover_report(request, user=''):
 @get_admin_user
 def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
+    po_prefix = request.GET.get('prefix', '')
     total_qty = 0
     total = 0
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),

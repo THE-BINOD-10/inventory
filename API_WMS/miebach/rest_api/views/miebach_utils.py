@@ -4111,7 +4111,7 @@ def get_po_filter_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id, prefix=data['prefix'])
         result = po_result[0]
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
         po_reference_name = result.open_po.po_name
@@ -4133,6 +4133,7 @@ def get_po_filter_data(search_params, user, sub_user):
         #if data['grn_rec']:
         #    received_qty = data['grn_rec']
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
+                                                ('prefix', data['prefix']),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('PO Reference', po_reference_name),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
@@ -4204,7 +4205,7 @@ def get_st_po_filter_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(stpurchaseorder__open_st__sku__user=user.id)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], stpurchaseorder__open_st__sku__user=user.id)
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], stpurchaseorder__open_st__sku__user=user.id, prefix=data['prefix'])
         result = po_result[0]
         total_ordered = po_result.aggregate(Sum('stpurchaseorder__open_st__order_quantity'))['stpurchaseorder__open_st__order_quantity__sum']
         if not total_ordered:
@@ -4225,6 +4226,7 @@ def get_st_po_filter_data(search_params, user, sub_user):
         #if data['grn_rec']:
         #    received_qty = data['grn_rec']
         temp_data['aaData'].append(OrderedDict((('GRN Number', po_number),
+                                                ('prefix', data['prefix']),
                                                 ('Warehouse ID', data[field_mapping['supplier_id']]),
                                                 ('Warehouse Name', data[field_mapping['supplier_name']]),
                                                 ('Order Quantity', total_ordered),

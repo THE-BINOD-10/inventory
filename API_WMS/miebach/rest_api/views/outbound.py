@@ -4102,7 +4102,10 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
                 purchase_data['prefix'] = user_profile[0].prefix
             order = PurchaseOrder(**purchase_data)
             order.save()
-        check_purchase_order_created(mapping.warehouse, po_id)
+        check_prefix = ''
+        if user_profile:
+            check_prefix = user_profile[0].prefix
+        check_purchase_order_created(mapping.warehouse, po_id, check_prefix)
 
 
 def fetch_asn_stock(dist_user_id, sku_code, req_stock):

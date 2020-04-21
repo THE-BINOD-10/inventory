@@ -1088,11 +1088,12 @@ def update_sku(request, user=''):
                 ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
                 if ean_status:
                     return HttpResponse(ean_status)
-            elif key == 'substitutes' and value:
-                substitutes = value.split(',')
-                subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
-                if subs_status:
-                    return HttpResponse(subs_status)
+            elif key == 'substitutes':
+                if value :
+                    substitutes = value.split(',')
+                    subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
+                    if subs_status:
+                        return HttpResponse(subs_status)
 
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')

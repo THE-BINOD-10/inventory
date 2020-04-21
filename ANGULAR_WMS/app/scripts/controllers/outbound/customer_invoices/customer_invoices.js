@@ -92,7 +92,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.generate_invoice = function(click_type, DC=false){
-
       var po_number = '';
       var status = false;
       var field_name = '';
@@ -120,7 +119,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
-
         var ids = data.join(",");
         var send = {seller_summary_id: ids};
         if(po_number && field_name == 'SOR ID') {
@@ -135,7 +133,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice_tab/", "GET", send).then(function(data){
-
           if(data.message) {
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
@@ -143,6 +140,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 $state.go("app.outbound.CustomerInvoices.InvoiceE");
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
+                  $('img').bind('contextmenu', function(e) {
+                      return false;
+                  });
                 }, 3000);
               } else if(Session.user_profile.user_type == "marketplace_user") {
                 $state.go("app.outbound.CustomerInvoices.InvoiceM");

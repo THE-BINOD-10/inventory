@@ -7386,8 +7386,8 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
             picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
             customer_orders = all_orders.filter(id__in=picklist_order_ids)
 
-            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'),
-                                                                                     ordered=Sum('quantity')))
+            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('original_quantity'),
+                                                                                     ordered=Sum('original_quantity')))
             for ind, dat in enumerate(all_data):
                 if sku_grouping == 'true':
                     ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
@@ -7406,6 +7406,13 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                 if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
                     all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))[
                         'picked_quantity__sum']
+                elif customer_picklists.filter(order_type='combo', **ship_dict).exists():
+                    picked_qty_objs = customer_picklists.filter(order_type='combo', **ship_dict).values('stock__sku_id').\
+                                                        annotate(res_qty=Sum('picked_quantity'))
+                    if picked_qty_objs:
+                        picked_qty_objs = picked_qty_objs[0]
+                        combo_qty = SKURelation.objects.filter(member_sku_id=picked_qty_objs['stock__sku_id'])[0].quantity
+                    all_data[ind]['picked'] = float(picked_qty_objs['res_qty'])/combo_qty
                 shipping_quantity = OrderIMEIMapping.objects.filter(
                     order_id__in=all_orders.filter(sku__sku_code=all_data[ind]['sku__sku_code']).values_list('id'),
                     status=1).count()
@@ -7769,11 +7776,11 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             order_check_quantity = float(seller_order.quantity)
         members = {order.sku: order_check_quantity}
+        combo_stock_check_dict = OrderedDict()
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
             members = OrderedDict()
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
-            combo_stock_check_dict = OrderedDict()
             for combo in combo_data:
                 member_check_quantity = order_check_quantity * combo.quantity
                 members[combo.member_sku] = member_check_quantity
@@ -7786,11 +7793,11 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
-                    
-                    combo_stock_check_dict[combo.member_sku] = {'order_qty': float(min(member_check_quantity, stock_quantity))/combo.quantity,
-                                                                'combo_qty': combo.quantity}
+                stock_based_combo = float(min(member_check_quantity, (stock_quantity//combo.quantity) * combo.quantity))/combo.quantity
+                combo_stock_check_dict[combo.member_sku] = {'order_qty': stock_based_combo,
+                                                            'combo_qty': combo.quantity}
 
-        if allow_partial_picklist:
+        if allow_partial_picklist and combo_stock_check_dict:
             combo_suggested = min(map(lambda d: d['order_qty'], combo_stock_check_dict.values()))
             for combo_sku_obj, combo_check_qty in combo_stock_check_dict.items():
                 members[combo_sku_obj] = combo_check_qty['combo_qty'] * combo_suggested

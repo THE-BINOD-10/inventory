@@ -645,7 +645,8 @@ def generate_picklist(request, user=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                   'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
@@ -762,7 +763,8 @@ def batch_generate_picklist(request, user=''):
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
         picklist_number = get_picklist_number(user)
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         if enable_damaged_stock  == 'true':
@@ -1741,12 +1743,12 @@ def create_order_summary(picklist, picked_count, pick_number, picks_all):
         return
     financial_year = get_financial_year(datetime.datetime.now())
     insert_quan = 0
-    if order.quantity > picked_count:
+    if order.original_quantity > picked_count:
         insert_quan = picked_count
         picked_count = 0
-    elif order.quantity <= picked_count:
-        insert_quan = order.quantity
-        picked_count = picked_count - int(order.quantity)
+    elif order.original_quantity <= picked_count:
+        insert_quan = order.original_quantity
+        picked_count = picked_count - int(order.original_quantity)
     if not picklist.order_type == 'combo':
         SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
                                           order_id=order.id, creation_date=datetime.datetime.now(),
@@ -12311,7 +12313,8 @@ def seller_generate_picklist(request, user=''):
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         if enable_damaged_stock =='true' :
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(

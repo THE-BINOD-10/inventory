@@ -10390,15 +10390,12 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
     if request:
         sub_user = request.user
     warehouse = User.objects.get(username__iexact=warehouse_name)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
     user_profile = UserProfile.objects.filter(user_id=user.id)
-    prefix = ''
-    if user_profile:
-        prefix = user_profile[0].prefix
+    prefix = get_misc_value('st_po_prefix', user.id)
+    if prefix == 'false':
+        prefix = 'STPO'
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        if po_sub_user_prefix == 'true':
-            po_id = update_po_order_prefix(sub_user, po_id)
+        st_po_id = get_st_purchase_order_id(user)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -10407,7 +10404,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+            po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
@@ -10429,7 +10426,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, po_id, prefix)
+        check_purchase_order_created(user, st_po_id, prefix)
     return HttpResponse("Confirmed Successfully")
 
 

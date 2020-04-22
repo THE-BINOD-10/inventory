@@ -645,7 +645,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 108,
    class_name: "fa fa-server",
    display: true
- },]
+ },
 ]
 
   vm.empty = {};

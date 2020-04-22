@@ -45,7 +45,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
     vm.dtColumns.splice(6, 0, DTColumnBuilder.newColumn('Searchable').withTitle('Searchable'))
     vm.dtColumns.splice(7, 0, DTColumnBuilder.newColumn('Bundle').withTitle('Bundle'))
-
+  }
+  if (vm.industry_type == "FMCG") {
+    vm.dtColumns.push(
+        DTColumnBuilder.newColumn('batch_no').withTitle('Batch No'),
+        DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
+        DTColumnBuilder.newColumn('manufactured_date').withTitle('Manufactured Date'),
+        DTColumnBuilder.newColumn('expiry_date').withTitle('Expiry Date')
+      )
   }
 
   vm.dtInstance = {};

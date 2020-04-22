@@ -73,7 +73,7 @@
                 <tbody ng-repeat="records in showCase.model_data.data">
                     <tr ng-repeat="data in records">
                     <td>
-                      <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" readonly>
+                      <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" readonly>
                     </td>
                     <td>
                       <input type="text" name="sku_desc" ng-model="data.sku_desc" size="50" title="{{ data.sku_desc }}" class="form-control" value="{{data.sku_desc}}" readonly>

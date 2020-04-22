@@ -26,7 +26,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label for="po_reference" class="control-label"> <b>PO References</b></label>
-                <input class="form-control" ng-model="pop.model_data.data_dict[0].original_order_id" name= "po_reference" type="text">
+                <input class="form-control" ng-model="pop.model_data.data_dict[0].original_order_id" name= "po_reference" type="text" readonly>
               </div>
             </div>
           </div>
@@ -40,7 +40,7 @@
               <thead>
                 <tr>
                   <th> Supplier Name *</th>
-                  <th> WMS Code </th>
+                  <th> SKU Code </th>
                   <th> Title </th>
                   <th> Brand </th>
                   <th class="w10">Quantity </th>
@@ -69,7 +69,7 @@
                     <input type="text" name="quantity" class="form-control" ng-model="product.quantity" ng-class="service.get_decimal_perm()">
                   </td>
                   <td>
-                    <input type="text" name="price" ng-model="product.price" class="form-control" decimal-number>
+                    <input type="text" name="price" ng-model="product.price" class="form-control" decimal-number title="{{product.price}}">
                   </td>
                   <td>
                     <input type="text" ng-model="product.taxes.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="pop.taxChange(product);" ng-debounce readonly>

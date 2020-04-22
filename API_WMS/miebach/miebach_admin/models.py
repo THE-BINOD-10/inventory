@@ -303,6 +303,7 @@ class OrderDetail(models.Model):
     title = models.CharField(max_length=256, default='')
     quantity = models.FloatField(default=0)
     original_quantity = models.FloatField(default=0)
+    cancelled_quantity = models.FloatField(default=0)
     invoice_amount = models.FloatField(default=0)
     shipment_date = models.DateTimeField()
     marketplace = models.CharField(max_length=256, default='')

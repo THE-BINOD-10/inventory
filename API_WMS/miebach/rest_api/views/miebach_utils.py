@@ -3047,14 +3047,18 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
             warehouses = UserGroups.objects.filter(user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
             warehouses = UserGroups.objects.filter(admin_user_id=user.id)
-        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-        sku_master_ids = sku_master.values_list('id', flat=True)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouse_users[user.id] = user.username
+        #sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        #sku_master_ids = sku_master.values_list('id', flat=True)
+        search_parameters['order__user__in'] = warehouse_users.keys()
+
     else:
         search_parameters['order__user'] = user.id
-    search_parameters['order__sku_id__in'] = sku_master_ids
+    #search_parameters['order__sku_id__in'] = sku_master_ids
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         if order_detail:
@@ -4750,13 +4754,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__full_invoice_number','sellerordersummary__challan_number','address','sellerordersummary__order_status_flag',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code', 'cancelled_quantity').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('user','id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code', 'cancelled_quantity').distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -5010,8 +5014,9 @@ def get_order_summary_data(search_params, user, sub_user):
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
         invoice_number,invoice_date,quantity,challan_number= '','',0,''
-        if data['status'] and int(data['status']) == 3:
-            cancelled_qty = data['quantity']
+        #if data['status'] and int(data['status']) == 3:
+        #    cancelled_qty = data['quantity']
+        cancelled_qty = data['cancelled_quantity']
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__full_invoice_number']
             challan_number = data['sellerordersummary__challan_number']
@@ -5105,7 +5110,7 @@ def get_order_summary_data(search_params, user, sub_user):
             total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
-        if cancelled_qty:
+        if cancelled_qty == data['original_quantity']:
             status = 'Cancelled'
         aaData = OrderedDict((('Created By', order_taken_by),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),

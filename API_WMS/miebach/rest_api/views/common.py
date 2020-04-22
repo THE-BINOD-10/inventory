@@ -7890,7 +7890,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                                        add_mrp_filter=add_mrp_filter,
                                                                        needed_mrp_filter=needed_mrp_filter)
                 if stock_quantity < float(member_check_quantity):
-                    if (not no_stock_switch and (allow_partial_picklist and stock_quantity <= 0 and 'st_po' in dir(order))):
+                    if (not no_stock_switch and ((allow_partial_picklist and stock_quantity < combo.quantity) or 'st_po' in dir(order))):
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
@@ -7900,8 +7900,12 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
 
         if allow_partial_picklist and combo_stock_check_dict:
             combo_suggested = min(map(lambda d: d['order_qty'], combo_stock_check_dict.values()))
-            for combo_sku_obj, combo_check_qty in combo_stock_check_dict.items():
-                members[combo_sku_obj] = combo_check_qty['combo_qty'] * combo_suggested
+            if not combo_suggested:
+                stock_status.append(str(combo.member_sku.sku_code))
+                members = {}
+            else:
+                for combo_sku_obj, combo_check_qty in combo_stock_check_dict.items():
+                    members[combo_sku_obj] = combo_check_qty['combo_qty'] * combo_suggested
             temp_order_quantity = order_check_quantity - combo_suggested
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
@@ -7926,7 +7930,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if (not no_stock_switch and (allow_partial_picklist and stock_quantity <= 0 and 'st_po' in dir(order))):
+                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
                     stock_status.append(str(member.sku_code))
                     continue
 
@@ -11121,3 +11125,14 @@ def validate_st(all_data, user):
         sku_status += ", " + wh_status
 
     return sku_status.strip(", ")
+
+
+def get_remaining_combo_reserved(combo_picklists):
+    remaining_qty_objs = combo_picklists.values('stock__sku_id').\
+                                annotate(res_qty=Sum('reserved_quantity'))
+    if remaining_qty_objs:
+        remaining_qty_objs = remaining_qty_objs[0]
+        combo_qty = SKURelation.objects.\
+                    filter(member_sku_id=remaining_qty_objs['stock__sku_id'])[0].quantity
+        remaining_qty = float(remaining_qty_objs['res_qty'])/combo_qty
+    return remaining_qty

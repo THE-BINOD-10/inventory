@@ -1772,6 +1772,7 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/customer_invoices/cancelled_invoice.js'
                 ]);
+                })
               }]
           },
           data: {

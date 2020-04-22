@@ -566,12 +566,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif cell_data:
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
-                for order_cd in order_code_prefix_check:
-                    cell_data_lower = ''
-                    cell_data_lower = (''.join(re.findall('\D+', cell_data))).replace("'", "").replace("`", "")
-                    if order_cd and cell_data_lower and order_cd.lower() in cell_data_lower.lower():
-                        index_status.setdefault(count, set()).add('Remove Order Code in OrderID')
-                        break
+                cell_data_code = (''.join(re.findall('\D+', cell_data))).replace("'", "").replace("`", "")
+                if cell_data_code and cell_data_code.lower() in map(lambda x: str(x).lower(), order_code_prefix_check):
+                    index_status.setdefault(count, set()).add('Order id prefix is a reserved prefix. Please change and upload')
+                    break
             if 'order_type' in order_mapping:
                 order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
                 if cell_data in order_id_order_type.keys():

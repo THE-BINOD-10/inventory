@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 order_id = 1001
             try:
                 if order_id:
-                    type_name = 'order'
+                    type_name = 'so'
                     IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=order_id)
             except Exception as e:
                 except_cli[user.username] = order_id

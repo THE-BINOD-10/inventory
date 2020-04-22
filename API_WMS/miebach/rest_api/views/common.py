@@ -2734,7 +2734,7 @@ def search_distributor_codes(request, user=''):
 
 def get_order_id(user_id, is_pos=False):
     user = User.objects.get(id=user_id)
-    order_id = get_incremental(user, 'order')
+    order_id = get_incremental(user, 'so')
     return order_id
 
 

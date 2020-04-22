@@ -7027,7 +7027,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 try:
                     admin_user = get_admin(user)
                     sister_wh = get_sister_warehouse(admin_user)
-                    user_obj = sister_wh.filter(user__username=warehouse_name)
+                    if (admin_user.username).lower() == str(warehouse_name).lower():
+                        user_obj = admin_user
+                    else:
+                        user_obj = sister_wh.filter(user__username=warehouse_name)
+                        if user_obj:
+                            user_obj = user_obj[0].user
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -7042,7 +7047,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
             else:
                 if user_obj:
-                    wh_id = user_obj[0].user.id
+                    wh_id = user_obj.id
                     sku_master_id = sku_master[0].id
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
@@ -7058,7 +7063,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             cell_data = get_cell_data(row_idx, order_mapping['dest_seller_id'], reader, file_type)
             if isinstance(cell_data, float):
                 cell_data = str(int(cell_data))
-            status, dest_seller = validate_st_seller(user_obj[0].user, cell_data, error_name='Destination')
+            status, dest_seller = validate_st_seller(user_obj, cell_data, error_name='Destination')
             if status:
                 index_status.setdefault(count, set()).add(status)
         number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax',

@@ -31,7 +31,7 @@
               <div class="form-group">
                 <label class="control-label">Alt SKU Code </label>
                 <!--<input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" maxlength="256" disabled>-->
-                <input type="text" ng-if="!showCase.model_data.already_assigned" autocomplete="off" name="alt_sku_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.alt_sku_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)">
+                <input type="text" ng-if="!showCase.model_data.already_assigned" autocomplete="off" name="alt_sku_code" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.alt_sku_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)">
                 <input type="text" ng-if="showCase.model_data.already_assigned" name="alt_sku_code" class="form-control" ng-model="showCase.model_data.alt_sku_code" maxlength="256" disabled>
               </div>
             </div>

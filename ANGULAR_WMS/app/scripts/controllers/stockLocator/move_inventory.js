@@ -61,7 +61,7 @@
                 return vm.service.frontHtml + meta.row + vm.service.endHtml;
               }),
           DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
-          DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+          DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
           DTColumnBuilder.newColumn('Description').withTitle('Description'),
           DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location'),
           DTColumnBuilder.newColumn('Move Quantity').withTitle('Move Quantity')
@@ -179,6 +179,7 @@
                         'dest_loc': '',
                         'quantity': '',
                         'reason':'',
+                        'price':'',
                       }
       vm.model_data = {};
       angular.copy(vm.empty_data, vm.model_data);

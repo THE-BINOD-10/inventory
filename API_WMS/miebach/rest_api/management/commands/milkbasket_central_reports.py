@@ -136,7 +136,7 @@ class Command(BaseCommand):
                 report_file_names.append({'name': file_name, 'path': path})
             return report_file_names
 
-        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01'])
+        users = User.objects.filter(username__in=['GGN01', 'NOIDA01', 'NOIDA02', 'HYD01', 'BLR01', 'GGN02', 'NOIDA03', 'BLR02', 'HYD02'])
         # users = User.objects.filter(username__in=['GGN01'])
         category_list = list(SKUMaster.objects.filter(user__in=users, status=1).exclude(sku_category=''). \
                              values_list('sku_category', flat=True).distinct())

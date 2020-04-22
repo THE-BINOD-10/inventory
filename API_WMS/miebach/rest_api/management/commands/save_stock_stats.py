@@ -41,7 +41,7 @@ class Command(BaseCommand):
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        run_users = ['GGN01', 'ggn01_con','TranceHomeLinen', 'ola_admin', 'creation_overseas', 
+        run_users = ['incnut','GGN01', 'ggn01_con','TranceHomeLinen', 'ola_admin', 'creation_overseas', 
                     'savis_retail', 'GM_admin', 'grandspitstop', 'aidin_technologies']
         for username in run_users:
             user_objs = UserGroups.objects.filter(admin_user__username=username)

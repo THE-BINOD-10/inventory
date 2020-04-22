@@ -15,6 +15,7 @@ from common import *
 from miebach_utils import *
 from utils import *
 from datetime import timedelta
+from rest_api.views.stock_operations import *
 
 log = init_logger('logs/stock_locator.log')
 
@@ -967,6 +968,7 @@ def get_aging_bracket(age_days):
         aging_bracket = '180 - Above'
     return aging_bracket
 
+
 @csrf_exempt
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
@@ -1029,15 +1031,15 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         #                                             )))
         # else:
         data_dict = OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                                ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
-                                                ('WMS Code', data.sku.wms_code),
-                                                ('Product Description', data.sku.sku_desc),
-                                                ('Zone', data.location.zone.zone),
-                                                ('Location', data.location.location),
-                                                ('Quantity', stock_quantity),
-                                                ('Receipt Type', data.receipt_type),
-                                                ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
-                                                ))
+                                 ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+                                 ('WMS Code', data.sku.wms_code),
+                                 ('Product Description', data.sku.sku_desc),
+                                 ('Zone', data.location.zone.zone),
+                                 ('Location', data.location.location),
+                                 ('Quantity', stock_quantity),
+                                 ('Receipt Type', data.receipt_type),
+                                 ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
+                                 ))
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -1275,8 +1277,9 @@ def insert_move_inventory(request, user=''):
         if unique_mrp == 'true':
             location_obj = LocationMaster.objects.filter(zone__user=user.id, location=dest_loc)
             if location_obj:
-                data_dict = {'sku_code':wms_code, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location': location_obj[0].location}
-                status = validate_mrp_weight(data_dict,user)
+                data_dict = {'sku_code': wms_code, 'mrp': mrp, 'weight': weight, 'seller_id': seller_id,
+                             'location': location_obj[0].location}
+                status = validate_mrp_weight(data_dict, user)
                 if status:
                     return HttpResponse(status)
 
@@ -2043,59 +2046,72 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
 @get_admin_user
 def confirm_sku_substitution(request, user=''):
     ''' Moving stock from one location to other location with SKU substitution '''
-
     data_dict = dict(request.POST.iterlists())
-    src_sku = request.POST.get('src_sku_code', '')
-    src_qty = request.POST.get('src_quantity', '')
-    src_loc = request.POST.get('src_location', '')
-    src_batch_no = request.POST.get('src_batch_number', '')
-    src_mrp = request.POST.get('src_mrp', 0)
+    src_list = []
+    src_objects = []
+    dest_objects = []
     seller_id = request.POST.get('seller_id', '')
-    weight = request.POST.get('src_weight', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
-    if user.username in MILKBASKET_USERS:
-        if not src_mrp or not weight:
-            return HttpResponse('MRP and Weight are Mandatory')
-    if not src_sku and not dest_sku and not src_qty and not src_loc:
-        return HttpResponse('Please Send Required Field')
     if seller_id:
         seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller:
             return HttpResponse('Invalid Seller Id')
         else:
             seller_id = seller[0].id
-    src_sku = SKUMaster.objects.filter(user=user.id, sku_code=src_sku)
-    if not src_sku:
-        return HttpResponse('Source SKU Code Not Found')
-    source_sku = src_sku[0]
-    src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
-    if not src_loc:
-        return HttpResponse('Source Location Not Found')
-    source_location = src_loc[0]
-    try:
-        src_qty = float(src_qty)
-    except ValueError:
-        log.info("Substitution: Source Quantity Should Be Number ," + src_qty)
-        return HttpResponse('Source Quantity Should Be Number')
-    if float(src_qty) <= 0:
-        return HttpResponse('Source Quantity Should Greater Than Zero')
-    stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
-                  "sku__user": user.id, "quantity__gt": 0}
-    if seller_id:
-        stock_dict['sellerstock__seller_id'] = seller_id
-    if src_batch_no:
-        stock_dict['batch_detail__batch_no'] = src_batch_no
-    if src_mrp:
-        stock_dict['batch_detail__mrp'] = src_mrp
-    if weight:
-        stock_dict['batch_detail__weight'] = weight
-    src_stocks = StockDetail.objects.filter(**stock_dict)
-    src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
-    if not src_stock_count:
-        return HttpResponse('Source SKU Code Don\'t Have Stock')
-    elif src_stock_count < src_qty:
-        return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+    transact_number = get_max_substitute_allocation_id(user)
+    for i in range(0, len(data_dict['src_sku_code'])):
+        src_mrp = data_dict.get('src_mrp', '')
+        if src_mrp:
+            src_mrp = src_mrp[i]
+        weight = data_dict.get('src_weight', '')
+        if weight:
+            weight = weight[i]
+        if user.username in MILKBASKET_USERS:
+            if not src_mrp or not weight:
+                return HttpResponse('MRP and Weight are Mandatory')
+        src_sku = data_dict.get('src_sku_code')[i] if data_dict.get('src_sku_code', '') else ''
+        src_qty = data_dict.get('src_quantity')[i] if data_dict.get('src_quantity', '') else ''
+        src_loc = data_dict.get('src_location')[i] if data_dict.get('src_quantity', '') else ''
+        src_batch_no = data_dict.get('src_batch_number')[i] if data_dict.get('src_batch_number', '') else ''
+        if not src_sku and not src_qty and not src_loc:
+            return HttpResponse('Please Send Required Fields')
+        src_sku = SKUMaster.objects.filter(user=user.id, sku_code=src_sku)
+        if not src_sku:
+            return HttpResponse('Source SKU Code Not Found')
+        source_sku = src_sku[0]
+        src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
+        if not src_loc:
+            return HttpResponse('Source Location Not Found')
+        source_location = src_loc[0]
+        try:
+            src_qty = float(src_qty)
+        except ValueError:
+            log.info("Substitution: Source Quantity Should Be Number ," + src_qty)
+            return HttpResponse('Source Quantity Should Be Number')
+        if float(src_qty) <= 0:
+            return HttpResponse('Source Quantity Should Greater Than Zero')
+        stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
+                      "sku__user": user.id, "quantity__gt": 0}
+        if seller_id:
+            stock_dict['sellerstock__seller_id'] = seller_id
+        if src_batch_no:
+            stock_dict['batch_detail__batch_no'] = src_batch_no
+        if src_mrp:
+            stock_dict['batch_detail__mrp'] = src_mrp
+        if weight:
+            stock_dict['batch_detail__weight'] = weight
+        src_stocks = StockDetail.objects.filter(**stock_dict)
+        src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if not src_stock_count:
+            return HttpResponse('Source SKU Code Don\'t Have Stock')
+        elif src_stock_count < src_qty:
+            return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+        src_details = {'src_stocks': src_stocks, 'src_sku': source_sku, 'src_qty': src_qty,
+                       'src_location': source_location,}
+        src_list.append(src_details)
+        src_objects = save_sku_stats(user, source_sku.id, transact_number, 'src_substitute', src_qty,
+                                     stock_detail=src_stocks[0], stock_stats_objs=src_objects, bulk_insert=True)
 
     dest_list = []
     for ind in range(0, len(data_dict['dest_sku_code'])):
@@ -2134,15 +2150,38 @@ def confirm_sku_substitution(request, user=''):
         if seller_id:
             dest_filter['sellerstock__seller_id'] = seller_id
         dest_stocks = StockDetail.objects.filter(**dest_filter)
+
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
-                          'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
+                          'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict , 'dest_filter': dest_filter})
     source_updated = False
-    transact_number = get_max_substitute_allocation_id(user)
+
+    dest_updated = False
+    for src in src_list:
+        src_stocks = src.get('src_stocks')
+        source_sku = src.get('src_sku')
+        source_location = src.get('src_location')
+        src_qty = src.get('src_qty')
+        source_updated = reduce_stock(user, src_stocks, src_qty, receipt_type='substitute',
+                                      receipt_number=transact_number)
+        for dest_dict in dest_list:
+            update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty,
+                                     dest_dict['dest_sku'], dest_dict['dest_loc'], dest_dict['dest_qty'],
+                                     user, seller_id, source_updated, dest_dict['mrp_dict'], transact_number,
+                                     dest_updated)
+        dest_updated = True
+
     for dest_dict in dest_list:
-        update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
-                                 dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id,
-                                 source_updated, dest_dict['mrp_dict'], transact_number)
-        source_updated = True
+        dest_stocks = StockDetail.objects.filter(**dest_dict.get('dest_filter'))
+        if not dest_stocks:
+            return HttpResponse('Some thing Went Wrong')
+
+        dest_objects = save_sku_stats(user, dest_dict['dest_sku'].id, transact_number, 'dest_substitute',
+                                      dest_dict['dest_qty'], stock_detail=dest_stocks[0],
+                                      stock_stats_objs=dest_objects, bulk_insert=True)
+    SKUDetailStats.objects.bulk_create(dest_objects)
+    SKUDetailStats.objects.bulk_create(src_objects)
+
+
     return HttpResponse('Successfully Updated')
 
 
@@ -2497,7 +2536,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
            'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
-           'batch_detail__manufactured_date', 'batch_detail__expiry_date','batch_detail__id',
+           'batch_detail__manufactured_date', 'batch_detail__expiry_date', 'batch_detail__id',
            'location__zone__zone', 'location__zone__zone', 'location__location',
            'pallet_detail__pallet_code',
            'quantity', 'receipt_type']
@@ -3452,10 +3491,11 @@ def ba_to_sa_calculate_now(request, user=''):
                                  annotate(creation_date_only=Cast('creation_date', DateField())).values(
                 'creation_date_only').distinct(). \
                                  order_by('-creation_date_only').values_list('creation_date_only', flat=True)[:7])
-            order_detail_objs = OrderDetail.objects.filter(user=user.id, sku_id=data.id, creation_date__gte=last_month_date). \
+            order_detail_objs = OrderDetail.objects.filter(user=user.id, sku_id=data.id,
+                                                           creation_date__gte=last_month_date). \
                                     annotate(creation_date_only=Cast('creation_date', DateField())). \
                                     exclude(creation_date_only__in=no_stock_days).values(
-                                    'creation_date_only').distinct(). \
+                'creation_date_only').distinct(). \
                                     order_by('-creation_date_only').annotate(quantity_sum=Sum('quantity'),
                                                                              value_sum=Sum(
                                                                                  F('quantity') * F('unit_price')))[:7]
@@ -3485,7 +3525,7 @@ def ba_to_sa_calculate_now(request, user=''):
                 total_avg_sale_per_day_units += avg_sale_per_day_units
                 sku_avg_sale_mapping[data.id] = {'avg_sale_per_day_value': avg_sale_per_day_value,
                                                  'avail_qty': avail_qty,
-                                                 'peak':peak,
+                                                 'peak': peak,
                                                  'avg_sale_per_day_units': avg_sale_per_day_units}
 
             else:
@@ -3493,7 +3533,6 @@ def ba_to_sa_calculate_now(request, user=''):
                                                  'avail_qty': avail_qty,
                                                  'peak': 0,
                                                  'avg_sale_per_day_units': 0}
-
 
         log.info(
             "BA to SA calculating segregation for user %s ended at %s" % (user.username, str(datetime.datetime.now())))
@@ -3527,8 +3566,9 @@ def ba_to_sa_calculate_now(request, user=''):
                 peak = sku_avg_sale_mapping_data['peak']
                 cumulative_contribution, classification, required_inventory, min_stock, max_stock = 100, 'Slow', 0, 20, 30
                 if sku_avg_sale_per_day_units:
-                    avg_more_sales = filter(lambda person: person['avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
-                                            sku_avg_sale_mapping.values())
+                    avg_more_sales = filter(
+                        lambda person: person['avg_sale_per_day_units'] >= sku_avg_sale_per_day_units,
+                        sku_avg_sale_mapping.values())
                     sum_avg_more_sales = 0
                     for avg_more_sale in avg_more_sales:
                         sum_avg_more_sales += avg_more_sale['avg_sale_per_day_units']
@@ -3706,26 +3746,28 @@ def stock_detail_update(request, user=''):
             manufactured_date = datetime.datetime.strptime(data['manufactured_date'], '%m/%d/%Y')
             updated_batch_dict['manufactured_date'] = manufactured_date
         if data["expiry_date"]:
-                expiry_date = datetime.datetime.strptime(data["expiry_date"], '%m/%d/%Y')
-                if expiry_date < manufactured_date:
-                    return HttpResponse(
-                        json.dumps({'status': 0, 'message': 'Expiry Date must be greater than the Manufacture Date '}))
-                updated_batch_dict['expiry_date'] = expiry_date
+            expiry_date = datetime.datetime.strptime(data["expiry_date"], '%m/%d/%Y')
+            if expiry_date < manufactured_date:
+                return HttpResponse(
+                    json.dumps({'status': 0, 'message': 'Expiry Date must be greater than the Manufacture Date '}))
+            updated_batch_dict['expiry_date'] = expiry_date
         if batch_detail_obj.exists():
-            new_batch_dict = {key:value for key, value in data.items()}
+            new_batch_dict = {key: value for key, value in data.items()}
             old_batch_dict = batch_detail_obj.values()[0]
-            old_batch_dict['expiry_date'] = old_batch_dict['expiry_date'].strftime('%m/%d/%Y') if old_batch_dict['expiry_date'] else ''
-            old_batch_dict['manufactured_date'] = old_batch_dict['manufactured_date'].strftime('%m/%d/%Y') if old_batch_dict['manufactured_date'] else ''
+            old_batch_dict['expiry_date'] = old_batch_dict['expiry_date'].strftime('%m/%d/%Y') if old_batch_dict[
+                'expiry_date'] else ''
+            old_batch_dict['manufactured_date'] = old_batch_dict['manufactured_date'].strftime('%m/%d/%Y') if \
+            old_batch_dict['manufactured_date'] else ''
             batch_list = ['manufactured_date', 'expiry_date', 'buy_price', 'weight', 'batch_no', 'tax_percent', 'mrp']
             for key in batch_list:
                 if key in ['mrp', 'buy_price', 'tax_percent']:
                     old_batch_dict[key] = float(old_batch_dict[key]) if old_batch_dict[key] else 0
                     new_batch_dict[key] = float(new_batch_dict[key]) if new_batch_dict[key] else 0
                 elif key in ['manufactured_date', 'expiry_date']:
-                     if old_batch_dict[key] != new_batch_dict[key]:
-                         create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key],
-                                                     new_batch_dict[key])
-                     continue
+                    if old_batch_dict[key] != new_batch_dict[key]:
+                        create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key],
+                                                    new_batch_dict[key])
+                    continue
                 if old_batch_dict[key] != new_batch_dict[key]:
                     updated_batch_dict[key] = new_batch_dict[key]
                     create_update_table_history(user, id, 'Batch_Detail', key, old_batch_dict[key], new_batch_dict[key])
@@ -3748,8 +3790,3 @@ def stock_detail_update(request, user=''):
         log.info('Batch Detail Stock Updation  failed for %s and error statement is %s' % (
             str(user.username), str(e)))
         return HttpResponse(json.dumps({'status': 0, 'message': 'Something Went Wrong'}))
-
-
-
-
-

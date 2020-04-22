@@ -34,13 +34,21 @@ class Command(BaseCommand):
     help = "Save Stock Stats everyday"
 
     def handle(self, *args, **options):
+        users_list = []
         self.stdout.write("Started Updating")
         today = datetime.datetime.now().date()
         tomorrow = today + datetime.timedelta(1)
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True).order_by('-last_login')
+        run_users = ['GGN01', 'ggn01_con','TranceHomeLinen', 'ola_admin', 'creation_overseas', 
+                    'savis_retail', 'GM_admin', 'grandspitstop', 'aidin_technologies']
+        for username in run_users:
+            user_objs = UserGroups.objects.filter(admin_user__username=username)
+            users_list.append(username)
+            for user_obj in user_objs:
+                users_list.append(user_obj.user.username)
+        users = User.objects.filter(is_staff=True, username__in=users_list).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)
@@ -121,19 +129,19 @@ class Command(BaseCommand):
                         stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
                         current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
+                        quantity = current_stock['quantity__sum']
+                        closing_stock_value = current_stock['stock_value'] or 0
+                        if not quantity:
+                            quantity = 0
                         if stock_object.exists():
                             lat_re = stock_object.latest('creation_date')
-                            data_dict = {'opening_stock': lat_re.closing_stock, 'closing_stock': lat_re.closing_stock, 'sku_id':sku.id,
-                                        'opening_stock_value': lat_re.closing_stock_value, 'closing_stock_value': current_stock['stock_value'] or 0}
+                            data_dict = {'opening_stock': lat_re.closing_stock, 'closing_stock': quantity, 'sku_id':sku.id,
+                                        'opening_stock_value': lat_re.closing_stock_value, 'closing_stock_value': closing_stock_value}
                             if stock_stat.exists():
                                 stock_stat.update(**data_dict)
                             else:
                                 StockStats.objects.create(**data_dict)
                         else:
-                            quantity = current_stock['quantity__sum']
-                            closing_stock_value = current_stock['stock_value'] or 0
-                            if not quantity:
-                                quantity = 0
                             data_dict = {'opening_stock': 0, 'closing_stock': quantity, 'sku_id':sku.id, 'closing_stock_value': closing_stock_value,
                                         'opening_stock_value': 0}
                             if stock_stat.exists():

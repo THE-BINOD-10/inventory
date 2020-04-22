@@ -1994,14 +1994,14 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            data_dict['sku_code'] = sku_master.sku_code
+            data_dict['location'] = location_obj[0].location
+            status = validate_mrp_weight(data_dict,user)
+            if status:
+                index_status.setdefault(row_idx, set()).add(status)
         if not index_status:
-            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-                data_dict['sku_code'] = sku_master.sku_code
-                data_dict['location'] = location_obj[0].location
-                status = validate_mrp_weight(data_dict,user)
-                if status:
-                    index_status.setdefault(row_idx, set()).add(status)
             if user.userprofile.industry_type == 'FMCG' :
                 if not data_dict.get('manufactured_date', ''):
                     data_dict['manufactured_date'] = datetime.datetime.now()
@@ -3627,7 +3627,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                     else:
                         data_dict[key] = cell_data
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
                 data_dict['sku_code'] = data_dict['wms_code']
                 data_dict['location'] = dest_location[0].location
                 status = validate_mrp_weight(data_dict,user)
@@ -4165,7 +4165,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and not index_status:
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -6444,7 +6444,13 @@ def stock_transfer_order_form(request, user=''):
     error_file = request.GET['download-stock-transfer-file']
     if error_file:
         return error_file_download(error_file)
-    wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
+    headers = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING.keys())
+    if user.userprofile.user_type != 'marketplace_user':
+        del headers['Source Warehouse Seller ID']
+        del headers['Destination Warehouse Seller ID']
+    if user.userprofile.industry_type != 'FMCG':
+        del headers['MRP']
+    wb, ws = get_work_sheet('stock_transfer_order_form', headers)
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
 def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create=False,
@@ -6992,8 +6998,15 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     log.info("stock transfer order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
-    order_mapping = get_order_mapping(reader, file_type)
-    if not order_mapping:
+    st_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING)
+    st_res = dict(zip(st_mapping.values(), st_mapping.keys()))
+    order_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 st_mapping)
+    if user.userprofile.user_type != 'marketplace_user':
+        del st_mapping['source_seller_id']
+        del st_mapping['dest_seller_id']
+    if set(st_mapping.keys()).\
+            issubset(order_mapping.keys()):
         return "Headers not matching"
     count = 0
     exclude_rows = []
@@ -7003,6 +7016,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
     for row_idx in range(1, no_of_rows):
+        print 'Validation : %s' % str(row_idx)
         user_obj = ''
         if not order_mapping:
             break
@@ -7038,8 +7052,22 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
+        if order_mapping.has_key('source_seller_id') and user_obj:
+            cell_data = get_cell_data(row_idx, order_mapping['source_seller_id'], reader, file_type)
+            if isinstance(cell_data, float):
+                cell_data = str(int(cell_data))
+            status, source_seller = validate_st_seller(user, cell_data, error_name='Source')
+            if status:
+                index_status.setdefault(count, set()).add(status)
+        if order_mapping.has_key('dest_seller_id') and user_obj:
+            cell_data = get_cell_data(row_idx, order_mapping['dest_seller_id'], reader, file_type)
+            if isinstance(cell_data, float):
+                cell_data = str(int(cell_data))
+            status, dest_seller = validate_st_seller(user_obj[0].user, cell_data, error_name='Destination')
+            if status:
+                index_status.setdefault(count, set()).add(status)
         number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax',
-                         'igst_tax': 'IGST Tax'}
+                         'igst_tax': 'IGST Tax', 'mrp': 'MRP'}
         for key, value in number_fields.iteritems():
             if order_mapping.has_key(key):
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
@@ -7051,7 +7079,6 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                             get_decimal_data(cell_data, index_status, row_idx, user)
                 elif key == 'quantity':
                     index_status.setdefault(count, set()).add('Quantity is mandatory')
-
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -7069,6 +7096,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     interm_order_id = ''
     all_data = {}
     for row_idx in range(1, no_of_rows):
+        print 'Saving : %s' % str(row_idx)
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -7084,9 +7112,14 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                  quantity = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
-                    price = int(get_cell_data(row_idx, value, reader, file_type))
+                    price = float(get_cell_data(row_idx, value, reader, file_type))
                 except:
                     price = 0
+            elif key == 'mrp':
+                try:
+                    mrp = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    mrp = 0
             elif key == 'cgst_tax':
                 try:
                     cgst_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
@@ -7109,11 +7142,11 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 if igst_tax == '':
                     igst_tax = 0
 
-        warehouse = User.objects.get(username__iexact=warehouse)
-        cond = (user.username, warehouse.id)
+        warehouse = User.objects.get(username=warehouse)
+        cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0])
-        all_data = insert_st_gst(all_data, warehouse)
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
+    all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 
     if status.status_code == 200:

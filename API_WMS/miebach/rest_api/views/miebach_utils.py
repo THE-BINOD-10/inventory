@@ -1249,6 +1249,7 @@ SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', '
 (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),
 (('WMS Code', 'wms_code'),))), }
 
+
 SKU_WISE_PURCHASES = {('sku_wise_purchase', 'skupurchaseTable', 'SKU Wise Purchase Orders', 'sku-purchase-wise', 1, 2,
                        'sku-wise-purchase-report'): (
 ['PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity', 'Receipt Date', 'Status'],
@@ -1259,7 +1260,6 @@ SALES_RETURN_REPORT = {
     ['SKU Code', 'Order ID', 'Customer ID', 'Return Date', 'Status', 'Quantity'], (
     (('SKU Code', 'sku_code'), ('WMS Code', 'wms_code')), (('Order ID', 'order_id'), ('Customer ID', 'customer_id')),
     (('Date', 'creation_date'),))), }
-
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
 SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',

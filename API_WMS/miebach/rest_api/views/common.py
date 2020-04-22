@@ -637,13 +637,18 @@ def get_or_none(model_obj, search_params):
     return data
 
 
-def get_misc_value(misc_type, user, number=False):
+def get_misc_value(misc_type, user, number=False,boolean=False):
     misc_value = 'false'
     if number:
         misc_value = 0
     data = MiscDetail.objects.filter(user=user, misc_type=misc_type)
     if data:
         misc_value = data[0].misc_value
+    if boolean:
+        if misc_value == 'true':
+            return True
+        else:
+            return False
     return misc_value
 
 
@@ -856,9 +861,9 @@ def pr_request(request):
     if prApprObj.pending_pr:
         lineItems = prApprObj.pending_pr.pending_prlineItems
         prefix = prApprObj.pending_pr.prefix
-        values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 
-                        'pending_pr__requested_user__username', 'pending_pr__pr_number', 
-                        'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',  
+        values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
+                        'pending_pr__requested_user__username', 'pending_pr__pr_number',
+                        'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
                         'pending_pr__delivery_date']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
@@ -874,9 +879,9 @@ def pr_request(request):
     else:
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
-        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
-                        'pending_po__requested_user__username', 'pending_po__po_number', 
-                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
+        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
+                        'pending_po__requested_user__username', 'pending_po__po_number',
+                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
                         'pending_po__delivery_date', 'pending_po__supplier_id', 'pending_po__supplier__name']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
@@ -934,9 +939,9 @@ def pr_request(request):
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], 
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']],
                                     result['total_amt'], purchase_type=purchase_type)
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']], 
+        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']],
                         pr_user=user, level=result[fieldsMap['pending_level']])
         if not prApprQs.exists():
             continue
@@ -950,18 +955,18 @@ def pr_request(request):
         purchase_number = result[fieldsMap['purchase_number']]
         if pending_level != 'level0':
             prev_level = 'level' + str(int(pending_level.replace('level', '')) - 1)
-            prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+            prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                 pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
         elif pending_level == 'level0':
             if final_status == 'pending':
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                                 pr_user=user, level=pending_level)
                 last_updated_remarks = result[fieldsMap['remarks']]
             else:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                                 pr_user=user, level=pending_level)
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -984,7 +989,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
-                                                ('DT_RowClass', 'results'))))    
+                                                ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -1012,8 +1017,8 @@ def add_update_pr_config(request,user=''):
                 tobeDeleteQs = pr_approvals.filter(level=eachLevel)
                 if tobeDeleteQs.exists():
                     tobeDeleteId = tobeDeleteQs[0].id
-                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete() 
-                    tobeDeleteQs.delete()               
+                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete()
+                    tobeDeleteQs.delete()
         for level, mails in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
@@ -1041,7 +1046,7 @@ def add_update_pr_config(request,user=''):
                     eachConfigId = eachConfig.id
             # To Delete Existing Mails from  Level
             mailsList = [i.strip() for i in mails.split(',')]
-            memQs = MasterEmailMapping.objects.filter(master_type=master_type, 
+            memQs = MasterEmailMapping.objects.filter(master_type=master_type,
                                     master_id=eachConfigId)
             existingMails = memQs.values_list('email_id', flat=True)
             toBeDeletedMails = set(list(existingMails)) - set(mailsList)
@@ -1051,9 +1056,9 @@ def add_update_pr_config(request,user=''):
             # To add new email in Level
             for eachMail in mailsList:
                 emailMap = {
-                            'user': user, 
-                            'master_id': eachConfigId, 
-                            'master_type': master_type, 
+                            'user': user,
+                            'master_id': eachConfigId,
+                            'master_type': master_type,
                             'email_id': eachMail,
                             }
                 MasterEmailMapping.objects.update_or_create(**emailMap)
@@ -1105,14 +1110,14 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
-        sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'], 
+        sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'],
                                     master_type=master_type, user=user).values_list('email_id', flat=True)
         commaSepMailIds = ','.join(sameLevelMailIds)
         eachConfData['mail_id'] = {str(eachConfData['level']):commaSepMailIds}
         if name not in totalConfigData:
             totalConfigData[name] = eachConfData
         else:
-            totalConfigData[name]['mail_id'][str(eachConfData['level'])] = commaSepMailIds 
+            totalConfigData[name]['mail_id'][str(eachConfData['level'])] = commaSepMailIds
 
     return totalConfigData.values()
 
@@ -1709,7 +1714,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
-    
+
     max_norm_qty = int(sku.max_norm_quantity)
     return int(raise_quantity), int(total_quantity), max_norm_qty
 
@@ -5744,7 +5749,7 @@ def get_sku_stock_check(request, user=''):
         if skuPack_data:
             skuPack_quantity = skuPack_data[0].pack_quantity
 
-    po_search_params = {'open_po__sku__user': user.id, 
+    po_search_params = {'open_po__sku__user': user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
     poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
@@ -5760,12 +5765,12 @@ def get_sku_stock_check(request, user=''):
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         if sku_pack_config:
-            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
+            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
 
 
@@ -8410,7 +8415,7 @@ def update_barcode_configuration(request, user=''):
     miscExistingObj = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', user=user.id, misc_value=config_name)
     configId = 1
     if not miscExistingObj.exists():
-        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', 
+        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration',
                     user=user.id).order_by('-id').values_list('misc_type', flat=True)
         if dbMaxConfigId:
             configId = int(dbMaxConfigId[0].split('_')[-1])+1
@@ -9762,7 +9767,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     for rem_subs in rem_subs_list:
         rem_sub_obj = SKUMaster.objects.get(user=user.id, sku_code=rem_subs)
         data.substitutes.remove(rem_sub_obj)
-    subs_list = [item for item in substitutes if not item in existing_substitutes]        
+    subs_list = [item for item in substitutes if not item in existing_substitutes]
     for subs in subs_list:
         try:
             sub_obj = SKUMaster.objects.filter(user=user.id, sku_code=subs)
@@ -10092,7 +10097,7 @@ def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
             # master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, mapping_id=supplier_master.id,
             #                                    mapping_type='warehouse_supplier_mapping')
             new_supplier_id = supplier_master.id
-    
+
     if not new_supplier_id:
         phone_number = userProfileObj.phone_number or 0
         new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,

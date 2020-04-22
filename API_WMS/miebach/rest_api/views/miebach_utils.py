@@ -2425,6 +2425,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'mandate_invoice_number':'mandate_invoice_number',
                         'sku_packs_invoice':'sku_packs_invoice',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
+                        'auto_allocate_sale_order':'auto_allocate_sale_order',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

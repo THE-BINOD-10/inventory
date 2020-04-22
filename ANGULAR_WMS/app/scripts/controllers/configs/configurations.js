@@ -49,6 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'enable_pending_approval_prs': false,
+                    'auto_allocate_sale_order':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -87,6 +88,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
+                     108: 'auto_allocate_sale_order',
+
                      }
 
   vm.check_box_data = [
@@ -636,6 +639,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Auto Allocate Sale Order",
+   model_name: "auto_allocate_sale_order",
+   param_no: 108,
+   class_name: "fa fa-server",
+   display: true
+ },
 ]
 
   vm.empty = {};
@@ -917,7 +927,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     if (operation == 'delete') {
       angular.forEach(prConfigData, function(tuple, index){
         if(data.name == tuple.name) {
-          prConfigData.splice(index,1)        
+          prConfigData.splice(index,1)
         }
       })
     } else if (operation == 'add_email' || operation == 'remove_email') {
@@ -1190,7 +1200,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.getPosremarks(vm.model_data.pos_remarks)
         vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
       }
-    })    
+    })
   }
 
   vm.baseFunction();

@@ -288,7 +288,7 @@
                     </td>
                     <td><input type="text" ng-model="data.apmc_percent" size="12" id="tabChange" title="{{ data.apmc_percent }}"  ng-class="decimal" name="apmc_percent" class="form-control detectTab detectReceiveTab" ng-keyup="[showCase.invoice_readonly($event, data, 'apmc_percent', is_number=true), showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)]" maxlength="5" value="{{data.apmc_percent}}">
                     </td>
-                    <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
+                    <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
                     <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
@@ -356,7 +356,7 @@
                     </td>
                     <td><input type="text" ng-model="data.cess_percent" size="12" id="tabChange" title="{{ data.cess_percent }}"  ng-class="decimal" name="cess_percent" class="form-control detectTab detectReceiveTab" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" maxlength="5" value="{{data.cess_percent}}">
                     </td>
-                    <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
+                    <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
                     <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">

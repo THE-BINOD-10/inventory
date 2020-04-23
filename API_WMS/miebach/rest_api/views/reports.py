@@ -224,6 +224,23 @@ def get_dispatch_filter(request, user=''):
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_allocation_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_allocation_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_deallocation_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_deallocation_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
 @csrf_exempt
 @login_required

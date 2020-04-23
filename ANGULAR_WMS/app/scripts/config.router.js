@@ -2046,6 +2046,30 @@ var app = angular.module('urbanApp')
             title: 'Dispatch Summary',
           }
         })
+        .state('app.reports.AllocationReport', {
+          url: '/AllocationReport',
+          templateUrl: 'views/reports/allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/allocation.js');
+              }]
+          },
+          data: {
+            title: 'Allocation Report',
+          }
+        })
+        .state('app.reports.DeAllocationReport', {
+          url: '/DeAllocationReport',
+          templateUrl: 'views/reports/deallocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/deallocation.js');
+              }]
+          },
+          data: {
+            title: 'DeAllocation Report',
+          }
+        })
         .state('app.reports.SKUWiseStock', {
           url: '/SKUWiseStock',
           templateUrl: 'views/reports/sku_wise_stock.html',

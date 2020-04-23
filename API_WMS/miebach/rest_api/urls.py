@@ -453,6 +453,8 @@ urlpatterns = [
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
+    url(r'^get_allocation_filter/$', get_allocation_filter),
+    url(r'^get_deallocation_report/$', get_deallocation_report),
     url(r'^get_order_summary_filter/$', get_order_summary_filter),
     url(r'^get_sku_stock_filter/$', get_sku_stock_filter),
     url(r'^get_sales_return_filter/$', get_sales_return_filter),

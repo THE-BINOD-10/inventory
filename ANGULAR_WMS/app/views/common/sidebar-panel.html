@@ -512,7 +512,17 @@
             <span>Receipt Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('view_picklist')">
+        <li ui-sref-active="active" ng-show="show_tab('show_velhiclemaster')">
+          <a ui-sref="app.reports.AllocationReport">
+            <span>Allocation Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('show_velhiclemaster')">
+          <a ui-sref="app.reports.DeAllocationReport">
+            <span>DeAllocation Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_picklist') && !show_tab('show_velhiclemaster')">
           <a ui-sref="app.reports.DispatchSummaryReport">
             <span>Dispatch Summary</span>
           </a>
@@ -532,7 +542,7 @@
             <span>Supplier Wise PO's</span>
           </a>
         </li>
-        <li ng-show="show_tab('view_orderreturns')" ui-sref-active="active">
+        <li ng-show="show_tab('view_orderreturns') && !show_tab('show_velhiclemaster')" ui-sref-active="active">
           <a ui-sref="app.reports.SalesReturnReport">
             <span>Sales Return</span>
           </a>

@@ -4205,6 +4205,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("upload_inv_adj")
+    count = 0
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -4260,11 +4261,14 @@ def inventory_adjust_upload(request, user=''):
         adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
                               seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                               price = price, receipt_type='inventory-adjustment')
+        if adj_status == 'Added Successfully':
+            count+=1
+
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)
     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
-    return HttpResponse('Success')
+    return HttpResponse('Adjusted {} Entries got Success'.format(count))
 
 
 @csrf_exempt

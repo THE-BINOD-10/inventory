@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         this.dtInstance.reloadData();
     }
 
-    var columns = ["Vendor Name", "WMS Code", "Product Description", "SKU Category", "Quantity"]
+    var columns = ["Vendor Name", "SKU Code", "Product Description", "SKU Category", "Quantity"]
     vm.dtColumns = vm.service.build_colums(columns);    
 
     vm.excel = excel;

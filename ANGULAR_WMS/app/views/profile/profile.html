@@ -35,28 +35,28 @@ label:hover {
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Company Name</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="company_name" class="form-control" ng-model="showCase.model_data.company_name" ng-required="true">
+                  <input ng-if="showCase.edit_form" type="company_name" class="form-control" name="company_name" ng-model="showCase.model_data.company_name" ng-required="true">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.company_name}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Name</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <!--<input ng-if="showCase.edit_form" type="text" class="form-control">-->
-                  <span>: {{showCase.model_data.name}}</span>
+                  <input ng-if="showCase.edit_form" type="text" name="name" class="form-control" ng-model="showCase.model_data.name" readonly>
+                  <span ng-if="!showCase.edit_form">: {{showCase.model_data.name}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Email</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="email" class="form-control" ng-model="showCase.model_data.email" ng-required="true">
+                  <input ng-if="showCase.edit_form" type="email" class="form-control" name="email" ng-model="showCase.model_data.email" ng-required="true">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.email}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Phone Number</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.phone_number">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" name="phone_number" ng-model="showCase.model_data.phone_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.phone_number}}</span>
                 </div>
               </div>
@@ -77,29 +77,52 @@ label:hover {
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Warehouse Phone Number</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.wh_phone_number">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" name="wh_phone_number" ng-model="showCase.model_data.wh_phone_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.wh_phone_number}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>GST Number</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.gst_number">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" name="gst_number" ng-model="showCase.model_data.gst_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.gst_number}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>CIN Number</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.cin_number">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" name="cin_number" ng-model="showCase.model_data.cin_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.cin_number}}</span>
                 </div>
               </div>
               <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>PAN Number</b></label>
                 <div class="col-sm-6 col-xs-8">
-                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.pan_number">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" name="pan_number" ng-model="showCase.model_data.pan_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.pan_number}}</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-4 col-xs-4 text-right"><b>Sales Invoice Logo (Signature)</b></label>
+                <div class="col-sm-6 col-xs-8">
+                  <span class="btn btn-primary up-btn" ng-if="showCase.edit_form" style="position: relative;overflow: hidden;width: 250px;">Upload Image
+                    <input style="position: absolute;
+                                  top: 0;
+                                  right: 0;
+                                  min-width: 100%;
+                                  min-height: 100%;
+                                  font-size: 100px;
+                                  text-align: right;
+                                  filter: alpha(opacity=0);
+                                  opacity: 0;
+                                  outline: none;
+                                  background: white;
+                                  cursor: inherit;
+                                  display: block;"
+                                  class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload/>
+                  </span>
+                  <span ng-if="!showCase.edit_form && !showCase.model_data.sign_signature.includes('//')">: {{showCase.model_data.sign_signature}}</span>
+                  <img ng-if="!showCase.edit_form && showCase.model_data.sign_signature.includes('//')" src="{{showCase.model_data.sign_signature}}" style="max-width: 50px;">
                 </div>
               </div>
               <div class="row">

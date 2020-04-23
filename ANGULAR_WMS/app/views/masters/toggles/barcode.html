@@ -25,7 +25,7 @@
               <tbody>
                 <tr ng-repeat="barcode in showCase.model_data.barcodes">
                   <td>
-                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-required" placeholder="Search WMS Code"
+                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-required" placeholder="Search SKU Code"
                     typeahead="address.wms_code for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
                     typeahead-loading="loadingLocations" ng-model="barcode.sku_code"
                     typeahead-on-select="showCase.get_sku_details(product, $item)" ng-required="$first">

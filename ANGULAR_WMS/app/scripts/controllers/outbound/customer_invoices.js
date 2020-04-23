@@ -261,8 +261,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.close = function() {
-
+     if(vm.permissions.customer_dc){
       $state.go("app.outbound.CustomerInvoices")
+    } else{
+        $state.go("app.outbound.CustomerInvoicesMain")
+    }
     }
 
     vm.edit_invoice = function() {

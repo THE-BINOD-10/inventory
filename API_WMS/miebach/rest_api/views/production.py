@@ -2863,7 +2863,7 @@ def confirm_back_order(request, user=''):
             # rendered = [rendered, rendered1] if rendered1 else rendered
             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user,
                                data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'],
-                               str(data_dictionary['order_date']).split(' ')[0])
+                               str(data_dictionary['order_date']).split(' ')[0], ean_flag=True)
         if not status:
             status = "Created PO Numbers are " + str(order_id)
         else:

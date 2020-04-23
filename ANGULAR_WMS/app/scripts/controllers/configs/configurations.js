@@ -84,7 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
-                     105: 'sku_packs_invoice',
+                     109: 'sku_packs_invoice',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
@@ -618,9 +618,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-  {
-   name: "Display SKU Packs In Invoice",
-   model_name: "sku_packs_invoice",
+{
+   name: "Enable Pending For Approval POs",
+   model_name: "enable_pending_approval_pos",
    param_no: 105,
    class_name: "fa fa-server",
    display: true
@@ -646,6 +646,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
  },
+ {
+   name: "Display SKU Packs In Invoice",
+   model_name: "sku_packs_invoice",
+   param_no: 109,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};

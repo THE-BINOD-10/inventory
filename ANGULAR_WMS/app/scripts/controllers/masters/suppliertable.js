@@ -88,12 +88,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
 
-  vm.readonly_permission = function(){
-      if(!vm.permissions.change_suppliermaster){
-        $(':input').attr('readonly','readonly');
-      }
-    }
-
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
@@ -154,6 +148,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_suppliermaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
+
 
   vm.submit = function(data) {
     if (data.$valid) {

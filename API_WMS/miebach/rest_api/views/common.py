@@ -11090,8 +11090,40 @@ def validate_st(all_data, user):
 
     return sku_status.strip(", ")
 
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type):
+    from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
+    NOW = datetime.datetime.now()
+    put_zone = purchase_data['zone']
+    if not put_zone:
+        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)
+        if not put_zone:
+            create_default_zones(warehouse, 'DEFAULT', 'DFLT1', 9999)
+            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)[0]
+        else:
+            put_zone = put_zone[0]
+    put_zone = put_zone.zone
+    temp_dict = {'received_quantity': float(quantity), 'user': warehouse.id, 'data': po_data, 'pallet_number': '', 'pallet_data': ''}
+    locations = get_purchaseorder_locations(put_zone, temp_dict)
+    for loc in locations:
+        processed_qty = 0
+        location_quantity, received_quantity = get_remaining_capacity(loc, quantity-processed_qty, put_zone, temp_dict['pallet_number'], warehouse.id)
+        if not location_quantity:
+            continue
+        processed_qty += location_quantity
+        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': location_quantity,
+                                'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
+        po_location = POLocation(**po_location_dict)
+        po_location.save()
+        stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
+                                                status=1, location_id=loc.id,
+                                                sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
+                                                receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
+        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'po', location_quantity, stock_dict)
+        if int(quantity) == int(processed_qty):
+            break
+
 def auto_receive(warehouse, po_data, po_type, quantity, data=""):
-    from inbound import get_st_seller_receipt_id, get_seller_receipt_id, create_default_zones, get_purchaseorder_locations, get_remaining_capacity
+    from inbound import get_st_seller_receipt_id, get_seller_receipt_id
     NOW = datetime.datetime.now()
     purchase_data = get_purchase_order_data(po_data)
     if po_type == 'st':
@@ -11106,44 +11138,9 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
                                                                        purchase_order_id=po_data.id,
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'])
-    put_zone = purchase_data['zone']
-    if put_zone:
-        put_zone = put_zone.zone
-    else:
-        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)
-        if not put_zone:
-            create_default_zones(warehouse, 'DEFAULT', 'DFLT1', 9999)
-            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)[0]
-        else:
-            put_zone = put_zone[0]
-        put_zone = put_zone.zone
-    temp_dict = {'received_quantity': float(quantity), 'user': warehouse.id, 'data': po_data, 'pallet_number': '', 'pallet_data': ''}
-    import pdb; pdb.set_trace()
-    locations = get_purchaseorder_locations(put_zone, temp_dict)
-    po_location_id = ''
-    for loc in locations:
-        processed_qty = 0
-        location_quantity, received_quantity = get_remaining_capacity(loc, quantity-processed_qty, put_zone, temp_dict['pallet_number'], warehouse.id)
-        if not location_quantity:
-            continue
-        processed_qty += location_quantity
-        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': location_quantity,
-                                'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
-        po_location = POLocation(**po_location_dict)
-        po_location.save()
-        po_location_id = po_location.id
-        stock_dict = StockDetail.objects.create(receipt_number=seller_receipt_id, receipt_date=NOW, quantity=location_quantity,
-                                                status=1, location_id=po_location_id,
-                                                sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
-                                                receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
-        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'po', location_quantity, stock_dict)
-        if int(quantity) == int(processed_qty):
-            break
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type)
     po_data.received_quantity += quantity
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity): 
         po_data.status = 'confirmed-putaway'
     po_data.save()
-
-
-
 

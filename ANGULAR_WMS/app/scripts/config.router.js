@@ -496,6 +496,24 @@ var app = angular.module('urbanApp')
              url: '/CustomerSKU',
              templateUrl: 'views/masters/toggles/customer_sku_update.html'
            })
+
+        .state('app.masters.CompanyMaster', {
+          url: '/CompanyMaster',
+          permission: 'add_customersku',
+          templateUrl: 'views/masters/company_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/CompanyMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Company Master',
+          }
+        })
+          .state('app.masters.CompanyMaster.Company', {
+             url: '/Company',
+             templateUrl: 'views/masters/toggles/company_master_update.html'
+           })
         .state('app.masters.BOMMaster', {
           url: '/BOMMaster',
           permission: 'add_bommaster',

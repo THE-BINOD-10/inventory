@@ -115,6 +115,11 @@
             <span>BOM Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_companymaster')">
+          <a ui-sref="app.masters.CompanyMaster">
+            <span>Company Master</span>
+          </a>
+        </li>
         <li ng-show="show_tab('multi_warehouse') && show_tab('is_staff')" ui-sref-active="active">
           <a ui-sref="app.masters.WarehouseMaster">
             <span>Warehouse Master</span>

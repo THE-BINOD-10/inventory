@@ -11092,12 +11092,7 @@ def validate_st(all_data, user):
 
 def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id, create_default_zones, get_purchaseorder_locations, get_remaining_capacity
-    print warehouse
-    print po_data
-    print po_type
-    print quantity
     NOW = datetime.datetime.now()
-    import pdb; pdb.set_trace()
     purchase_data = get_purchase_order_data(po_data)
     if po_type == 'st':
         seller_receipt_id = get_st_seller_receipt_id(po_data)

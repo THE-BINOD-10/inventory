@@ -8176,6 +8176,16 @@ def get_customer_master_id(request, user=''):
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_company_master_id(request, user=''):
+    company_id = 1
+    company_master = CompanyMaster.objects.filter().values_list('id', flat=True).order_by(
+        '-id')
+    if company_master:
+        company_id = company_master[0] + 1
+    return HttpResponse(json.dumps({'id': company_id}))
 
 def get_order_ids(user, invoice_number):
     sell_ids = {}

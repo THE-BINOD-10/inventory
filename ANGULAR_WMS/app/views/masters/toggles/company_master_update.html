@@ -1,0 +1,132 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body" style="overflow-y: visible;">
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Company ID </label>
+                <input type="text" autocomplete="off" class="form-control numvalid" ng-model="showCase.model_data.id" name="id" readonly/>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" >
+              <div class="form-group">
+                <label class="control-label"> Company Name </label>
+                <input type="text" ng-model="showCase.model_data.company_name" name="company_name" class="form-control" maxlength="256" required > </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Email ID </label>
+                <input type="text" ng-model="showCase.model_data.email_id" name="email_id" class="form-control" > </div>
+              </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Phone Number </label>
+                <input name="phone_number" type="text" class="form-control" ng-model="showCase.model_data.phone_number">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> GSTIN Number </label>
+                <input name="gstin_number" type="text" class="form-control" ng-model="showCase.model_data.gstin_number">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> CIN Number </label>
+                <input name="cin_number" type="text" class="form-control" ng-model="showCase.model_data.cin_number">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> PAN Number </label>
+                <input name="pan_number" type="text" class="form-control" ng-model="showCase.model_data.pan_number">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> City </label>
+                <input name="city" type="text" class="form-control" ng-model="showCase.model_data.city">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> State </label>
+                <input name="state" type="text" class="form-control" ng-model="showCase.model_data.state">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Country </label>
+                <input name="country" type="text" class="form-control" ng-model="showCase.model_data.country">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Pincode </label>
+                <input name="pincode" type="text" class="form-control" ng-model="showCase.model_data.pincode">
+              </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="control-label"> Address </label>
+                    <textarea rows="5" class="form-control" cols="27" ng-model="showCase.model_data.address" name="address" required></textarea>
+                  </div>
+                </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <div class="col-md-9 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <div>Company logo</div>
+                 <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                  <input style="position: absolute;
+                                top: 0;
+                                right: 0;
+                                min-width: 100%;
+                                min-height: 100%;
+                                font-size: 100px;
+                                text-align: right;
+                                filter: alpha(opacity=0);
+                                opacity: 0;
+                                outline: none;
+                                background: white;
+                                cursor: inherit;
+                                display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload/>
+              </span>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-4">
+              <div>
+                <img ng-src="{{showCase.model_data.logo}}" alt="Company logo" style="width: 100%"/>
+              </div>
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.service.message}}</h4>
+          </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

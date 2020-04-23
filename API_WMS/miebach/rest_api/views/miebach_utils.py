@@ -8114,7 +8114,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         invoice_total_amount = float(final_price) * float(data['total_received'])
         invoice_total_amount = truncate_float(invoice_total_amount, 2)
         data['debit_wo_tax_amount'] = rtv.quantity * price
-        data['debit_note_tax_amount'] = (data['debit_wo_tax_amount'] * data['cgst_tax'] + data['sgst_tax'] + data['igst_tax'])/100
+        data['debit_note_tax_amount'] = (data['debit_wo_tax_amount']) * (data['cgst_tax'] + data['sgst_tax'] + data['igst_tax'])/100
         data['debit_note_total_amount'] = data['debit_wo_tax_amount'] + data['debit_note_tax_amount']
         hsn_code = ''
         if open_po.sku.hsn_code:

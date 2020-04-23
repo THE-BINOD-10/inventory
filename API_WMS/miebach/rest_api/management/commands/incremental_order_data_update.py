@@ -48,7 +48,7 @@ class Command(BaseCommand):
             if order_detail_id:
                 order_id = int(order_detail_id[0].order_id)
             else:
-                order_id = 1001
+                order_id = 1000
             try:
                 if order_id:
                     type_name = 'so'

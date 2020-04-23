@@ -379,6 +379,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('preference', sku_preference),
                                                 ('costing_type', result.costing_type),('price', result.price),
                                                 ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
+                                                ('lead_time', result.lead_time),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -843,6 +844,11 @@ def get_sku_data(request, user=''):
     sku_data['primary_category'] = data.primary_category
     sku_data['hot_release'] = 0
     sku_data['shelf_life'] = data.shelf_life
+    sku_data['batch_based'] = data.batch_based
+    sku_data['convertion_factor'] = data.convertion_factor
+    sku_data['test_count'] = data.test_count
+    sku_data['flex_count'] = data.flex_count
+    sku_data['consumption_measurment_type'] = data.consumption_measurment_type
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;

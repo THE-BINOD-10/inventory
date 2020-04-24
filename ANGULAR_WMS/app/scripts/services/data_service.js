@@ -199,9 +199,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity'],
-                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item',  'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity'],
-                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity']}
+                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory  Type','Make', 'Model', 'Make-Model', 'Quantity'],
+                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity']}
                            }
 
 
@@ -211,18 +211,18 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity'],
-                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item',  'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity'],
-                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity']}
+                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item','Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity']}
                            }
     } else {
       self.dispatch_summary_report = {
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity'],
-                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model',  'Quantity'],
-                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Vehicle Registration Number', 'Chassis Number', 'ForCarvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity']}
+                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item','Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model',  'Quantity'],
+                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity']}
                            }
     }
 

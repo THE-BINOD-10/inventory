@@ -11116,10 +11116,20 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
-        stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
-                                                status=1, location_id=loc.id,
-                                                sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
-                                                receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
+        stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
+                            'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
+                            'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
+        stock_data = StockDetail.objects.filter(**stock_check_params)
+        if stock_data:
+            stock_data = stock_data[0]
+            add_quan = float(stock_data.quantity) + float(location_quantity)
+            setattr(stock_data, 'quantity', add_quan)
+            stock_data.save()
+        else:
+            stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
+                                                    status=1, location_id=loc.id,
+                                                    sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
+                                                    receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
         save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'po', location_quantity, stock_dict)
         if int(quantity) == int(processed_qty):
             break

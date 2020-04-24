@@ -10523,7 +10523,9 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
             open_st = st_po.open_st
             if po and po.status not in ['confirmed-putaway']:
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
-                auto_receive(destination_warehouse, po, 'st', update_picked)
+                inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
+                if inbound_automate == 'true':
+                    auto_receive(destination_warehouse, po, 'st', update_picked)
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()

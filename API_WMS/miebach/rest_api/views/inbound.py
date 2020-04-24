@@ -1564,6 +1564,7 @@ def switches(request, user=''):
                        'mandate_invoice_number':'mandate_invoice_number',
                        'sku_packs_invoice':'sku_packs_invoice',
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
+                       'stock_auto_receive':'stock_auto_receive',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

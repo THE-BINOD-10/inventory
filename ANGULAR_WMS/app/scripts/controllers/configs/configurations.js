@@ -49,6 +49,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'enable_pending_approval_prs': false,
+                    'stock_auto_receive': false,
+
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -87,6 +89,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
+                     109: 'stock_auto_receive',
                      }
 
   vm.check_box_data = [
@@ -633,6 +636,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Enable Pending For Approval PRs",
    model_name: "enable_pending_approval_prs",
    param_no: 107,
+   class_name: "fa fa-server",
+   display: true
+  },
+{
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 109,
    class_name: "fa fa-server",
    display: true
   },

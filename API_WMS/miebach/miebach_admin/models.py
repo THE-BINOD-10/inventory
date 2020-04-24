@@ -1203,7 +1203,7 @@ class CompanyMaster(models.Model):
     gstin_number = models.CharField(max_length=64, default='')
     cin_number = models.CharField(max_length=64, default='')
     pan_number = models.CharField(max_length=64, default='')
-    logo = models.ImageField(upload_to='images/companies/', default='', blank=True)
+    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
     parent = models.ForeignKey("self", blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables', 'ngAnimate', 'ui.bootstrap'])
-  .controller('CompanyMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder',  'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('CompanyMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope, $modal) {
     var vm = this;
     vm.service = Service;
     vm.apply_filters = colFilters;
@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 angular.copy(aData, vm.model_data);
+                vm.model_data.logo = vm.service.check_image_url(vm.model_data.logo);
                 vm.update = true;
                 vm.title = "Update Company";
                 $state.go("app.masters.CompanyMaster.Company");
@@ -87,17 +88,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.company = function(url) {
-    vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
-      if(data.message) {
-        if(data.data == 'New Company Added' || data.data == 'Updated Successfully') {
-          vm.service.refresh(vm.dtInstance);
-          vm.close();
-        } else {
-          vm.service.pop_msg(data.data);
-        }
-      }
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    var formData = new FormData()
+    var files = $("#update_company").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
     });
-  }
+    $.each(elem, function(i, val) {
+        formData.append(val.name, val.value);
+    });
+    $rootScope.process = true;
+    $.ajax({url: Session.url+url,
+            data: formData,
+            method: 'POST',
+            processData : false,
+            contentType : false,
+            xhrFields: {
+                withCredentials: true
+            },
+            'success': function(response) {
+              if(response.indexOf("Success") > -1) {
+                vm.service.refresh(vm.dtInstance);
+                vm.close();
+              } else {
+                vm.service.pop_msg(response);
+              }
+              $rootScope.process = false;
+            }});
+    }
   vm.get_company_id = function() {
 
     vm.service.apiCall("get_company_master_id/").then(function(data){

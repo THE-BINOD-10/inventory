@@ -1930,7 +1930,10 @@ def insert_company_master(request, user=''):
             # data_dict['parent'] = user.id
             company_master = CompanyMaster(**data_dict)
             company_master.save()
-            status_msg = 'New Company Added'
+            image_file = request.FILES.get('files-0', '')
+            if image_file:
+                company_image_saving(image_file, company_master, user)
+            status_msg = 'Added Successfully'
 
     except Exception as e:
         import traceback
@@ -1950,6 +1953,10 @@ def update_company_master(request, user=''):
     try:
         data_id = request.POST['id']
         data = get_or_none(CompanyMaster, {'id': data_id})
+        image_file = request.FILES.get('files-0', '')
+        if image_file:
+            company_image_saving(image_file, data, user)
+            
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -1973,6 +1980,30 @@ def update_company_master(request, user=''):
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Customer Data Failed')
     return HttpResponse('Updated Successfully')
+
+def company_image_saving(image_file, data, user):
+    extension = image_file.name.split('.')[-1]
+    path = 'static/images/companies/'
+    image_name = str(data.company_name).replace('/', '--')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    full_filename = os.path.join(path, str(image_name) + '.' + str(extension))
+    fout = open(full_filename, 'wb+')
+    file_content = ContentFile(image_file.read())
+    try:
+        file_contents = file_content.chunks()
+        for chunk in file_contents:
+            fout.write(chunk)
+        fout.close()
+        image_url = '/' + path + str(image_name) + '.' + str(extension)
+        saved_file_path = image_url
+        data.logo = image_url
+        data.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Company logo update failed for %s and error statement is %s' % (
+        str(user.username), str(e)))
 
 @csrf_exempt
 @login_required

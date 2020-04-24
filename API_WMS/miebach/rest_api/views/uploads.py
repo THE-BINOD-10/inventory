@@ -4161,11 +4161,16 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 data_dict[key] = cell_data
 
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'unit_price':
+                try:
+                    data_dict[key] = float(cell_data)
+                except:
+                    data_dict[key] = ''
             else:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
+                #if isinstance(cell_data, (int, float)):
+                #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -4212,7 +4217,6 @@ def inventory_adjust_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-
     status, data_list = validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname,
                                                        file_type)
 

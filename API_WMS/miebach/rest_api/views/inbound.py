@@ -6112,6 +6112,8 @@ def save_st(request, user=''):
     warehouse_name = request.POST.get('warehouse_name', '')
     source_seller_id = request.POST.get('source_seller_id', '')
     dest_seller_id = request.POST.get('dest_seller_id', '')
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    industry_type = user_profile[0].industry_type
     data_dict = dict(request.POST.iterlists())
     warehouse = User.objects.get(username=warehouse_name)
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
@@ -6128,13 +6130,16 @@ def save_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        if not data_dict['mrp'][i]:
-            data_dict['mrp'][i] = 0
+        if industry_type == 'FMCG':
+            if not data_dict['mrp'][i]:
+                data_dict['mrp'][i] = 0
         #cond = (warehouse_name)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
-            data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        if industry_type == 'FMCG':
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        else:
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, 0])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -6170,6 +6175,8 @@ def update_raised_st(request, user=''):
 @get_admin_user
 def confirm_st(request, user=''):
     all_data = {}
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    industry_type = user_profile[0].industry_type
     warehouse_name = request.POST.get('warehouse_name', '')
     warehouse = User.objects.get(username=warehouse_name)
     source_seller_id = request.POST.get('source_seller_id', '')
@@ -6189,12 +6196,15 @@ def confirm_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        if not data_dict['mrp'][i]:
-            data_dict['mrp'][i] = 0
+        if industry_type == 'FMCG':
+            if not data_dict['mrp'][i]:
+                data_dict['mrp'][i] = 0
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append(
-            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        if industry_type == 'FMCG':
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        else:
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, 0])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)

@@ -11119,12 +11119,12 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
                             'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
-        stock_data = StockDetail.objects.filter(**stock_check_params)
-        if stock_data:
-            stock_data = stock_data[0]
-            add_quan = float(stock_data.quantity) + float(location_quantity)
-            setattr(stock_data, 'quantity', add_quan)
-            stock_data.save()
+        stock_dict = StockDetail.objects.filter(**stock_check_params)
+        if stock_dict:
+            stock_dict = stock_dict[0]
+            add_quan = float(stock_dict.quantity) + float(location_quantity)
+            setattr(stock_dict, 'quantity', add_quan)
+            stock_dict.save()
         else:
             stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
                                                     status=1, location_id=loc.id,

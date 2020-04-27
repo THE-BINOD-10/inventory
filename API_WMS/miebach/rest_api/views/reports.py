@@ -680,9 +680,8 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 city = customer_data[0].city
             cod = data.order.customerordersummary_set.filter()
             invoice_number = data.invoice_number
-            invoice_data = SellerOrderSummary.objects.filter(full_invoice_number=invoice_number)
-            if invoice_data:
-                invoice_date = get_local_date(user, invoice_data[0].creation_date)
+            invoice_data = SellerOrderSummary.objects.filter(full_invoice_number=data.invoice_number)
+            invoice_date = get_local_date(user, invoice_data[0].creation_date)
             if cod:
                 cgst_tax = cod[0].cgst_tax
                 sgst_tax = cod[0].sgst_tax

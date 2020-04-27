@@ -724,6 +724,18 @@ OPEN_ORDER_REPORT_DICT = {
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
   }
+CREDIT_NOTE_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Customer ID', 'name': 'cutomer_id', 'type': 'input'},
+     ],
+     'dt_url': 'get_credit_note_report', 'excel_name': 'get_credit_note_report',
+     'print_url': 'reprint_credit_note_report',
+  }
 ORDER_FLOW_REPORT_DICT = {
      'filters': [
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1217,6 +1229,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
+                    'credit_note_report':CREDIT_NOTE_REPORT_DICT,
                      'order_flow_report':ORDER_FLOW_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
@@ -1815,6 +1828,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_financial_report':'get_financial_report_data',
                         'get_bulk_stock_update':'get_bulk_stock_update_data',
                         'get_credit_note_form_report': 'get_credit_note_form_report_data',
+                        'get_credit_note_report':'get_credit_note_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -9967,4 +9981,61 @@ def get_cancel_invoice_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('Invoice Number',data['full_invoice_number']),
                                                 ('Order ID',order_id),('SKU Code',sku_code),
                                                 ('Quantity',data['tsum']),('Cancelled Date',cancelled_date))))
+    return temp_data
+
+def get_credit_note_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_misc_value, get_admin
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
+    temp_data = copy.deepcopy(AJAX_DATA)
+    lis = ['credit_note_number', 'order__customer_id', 'order__customer_name', 'order__original_order_id', 'invoice_number', 'credit_note_number', 'credit_note_number', 'credit_note_number']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['invoice_number'] = search_params['invoice_number']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'order_id' in search_params:
+        search_parameters['order__original_order_id'] = search_params['order_id']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    return_orders = OrderReturns.objects.exclude(credit_note_number='').filter(order__user=user.id, **search_parameters).values('credit_note_number',
+                                                'order__customer_id', 'order__customer_name', 'order__original_order_id',
+                                                'invoice_number', 'reason').distinct().order_by(order_data)
+
+    temp_data['recordsTotal'] = return_orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        return_orders = return_orders[start_index:stop_index]
+    admin_user = get_admin(user)
+    updated_user = user.username
+    for order in return_orders:
+        r_date = OrderReturns.objects.filter(credit_note_number=order.get('credit_note_number','')).values('return_date')[0]
+        return_date = get_local_date(user, r_date['return_date'])
+        ord_dict = OrderedDict((('Credit Note Number', order.get('credit_note_number','')), ('Customer ID', order.get('order__customer_id','')),
+                                 ('Customer Name', order.get('order__customer_name','')),('Order ID', order.get('order__original_order_id','')),
+                                ('Invoice Number', order.get('invoice_number','')),('Return Date', return_date),
+                                ('Reason', order.get('reason','')),('Updated User', updated_user)))
+        temp_data['aaData'].append(ord_dict)
     return temp_data

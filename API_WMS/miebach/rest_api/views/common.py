@@ -6361,6 +6361,7 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     gstin_number = ''
+    order_type = 'purchase order'
     intransit_quantity = 0
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
@@ -6438,6 +6439,7 @@ def get_purchase_order_data(order):
         cess_tax = 0
         apmc_tax = 0
         tin_number = ''
+        order_type = 'stock transfer'
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
@@ -6447,7 +6449,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
-                  'intransit_quantity': intransit_quantity,
+                  'intransit_quantity': intransit_quantity, 'order_type': order_type,
                   'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data

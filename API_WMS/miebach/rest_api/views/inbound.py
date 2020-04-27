@@ -5674,7 +5674,7 @@ def putaway_data(request, user=''):
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
                                      'sku_id': order_data['sku_id'], 'sku__user': user.id,
-                                      'unit_price': grn_price, 'receipt_type': 'purchase order'}
+                                      'unit_price': grn_price, 'receipt_type': order_data['order_type']}
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
@@ -5711,7 +5711,7 @@ def putaway_data(request, user=''):
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],
                                    'sku_id': order_data['sku_id'],
-                                   'quantity': value, 'status': 1, 'receipt_type': 'purchase order',
+                                   'quantity': value, 'status': 1, 'receipt_type': order_data['order_type'],
                                    'creation_date': datetime.datetime.now(),
                                    'updation_date': datetime.datetime.now(), 'unit_price': grn_price}
                     if batch_obj:

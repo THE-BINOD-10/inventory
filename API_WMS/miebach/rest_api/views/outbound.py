@@ -3592,7 +3592,8 @@ def st_generate_picklist(request, user=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                   'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
     '''if user.username in MILKBASKET_USERS:
         zones  = get_all_sellable_zones(user)
         locations = []
@@ -14951,7 +14952,8 @@ def stock_transfer_generate_picklist(request, user=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
-                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                   'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')

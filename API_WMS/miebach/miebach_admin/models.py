@@ -3634,3 +3634,6 @@ class StockTransferSummary(models.Model):
     financial_year = models.CharField(max_length=16, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_TRANSFER_SUMMARY'

@@ -520,7 +520,10 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started for %s" % str(user.username))
+    order_code_prefix_check = ['Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order', 'DC', 'PRE']
     order_code_prefix = get_order_prefix(user.id)
+    if order_code_prefix:
+        order_code_prefix_check.insert(0, order_code_prefix)
     st_time = datetime.datetime.now()
     index_status = {}
     # order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
@@ -560,6 +563,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
+            elif cell_data:
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                cell_data_code = (''.join(re.findall('\D+', cell_data))).replace("'", "").replace("`", "")
+                if cell_data_code and cell_data_code.lower() in map(lambda x: str(x).lower(), order_code_prefix_check):
+                    index_status.setdefault(count, set()).add('Order id prefix is a reserved prefix. Please change and upload')
+                    break
             if 'order_type' in order_mapping:
                 order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
                 if cell_data in order_id_order_type.keys():
@@ -4161,11 +4171,16 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 data_dict[key] = cell_data
 
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'unit_price':
+                try:
+                    data_dict[key] = float(cell_data)
+                except:
+                    data_dict[key] = ''
             else:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
+                #if isinstance(cell_data, (int, float)):
+                #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -4212,7 +4227,6 @@ def inventory_adjust_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-
     status, data_list = validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname,
                                                        file_type)
 
@@ -4607,7 +4621,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         order__sku__sku_code=sku_code, order__user=user.id,**filter_params)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
-                    if not order_detail:
+                    if not order_detail and seller_order.exists() :
                         order_detail = seller_order[0].order
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
@@ -4635,7 +4649,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 order_quantity = order_quantity - order_detail.quantity
             if order_quantity  < return_quantity + float(quantity):
                 index_status.setdefault(row_idx, set()).add(
-                    'Returned Quantity is more than Order Quantity {} Quantity Already Returned ', return_quantity)
+                    'Returned Quantity is more than Order Quantity  Quantity Already Returned '+str(return_quantity))
 
     if not index_status:
         return 'Success'
@@ -4665,6 +4679,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     for row_idx in range(1, no_of_rows):
         all_data = []
         order_data = copy.deepcopy(UPLOAD_SALES_ORDER_DATA)
+        order_detail = []
         seller_order,seller = '',''
         batch_data = {}
         if not order_mapping:
@@ -4745,12 +4760,16 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     order_data['seller_id'] = seller_order.seller_id
             elif key == 'seller_id':
                 seller_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-                order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
+                if get_misc_value('auto_allocate_sale_order',user.id,number=True,boolean=True):
+                    order_detail = OrderDetail.objects.exclude(status=1).filter(sku__user=user.id,
                                                                       sellerorder__seller__seller_id=seller_id,
                                                                       sku__wms_code=sku_code). \
-                    annotate(ret=Sum(F('orderreturns__quantity')),
-                             dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
-                    filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+                        annotate(ret=Sum(F('orderreturns__quantity')),
+                                dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret') + F('dam')). \
+                        filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+                    if user.username in MILKBASKET_USERS:
+                        order_detail = order_detail.order_by('-creation_date')
+
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
@@ -7027,7 +7046,12 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 try:
                     admin_user = get_admin(user)
                     sister_wh = get_sister_warehouse(admin_user)
-                    user_obj = sister_wh.filter(user__username=warehouse_name)
+                    if (admin_user.username).lower() == str(warehouse_name).lower():
+                        user_obj = admin_user
+                    else:
+                        user_obj = sister_wh.filter(user__username=warehouse_name)
+                        if user_obj:
+                            user_obj = user_obj[0].user
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -7042,7 +7066,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
             else:
                 if user_obj:
-                    wh_id = user_obj[0].user.id
+                    wh_id = user_obj.id
                     sku_master_id = sku_master[0].id
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
@@ -7058,7 +7082,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             cell_data = get_cell_data(row_idx, order_mapping['dest_seller_id'], reader, file_type)
             if isinstance(cell_data, float):
                 cell_data = str(int(cell_data))
-            status, dest_seller = validate_st_seller(user_obj[0].user, cell_data, error_name='Destination')
+            status, dest_seller = validate_st_seller(user_obj, cell_data, error_name='Destination')
             if status:
                 index_status.setdefault(count, set()).add(status)
         number_fields = {'quantity': 'Quantity', 'price': 'Price', 'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax',

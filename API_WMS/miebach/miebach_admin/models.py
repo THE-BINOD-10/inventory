@@ -181,7 +181,7 @@ class IncrementalTable(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     type_name = models.CharField(max_length=64)
-    value = models.PositiveIntegerField()
+    value = models.BigIntegerField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3620,3 +3620,17 @@ def save_user_to_reversion(sender, instance, created, **kwargs):
 def delete_user_in_reversion(sender, instance, **kwargs):
     if kwargs.get('using') =='default':
         User.objects.using('reversion').filter(id=instance.id).delete()
+
+class StockTransferSummary(models.Model):
+    id = BigAutoField(primary_key=True)
+    pick_number = models.PositiveIntegerField(default=1)
+    stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True, db_index=True)
+    picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
+    quantity = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=64, default='')
+    invoice_date = models.DateTimeField(null=True, blank=True)
+    invoice_value = models.FloatField(default=0)
+    full_invoice_number = models.CharField(max_length=64, default='')
+    financial_year = models.CharField(max_length=16, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)

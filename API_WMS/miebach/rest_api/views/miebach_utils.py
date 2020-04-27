@@ -2253,7 +2253,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Qua
 
 WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Invoice Date&Time', 'Total Amount']
 
-STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time','Invoice Number','Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time']
@@ -2426,6 +2426,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'sku_packs_invoice':'sku_packs_invoice',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
                         'allow_partial_picklist': 'allow_partial_picklist',
+                        'auto_allocate_sale_order':'auto_allocate_sale_order',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -4970,19 +4971,20 @@ def get_order_summary_data(search_params, user, sub_user):
                 #if not unit_price:
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
-                amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
+                amt = unit_price * float(data['original_quantity'])
                 tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-            #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
             tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
         invoice_amount = float("%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount))
+        if int(discount) != 0:
+            tax = abs(float(invoice_amount) * tax_percent/(100+tax_percent))
         unit_invoice_amt = invoice_amount/data['original_quantity']
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
@@ -8359,6 +8361,9 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                     searchable = attribute.attribute_value
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
+        invoice_number = ''
+        if data.stocktransfersummary_set.filter():
+            invoice_number = data.stocktransfersummary_set.filter()[0].full_invoice_number
 
         ord_dict = OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
                                                 ('Quantity',quantity ),('Status',status),('Net Value',float("%.2f" % net_value)),\

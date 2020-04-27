@@ -1957,6 +1957,8 @@ def get_inventory(request,user=''):
             request_data = json.loads(request_data)
             limit = request_data.get('limit', 10)
             skus = request_data.get('sku', [])
+            if type(skus) != list:
+                skus = [skus]
             skus = map(lambda sku: str(sku), skus)
             warehouse = request_data.get('warehouse', '')
             if skus:
@@ -1991,7 +1993,7 @@ def get_inventory(request,user=''):
                                                                                 'sku__sku_brand').distinct(). \
                                                                     annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user=user.id,**search_params)
         wms_codes = map(lambda d: d[0], master_data)
-        quantity_master_data = master_data.aggregate(Sum('total'))
+        # quantity_master_data = master_data.aggregate(Sum('total'))
         if 'stock_value__icontains' in search_params1.keys():
             del search_params1['stock_value__icontains']
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list(

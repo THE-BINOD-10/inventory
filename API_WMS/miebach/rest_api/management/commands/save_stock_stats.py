@@ -34,13 +34,21 @@ class Command(BaseCommand):
     help = "Save Stock Stats everyday"
 
     def handle(self, *args, **options):
+        users_list = []
         self.stdout.write("Started Updating")
         today = datetime.datetime.now().date()
         tomorrow = today + datetime.timedelta(1)
         today_start = datetime.datetime.combine(today, datetime.time())
         today_end = datetime.datetime.combine(tomorrow, datetime.time())
         print str(datetime.datetime.now())
-        users = User.objects.filter(is_staff=True).order_by('-last_login')
+        run_users = ['incnut','GGN01', 'ggn01_con','TranceHomeLinen', 'ola_admin', 'creation_overseas',
+                    'savis_retail', 'GM_admin', 'grandspitstop', 'aidin_technologies']
+        for username in run_users:
+            user_objs = UserGroups.objects.filter(admin_user__username=username)
+            users_list.append(username)
+            for user_obj in user_objs:
+                users_list.append(user_obj.user.username)
+        users = User.objects.filter(is_staff=True, username__in=users_list).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)
@@ -79,6 +87,11 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     rtv_objs = dict(all_sku_stats.filter(transact_type='rtv').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    dest_substitute = dict(all_sku_stats.filter(transact_type='dest_substitute').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    src_substitue = dict(all_sku_stats.filter(transact_type='src_substitute').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
                     stock_quantity = stock_objs.get(sku.id, 0)
@@ -89,6 +102,10 @@ class Command(BaseCommand):
                     dispatched = market_data.get(sku.id, 0)
                     produced_quantity = jo_putaway_objs.get(sku.id, 0)
                     consumed = rm_picklist_objs.get(sku.id, 0)
+                    dest_substitute_quantity = dest_substitute.get(sku.id, 0)
+                    src_substitue_quantity = src_substitue.get(sku.id, 0)
+                    produced_quantity += dest_substitute_quantity
+                    consumed += src_substitue_quantity
                     rtv_quantity = rtv_objs.get(sku.id,0)
                     # stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).order_by('-creation_date')
                     stock_stat_objects = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)

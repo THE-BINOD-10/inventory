@@ -1765,10 +1765,14 @@ var app = angular.module('urbanApp')
                       'scripts/controllers/outbound/customer_invoices/customer_invoices.js'
                     ])
                   }).then( function() {
-                    return $ocLazyLoad.load([
-                      'scripts/controllers/outbound/customer_invoices/cancelled_invoice.js'
-                    ])
-                  });
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/customer_invoices/cancelled_invoice.js'
+                ]);
+                })
               }]
           },
           data: {
@@ -1847,6 +1851,11 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+          .state('app.outbound.CustomerInvoices.StockTransferInvoiceE', {
+            url: '/StockInvoice',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
+
 
       // Upload route
       .state('app.uploads', {
@@ -2527,6 +2536,22 @@ var app = angular.module('urbanApp')
           data: {
             title: 'RTV Report',
           }
+        })
+        .state('app.reports.CreditNoteReport', {
+          url: '/CreditNoteReport',
+          templateUrl: 'views/reports/credit_note_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/credit_note_report.js');
+              }]
+          },
+          data: {
+            title: 'Credit Note Report',
+          }
+        })
+        .state('app.reports.CreditNoteReport.CreditNoteReportPrint', {
+           url: '/CreditNoteReportPrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
         })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',

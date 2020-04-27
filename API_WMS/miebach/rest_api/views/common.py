@@ -636,13 +636,18 @@ def get_or_none(model_obj, search_params):
     return data
 
 
-def get_misc_value(misc_type, user, number=False):
+def get_misc_value(misc_type, user, number=False,boolean=False):
     misc_value = 'false'
     if number:
         misc_value = 0
     data = MiscDetail.objects.filter(user=user, misc_type=misc_type)
     if data:
         misc_value = data[0].misc_value
+    if boolean:
+        if misc_value == 'true':
+            return True
+        else:
+            return False
     return misc_value
 
 
@@ -855,9 +860,9 @@ def pr_request(request):
     if prApprObj.pending_pr:
         lineItems = prApprObj.pending_pr.pending_prlineItems
         prefix = prApprObj.pending_pr.prefix
-        values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 
-                        'pending_pr__requested_user__username', 'pending_pr__pr_number', 
-                        'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',  
+        values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
+                        'pending_pr__requested_user__username', 'pending_pr__pr_number',
+                        'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
                         'pending_pr__delivery_date']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
@@ -873,9 +878,9 @@ def pr_request(request):
     else:
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
-        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 
-                        'pending_po__requested_user__username', 'pending_po__po_number', 
-                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',  
+        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
+                        'pending_po__requested_user__username', 'pending_po__po_number',
+                        'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
                         'pending_po__delivery_date', 'pending_po__supplier_id', 'pending_po__supplier__name']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
@@ -933,9 +938,9 @@ def pr_request(request):
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
         po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
         mailsList = []
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']], 
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']],
                                     result['total_amt'], purchase_type=purchase_type)
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']], 
+        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result[fieldsMap['purchase_number']],
                         pr_user=user, level=result[fieldsMap['pending_level']])
         if not prApprQs.exists():
             continue
@@ -949,18 +954,18 @@ def pr_request(request):
         purchase_number = result[fieldsMap['purchase_number']]
         if pending_level != 'level0':
             prev_level = 'level' + str(int(pending_level.replace('level', '')) - 1)
-            prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+            prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                 pr_user=user, level=prev_level)
             last_updated_by = prApprQs[0].validated_by
             last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
             last_updated_remarks = prApprQs[0].remarks
         elif pending_level == 'level0':
             if final_status == 'pending':
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                                 pr_user=user, level=pending_level)
                 last_updated_remarks = result[fieldsMap['remarks']]
             else:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number, 
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
                                 pr_user=user, level=pending_level)
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -983,7 +988,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
-                                                ('DT_RowClass', 'results'))))    
+                                                ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -1011,8 +1016,8 @@ def add_update_pr_config(request,user=''):
                 tobeDeleteQs = pr_approvals.filter(level=eachLevel)
                 if tobeDeleteQs.exists():
                     tobeDeleteId = tobeDeleteQs[0].id
-                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete() 
-                    tobeDeleteQs.delete()               
+                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete()
+                    tobeDeleteQs.delete()
         for level, mails in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
@@ -1040,7 +1045,7 @@ def add_update_pr_config(request,user=''):
                     eachConfigId = eachConfig.id
             # To Delete Existing Mails from  Level
             mailsList = [i.strip() for i in mails.split(',')]
-            memQs = MasterEmailMapping.objects.filter(master_type=master_type, 
+            memQs = MasterEmailMapping.objects.filter(master_type=master_type,
                                     master_id=eachConfigId)
             existingMails = memQs.values_list('email_id', flat=True)
             toBeDeletedMails = set(list(existingMails)) - set(mailsList)
@@ -1050,9 +1055,9 @@ def add_update_pr_config(request,user=''):
             # To add new email in Level
             for eachMail in mailsList:
                 emailMap = {
-                            'user': user, 
-                            'master_id': eachConfigId, 
-                            'master_type': master_type, 
+                            'user': user,
+                            'master_id': eachConfigId,
+                            'master_type': master_type,
                             'email_id': eachMail,
                             }
                 MasterEmailMapping.objects.update_or_create(**emailMap)
@@ -1104,14 +1109,14 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
-        sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'], 
+        sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'],
                                     master_type=master_type, user=user).values_list('email_id', flat=True)
         commaSepMailIds = ','.join(sameLevelMailIds)
         eachConfData['mail_id'] = {str(eachConfData['level']):commaSepMailIds}
         if name not in totalConfigData:
             totalConfigData[name] = eachConfData
         else:
-            totalConfigData[name]['mail_id'][str(eachConfData['level'])] = commaSepMailIds 
+            totalConfigData[name]['mail_id'][str(eachConfData['level'])] = commaSepMailIds
 
     return totalConfigData.values()
 
@@ -1179,6 +1184,10 @@ def configurations(request, user=''):
     config_dict['prefix_cn_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
                                             type_name='credit_note_sequence').exclude(type_value=''). \
                                       values('prefix').annotate(marketplace=F('type_value')))
+    config_dict['prefix_st_data'] = list(UserTypeSequence.objects.filter(user=user.id, status=1,
+                                                                         type_name='stock_transfer_invoice').exclude(
+                                                                          type_value=''). \
+                                         values('prefix').annotate(marketplace=F('type_value')))
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
     order_field_obj =  MiscDetail.objects.filter(user=user.id,misc_type='extra_order_fields')
@@ -1708,7 +1717,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
     raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
-    
+
     max_norm_qty = int(sku.max_norm_quantity)
     return int(raise_quantity), int(total_quantity), max_norm_qty
 
@@ -2117,6 +2126,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
             change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
             if dest_stocks.batch_detail:
                 dest_batch = dest_stocks.batch_detail
+        save_sku_stats(user, dest_stocks.sku_id, receipt_number,receipt_type , quantity, dest_stocks)
     return dest_batch
 
 def move_stock_location(wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp='',
@@ -2455,6 +2465,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if adjustment_objs:
         InventoryAdjustment.objects.bulk_create(adjustment_objs)
+
     return 'Added Successfully', stock_stats_objs
 
 
@@ -3099,31 +3110,8 @@ def search_distributor_codes(request, user=''):
 
 
 def get_order_id(user_id, is_pos=False):
-    if is_pos:
-        order_key = "-order_id"
-    else:
-        order_key = "-creation_date"
-    order_code = get_order_prefix(user_id)
-    order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
-                                          [order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
-                                          reduce(operator.or_, (Q(order_code__icontains=x)\
-                                          for x in ['DC', 'PRE'])), user=user_id)\
-                                          .order_by(order_key)
-    if order_detail_id:
-        order_id = int(order_detail_id[0].order_id) + 1
-    else:
-        order_id = 1001
-
-
-    # order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
-
-    # order_id = int(order_detail_id['order_id__max']) + 1
-    # order_id = time.time()* 1000000
-
-    # Need to test for POS
-
-    # user = User.objects.get(id=user_id)
-    # order_id = get_incremental(user, 'order_detail', default_val=1001)
+    user = User.objects.get(id=user_id)
+    order_id = get_incremental(user, 'so')
     return order_id
 
 
@@ -5743,7 +5731,7 @@ def get_sku_stock_check(request, user=''):
         if skuPack_data:
             skuPack_quantity = skuPack_data[0].pack_quantity
 
-    po_search_params = {'open_po__sku__user': user.id, 
+    po_search_params = {'open_po__sku__user': user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
     poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
@@ -5759,12 +5747,12 @@ def get_sku_stock_check(request, user=''):
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         if sku_pack_config:
-            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0, 
+            return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty, 
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
 
 
@@ -6560,11 +6548,12 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-def build_invoice(invoice_data, user, css=False):
+def build_invoice(invoice_data, user, css=False, stock_transfer=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
-    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
-        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+    if not stock_transfer:
+        if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+            return json.dumps(invoice_data, cls=DjangoJSONEncoder)
     titles = ['']
     import math
     if not (invoice_data.get("customer_invoice", "") == True):
@@ -6576,7 +6565,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['titles'] = titles
     perm_hsn_summary = get_misc_value('hsn_summary', user.id)
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
-    if len(invoice_data['hsn_summary'].keys()) == 0:
+    if len(invoice_data.get('hsn_summary',{}).keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     # invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
@@ -6594,7 +6583,7 @@ def build_invoice(invoice_data, user, css=False):
     inv_summary = 47  # invoice summary headers height
     inv_total = 27  # total display height
     inv_charges = 20  # height of other charges
-    inv_totals = inv_totals + len(invoice_data['order_charges']) * inv_charges
+    inv_totals = inv_totals + len(invoice_data.get('order_charges',[])) * inv_charges
     '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142
@@ -6611,8 +6600,8 @@ def build_invoice(invoice_data, user, css=False):
     '''
     render_data = []
     render_space = 0
-    hsn_summary_length = len(invoice_data['hsn_summary'].keys()) * inv_total
-    if (perm_hsn_summary == 'true'):
+    hsn_summary_length = len(invoice_data.get('hsn_summary',{}).keys()) * inv_total
+    if perm_hsn_summary == 'true':
         render_space = inv_height - (
         inv_details + inv_footer + inv_totals + inv_header + inv_summary + inv_total + hsn_summary_length)
     else:
@@ -6625,7 +6614,7 @@ def build_invoice(invoice_data, user, css=False):
         invoice_data['imei_data'] = []
         for data in invoice_data['data']:
             data['imeis'] = []
-    if invoice_data['imei_data']:
+    if invoice_data.get('imei_data',''):
         count = 0
         for imei in invoice_data['imei_data']:
             for imei_count in range(len(imei)+1):
@@ -6688,11 +6677,16 @@ def build_invoice(invoice_data, user, css=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+
     if css:
         c = {'name': 'invoice'}
         top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
         top = top.render(c)
-    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    if stock_transfer:
+        invoice_data['empty_td'] = [0]*10
+        html = loader.get_template('../miebach_admin/templates/toggle/invoice/stock_transfer_invoice.html')
+    else:
+        html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
     return top + html
 
@@ -6768,7 +6762,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     render_data = []
     render_space = 0
     hsn_summary_length = len(invoice_data['hsn_summary'].keys()) * inv_total
-    if (perm_hsn_summary == 'true'):
+    if perm_hsn_summary == 'true':
         render_space = inv_height - (
         inv_details + inv_footer + inv_totals + inv_header + inv_summary + inv_total + hsn_summary_length)
     else:
@@ -6790,11 +6784,11 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     # preparing pages
     for index, data in enumerate(invoice_data['data']):
         sku_height = get_sku_height(data, row_items)
-        if (space2 < sku_height):
-            if (space2 > 100):
+        if space2 < sku_height:
+            if space2 > 100:
                 arr_index = (int(math.ceil(
                     (float(sku_height - space2) / 16))) * row_items) * -1  # ((sku_height - space2)/20)*row_items
-                if (len(temp_sku_data['data']) == 0):
+                if len(temp_sku_data['data']) == 0:
                     arr_index = 114
                 temp_data = copy.deepcopy(data)
                 temp_data['imeis'] = temp_data['imeis'][:arr_index]
@@ -6809,7 +6803,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
             space2 = render_space2
 
             imei_limit = 114
-            if (len(data['imeis']) > imei_limit):
+            if len(data['imeis']) > imei_limit:
                 temp_imeis = data['imeis']
                 if data.get('continue', ''):
                     imei_limit = 120
@@ -6839,7 +6833,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     # checking last page have enough space
     for index, data in enumerate(render_data[last]['data']):
         sku_height = get_sku_height(data, row_items)
-        if (space1 < sku_height):
+        if space1 < sku_height:
             if len(render_data[last]['data'][index:]) == 1:
                 temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
                 # temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
@@ -7471,8 +7465,8 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
             picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
             customer_orders = all_orders.filter(id__in=picklist_order_ids)
 
-            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'),
-                                                                                     ordered=Sum('quantity')))
+            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('original_quantity'),
+                                                                                     ordered=Sum('original_quantity')))
             for ind, dat in enumerate(all_data):
                 if sku_grouping == 'true':
                     ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
@@ -7491,6 +7485,13 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                 if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
                     all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))[
                         'picked_quantity__sum']
+                elif customer_picklists.filter(order_type='combo', **ship_dict).exists():
+                    picked_qty_objs = customer_picklists.filter(order_type='combo', **ship_dict).values('stock__sku_id').\
+                                                        annotate(res_qty=Sum('picked_quantity'))
+                    if picked_qty_objs:
+                        picked_qty_objs = picked_qty_objs[0]
+                        combo_qty = SKURelation.objects.filter(member_sku_id=picked_qty_objs['stock__sku_id'])[0].quantity
+                    all_data[ind]['picked'] = float(picked_qty_objs['res_qty'])/combo_qty
                 shipping_quantity = OrderIMEIMapping.objects.filter(
                     order_id__in=all_orders.filter(sku__sku_code=all_data[ind]['sku__sku_code']).values_list('id'),
                     status=1).count()
@@ -7794,12 +7795,16 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     no_stock_switch = False
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
+    allow_partial_picklist = False
+    if switch_vals['allow_partial_picklist'] == 'true':
+        allow_partial_picklist = True
     combo_allocate_stock = False
     if switch_vals.get('combo_allocate_stock', '') == 'true':
         combo_allocate_stock = True
 
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
+        temp_order_quantity = 0
         # order_quantity = float(order.quantity)
         seller_order = None
         seller_master_id = ''
@@ -7854,7 +7859,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         #if is_seller_order or add_mrp_filter:
         pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
         pc_loc_filter['status'] = 1
-        print pc_loc_filter
         pick_res_locat = PicklistLocation.objects.filter(**pc_loc_filter).values('stock__sku_id').\
                                                 distinct().annotate(total=Sum('reserved'))
 
@@ -7866,6 +7870,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             order_check_quantity = float(seller_order.quantity)
         members = {order.sku: order_check_quantity}
+        combo_stock_check_dict = OrderedDict()
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
             members = OrderedDict()
@@ -7878,10 +7883,23 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                                        add_mrp_filter=add_mrp_filter,
                                                                        needed_mrp_filter=needed_mrp_filter)
                 if stock_quantity < float(member_check_quantity):
-                    if not no_stock_switch:
+                    if (not no_stock_switch and ((allow_partial_picklist and stock_quantity < combo.quantity) or 'st_po' in dir(order))):
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
+                stock_based_combo = float(min(member_check_quantity, (stock_quantity//combo.quantity) * combo.quantity))/combo.quantity
+                combo_stock_check_dict[combo.member_sku] = {'order_qty': stock_based_combo,
+                                                            'combo_qty': combo.quantity}
+
+        if allow_partial_picklist and combo_stock_check_dict:
+            combo_suggested = min(map(lambda d: d['order_qty'], combo_stock_check_dict.values()))
+            if not combo_suggested:
+                stock_status.append(str(combo.member_sku.sku_code))
+                members = {}
+            else:
+                for combo_sku_obj, combo_check_qty in combo_stock_check_dict.items():
+                    members[combo_sku_obj] = combo_check_qty['combo_qty'] * combo_suggested
+            temp_order_quantity = order_check_quantity - combo_suggested
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
@@ -7893,7 +7911,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_detail = list(chain(stock_detail, stock_detail1))
                 stock_quantity += stock_quantity1
             elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
-                stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
+                stock_detail, Userstock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 
             order_quantity = member_qty
@@ -7905,44 +7923,51 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if not no_stock_switch:
+                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
                     stock_status.append(str(member.sku_code))
                     continue
 
-                if stock_quantity < 0:
-                    stock_quantity = 0
-                order_diff = 0
-                order_diff = order_quantity - stock_quantity
-                order_quantity -= order_diff
-                # stock_detail = []
-                # stock_detail = create_temp_stock(member.sku_code, 'DEFAULT', int(order.quantity) - stock_quantity, stock_detail, user.id)
-                picklist_data['reserved_quantity'] = order_diff
-                picklist_data['stock_id'] = ''
-                picklist_data['order_id'] = order.id
-                picklist_data['status'] = status
-                if enable_damaged_stock  == 'true':
-                    picklist_data['damage_suggested'] = 1
-                if sku_code:
-                    picklist_data['sku_code'] = sku_code
-                if 'st_po' not in dir(order):
-                    new_picklist = Picklist(**picklist_data)
-                    new_picklist.save()
-                    if seller_order:
-                        create_seller_summary_details(seller_order, new_picklist)
-                        seller_order.status = 0
-                        seller_order.save()
-                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
-                        if not sell_order:
+                if no_stock_switch:
+                    if stock_quantity < 0:
+                        stock_quantity = 0
+                    order_diff = 0
+                    order_diff = order_quantity - stock_quantity
+                    order_quantity -= order_diff
+                    # stock_detail = []
+                    # stock_detail = create_temp_stock(member.sku_code, 'DEFAULT', int(order.quantity) - stock_quantity, stock_detail, user.id)
+                    picklist_data['reserved_quantity'] = order_diff
+                    picklist_data['stock_id'] = ''
+                    picklist_data['order_id'] = order.id
+                    picklist_data['status'] = status
+                    if enable_damaged_stock  == 'true':
+                        picklist_data['damage_suggested'] = 1
+                    if sku_code:
+                        picklist_data['sku_code'] = sku_code
+                    if 'st_po' not in dir(order):
+                        new_picklist = Picklist(**picklist_data)
+                        new_picklist.save()
+                        if seller_order:
+                            create_seller_summary_details(seller_order, new_picklist)
+                            seller_order.status = 0
+                            seller_order.save()
+                            sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                            if not sell_order:
+                                order.status = 0
+                                order.save()
+                        else:
                             order.status = 0
                             order.save()
-                    else:
-                        order.status = 0
-                        order.save()
-                        # if seller_order:
-                        #    create_seller_summary_details(seller_order, new_picklist)
-                if stock_quantity <= 0:
-                    continue
+                            # if seller_order:
+                            #    create_seller_summary_details(seller_order, new_picklist)
+                    if stock_quantity <= 0:
+                        continue
 
+                elif allow_partial_picklist:
+                    if not temp_order_quantity:
+                        temp_order_quantity = order_quantity - stock_quantity
+                    if temp_order_quantity < 0:
+                        temp_order_quantity = 0
+                    order_quantity = stock_quantity
             stock_diff = 0
 
             # Marketplace model suggestions based on Zone Marketplace mapping
@@ -8004,10 +8029,16 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         seller_order.save()
                         sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
                         if not sell_order:
-                            order.status = 0
+                            if not temp_order_quantity:
+                                order.status = 0
+                            else:
+                                order.quantity = temp_order_quantity
                             order.save()
                     else:
-                        order.status = 0
+                        if not temp_order_quantity:
+                            order.status = 0
+                        else:
+                            order.quantity = temp_order_quantity
                         order.save()
                     break
 
@@ -8409,7 +8440,7 @@ def update_barcode_configuration(request, user=''):
     miscExistingObj = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', user=user.id, misc_value=config_name)
     configId = 1
     if not miscExistingObj.exists():
-        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration', 
+        dbMaxConfigId = MiscDetail.objects.filter(misc_type__contains='barcode_configuration',
                     user=user.id).order_by('-id').values_list('misc_type', flat=True)
         if dbMaxConfigId:
             configId = int(dbMaxConfigId[0].split('_')[-1])+1
@@ -9523,10 +9554,10 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
 
 
 def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user,
-                             seller_id, source_updated, mrp_dict, transact_number):
+                             seller_id, source_updated, mrp_dict, transact_number, dest_updated):
     desc_batch_obj = update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
                        src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
-                       mrp_dict=mrp_dict)
+                       mrp_dict=mrp_dict, dest_updated=dest_updated, receipt_type='substitute',receipt_number=transact_number)
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
                 'destination_quantity': dest_qty, 'transact_number': transact_number}
@@ -9761,7 +9792,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     for rem_subs in rem_subs_list:
         rem_sub_obj = SKUMaster.objects.get(user=user.id, sku_code=rem_subs)
         data.substitutes.remove(rem_sub_obj)
-    subs_list = [item for item in substitutes if not item in existing_substitutes]        
+    subs_list = [item for item in substitutes if not item in existing_substitutes]
     for subs in subs_list:
         try:
             sub_obj = SKUMaster.objects.filter(user=user.id, sku_code=subs)
@@ -10091,7 +10122,7 @@ def check_and_create_wh_supplier(retailUserObj, levelOneWarehouseObj):
             # master_mapping = MastersMapping.objects.filter(user=retailUserObj.id, mapping_id=supplier_master.id,
             #                                    mapping_type='warehouse_supplier_mapping')
             new_supplier_id = supplier_master.id
-    
+
     if not new_supplier_id:
         phone_number = userProfileObj.phone_number or 0
         new_supplier_id = create_new_supplier(retailUserObj, userProfileObj.user.first_name, userProfileObj.user.email,
@@ -10924,8 +10955,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
+        resultMap = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                    'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
+        if supplier_sku:
+            resultMap['sku_supplier_price'] = supplier_sku[0].price
+        result_data.append(resultMap)
 
         return result_data
 
@@ -11092,6 +11126,26 @@ def validate_st(all_data, user):
 
     return sku_status.strip(", ")
 
+
+def get_remaining_combo_reserved(combo_picklists):
+    remaining_qty_objs = combo_picklists.values('stock__sku_id').\
+                                annotate(res_qty=Sum('reserved_quantity'))
+    if remaining_qty_objs:
+        remaining_qty_objs = remaining_qty_objs[0]
+        combo_qty = SKURelation.objects.\
+                    filter(member_sku_id=remaining_qty_objs['stock__sku_id'])[0].quantity
+        remaining_qty = float(remaining_qty_objs['res_qty'])/combo_qty
+    return remaining_qty
+
+
+def get_stocktransfer_picknumber(user , picklist):
+    summary = StockTransferSummary.objects.filter(picklist_id=picklist.id).only('pick_number').\
+                                aggregate(Max('pick_number'))['pick_number__max']
+    if summary:
+        return int(summary)+1
+    else:
+        return 1
+
 def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
@@ -11152,7 +11206,6 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
                                                                        price=purchase_data['price'])
     auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type)
     po_data.received_quantity += quantity
-    if int(purchase_data['order_quantity']) == int(po_data.received_quantity): 
+    if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
-

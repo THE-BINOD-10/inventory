@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'enable_pending_approval_prs': false,
                     'auto_allocate_sale_order':false,
                     'po_or_pr_edit_permission_approver': false,
+                    'stock_auto_receive': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -86,13 +87,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
-                     109: 'sku_packs_invoice',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
                      108: 'auto_allocate_sale_order',
+                     109: 'sku_packs_invoice',
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
+                     112: 'stock_auto_receive',
                      }
 
   vm.check_box_data = [
@@ -670,6 +672,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 112,
+   class_name: "fa fa-server",
+   display: true
+   }
 ]
 
   vm.empty = {};

@@ -11599,7 +11599,7 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
                                          ('check_field', 'Customer Name')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', round(picked_amount, 2)), ('Order Date&Time', order_date),
+                                          ('Invoice Amount', round(picked_amount, 2)), ('Order Date&Time', order_date),
                                           ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)

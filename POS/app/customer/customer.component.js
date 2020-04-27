@@ -8,23 +8,20 @@
            "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService",
                             "manageData", "$location", "$window",
   function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData, $location, $window) {
-
     var self = this;
-
     self.simulateQuery = false;
     self.isDisabled    = false;
     self.extra_fields_flag = false;
     self.extra_fields = {};
-
     self.repos;
     self.querySearch   = querySearch;
     self.selectedItemChange = selectedItemChange;
-    self.searchTextChange   = searchTextChange;
-
+    self.searchTextChange = searchTextChange;
     self.customer = {};
     self.searchText;
+    self.searchOrder;
+    self.urlservice = urlService;
     urlService.current_order.customer_extra = {};
-
     //get extra fields
     $http.get(urlService.mainUrl+'rest_api/get_extra_fields/?user='+urlService.userData.parent_id)
     .then( function(data) {
@@ -75,69 +72,110 @@
             self.extra_fields_flag = false;
         }
     });
-
     //on change text in customer extra fields, save it in urlService
     self.save_extra_fields = save_extra_fields;
     function save_extra_fields() {
-        for(var  field in self.customer.extra_fields) {
-            urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
-        }
+      for(var  field in self.customer.extra_fields) {
+        urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
+      }
     }
 
 
     // Get data from backend to show below the search box
     self.get_user_data = get_user_data;
-   /*
-   function get_user_data(key) {
+    self.get_order_data = get_order_data;
+   
+    function get_order_data(key) {
+      self.search_term = key;
+      var deferred = $q.defer();
+      $http.get(urlService.mainUrl+'rest_api/search_pos_order_ids/?user='+urlService.userData.parent_id+'&key='+key)
+        .success( function(data) {
+          self.repos = data;
+          return self.repos.map( function (repo) {
+            return repo;
+          })
+        }).then(function() {
+          deferred.resolve(querySearch (key));
+        })
+      return deferred.promise;
+    }
 
+    self.searchOrderChange = searchOrderChange;
+    self.original_order_id = '';
+    function searchOrderChange(data) {
+      if (typeof(data) != "undefined") {
+        urlService.data_loader = true;
+        self.searchOrder = data['original_order_id'];
+        self.original_order_id = data['original_order_id'];
+        $http.get( urlService.mainUrl+'rest_api/print_order_data/?user='+urlService.userData.parent_id+'&order_id='+self.original_order_id).success(function(data, status, headers, config) {  
+          if(data.message === "invalid user") {
+              $window.location.reload();
+          } else {
+            if(data.status == "success") {
+              urlService.current_order.summary['order_code'] = data.data.order_code;
+              urlService.current_order.summary['order_ids'] = data.data.order_id;
+              self.customer = urlService.current_order.customer_data = data.data.customer_data;
+              urlService.current_returns_data = data.data.sku_data;
+              urlService.current_order.summary.total_discount = data.data.summary.total_discount
+              urlService.returns_load = true;
+              urlService.returns_total_paid = true;
+            }
+          }
+        })
+      }
+    }
+
+    self.searchOrderText = searchOrderText;
+    function searchOrderText(text) {
+      if (text != self.original_order_id) {
+        self.customer = {}
+        urlService.current_order.sku_data=[];
+        urlService.current_returns_data = {};
+        urlService.returns_load = false;
+        urlService.current_order.summary = {
+          'total_quantity': 0,
+          'total_amount': 0,
+          'total_discount': 0,
+          'subtotal': 0,
+          'VAT': 0,
+          'unit_price': 0,
+          'cgst': 0,
+          'sgst': 0,
+          'igst': 0,
+          'utgst': 0,
+          'staff_member': urlService.default_staff_member
+        }
+        self.original_order_id = '';
+      }
+    }
+
+    function get_user_data(key) {
+      if (key.length > 1) {
         self.search_term = key;
         var deferred = $q.defer();
-        $http.get(urlService.mainUrl+'search_customer_data/?user='+urlService.userData.parent_id+'&key='+key)
-          .success( function(data) {
-            if (data.length==0 && self.search_term!=0) {
-                self.customerButton = true;
-            }
-            else { self.customerButton = false; }
-            self.repos = data;
-            return self.repos.map( function (repo) {
-              repo.value = repo.Number.toLowerCase();
-              return repo;
-            })
+        $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+          .then(function(data) {
+            data=data.data;
+            console.log($window);
+            if(data.message === "invalid user") {
+              $window.location.reload();
+            } else {
+              onLineUserData(data);
+            } 
+            deferred.resolve(querySearch (key)); 
+          },function(error){
+              console.log("activate offline");
+              getCustomerData(urlService.userData.parent_id,key).then(function(data){
+                offLineUserData(data);
+              }).then(function(){
+                deferred.resolve(querySearch (key));
+              });   
           }).then(function() {
-            deferred.resolve(querySearch (key));
-          })
+              /*deferred.resolve(querySearch (key));*/
+          });
         return deferred.promise;
-    }
-    */
-
-     function get_user_data(key) {
-        if (key.length > 1) {
-            self.search_term = key;
-            var deferred = $q.defer();
-
-            $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
-              .then(function(data) {
-                data=data.data;
-                console.log($window);
-                if(data.message === "invalid user") {
-                    $window.location.reload();
-                } else {
-                    onLineUserData(data);
-                } 
-                deferred.resolve(querySearch (key)); 
-              },function(error){
-                  console.log("activate offline");
-                  getCustomerData(urlService.userData.parent_id,key).then(function(data){
-                      offLineUserData(data);
-                  }).then(function(){
-                      deferred.resolve(querySearch (key));
-                  });   
-              }).then(function() {
-                  /*deferred.resolve(querySearch (key));*/
-              });
-            return deferred.promise;
-          }
-        return [];
+        }
+      return [];
     }
 
     //function online get user data process
@@ -200,6 +238,7 @@
 
     function selectedItemChange(item) {
       if (!(typeof(item) == "undefined")) {
+        urlService.load_summary_data = false;
         self.customer = urlService.current_order.customer_data = item;
         $log.info('Item changed to ' + JSON.stringify(item));
       }
@@ -287,7 +326,6 @@
         }
        urlService.current_order.customer_data.Number = self.searchText;
        urlService.current_order.customer_data.value = self.searchText;
-       console.log(urlService.current_order.customer_data);
     }
 
     self.checkNumber = checkNumber;

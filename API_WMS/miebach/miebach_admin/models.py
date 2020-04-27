@@ -181,7 +181,7 @@ class IncrementalTable(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     type_name = models.CharField(max_length=64)
-    value = models.PositiveIntegerField()
+    value = models.BigIntegerField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -303,6 +303,7 @@ class OrderDetail(models.Model):
     title = models.CharField(max_length=256, default='')
     quantity = models.FloatField(default=0)
     original_quantity = models.FloatField(default=0)
+    cancelled_quantity = models.FloatField(default=0)
     invoice_amount = models.FloatField(default=0)
     shipment_date = models.DateTimeField()
     marketplace = models.CharField(max_length=256, default='')
@@ -3633,3 +3634,6 @@ class StockTransferSummary(models.Model):
     financial_year = models.CharField(max_length=16, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_TRANSFER_SUMMARY'

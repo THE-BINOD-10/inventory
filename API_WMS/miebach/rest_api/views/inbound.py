@@ -11042,10 +11042,10 @@ def get_grn_level_data(request, user=''):
             quantity = data.received_quantity
             #invoice_date = data.updation_date
             if receipt_no:
-                po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
+                    po_data_dict = {}
                     if seller_summary_obj.invoice_date:
                         invoice_date = seller_summary_obj.invoice_date
                     if seller_summary_obj.challan_date:

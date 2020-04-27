@@ -4180,12 +4180,13 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 #if isinstance(cell_data, (int, float)):
                 #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
-            data_dict['sku_code'] = sku_master[0].sku_code
-            data_dict['location'] = location_master[0].location
-            status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
+        if not index_status:
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
+                data_dict['sku_code'] = sku_master[0].sku_code
+                data_dict['location'] = location_master[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
         data_list.append(data_dict)
 
     if not index_status:

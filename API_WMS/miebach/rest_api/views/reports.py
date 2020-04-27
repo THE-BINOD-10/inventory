@@ -679,9 +679,10 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 customer_gst_no = customer_data[0].tin_number
                 city = customer_data[0].city
             cod = data.order.customerordersummary_set.filter()
-            if data.seller_order:
-                invoice_number = data.seller_order.invoice_no
-                invoice_data = get_local_date(user, data.seller_order.creation_date)
+            invoice_number = data.invoice_number
+            invoice_data = SellerOrderSummary.objects.filter(full_invoice_number=invoice_number)
+            if invoice_data:
+                invoice_date = get_local_date(user, invoice_data[0].creation_date)
             if cod:
                 cgst_tax = cod[0].cgst_tax
                 sgst_tax = cod[0].sgst_tax
@@ -741,16 +742,18 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                                                         # ('Return Date', return_date),
                                                         ('City', city),
                                                         ('Unit Price', unit_price),
-                                                        ('Market Place', marketplace), ('Quantity', data.quantity),
-                                                        ('Reason', data.reason),
-                                                        ('Status', data.status)
+                                                        ('Market Place', marketplace), ('Quantity', reasons.quantity),
+                                                        ('Reason', reasons.reason),
+                                                        ('Status', reasons.status)
                                                         )))
         else:
             if reasons:
                 for reason in reasons:
-                    reasons_data.append({'quantity': reason.quantity, 'reason': reason.reason, 'status': reason.status})
+                    credit_wo_tax_amount = reason.quantity * data.sku.price
+                    reasons_data.append({'quantity': reason.quantity, 'reason': reason.reason, 'status': reason.status, 'credit_wo_tax_amount': credit_wo_tax_amount})
             else:
-                reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
+                credit_wo_tax_amount = data.quantity * data.sku.price
+                reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status, 'credit_wo_tax_amount': credit_wo_tax_amount})
 
             temp = OrderedDict((('sku_code', data.sku.sku_code),('sku_desc', data.sku.sku_desc),
                          ('sku_category', data.sku.sku_category),
@@ -758,14 +761,14 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                          ('sku_brand', data.sku.sku_brand),
                          ('order_id', order_id), ('id', data.id),('order_date', order_date),
                          ('customer_id', customer_id), ('customer_name', customer_name),
-                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                         ('quantity', data.quantity), ('reasons_data', reasons_data),
+                         ('status', reasons_data[0]['status']), ('marketplace', marketplace),
+                         ('quantity', reasons_data[0]['quantity']), ('reasons_data', reasons_data),
                          ('credit_note_number', credit_note_number), ('credit_note_date', return_date),
                          ('invoice_number', invoice_number),('invoice_date', invoice_date), ('unit_price', unit_price),
-                         ('hsn_code', hsn_code),('credit_wo_tax_amount', credit_wo_tax_amount),
-                         ('credit_tax_amount', credit_tax_amount), ('total_credit_note_amount', total_credit_note_amount),
+                         ('hsn_code', hsn_code),('credit_wo_tax_amount', reasons_data[0]['credit_wo_tax_amount']),
+                         ('credit_tax_amount',credit_tax_amount), ('total_credit_note_amount', reasons_data[0]['credit_wo_tax_amount'] + credit_tax_amount),
                          ('customer_gst_no', customer_gst_no), ('gst_number', gst_number),
-                         ('city', city),('state',state),('reason', data.reason),('tax_percent', tax_percent)))
+                         ('city', city),('state',state),('reason', reasons_data[0]['reason']),('tax_percent', tax_percent)))
             if user.userprofile.industry_type == 'FMCG':
                 temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
                 batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))

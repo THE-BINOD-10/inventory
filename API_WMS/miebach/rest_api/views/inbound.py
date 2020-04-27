@@ -1568,6 +1568,7 @@ def switches(request, user=''):
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                        'mandate_ewaybill_number':'mandate_ewaybill_number',
                        'auto_allocate_sale_order':'auto_allocate_sale_order',
+                       'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2435,6 +2436,19 @@ def approve_pr(request, user=''):
                     master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
+
+    editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
+    if editPermission == 'true':
+        myDict = dict(request.POST.iterlists())
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = pendingPRObj.pending_level
+        orderStatus = pendingPRObj.final_status
+        if is_actual_pr == 'true':
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, 
+                    orderStatus=orderStatus)
+        else:
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
@@ -2536,7 +2550,10 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
                     value['sgst_tax'] = taxes[0]['sgst_tax']
                     value['cgst_tax'] = taxes[0]['cgst_tax']
                     value['igst_tax'] = taxes[0]['igst_tax']
-                value['price'] = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    value['price'] = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    value['price'] = skuTaxVal['mrp']
         data_id = value['data_id']
         if data_id:
             record = PendingLineItems.objects.get(id=data_id)
@@ -2619,7 +2636,7 @@ def convert_pr_to_po(request, user=''):
             existingPRObj = existingPRQs[0]
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
-        orderStatus = 'pending'
+        orderStatus = 'saved'
         mailSub = 'po_created'
         poSuppliers = splitPRtoPO(all_data, user)
 
@@ -2630,12 +2647,12 @@ def convert_pr_to_po(request, user=''):
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
                                         supplier=supplier, convertPRtoPO=True)
             pendingPoObj.pending_prs.add(existingPRObj)
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
-            if mailsList:
-                for eachMail in mailsList:
-                    hash_code = generateHashCodeForMail(prObj, eachMail)
-                    sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
+            # reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
+            # prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
+            # if mailsList:
+            #     for eachMail in mailsList:
+            #         hash_code = generateHashCodeForMail(prObj, eachMail)
+            #         sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
     except Exception as e:
@@ -2727,7 +2744,7 @@ def save_pr(request, user=''):
             reversion.set_comment("SavePendingPO")
 
         if myDict.get('pr_number'):
-            pr_number = int(myDict.get('pr_number')[0])
+            purchase_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
                 purchase_number = get_incremental(user, 'ActualPurchaseRequest')

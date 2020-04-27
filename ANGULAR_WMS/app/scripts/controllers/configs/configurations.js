@@ -51,6 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'allow_partial_picklist': false,
                     'enable_pending_approval_prs': false,
                     'auto_allocate_sale_order':false,
+                    'po_or_pr_edit_permission_approver': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -91,7 +92,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      107: 'enable_pending_approval_prs',
                      108: 'auto_allocate_sale_order',
                      110: 'allow_partial_picklist',
-
+                     111: 'po_or_pr_edit_permission_approver',
                      }
 
   vm.check_box_data = [
@@ -659,6 +660,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Display SKU Packs In Invoice",
    model_name: "sku_packs_invoice",
    param_no: 109,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Edit permission to Approvers for POs/PRs",
+   model_name: "po_or_pr_edit_permission_approver",
+   param_no: 111,
    class_name: "fa fa-server",
    display: true
   },

@@ -115,7 +115,8 @@
                     </td> -->
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
-                             ng-class="service.get_decimal_perm()" ng-readonly="true"
+                             ng-class="service.get_decimal_perm()" 
+                             ng-readonly="!showCase.permissions.po_or_pr_edit_permission_approver"
                              ng-keyup="showCase.getTotals()" size="12">
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">

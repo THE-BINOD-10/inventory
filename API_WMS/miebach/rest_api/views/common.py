@@ -10921,8 +10921,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
+        resultMap = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                    'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
+        if supplier_sku:
+            resultMap['sku_supplier_price'] = supplier_sku[0].price
+        result_data.append(resultMap)
 
         return result_data
 

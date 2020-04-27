@@ -415,6 +415,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     count = 0
     od_id, od_order_id = '', ''
     for data in master_data[start_index:stop_index]:
+        dc_num = ''
         prepare_str = ''
         shipment_date = ''
         project_name = ''
@@ -469,9 +470,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 od_order_id = str(picklist_obj[0].order.order_code) + str(picklist_obj[0].order.order_id)
             picklist_id = picklist_obj[0].picklist_number
             dc_number_obj = TempDeliveryChallan.objects.filter(order__sku__user = user.id , picklist_number = picklist_id ).values('dc_number')
-            if not dc_number_obj:
-                dc_num = ''
-            else:
+            if dc_number_obj:
                 dc_num = dc_number_obj[0]['dc_number']
 
             first_ord_obj = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__id',

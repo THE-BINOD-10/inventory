@@ -2244,7 +2244,7 @@ PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile',
 
 # Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                               'Total Amount', 'Order Date&Time',
+                               'Invoice Amount', 'Order Date&Time',
                                'Invoice Number']
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Invoice Amount']

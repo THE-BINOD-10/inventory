@@ -2064,8 +2064,24 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     batch_obj = ''
     dest_batch = ''
     if not source_updated:
-        reduce_stock(user, stocks, move_quantity,src_seller_id,receipt_type, receipt_number)
-    batch_obj = stocks[0].batch_detail
+        for stock in stocks:
+            batch_obj = stock.batch_detail
+            if stock.quantity > move_quantity:
+                stock.quantity -= move_quantity
+                change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
+                move_quantity = 0
+                if stock.quantity < 0:
+                    stock.quantity = 0
+                stock.save()
+            elif stock.quantity <= move_quantity:
+                move_quantity -= stock.quantity
+                change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
+                stock.quantity = 0
+                stock.save()
+            if move_quantity == 0:
+                break
+    else:
+        batch_obj = stocks[0].batch_detail
     if not dest_updated:
         if not dest_stocks:
             dict_values = {'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
@@ -2450,6 +2466,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if adjustment_objs:
         InventoryAdjustment.objects.bulk_create(adjustment_objs)
+
     return 'Added Successfully', stock_stats_objs
 
 

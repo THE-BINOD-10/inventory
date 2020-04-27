@@ -2225,3 +2225,40 @@ def get_cancel_invoice_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_cancel_invoice_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def reprint_credit_note_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_credit_note_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@login_required
+@get_admin_user
+def print_credit_note_report(request, user=''):
+    from inbound import get_sales_return_print_json
+    credit_note_number = request.GET.get('credit_note_number')
+    return_ids = list(OrderReturns.objects.filter(order__user=user.id, credit_note_number=credit_note_number)\
+        .values_list('return_id', flat=True))
+    final_data = get_sales_return_print_json(return_ids, user)
+    return_sales_print = []
+    return_sales_print.append(final_data)
+
+    return render(request, 'templates/toggle/sales_return_print.html',
+                  {'show_data_invoice': return_sales_print})
+
+

@@ -527,6 +527,7 @@ function view_orders() {
                 });
               }
               vm.qty_validation = {borderColor:'#ce402f'};
+              vm.bt_disable = false;
             }
             // Service.pop_msg(data.data);
             Service.pop_msg(data.data.message);

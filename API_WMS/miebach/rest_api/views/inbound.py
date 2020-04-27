@@ -1562,6 +1562,8 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
+                       'allow_partial_picklist': 'allow_partial_picklist',
                        'sku_packs_invoice':'sku_packs_invoice',
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                        'mandate_ewaybill_number':'mandate_ewaybill_number',

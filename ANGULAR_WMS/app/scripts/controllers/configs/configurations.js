@@ -48,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mandate_invoice_number':false,
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
+                    'allow_partial_picklist': false,
                     'enable_pending_approval_prs': false,
                     'auto_allocate_sale_order':false,
                   };
@@ -89,6 +90,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
                      108: 'auto_allocate_sale_order',
+                     110: 'allow_partial_picklist',
 
                      }
 
@@ -625,14 +627,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
    name: "Mandate EwayBillNumber in ShipmentInfo",
    model_name: "mandate_ewaybill_number",
    param_no: 106,
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
    name: "Enable Pending For Approval PRs",
    model_name: "enable_pending_approval_prs",
    param_no: 107,
@@ -640,6 +642,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
+   name: "Allow Partial Picklist Generation",
+   model_name: "allow_partial_picklist",
+   param_no: 110,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
    name: "Auto Allocate Sale Order",
    model_name: "auto_allocate_sale_order",
    param_no: 108,

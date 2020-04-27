@@ -87,17 +87,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
-                     109: 'sku_packs_invoice',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
-<<<<<<< HEAD
-                     109: 'stock_auto_receive',
-=======
                      108: 'auto_allocate_sale_order',
+                     109: 'sku_packs_invoice',
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
->>>>>>> fdda550bab0f11288b60eed82f467e3bc539eba2
+                     112: 'stock_auto_receive',
                      }
 
   vm.check_box_data = [
@@ -647,11 +644,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-<<<<<<< HEAD
-{
-   name: "Stock Transfer Auto Receive",
-   model_name: "stock_auto_receive",
-=======
   {
    name: "Allow Partial Picklist Generation",
    model_name: "allow_partial_picklist",
@@ -669,13 +661,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
  {
    name: "Display SKU Packs In Invoice",
    model_name: "sku_packs_invoice",
->>>>>>> fdda550bab0f11288b60eed82f467e3bc539eba2
    param_no: 109,
    class_name: "fa fa-server",
    display: true
   },
-<<<<<<< HEAD
-=======
   {
    name: "Edit permission to Approvers for POs/PRs",
    model_name: "po_or_pr_edit_permission_approver",
@@ -683,7 +672,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
->>>>>>> fdda550bab0f11288b60eed82f467e3bc539eba2
+  {
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 112,
+   class_name: "fa fa-server",
+   display: true
+   }
 ]
 
   vm.empty = {};

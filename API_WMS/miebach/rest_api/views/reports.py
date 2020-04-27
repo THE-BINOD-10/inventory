@@ -637,7 +637,6 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     if stop_index:
         sales_return = sales_return[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-
     for data in sales_return:
         order_id, order_date = '', ''
         customer_id, customer_name = '', ''
@@ -666,27 +665,27 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                     bundle = attribute.attribute_value
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
-            order_date = data.order.creation_date
+            order_date = get_local_date(user, data.order.creation_date)
             customer_id = data.order.customer_id
             customer_name = data.order.customer_name
             marketplace = data.order.marketplace
-            if data.seller_order:
-                invoice_number = data.seller_order.invoice_no
-                invoice_date = data.seller_order.creation_date
+            invoice_number = data.invoice_number
+            invoice_date = get_local_date(user, data.creation_date)
             credit_note_number = data.credit_note_number
             unit_price = data.sku.price
             hsn_code = data.sku.hsn_code
             credit_wo_tax_amount = unit_price * data.order.quantity
-            order_summary = CustomerOrderSummary.objects.filter(order_id=data.order.order_id)
             customer_data = CustomerMaster.objects.filter(user=user.id,customer_id=data.order.customer_id)
             if customer_data:
                 state = customer_data[0].state
                 customer_gst_no = customer_data[0].tin_number
-            if order_summary:
-                cgst_tax = order_summary.cgst_tax
-                sgst_tax = order_summary.sgst_tax
-                igst_tax = order_summary.igst_tax
-                credit_tax_amount = (credit_wo_tax_amount * cgst_tax + sgst_tax + igst_tax)/100
+                city = customer_data[0].city
+            cod = data.order.customerordersummary_set.filter()
+            if cod:
+                cgst_tax = cod[0].cgst_tax
+                sgst_tax = cod[0].sgst_tax
+                igst_tax = cod[0].igst_tax
+                credit_tax_amount = (credit_wo_tax_amount) * (cgst_tax + sgst_tax + igst_tax)/100
                 tax_percent = cgst_tax + sgst_tax + igst_tax
             total_credit_note_amount = float(credit_tax_amount) + float(credit_wo_tax_amount)
             user_data = UserProfile.objects.filter(user=user.id)
@@ -720,6 +719,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                                                             ('Unit Price', unit_price),
                                                             ('HSN Code', hsn_code),
                                                             ('Market Place', marketplace),
+                                                            ('City', city),
                                                             ('Quantity', reason.quantity), ('Reason', reason.reason),
                                                             ('Status', reason.status)
                                                             )))
@@ -738,6 +738,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                                                         ('Invoice Number', invoice_number),
                                                         ('Invoice Date', invoice_date),
                                                         # ('Return Date', return_date),
+                                                        ('City', city),
                                                         ('Unit Price', unit_price),
                                                         ('Market Place', marketplace), ('Quantity', data.quantity),
                                                         ('Reason', data.reason),

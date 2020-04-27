@@ -669,8 +669,6 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             customer_id = data.order.customer_id
             customer_name = data.order.customer_name
             marketplace = data.order.marketplace
-            invoice_number = data.invoice_number
-            invoice_date = get_local_date(user, data.creation_date)
             credit_note_number = data.credit_note_number
             unit_price = data.sku.price
             hsn_code = data.sku.hsn_code
@@ -681,6 +679,9 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 customer_gst_no = customer_data[0].tin_number
                 city = customer_data[0].city
             cod = data.order.customerordersummary_set.filter()
+            if data.seller_order:
+                invoice_number = data.seller_order.invoice_no
+                invoice_data = get_local_date(user, data.seller_order.creation_date)
             if cod:
                 cgst_tax = cod[0].cgst_tax
                 sgst_tax = cod[0].sgst_tax

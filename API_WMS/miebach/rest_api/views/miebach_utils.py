@@ -10015,7 +10015,7 @@ def get_credit_note_report_data(search_params, user, sub_user, serial_view=False
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
     if 'order_id' in search_params:
-        search_parameters['order__original_order_id'] = search_params['original_order_id']
+        search_parameters['order__original_order_id'] = search_params['order_id']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)

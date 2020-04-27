@@ -10223,7 +10223,7 @@ def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
         for val_idx, val in enumerate(value):
             print val_idx
-            if val[6]:
+            if val[7]:
                 open_st = OpenST.objects.get(id=val[6])
                 open_st.warehouse_id = User.objects.get(username=key[0]).id
                 open_st.sku_id = SKUMaster.objects.get(user=user.id, sku_code=val[0]).id
@@ -10232,7 +10232,8 @@ def insert_st_gst(all_data, user):
                 open_st.cgst_tax = float(val[3])
                 open_st.sgst_tax = float(val[4])
                 open_st.igst_tax = float(val[5])
-                open_st.mrp = float(val[7])
+                open_st.cess_tax = float(val[6])
+                open_st.mrp = float(val[8])
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
@@ -10243,12 +10244,13 @@ def insert_st_gst(all_data, user):
             stock_dict['cgst_tax'] = float(val[3])
             stock_dict['sgst_tax'] = float(val[4])
             stock_dict['igst_tax'] = float(val[5])
-            stock_dict['mrp'] = float(val[7])
+            stock_dict['cess_tax'] = float(val[6])
+            stock_dict['mrp'] = float(val[8])
             if user.userprofile.user_type == 'marketplace_user':
                 stock_dict['po_seller_id'] = key[3].id
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
-            all_data[key][all_data[key].index(val)][6] = stock_transfer.id
+            all_data[key][all_data[key].index(val)][7] = stock_transfer.id
     return all_data
 
 
@@ -10264,7 +10266,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             order_id = 1001
         for val_idx, val in enumerate(value):
             print 'Confirming: %s' % val_idx
-            open_st = OpenST.objects.get(id=val[6])
+            open_st = OpenST.objects.get(id=val[7])
             sku_id = SKUMaster.objects.get(user=warehouse.id, sku_code=val[0]).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
@@ -10281,7 +10283,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             st_purchase.save()
             st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
             st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5])
+            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5]) + + float(val[6])
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id

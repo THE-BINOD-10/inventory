@@ -1561,6 +1561,7 @@ class OpenST(models.Model):
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

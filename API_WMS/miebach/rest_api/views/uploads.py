@@ -6441,10 +6441,10 @@ def stock_transfer_order_form(request, user=''):
         return error_file_download(error_file)
     headers = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING.keys())
     if user.userprofile.user_type != 'marketplace_user':
-        del headers['Source Warehouse Seller ID']
-        del headers['Destination Warehouse Seller ID']
+        headers.remove('Source Warehouse Seller ID')
+        headers.remove('Destination Warehouse Seller ID')
     if user.userprofile.industry_type != 'FMCG':
-        del headers['MRP']
+        headers.remove('MRP')
     wb, ws = get_work_sheet('stock_transfer_order_form', headers)
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
@@ -6452,12 +6452,8 @@ def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create
                               order_fields_objs=None):
     if not order_fields_objs:
         order_fields_objs = []
-    order_fields_data = {}
-    order_fields_data['original_order_id'] = interm_order_id
-    order_fields_data['name'] = name
-    order_fields_data['value'] = value
-    order_fields_data['user'] = user.id
-    order_fields_data['order_type'] = 'intermediate_order'
+    order_fields_data = {'original_order_id': interm_order_id, 'name': name, 'value': value, 'user': user.id,
+                         'order_type': 'intermediate_order'}
     if not is_bulk_create:
         OrderFields.objects.create(**order_fields_data)
     else:
@@ -6998,8 +6994,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     order_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  st_mapping)
     if user.userprofile.user_type != 'marketplace_user':
-        del st_mapping['source_seller_id']
-        del st_mapping['dest_seller_id']
+        del st_mapping['Source Warehouse Seller ID']
+        del st_mapping['Destination Warehouse Seller ID']
     if set(st_mapping.keys()).\
             issubset(order_mapping.keys()):
         return "Headers not matching"
@@ -7092,6 +7088,9 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
+        source_seller = ''
+        dest_seller = ''
+        mrp =0
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -7136,11 +7135,18 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
                 if igst_tax == '':
                     igst_tax = 0
+            elif key == 'cess_tax':
+                try:
+                    cess_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    cess_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if cess_tax == '':
+                    cess_tax = 0
 
         warehouse = User.objects.get(username=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp])
     all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 

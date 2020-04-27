@@ -520,7 +520,10 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started for %s" % str(user.username))
+    order_code_prefix_check = ['Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order', 'DC', 'PRE']
     order_code_prefix = get_order_prefix(user.id)
+    if order_code_prefix:
+        order_code_prefix_check.insert(0, order_code_prefix)
     st_time = datetime.datetime.now()
     index_status = {}
     # order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
@@ -560,6 +563,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
+            elif cell_data:
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                cell_data_code = (''.join(re.findall('\D+', cell_data))).replace("'", "").replace("`", "")
+                if cell_data_code and cell_data_code.lower() in map(lambda x: str(x).lower(), order_code_prefix_check):
+                    index_status.setdefault(count, set()).add('Order id prefix is a reserved prefix. Please change and upload')
+                    break
             if 'order_type' in order_mapping:
                 order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
                 if cell_data in order_id_order_type.keys():
@@ -4161,11 +4171,16 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 data_dict[key] = cell_data
 
                 #    index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
+            elif key == 'unit_price':
+                try:
+                    data_dict[key] = float(cell_data)
+                except:
+                    data_dict[key] = ''
             else:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
+                #if isinstance(cell_data, (int, float)):
+                #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
             data_dict['sku_code'] = sku_master[0].sku_code
             data_dict['location'] = location_master[0].location
             status = validate_mrp_weight(data_dict,user)
@@ -4213,7 +4228,6 @@ def inventory_adjust_upload(request, user=''):
             return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-
     status, data_list = validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname,
                                                        file_type)
 

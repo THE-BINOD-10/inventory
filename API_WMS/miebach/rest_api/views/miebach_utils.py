@@ -724,6 +724,18 @@ OPEN_ORDER_REPORT_DICT = {
      'dt_url': 'get_open_order_report', 'excel_name': 'get_open_order_report',
      'print_url': 'print_open_order_report',
   }
+CREDIT_NOTE_REPORT_DICT = {
+     'filters': [
+         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+         {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+         {'label': 'Customer ID', 'name': 'cutomer_id', 'type': 'input'},
+     ],
+     'dt_url': 'get_credit_note_report', 'excel_name': 'get_credit_note_report',
+     'print_url': 'reprint_credit_note_report',
+  }
 ORDER_FLOW_REPORT_DICT = {
      'filters': [
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1217,6 +1229,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
+                    'credit_note_report':CREDIT_NOTE_REPORT_DICT,
                      'order_flow_report':ORDER_FLOW_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT,
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
@@ -1815,6 +1828,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_financial_report':'get_financial_report_data',
                         'get_bulk_stock_update':'get_bulk_stock_update_data',
                         'get_credit_note_form_report': 'get_credit_note_form_report_data',
+                        'get_credit_note_report':'get_credit_note_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -2244,7 +2258,7 @@ PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile',
 
 # Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                               'Total Amount', 'Order Date&Time',
+                               'Invoice Amount', 'Order Date&Time',
                                'Invoice Number']
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Invoice Amount']
@@ -2425,7 +2439,9 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'mandate_invoice_number':'mandate_invoice_number',
                         'sku_packs_invoice':'sku_packs_invoice',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
+                        'allow_partial_picklist': 'allow_partial_picklist',
                         'auto_allocate_sale_order':'auto_allocate_sale_order',
+                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -3047,14 +3063,18 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
             warehouses = UserGroups.objects.filter(user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
             warehouses = UserGroups.objects.filter(admin_user_id=user.id)
-        warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-        sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-        sku_master_ids = sku_master.values_list('id', flat=True)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouse_users[user.id] = user.username
+        #sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        #sku_master_ids = sku_master.values_list('id', flat=True)
+        search_parameters['order__user__in'] = warehouse_users.keys()
+
     else:
         search_parameters['order__user'] = user.id
-    search_parameters['order__sku_id__in'] = sku_master_ids
+    #search_parameters['order__sku_id__in'] = sku_master_ids
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         if order_detail:
@@ -4750,13 +4770,13 @@ def get_order_summary_data(search_params, user, sub_user):
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size','order_code',
                                                                     'sku__sku_desc','sku__price','sellerordersummary__full_invoice_number','sellerordersummary__challan_number','address','sellerordersummary__order_status_flag',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code', 'cancelled_quantity').distinct().annotate(sellerordersummary__creation_date=Cast('sellerordersummary__creation_date', DateField()))
     else:
         orders = OrderDetail.objects.filter(**search_parameters).values('user','id','order_id','status','creation_date','order_code','unit_price',
                                                                     'invoice_amount','sku__sku_code','sku__sku_class','sku__sku_size',
                                                                     'sku__sku_desc','sku__price','address','order_code','payment_mode',
                                                                     'quantity', 'original_quantity', 'original_order_id','order_reference','sku__sku_brand','customer_name','customer_id',
-                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code').distinct()
+                                                                    'sku__mrp','customer_name','sku__sku_category','sku__mrp','city','state','marketplace','payment_received','sku_id','sku__sub_category','sku__hsn_code', 'cancelled_quantity').distinct()
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -4966,19 +4986,20 @@ def get_order_summary_data(search_params, user, sub_user):
                 #if not unit_price:
                 tax_percent = tax * (100/(data['original_quantity'] * data['unit_price']))
             else:
-                amt = unit_price_inclusive_tax * float(data['original_quantity']) - discount
+                amt = unit_price * float(data['original_quantity'])
                 tax_percent = order_summary[0].cgst_tax + order_summary[0].sgst_tax + order_summary[0].igst_tax + order_summary[0].utgst_tax
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-            #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
             tax = float(float(data['invoice_amount']) / 100) * vat
         if order_status == 'None':
             order_status = ''
         invoice_amount = float("%.2f" % ((float(unit_price) * float(data['original_quantity'])) + tax - discount))
+        if int(discount) != 0:
+            tax = abs(float(invoice_amount) * tax_percent/(100+tax_percent))
         unit_invoice_amt = invoice_amount/data['original_quantity']
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
@@ -5010,8 +5031,9 @@ def get_order_summary_data(search_params, user, sub_user):
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
         invoice_number,invoice_date,quantity,challan_number= '','',0,''
-        if data['status'] and int(data['status']) == 3:
-            cancelled_qty = data['quantity']
+        #if data['status'] and int(data['status']) == 3:
+        #    cancelled_qty = data['quantity']
+        cancelled_qty = data['cancelled_quantity']
         if search_params.get('invoice','') == 'true':
             invoice_number = data['sellerordersummary__full_invoice_number']
             challan_number = data['sellerordersummary__challan_number']
@@ -5105,7 +5127,7 @@ def get_order_summary_data(search_params, user, sub_user):
             total_procurement_price, procurement_price, margin = get_margin_price_details(invoice_qty_filter, data, float(unit_price_inclusive_tax), quantity)
         else:
             total_procurement_price, procurement_price, margin = 0, 0, 0
-        if cancelled_qty:
+        if cancelled_qty == data['original_quantity']:
             status = 'Cancelled'
         aaData = OrderedDict((('Created By', order_taken_by),('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                     ('Customer ID', data['customer_id']),
@@ -9960,4 +9982,61 @@ def get_cancel_invoice_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(OrderedDict((('Invoice Number',data['full_invoice_number']),
                                                 ('Order ID',order_id),('SKU Code',sku_code),
                                                 ('Quantity',data['tsum']),('Cancelled Date',cancelled_date))))
+    return temp_data
+
+def get_credit_note_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from common import get_misc_value, get_admin
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
+    temp_data = copy.deepcopy(AJAX_DATA)
+    lis = ['credit_note_number', 'order__customer_id', 'order__customer_name', 'order__original_order_id', 'invoice_number', 'credit_note_number', 'credit_note_number', 'credit_note_number']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['invoice_number'] = search_params['invoice_number']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'order_id' in search_params:
+        search_parameters['order__original_order_id'] = search_params['order_id']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    return_orders = OrderReturns.objects.exclude(credit_note_number='').filter(order__user=user.id, **search_parameters).values('credit_note_number',
+                                                'order__customer_id', 'order__customer_name', 'order__original_order_id',
+                                                'invoice_number', 'reason').distinct().order_by(order_data)
+
+    temp_data['recordsTotal'] = return_orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        return_orders = return_orders[start_index:stop_index]
+    admin_user = get_admin(user)
+    updated_user = user.username
+    for order in return_orders:
+        r_date = OrderReturns.objects.filter(credit_note_number=order.get('credit_note_number','')).values('return_date')[0]
+        return_date = get_local_date(user, r_date['return_date'])
+        ord_dict = OrderedDict((('Credit Note Number', order.get('credit_note_number','')), ('Customer ID', order.get('order__customer_id','')),
+                                 ('Customer Name', order.get('order__customer_name','')),('Order ID', order.get('order__original_order_id','')),
+                                ('Invoice Number', order.get('invoice_number','')),('Return Date', return_date),
+                                ('Reason', order.get('reason','')),('Updated User', updated_user)))
+        temp_data['aaData'].append(ord_dict)
     return temp_data

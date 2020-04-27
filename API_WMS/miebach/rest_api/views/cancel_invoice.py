@@ -40,10 +40,13 @@ def cancel_invoice(request, user=''):
                 order_detail = order.seller_order.order
             else:
                 order_detail = order.order
-            if order_detail.status == 3:
+            '''if order_detail.status == 3:
                 order_detail.quantity = order_detail.quantity + cancelled_quantity
             else:
                 order_detail.quantity = cancelled_quantity
+                order_detail.status = 3'''
+            order_detail.cancelled_quantity = order_detail.cancelled_quantity + cancelled_quantity
+            if order_detail.cancelled_quantity == order_detail.original_quantity:
                 order_detail.status = 3
             order_detail.save()
             picklist = order.picklist

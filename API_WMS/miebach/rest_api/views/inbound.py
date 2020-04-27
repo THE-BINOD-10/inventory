@@ -2434,6 +2434,19 @@ def approve_pr(request, user=''):
                     master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
+
+    editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
+    if editPermission == 'true':
+        myDict = dict(request.POST.iterlists())
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = pendingPRObj.pending_level
+        orderStatus = pendingPRObj.final_status
+        if is_actual_pr == 'true':
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, 
+                    orderStatus=orderStatus)
+        else:
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)

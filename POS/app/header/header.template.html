@@ -1,44 +1,47 @@
 <div class="menu">
-    <preloader class="preloader ng-scope ng-hide"></preloader>
-        <div class="container">
-          <div class="home pull-left"> <h3>POS</h3> </div>
-          <div class="pull-right logout">
-            <div id="fat-menu" class="dropdown user">
-              <span class="glyphicon glyphicon-user" aria-hidden="true"></span>
-              <a id="drop3" href="/home" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">{{user_data.user_name}} <span class="caret"></span> </a>
-              <ul class="dropdown-menu" aria-labelledby="drop3"> <li><a href="#">Logout</a></li> </ul>
-            </div>
-          </div>
+  <preloader class="preloader ng-scope ng-hide"></preloader>
+  <div class="container">
+    <div class="home pull-left"> <h3>POS</h3> </div>
+    <div class="pull-right logout">
+      <div id="fat-menu" class="dropdown user">
+        <span class="glyphicon glyphicon-user" aria-hidden="true"></span>
+        <a id="drop3" href="/home" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">{{user_data.user_name}} <span class="caret"></span> </a>
+        <ul class="dropdown-menu" aria-labelledby="drop3"> <li><a href="#">Logout</a></li> </ul>
+      </div>
+    </div>
 
-          <div class="pull-right sync">
-            <div class="button" data-toggle="popover" title="Synchronize DB" ng-click="sync()" ng-disabled={{is_disable}}>
-                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-            </div>
-          </div>
-          <div class="pull-right">
-            <div class="alert sync_warning" ng-show="sync_status">
-                <p>{{sync_msg}}</p>
-            </div>
-          </div>
-          <div class="pull-left main_menu">
-            <a href="#/home?user_id={{user_data.parent_id}}">Home</a>
-            <!--<a href="#/more?user_id={{user_data.parent_id}}">More</a>-->
-          </div>
-          <div class="pull-left">
-            <div id="" class="dropdown main_menu">
-              <a id="drop1" class="dropdown-toggle" data-toggle="dropdown" role="button"
-                 aria-haspopup="true" aria-expanded="true">
-                    More
-                    <span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu" aria-labelledby="drop1">
-                <li><a href="#/more?user_id={{user_data.parent_id}}">Deliver Pre Order</a></li>
-                <li><a href="{{stockoneUrl}}#/outbound/ViewOrders" target="_blank">View Pre Orders</a></li>
-                <li><a href="{{stockoneUrl}}#/outbound/CustomerInvoices" target="_blank">View Completed Orders</a></li>
-              </ul>
-            </div>
-          </div>
-
-        </div>
+    <div class="pull-right sync">
+      <div class="button" data-toggle="popover" title="Synchronize DB" ng-click="sync()" ng-disabled={{is_disable}}>
+          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="pull-right">
+      <div class="alert sync_warning" ng-show="sync_status">
+          <p>{{sync_msg}}</p>
+      </div>
+    </div>
+    <div class="pull-left main_menu">
+      <a href="#/home?user_id={{user_data.parent_id}}">Home</a>
+      <!--<a href="#/more?user_id={{user_data.parent_id}}">More</a>-->
+    </div>
+    <div class="pull-left">
+      <div id="" class="dropdown main_menu">
+        <a id="drop1" class="dropdown-toggle" data-toggle="dropdown" role="button"
+           aria-haspopup="true" aria-expanded="true">
+              More
+              <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="drop1">
+          <li><a href="#/more?user_id={{user_data.parent_id}}">Deliver Pre Order</a></li>
+          <li><a href="{{stockoneUrl}}#/outbound/ViewOrders" target="_blank">View Pre Orders</a></li>
+          <li><a href="{{stockoneUrl}}#/outbound/CustomerInvoices" target="_blank">View Completed Orders</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pull-left main_menu" style="cursor: pointer;">
+      <a ng-if="!returnsView" ng-click="returnsViewChange()">Return/Ex-change</a>
+      <a ng-if="returnsView" ng-click="returnsViewChange()">Orders</a>
+    </div>
+  </div>
 </div>
 

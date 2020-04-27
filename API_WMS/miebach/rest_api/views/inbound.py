@@ -1562,10 +1562,14 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
+                       'allow_partial_picklist': 'allow_partial_picklist',
                        'sku_packs_invoice':'sku_packs_invoice',
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
                        'mandate_ewaybill_number':'mandate_ewaybill_number',
                        'auto_allocate_sale_order':'auto_allocate_sale_order',
+                       'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
+                       'stock_auto_receive':'stock_auto_receive',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2433,6 +2437,19 @@ def approve_pr(request, user=''):
                     master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
+
+    editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
+    if editPermission == 'true':
+        myDict = dict(request.POST.iterlists())
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = pendingPRObj.pending_level
+        orderStatus = pendingPRObj.final_status
+        if is_actual_pr == 'true':
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus)
+        else:
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
@@ -2534,7 +2551,10 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
                     value['sgst_tax'] = taxes[0]['sgst_tax']
                     value['cgst_tax'] = taxes[0]['cgst_tax']
                     value['igst_tax'] = taxes[0]['igst_tax']
-                value['price'] = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    value['price'] = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    value['price'] = skuTaxVal['mrp']
         data_id = value['data_id']
         if data_id:
             record = PendingLineItems.objects.get(id=data_id)
@@ -2617,7 +2637,7 @@ def convert_pr_to_po(request, user=''):
             existingPRObj = existingPRQs[0]
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
-        orderStatus = 'pending'
+        orderStatus = 'saved'
         mailSub = 'po_created'
         poSuppliers = splitPRtoPO(all_data, user)
 
@@ -2628,12 +2648,12 @@ def convert_pr_to_po(request, user=''):
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
                                         supplier=supplier, convertPRtoPO=True)
             pendingPoObj.pending_prs.add(existingPRObj)
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
-            if mailsList:
-                for eachMail in mailsList:
-                    hash_code = generateHashCodeForMail(prObj, eachMail)
-                    sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
+            # reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
+            # prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
+            # if mailsList:
+            #     for eachMail in mailsList:
+            #         hash_code = generateHashCodeForMail(prObj, eachMail)
+            #         sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
     except Exception as e:
@@ -2725,7 +2745,7 @@ def save_pr(request, user=''):
             reversion.set_comment("SavePendingPO")
 
         if myDict.get('pr_number'):
-            pr_number = int(myDict.get('pr_number')[0])
+            purchase_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
                 purchase_number = get_incremental(user, 'ActualPurchaseRequest')
@@ -2961,8 +2981,8 @@ def get_supplier_data(request, user=''):
                                     'value': temp_json.get('quantity', 0),
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price':float("%.2f"% order_data['price']),
-                                    'mrp': float("%.2f" % temp_json.get('mrp', 0)),
+                                    'price':float("%.2f"% float(order_data.get('price',0))),
+                                    'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
                                     'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
@@ -2991,9 +3011,9 @@ def get_supplier_data(request, user=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': get_decimal_limit(user.id, order.saved_quantity),
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': float("%.2f"% order_data['price']),
-                                'grn_price':float("%.2f"% order_data['price']),
-                                'mrp': float("%.2f"% order_data['mrp']),
+                                'price': float("%.2f"% float(order_data.get('price',0))),
+                                'grn_price':float("%.2f"% float(order_data.get('price',0))),
+                                'mrp': float("%.2f"% float(order_data.get('mrp',0))),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'],
                                 'dis': True,'wrong_sku':0,
@@ -6113,6 +6133,8 @@ def save_st(request, user=''):
     warehouse_name = request.POST.get('warehouse_name', '')
     source_seller_id = request.POST.get('source_seller_id', '')
     dest_seller_id = request.POST.get('dest_seller_id', '')
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    industry_type = user_profile[0].industry_type
     data_dict = dict(request.POST.iterlists())
     warehouse = User.objects.get(username=warehouse_name)
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
@@ -6129,13 +6151,16 @@ def save_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        if not data_dict['mrp'][i]:
-            data_dict['mrp'][i] = 0
+        if industry_type == 'FMCG':
+            if not data_dict['mrp'][i]:
+                data_dict['mrp'][i] = 0
         #cond = (warehouse_name)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
-            data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        if industry_type == 'FMCG':
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        else:
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, 0])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -6171,6 +6196,8 @@ def update_raised_st(request, user=''):
 @get_admin_user
 def confirm_st(request, user=''):
     all_data = {}
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    industry_type = user_profile[0].industry_type
     warehouse_name = request.POST.get('warehouse_name', '')
     warehouse = User.objects.get(username=warehouse_name)
     source_seller_id = request.POST.get('source_seller_id', '')
@@ -6190,12 +6217,15 @@ def confirm_st(request, user=''):
             data_id = data_dict['id'][i]
         if not data_dict['price'][i]:
             data_dict['price'][i] = 0
-        if not data_dict['mrp'][i]:
-            data_dict['mrp'][i] = 0
+        if industry_type == 'FMCG':
+            if not data_dict['mrp'][i]:
+                data_dict['mrp'][i] = 0
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append(
-            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        if industry_type == 'FMCG':
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, data_dict['mrp'][i]])
+        else:
+            all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id, 0])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)

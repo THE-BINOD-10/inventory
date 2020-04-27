@@ -40,7 +40,6 @@ import subprocess
 import importlib
 import requests
 from generate_reports import *
-
 from django.template import loader, Context
 from barcodes import *
 import ConfigParser
@@ -2064,8 +2063,24 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
     batch_obj = ''
     dest_batch = ''
     if not source_updated:
-        reduce_stock(user, stocks, move_quantity,src_seller_id,receipt_type, receipt_number)
-    batch_obj = stocks[0].batch_detail
+        for stock in stocks:
+            batch_obj = stock.batch_detail
+            if stock.quantity > move_quantity:
+                stock.quantity -= move_quantity
+                change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
+                move_quantity = 0
+                if stock.quantity < 0:
+                    stock.quantity = 0
+                stock.save()
+            elif stock.quantity <= move_quantity:
+                move_quantity -= stock.quantity
+                change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
+                stock.quantity = 0
+                stock.save()
+            if move_quantity == 0:
+                break
+    else:
+        batch_obj = stocks[0].batch_detail
     if not dest_updated:
         if not dest_stocks:
             dict_values = {'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
@@ -3096,31 +3111,8 @@ def search_distributor_codes(request, user=''):
 
 
 def get_order_id(user_id, is_pos=False):
-    if is_pos:
-        order_key = "-order_id"
-    else:
-        order_key = "-creation_date"
-    order_code = get_order_prefix(user_id)
-    order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
-                                          [order_code, 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
-                                          reduce(operator.or_, (Q(order_code__icontains=x)\
-                                          for x in ['DC', 'PRE'])), user=user_id)\
-                                          .order_by(order_key)
-    if order_detail_id:
-        order_id = int(order_detail_id[0].order_id) + 1
-    else:
-        order_id = 1001
-
-
-    # order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
-
-    # order_id = int(order_detail_id['order_id__max']) + 1
-    # order_id = time.time()* 1000000
-
-    # Need to test for POS
-
-    # user = User.objects.get(id=user_id)
-    # order_id = get_incremental(user, 'order_detail', default_val=1001)
+    user = User.objects.get(id=user_id)
+    order_id = get_incremental(user, 'so')
     return order_id
 
 
@@ -7474,8 +7466,8 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
             picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
             customer_orders = all_orders.filter(id__in=picklist_order_ids)
 
-            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'),
-                                                                                     ordered=Sum('quantity')))
+            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('original_quantity'),
+                                                                                     ordered=Sum('original_quantity')))
             for ind, dat in enumerate(all_data):
                 if sku_grouping == 'true':
                     ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
@@ -7494,6 +7486,13 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                 if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
                     all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))[
                         'picked_quantity__sum']
+                elif customer_picklists.filter(order_type='combo', **ship_dict).exists():
+                    picked_qty_objs = customer_picklists.filter(order_type='combo', **ship_dict).values('stock__sku_id').\
+                                                        annotate(res_qty=Sum('picked_quantity'))
+                    if picked_qty_objs:
+                        picked_qty_objs = picked_qty_objs[0]
+                        combo_qty = SKURelation.objects.filter(member_sku_id=picked_qty_objs['stock__sku_id'])[0].quantity
+                    all_data[ind]['picked'] = float(picked_qty_objs['res_qty'])/combo_qty
                 shipping_quantity = OrderIMEIMapping.objects.filter(
                     order_id__in=all_orders.filter(sku__sku_code=all_data[ind]['sku__sku_code']).values_list('id'),
                     status=1).count()
@@ -7797,12 +7796,16 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     no_stock_switch = False
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
+    allow_partial_picklist = False
+    if switch_vals['allow_partial_picklist'] == 'true':
+        allow_partial_picklist = True
     combo_allocate_stock = False
     if switch_vals.get('combo_allocate_stock', '') == 'true':
         combo_allocate_stock = True
 
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
+        temp_order_quantity = 0
         # order_quantity = float(order.quantity)
         seller_order = None
         seller_master_id = ''
@@ -7857,7 +7860,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         #if is_seller_order or add_mrp_filter:
         pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
         pc_loc_filter['status'] = 1
-        print pc_loc_filter
         pick_res_locat = PicklistLocation.objects.filter(**pc_loc_filter).values('stock__sku_id').\
                                                 distinct().annotate(total=Sum('reserved'))
 
@@ -7869,6 +7871,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         else:
             order_check_quantity = float(seller_order.quantity)
         members = {order.sku: order_check_quantity}
+        combo_stock_check_dict = OrderedDict()
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
             picklist_data['order_type'] = 'combo'
             members = OrderedDict()
@@ -7881,10 +7884,23 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                                        add_mrp_filter=add_mrp_filter,
                                                                        needed_mrp_filter=needed_mrp_filter)
                 if stock_quantity < float(member_check_quantity):
-                    if not no_stock_switch:
+                    if (not no_stock_switch and ((allow_partial_picklist and stock_quantity < combo.quantity) or 'st_po' in dir(order))):
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = {}
                         break
+                stock_based_combo = float(min(member_check_quantity, (stock_quantity//combo.quantity) * combo.quantity))/combo.quantity
+                combo_stock_check_dict[combo.member_sku] = {'order_qty': stock_based_combo,
+                                                            'combo_qty': combo.quantity}
+
+        if allow_partial_picklist and combo_stock_check_dict:
+            combo_suggested = min(map(lambda d: d['order_qty'], combo_stock_check_dict.values()))
+            if not combo_suggested:
+                stock_status.append(str(combo.member_sku.sku_code))
+                members = {}
+            else:
+                for combo_sku_obj, combo_check_qty in combo_stock_check_dict.items():
+                    members[combo_sku_obj] = combo_check_qty['combo_qty'] * combo_suggested
+            temp_order_quantity = order_check_quantity - combo_suggested
         for member, member_qty in members.iteritems():
             stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                    sku_id_stocks, add_mrp_filter=add_mrp_filter,
@@ -7896,7 +7912,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 stock_detail = list(chain(stock_detail, stock_detail1))
                 stock_quantity += stock_quantity1
             elif order.sku.relation_type == 'combo' and not combo_allocate_stock:
-                stock_detail, stock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
+                stock_detail, Userstock_quantity, sku_code = get_sku_stock(member, sku_stocks, user, val_dict,
                                                                        sku_id_stocks)
 
             order_quantity = member_qty
@@ -7908,44 +7924,51 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if not no_stock_switch:
+                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
                     stock_status.append(str(member.sku_code))
                     continue
 
-                if stock_quantity < 0:
-                    stock_quantity = 0
-                order_diff = 0
-                order_diff = order_quantity - stock_quantity
-                order_quantity -= order_diff
-                # stock_detail = []
-                # stock_detail = create_temp_stock(member.sku_code, 'DEFAULT', int(order.quantity) - stock_quantity, stock_detail, user.id)
-                picklist_data['reserved_quantity'] = order_diff
-                picklist_data['stock_id'] = ''
-                picklist_data['order_id'] = order.id
-                picklist_data['status'] = status
-                if enable_damaged_stock  == 'true':
-                    picklist_data['damage_suggested'] = 1
-                if sku_code:
-                    picklist_data['sku_code'] = sku_code
-                if 'st_po' not in dir(order):
-                    new_picklist = Picklist(**picklist_data)
-                    new_picklist.save()
-                    if seller_order:
-                        create_seller_summary_details(seller_order, new_picklist)
-                        seller_order.status = 0
-                        seller_order.save()
-                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
-                        if not sell_order:
+                if no_stock_switch:
+                    if stock_quantity < 0:
+                        stock_quantity = 0
+                    order_diff = 0
+                    order_diff = order_quantity - stock_quantity
+                    order_quantity -= order_diff
+                    # stock_detail = []
+                    # stock_detail = create_temp_stock(member.sku_code, 'DEFAULT', int(order.quantity) - stock_quantity, stock_detail, user.id)
+                    picklist_data['reserved_quantity'] = order_diff
+                    picklist_data['stock_id'] = ''
+                    picklist_data['order_id'] = order.id
+                    picklist_data['status'] = status
+                    if enable_damaged_stock  == 'true':
+                        picklist_data['damage_suggested'] = 1
+                    if sku_code:
+                        picklist_data['sku_code'] = sku_code
+                    if 'st_po' not in dir(order):
+                        new_picklist = Picklist(**picklist_data)
+                        new_picklist.save()
+                        if seller_order:
+                            create_seller_summary_details(seller_order, new_picklist)
+                            seller_order.status = 0
+                            seller_order.save()
+                            sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                            if not sell_order:
+                                order.status = 0
+                                order.save()
+                        else:
                             order.status = 0
                             order.save()
-                    else:
-                        order.status = 0
-                        order.save()
-                        # if seller_order:
-                        #    create_seller_summary_details(seller_order, new_picklist)
-                if stock_quantity <= 0:
-                    continue
+                            # if seller_order:
+                            #    create_seller_summary_details(seller_order, new_picklist)
+                    if stock_quantity <= 0:
+                        continue
 
+                elif allow_partial_picklist:
+                    if not temp_order_quantity:
+                        temp_order_quantity = order_quantity - stock_quantity
+                    if temp_order_quantity < 0:
+                        temp_order_quantity = 0
+                    order_quantity = stock_quantity
             stock_diff = 0
 
             # Marketplace model suggestions based on Zone Marketplace mapping
@@ -8007,10 +8030,16 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                         seller_order.save()
                         sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
                         if not sell_order:
-                            order.status = 0
+                            if not temp_order_quantity:
+                                order.status = 0
+                            else:
+                                order.quantity = temp_order_quantity
                             order.save()
                     else:
-                        order.status = 0
+                        if not temp_order_quantity:
+                            order.status = 0
+                        else:
+                            order.quantity = temp_order_quantity
                         order.save()
                     break
 
@@ -10527,6 +10556,10 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
             po = st_po.po
             open_st = st_po.open_st
             if po and po.status not in ['confirmed-putaway']:
+                destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
+                inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
+                if inbound_automate == 'true':
+                    auto_receive(destination_warehouse, po, 'st', update_picked)
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
@@ -10925,8 +10958,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
         if not supplier_sku and ep_supplier and mandate_sku_supplier == "true":
             edit_tax = True
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax})
+        resultMap = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                    'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
+        if supplier_sku:
+            resultMap['sku_supplier_price'] = supplier_sku[0].price
+        result_data.append(resultMap)
 
         return result_data
 
@@ -11093,6 +11129,18 @@ def validate_st(all_data, user):
 
     return sku_status.strip(", ")
 
+
+def get_remaining_combo_reserved(combo_picklists):
+    remaining_qty_objs = combo_picklists.values('stock__sku_id').\
+                                annotate(res_qty=Sum('reserved_quantity'))
+    if remaining_qty_objs:
+        remaining_qty_objs = remaining_qty_objs[0]
+        combo_qty = SKURelation.objects.\
+                    filter(member_sku_id=remaining_qty_objs['stock__sku_id'])[0].quantity
+        remaining_qty = float(remaining_qty_objs['res_qty'])/combo_qty
+    return remaining_qty
+
+
 def get_stocktransfer_picknumber(user , picklist):
     summary = StockTransferSummary.objects.filter(picklist_id=picklist.id).only('pick_number').\
                                 aggregate(Max('pick_number'))['pick_number__max']
@@ -11100,3 +11148,67 @@ def get_stocktransfer_picknumber(user , picklist):
         return int(summary)+1
     else:
         return 1
+
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type):
+    from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
+    NOW = datetime.datetime.now()
+    put_zone = purchase_data['zone']
+    if not put_zone:
+        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)
+        if not put_zone:
+            create_default_zones(warehouse, 'DEFAULT', 'DFLT1', 9999)
+            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)[0]
+        else:
+            put_zone = put_zone[0]
+    put_zone = put_zone.zone
+    temp_dict = {'received_quantity': float(quantity), 'user': warehouse.id, 'data': po_data, 'pallet_number': '', 'pallet_data': ''}
+    locations = get_purchaseorder_locations(put_zone, temp_dict)
+    for loc in locations:
+        processed_qty = 0
+        location_quantity, received_quantity = get_remaining_capacity(loc, quantity-processed_qty, put_zone, temp_dict['pallet_number'], warehouse.id)
+        if not location_quantity:
+            continue
+        processed_qty += location_quantity
+        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': location_quantity,
+                                'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
+        po_location = POLocation(**po_location_dict)
+        po_location.save()
+        stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
+                            'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
+                            'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
+        stock_dict = StockDetail.objects.filter(**stock_check_params)
+        if stock_dict:
+            stock_dict = stock_dict[0]
+            add_quan = float(stock_dict.quantity) + float(location_quantity)
+            setattr(stock_dict, 'quantity', add_quan)
+            stock_dict.save()
+        else:
+            stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
+                                                    status=1, location_id=loc.id,
+                                                    sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
+                                                    receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
+        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'po', location_quantity, stock_dict)
+        if int(quantity) == int(processed_qty):
+            break
+
+def auto_receive(warehouse, po_data, po_type, quantity, data=""):
+    from inbound import get_st_seller_receipt_id, get_seller_receipt_id
+    NOW = datetime.datetime.now()
+    purchase_data = get_purchase_order_data(po_data)
+    if po_type == 'st':
+        seller_receipt_id = get_st_seller_receipt_id(po_data)
+        receipt_type = 'stock transfer'
+    elif po_type == 'po':
+        seller_receipt_id = get_seller_receipt_id(po_data)
+        receipt_type = 'purchase order'
+    seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=seller_receipt_id,
+                                                                       quantity=quantity,
+                                                                       putaway_quantity=quantity,
+                                                                       purchase_order_id=po_data.id,
+                                                                       creation_date=NOW,
+                                                                       price=purchase_data['price'])
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type)
+    po_data.received_quantity += quantity
+    if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
+        po_data.status = 'confirmed-putaway'
+    po_data.save()

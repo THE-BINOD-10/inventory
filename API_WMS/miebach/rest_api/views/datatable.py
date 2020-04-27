@@ -168,10 +168,6 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['combo_flag'], combo_flag_dict[str(data.relation_type)], file_type)
         ws = write_excel(ws, data_count, excel_mapping['block_options'], block_options[str(data.block_options)], file_type)
         ws = write_excel(ws, data_count, excel_mapping['batch_based'], data.batch_based, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['consumption_measurment_type'], data.consumption_measurment_type, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['convertion_factor'], data.convertion_factor, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['flex_count'], data.flex_count, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['test_count'], data.test_count, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
         '''for attr in attributes:
             attr_val = ''

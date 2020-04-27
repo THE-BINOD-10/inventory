@@ -129,10 +129,6 @@ class SKUMaster(models.Model):
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.CharField(max_length=32, default='')
-    consumption_measurment_type = models.CharField(max_length=32, default='')
-    convertion_factor = models.IntegerField(default=0)
-    test_count = models.IntegerField(default=0)
-    flex_count = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

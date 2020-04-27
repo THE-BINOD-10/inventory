@@ -234,12 +234,6 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Conversion Factor </label>
-                <input type="text" name="convertion_factor" class="form-control" ng-model="showCase.model_data.sku_data.convertion_factor">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
                 <label class="control-label"> Hot Release </label>
                 <select class="form-control" name="hot_release" ng-model="showCase.model_data.sku_data.hot_release" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.hot_release == 1" value="Enable">Enable</option>
@@ -255,18 +249,6 @@
                 <input type="text" name="shelf_life" class="form-control" ng-model="showCase.model_data.sku_data.shelf_life" ng-class="service.get_decimal_perm()">
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> No. of Flex (Strips) </label>
-                <input type="text" name="flex_count" class="form-control" ng-model="showCase.model_data.sku_data.flex_count" ng-class="service.get_decimal_perm()">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> No. of Tests </label>
-                <input type="text" name="test_count" class="form-control" ng-model="showCase.model_data.sku_data.test_count" ng-class="service.get_decimal_perm()">
-              </div>
-            </div>
 
             <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
               <div class="form-group">
@@ -279,14 +261,6 @@
                 <label class="control-label"> Measurement Type </label>
                 <select name="measurement_type" class="form-control" ng-model="showCase.model_data.measurement_type">
                   <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.measurement_type == type">{{type}}</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Consumption UOM </label>
-                <select name="consumption_measurment_type" class="form-control" ng-model="showCase.model_data.consumption_measurment_type">
-                  <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.consumption_measurment_type == type">{{type}}</option>
                 </select>
               </div>
             </div>

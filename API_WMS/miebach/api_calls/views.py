@@ -2064,6 +2064,7 @@ def get_customers(request, user=''):
     request_data = request.body
     limit = 30
     sister_whs = []
+    search_query = Q()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2089,8 +2090,10 @@ def get_customers(request, user=''):
             limit = request_data['limit']
         if request_data.get('customer_type'):
             search_params['customer_type'] = request_data['customer_type']
+        if request_data.get('customer_search'):
+            search_query = build_search_term_query(['customer_id', 'name','phone_number'], request_data['customer_search'])
     total_data = []
-    master_data = CustomerMaster.objects.filter(**search_params)
+    master_data = CustomerMaster.objects.filter(search_query,**search_params)
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     for data in master_data:

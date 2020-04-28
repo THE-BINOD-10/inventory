@@ -3271,11 +3271,9 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
                         carvariant = attribute.attribute_value
                     if attribute.attribute_name == 'InventoryType':
                         inventory_type = attribute.attribute_value
-            issued_from = ''
             issued_to = data.order.customer_id
-            location_data = PicklistLocation.objects.filter(picklist__order__order_id=data.order.order_id)
-            if location_data:
-                issued_from = str(location_data[0].stock.location.location)
+            if data.stock:
+                issued_from = data.stock.location.location
             order_date = get_local_date(user, order_date)
             ord_dict = OrderedDict((('Allocation ID', order_id), ('Item', data.order.sku.sku_code),
                                     ('Allocation Date', order_date),

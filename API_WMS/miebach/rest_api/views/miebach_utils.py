@@ -946,7 +946,7 @@ DEALLOCATION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'De-Allocation ID', 'name': 'return_id', 'type': 'input'},
-        {'label': 'Velhicle ID', 'name': 'customer_id', 'type': 'input'},
+        # {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'input'},
 
     ],
     'dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item', 'Item Category', 'Vehicle Registration Number','Chassis Number','For Carvariant','Inventory Type','Make','Model','Make-Model','Quantity'],
@@ -3259,7 +3259,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
         if customer_data:
             chassis_number = customer_data[0].chassis_number
             attr_data = dict(
-                MasterAttributes.objects.filter(attribute_id=data.order.customer_id, attribute_model='customer',
+                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
                                                 attribute_name__in=['make', 'model']).values_list(
                     'attribute_name', 'attribute_value'))
             make = attr_data.get('Make')
@@ -3356,7 +3356,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
         customer_name = data.order.customer_name if data.order.customer_name else ''
         customer_id = data.order.customer_id if data.order.customer_id else ''
         order_id = data.order.original_order_id
-        order_date = data.order.creation_date
+        order_date = data.creation_date
         if not order_id:
             order_id = str(data.order.order_code) + str(data.order.order_id)
         customer_data = CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id)
@@ -3368,7 +3368,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
         if customer_data:
             chassis_number = customer_data[0].chassis_number
             attr_data = dict(
-                MasterAttributes.objects.filter(attribute_id=data.order.customer_id, attribute_model='customer',
+                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
                                                 attribute_name__in=['make', 'model']).values_list(
                     'attribute_name', 'attribute_value'))
             make = attr_data.get('Make')

@@ -488,7 +488,7 @@ def get_search_params(request, user=''):
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
-                    'destination_sku_category': 'destination_sku_category',
+                    'destination_sku_category': 'destination_sku_category','return_id':'return_id',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer',
                     'make': 'make', 'model': 'model', 'chassis_number': 'chassis_number'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']

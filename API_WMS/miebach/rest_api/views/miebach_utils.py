@@ -946,7 +946,7 @@ DEALLOCATION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'De-Allocation ID', 'name': 'return_id', 'type': 'input'},
-        # {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'input'},
+        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'input'},
 
     ],
     'dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item', 'Item Category', 'Vehicle Registration Number','Chassis Number','For Carvariant','Inventory Type','Make','Model','Make-Model','Quantity'],
@@ -3195,11 +3195,9 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
-    lis = ['order__order_id', 'order__order_id','order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
+    lis = ['order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
     model_obj = Picklist
     temp_data = copy.deepcopy(AJAX_DATA)
-    param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code',
-                  'manufacturer': 'order__sku__skuattributes__attribute_value__iexact'}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_params['from_date'] = get_utc_start_date(search_params['from_date'])
@@ -3211,8 +3209,8 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
                                                              datetime.time())
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['updation_date__lt'] = search_params['to_date']
-    if 'sku_code' in search_params:
-        search_parameters[param_keys['sku_code']] = search_params['sku_code']
+    if 'wms_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['wms_code']
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
     search_parameters['order__sku_id__in'] = sku_master_ids
@@ -3304,9 +3302,6 @@ def get_deallocation_report_data(search_params, user, sub_user):
     search_parameters = {}
     lis = ['order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
     model_obj = OrderReturns
-    param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code',
-                  'manufacturer': 'order__sku__skuattributes__attribute_value__iexact'}
-
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -3320,22 +3315,12 @@ def get_deallocation_report_data(search_params, user, sub_user):
         search_params['to_date'] = get_utc_start_date(search_params['to_date'])
         search_parameters['updation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
-        search_parameters[param_keys['sku_code']] = search_params['sku_code']
+        search_parameters['order__sku__sku_code'] = search_params['sku_code']
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
     search_parameters['order__sku_id__in'] = sku_master_ids
-    if 'order_id' in search_params:
-        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
-        if order_detail:
-            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
-        else:
-            search_parameters['order_id__in'] = []
-
-        order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1,
-                                                    order_reference=search_params['order_id']). \
-            values_list('order_id', flat=True)
-        search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
-
+    if 'return_id' in search_params:
+        search_parameters['return_id'] = search_params['return_id']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     attributes_list = ['ForCarvariant', 'InventoryType']

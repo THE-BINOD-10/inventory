@@ -3615,6 +3615,8 @@ def st_generate_picklist(request, user=''):
     all_sku_stocks = stock_detail1 | stock_detail2
     seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
+        if key =='enable_damaged_stock':
+            continue
         order_data = StockTransfer.objects.filter(id=key)
         if order_data and order_data[0].st_seller:
             sku_stocks = all_sku_stocks

@@ -128,6 +128,7 @@ class SKUMaster(models.Model):
     enable_serial_based = models.IntegerField(default=0)
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
+    batch_based = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -276,6 +277,7 @@ class SKUSupplier(models.Model):
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
     costing_type = models.CharField(max_length=128, default='Price Based')
+    lead_time = models.IntegerField(default=0)
     margin_percentage = models.FloatField(default=0)
     markup_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1184,6 +1186,27 @@ class UserAccessTokens(models.Model):
 
     def __unicode__(self):
         return str(self.user_profile)
+
+class CompanyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company_name = models.CharField(max_length=32, default='')
+    address = models.CharField(max_length=256, default='')
+    city = models.CharField(max_length=64, default='')
+    state = models.CharField(max_length=64, default='')
+    country = models.CharField(max_length=64, default='')
+    pincode = models.CharField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    gstin_number = models.CharField(max_length=64, default='')
+    cin_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
+    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
+    parent = models.ForeignKey("self", blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'COMPANY_MASTER'
 
 
 class SWXMapping(models.Model):

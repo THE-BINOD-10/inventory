@@ -539,7 +539,7 @@ data_datatable = {  # masters
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
-    'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
+    'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master','CompanyMaster':'get_company_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\

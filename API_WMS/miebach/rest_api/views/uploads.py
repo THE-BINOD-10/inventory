@@ -2672,6 +2672,13 @@ def supplier_sku_upload(request, user=''):
                         supplier_data['markup_percentage'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.markup_percentage = cell_data
+                    elif col_idx == 9:
+                        if not cell_data :
+                            cell_data = 0
+                        cell_data = int(cell_data)
+                        supplier_data['lead_time'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.lead_time = cell_data
                 supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
                 if supplier_sku and not supplier_sku_obj:
                     supplier_sku = SKUSupplier(**supplier_data)

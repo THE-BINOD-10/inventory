@@ -379,6 +379,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('preference', sku_preference),
                                                 ('costing_type', result.costing_type),('price', result.price),
                                                 ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
+                                                ('lead_time', result.lead_time),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -690,6 +691,30 @@ def get_customer_sku_mapping(start_index, stop_index, temp_data, search_term, or
                                                 ('customer_sku_code', data.customer_sku_code),
                                                 ('DT_RowClass', 'results'))))
 
+def get_company_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    # search_params = get_filtered_params(filters, CUSTOMER_SKU_MAPPING_HEADERS.values())
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if order_term:
+        master_data = CompanyMaster.objects.filter()
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('DT_RowId', data.id), ('id', data.id),
+                                                ('company_name', data.company_name),
+                                                ('email_id', data.email_id),
+                                                ('phone_number', data.phone_number),
+                                                ('city', data.city),
+                                                ('logo', str(data.logo)),
+                                                ('state', data.state),
+                                                ('country', data.country),
+                                                ('pincode', data.pincode),
+                                                ('gstin_number', data.gstin_number),
+                                                ('cin_number', data.cin_number),
+                                                ('pan_number', data.pan_number),
+                                                ('address', data.address),
+                                                ('DT_RowClass', 'results'))))
+
 
 @csrf_exempt
 def get_vendor_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -843,6 +868,7 @@ def get_sku_data(request, user=''):
     sku_data['primary_category'] = data.primary_category
     sku_data['hot_release'] = 0
     sku_data['shelf_life'] = data.shelf_life
+    sku_data['batch_based'] = data.batch_based
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;
@@ -1877,6 +1903,103 @@ def insert_customer_sku(request, user=''):
     status_msg = 'New Customer SKU Mapping Added'
     return HttpResponse(status_msg)
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_company_master(request, user=''):
+    log.info('Add New Conpany request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    status_msg = 'Failed'
+    try:
+        company_id = request.POST['id']
+        if not company_id:
+            return HttpResponse('Missing Required Fields')
+        data = filter_or_none(CompanyMaster, {'id': company_id})
+        status_msg = 'Company Exists'
+        sku_status = 0
+        if not data:
+            data_dict = copy.deepcopy(COMPANY_DATA)
+            for key, value in request.POST.iteritems():
+                if value == '':
+                    continue
+                data_dict[key] = value
+
+            # data_dict['parent'] = user.id
+            company_master = CompanyMaster(**data_dict)
+            company_master.save()
+            image_file = request.FILES.get('files-0', '')
+            if image_file:
+                company_image_saving(image_file, company_master, user)
+            status_msg = 'Added Successfully'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add New Company failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+
+    return HttpResponse(status_msg)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_company_master(request, user=''):
+    """ Update Company Data"""
+    log.info('Update Company Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_id = request.POST['id']
+        data = get_or_none(CompanyMaster, {'id': data_id})
+        image_file = request.FILES.get('files-0', '')
+        if image_file:
+            company_image_saving(image_file, data, user)
+            
+        for key, value in request.POST.iteritems():
+            if key not in data.__dict__.keys():
+                continue
+            if key == 'email_id':
+                if not value:
+                    continue
+                setattr(data, key, value)
+            # if key in ['discount_percentage', 'markup']:
+            #     if not value:
+            #         value = 0
+            #     setattr(data, key, float(value))
+            else:
+                setattr(data, key, value)
+
+        data.save()
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Company Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Customer Data Failed')
+    return HttpResponse('Updated Successfully')
+
+def company_image_saving(image_file, data, user):
+    extension = image_file.name.split('.')[-1]
+    path = 'static/images/companies/'
+    image_name = str(data.company_name).replace('/', '--')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    full_filename = os.path.join(path, str(image_name) + '.' + str(extension))
+    fout = open(full_filename, 'wb+')
+    file_content = ContentFile(image_file.read())
+    try:
+        file_contents = file_content.chunks()
+        for chunk in file_contents:
+            fout.write(chunk)
+        fout.close()
+        image_url = '/' + path + str(image_name) + '.' + str(extension)
+        saved_file_path = image_url
+        data.logo = image_url
+        data.save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Company logo update failed for %s and error statement is %s' % (
+        str(user.username), str(e)))
 
 @csrf_exempt
 @login_required

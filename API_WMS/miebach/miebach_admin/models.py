@@ -3613,7 +3613,10 @@ def save_user_to_reversion(sender, instance, created, **kwargs):
     print kwargs.get('update_fields')
     if kwargs.get('using') =='default' and (kwargs.get('update_fields') or created):
         instance_copy = copy.deepcopy(User.objects.filter(id=instance.id).values()[0])
-        User.objects.db_manager('reversion').update_or_create(id=instance.id, defaults=instance_copy)
+        try:
+            User.objects.db_manager('reversion').update_or_create(id=instance.id, defaults=instance_copy)
+        except:
+            pass
 
 
 @receiver(post_delete, sender=User)

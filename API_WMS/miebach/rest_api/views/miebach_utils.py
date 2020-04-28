@@ -3195,7 +3195,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
-    lis = ['order__order_id', 'order__sku__sku_code','order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
+    lis = ['order__order_id', 'order__order_id','order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
     model_obj = Picklist
     temp_data = copy.deepcopy(AJAX_DATA)
     param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code',

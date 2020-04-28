@@ -32,13 +32,13 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">SKU Code</label>
-                  <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.wms_code">
+                  <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.wms_code">
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">Customer ID</label>
-                  <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.model_data.customer_id = $item.customer_id" required>
+                  <label class="control-label">Vehicle ID</label>
+                  <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Vehicle ID" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.model_data.customer_id = $item.customer_id" required>
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.choose_view != 'customerView'">

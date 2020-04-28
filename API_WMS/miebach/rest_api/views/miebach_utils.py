@@ -946,7 +946,7 @@ DEALLOCATION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'De-Allocation ID', 'name': 'return_id', 'type': 'input'},
-        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'input'},
+        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'vehicle_search'},
 
     ],
     'dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item', 'Item Category', 'Vehicle Registration Number','Chassis Number','For Carvariant','Inventory Type','Make','Model','Make-Model','Quantity'],
@@ -3273,9 +3273,9 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
                         inventory_type = attribute.attribute_value
             issued_from = ''
             issued_to = data.order.customer_id
-            location_data = PicklistLocation.objects.filter(picklist_id=data.order.order_id)
+            location_data = PicklistLocation.objects.filter(picklist__order__order_id=data.order.order_id)
             if location_data:
-                issued_from = str(location_data[0].stock.location)
+                issued_from = str(location_data[0].stock.location.location)
             order_date = get_local_date(user, order_date)
             ord_dict = OrderedDict((('Allocation ID', order_id), ('Item', data.order.sku.sku_code),
                                     ('Allocation Date', order_date),
@@ -3300,7 +3300,7 @@ def get_deallocation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
-    lis = ['order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
+    lis = ['order__sku__sku_code', 'order__sku__sku_code','order__customer_id', 'order__customer_name', 'order__order_id']
     model_obj = OrderReturns
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'from_date' in search_params:
@@ -3367,9 +3367,9 @@ def get_deallocation_report_data(search_params, user, sub_user):
                         carvariant = attribute.attribute_value
                     if attribute.attribute_name == 'InventoryType':
                         inventory_type = attribute.attribute_value
-            location_data = PicklistLocation.objects.filter(picklist_id=data.order.order_id)
+            location_data = ReturnsLocation.objects.filter(returns__return_id=return_id)
             if location_data:
-                des_loc = str(location_data[0].stock.location)
+                des_loc = str(location_data[0].location)
             order_date = get_local_date(user, order_date)
             ord_dict = OrderedDict((('De-Allocation ID', return_id), ('Item', data.order.sku.sku_code),
                                     ('Item Category', data.order.sku.sku_category),

@@ -9572,8 +9572,8 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
 
 
 def update_stock_detail(stocks, quantity, user, rtv_id):
+    rtv_quantity = quantity
     for stock in stocks.iterator():
-        save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
@@ -9592,6 +9592,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
             stock.save()
         if quantity == 0:
             break
+    save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', rtv_quantity, stock)
 
 
 def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',price ='',

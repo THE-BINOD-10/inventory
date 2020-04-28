@@ -10567,6 +10567,7 @@ def save_rtv(request, user=''):
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
+    log.info('Request params for Create RTV' + user.username + ' is ' + str(request_data))
     sku_codes = request_data['sku_code']
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     rtv_prefix_code = get_misc_value('rtv_prefix_code', user.id)
@@ -11042,10 +11043,10 @@ def get_grn_level_data(request, user=''):
             quantity = data.received_quantity
             #invoice_date = data.updation_date
             if receipt_no:
-                po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
+                    po_data_dict = {}
                     if seller_summary_obj.invoice_date:
                         invoice_date = seller_summary_obj.invoice_date
                     if seller_summary_obj.challan_date:

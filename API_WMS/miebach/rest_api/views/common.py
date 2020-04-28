@@ -6433,11 +6433,11 @@ def get_purchase_order_data(order):
         mrp = 0
         order_type = ''
         supplier_code = ''
-        cgst_tax = 0
-        sgst_tax = 0
-        igst_tax = 0
+        cgst_tax = open_data.cgst_tax
+        sgst_tax = open_data.sgst_tax
+        igst_tax = open_data.igst_tax
         utgst_tax = 0
-        cess_tax = 0
+        cess_tax = open_data.cess_tax
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,

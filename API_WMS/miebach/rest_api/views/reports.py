@@ -637,23 +637,13 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     if stop_index:
         sales_return = sales_return[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    order_id, order_date = '', ''
+    customer_id, customer_name = '', ''
+    invoice_number, invoice_date, credit_note_number = '', '', ''
+    credit_wo_tax_amount,credit_tax_amount, tax_percent = 0, 0, 0
+    state, city, customer_gst_no, unit_price, gst_number, hsn_code  = '', '', '', '', '', ''
+    manufacturer, searchable, bundle, marketplace= '', '', '', ''
     for data in sales_return:
-        order_id, order_date = '', ''
-        customer_id, customer_name = '', ''
-        invoice_number, invoice_date = '', ''
-        marketplace = ''
-        credit_note_number = ''
-        credit_wo_tax_amount = 0
-        credit_tax_amount = 0
-        total_credit_note_amount = 0
-        state = ''
-        customer_gst_no = ''
-        gst_number = ''
-        unit_price = ''
-        hsn_code = ''
-        city = ''
-        tax_percent = 0
-        manufacturer, searchable, bundle = '', '', ''
         attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -672,7 +662,6 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
             credit_note_number = data.credit_note_number
             unit_price = data.sku.price
             hsn_code = data.sku.hsn_code
-            credit_wo_tax_amount = unit_price * data.order.quantity
             customer_data = CustomerMaster.objects.filter(user=user.id,customer_id=data.order.customer_id)
             if customer_data:
                 state = customer_data[0].state
@@ -688,7 +677,6 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 igst_tax = cod[0].igst_tax
                 credit_tax_amount = (credit_wo_tax_amount) * (cgst_tax + sgst_tax + igst_tax)/100
                 tax_percent = cgst_tax + sgst_tax + igst_tax
-            total_credit_note_amount = float(credit_tax_amount) + float(credit_wo_tax_amount)
             user_data = UserProfile.objects.filter(user=user.id)
             if user_data:
                 gst_number = user_data[0].gst_number
@@ -765,7 +753,7 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                          ('credit_note_number', credit_note_number), ('credit_note_date', return_date),
                          ('invoice_number', invoice_number),('invoice_date', invoice_date), ('unit_price', unit_price),
                          ('hsn_code', hsn_code),('credit_wo_tax_amount', reasons_data[0]['credit_wo_tax_amount']),
-                         ('credit_tax_amount',credit_tax_amount), ('total_credit_note_amount', reasons_data[0]['credit_wo_tax_amount'] + credit_tax_amount),
+                         ('credit_tax_amount',round((reasons_data[0]['credit_wo_tax_amount'] * tax_percent)/100, 2)), ('total_credit_note_amount', round(reasons_data[0]['credit_wo_tax_amount'] + credit_tax_amount, 2)),
                          ('customer_gst_no', customer_gst_no), ('gst_number', gst_number),
                          ('city', city),('state',state),('reason', reasons_data[0]['reason']),('tax_percent', tax_percent)))
             if user.userprofile.industry_type == 'FMCG':

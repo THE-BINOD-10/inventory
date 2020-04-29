@@ -1264,7 +1264,7 @@ def create_orders(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        validation_dict, failed_status, final_data_dict = validate_create_orders(orders, user=request.user, company_name='mieone')
+        validation_dict, failed_status, final_data_dict,payment_info = validate_create_orders(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:
@@ -1275,7 +1275,7 @@ def create_orders(request):
                 failed_status.update({'Status': 'Failure'})
             return HttpResponse(json.dumps(failed_status))
         #status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone', payment_info=payment_info)
         log.info(status)
     except Exception as e:
         import traceback

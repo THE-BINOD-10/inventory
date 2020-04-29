@@ -246,13 +246,18 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['weight_integration_name'] = get_misc_value('weight_integration_name', request.user.id)
     if response_data['data']['roles']['permissions']['weight_integration_name'] == 'false':
         response_data['data']['roles']['permissions']['weight_integration_name'] = ''
+    company_name = ''
+    if user_profile.company:
+        company_name = user_profile.company.company_name
+        if user_profile.company.logo:
+            response_data['data']['parent']['logo'] = user_profile.company.logo.url
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
                                              'email': request.user.email,
                                              'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
-                                             'company_name': user_profile.company_name,
+                                             'company_name': company_name,
                                              'wh_address': user_profile.wh_address,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
@@ -405,7 +410,7 @@ def create_user(request):
             if user:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=request.POST.get('phone', ''),
-                                                          company_name=request.POST.get('company', ''), user_id=user.id,
+                                                            user_id=user.id,
                                                           api_hash=hash_code,
                                                           is_trail=1, prefix=prefix, setup_status='')
                 user_profile.save()
@@ -3881,7 +3886,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
-    company_name = user_profile.company_name
+    company_name = user_profile.company.company_name
     company_address = user_profile.address
     company_number = user_profile.phone_number
     email = user.email
@@ -6155,10 +6160,10 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                                 attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
                                 if attr_obj.exists():
                                     single[show_key] = attr_obj[0].attribute_value
-                single['Company'] = user_prf.company_name.replace("'", '')
+                single['Company'] = user_prf.company.company_name.replace("'", '')
                 present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
                 single["Packed on"] = str(present).replace("'", '')
-                single['Marketed By'] = user_prf.company_name.replace("'", '')
+                single['Marketed By'] = user_prf.company.company_name.replace("'", '')
                 single['MFD'] = str(present).replace("'", '')
                 phone_number = user_prf.phone_number
                 if not phone_number:
@@ -6256,10 +6261,10 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                             attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
                             if attr_obj.exists():
                                 single[show_key] = attr_obj[0].attribute_value
-            single['Company'] = user_prf.company_name.replace("'", '')
+            single['Company'] = user_prf.company.company_name.replace("'", '')
             present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
             single["Packed on"] = str(present).replace("'", '')
-            single['Marketed By'] = user_prf.company_name.replace("'", '')
+            single['Marketed By'] = user_prf.company.company_name.replace("'", '')
             single['MFD'] = str(present).replace("'", '')
             phone_number = user_prf.phone_number
             if not phone_number:

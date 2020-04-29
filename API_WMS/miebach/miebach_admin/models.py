@@ -620,7 +620,7 @@ class PurchaseOrder(models.Model):
     payment_received = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-    batch_ref = models.CharField(max_length=100, default='')
+    
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
@@ -724,7 +724,8 @@ class BatchDetail(models.Model):
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-
+    batch_ref = models.CharField(max_length=100, default='')
+    
     class Meta:
         db_table = 'BATCH_DETAIL'
         index_together = (('transact_id', 'transact_type'), ('batch_no', 'buy_price', 'mrp', 'manufactured_date', 'expiry_date', 'tax_percent'),

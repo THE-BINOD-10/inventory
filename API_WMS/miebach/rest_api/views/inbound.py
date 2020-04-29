@@ -4813,26 +4813,6 @@ def check_sku(request, user=''):
     sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
-    barcode_res=check_barcode_scanner(sku_code, sku_brand, user)
-    if(barcode_res["status"]):
-        data = {"status": 'barcode_confirmed',
-                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
-                    'sgst':'', 'igst':'', "barcode_data": barcode_res["data"]}
-        check_sku=True
-        for d in barcode_res["data"]:
-            for k, v in d.iteritems():
-                if(k=="GTIN"):
-                    sku_id = check_and_return_mapping_id(v, '', user, check)
-                    if sku_id:
-                        sku_data = SKUMaster.objects.get(id=sku_id)
-                        data["sku_code"]=sku_data.sku_code
-                        data['description']= sku_data.sku_desc
-                    else:                                                                                                                                       
-                        check_sku=False
-                elif(k=="LOT"):
-                    data["batch_no"]=v
-        if check_sku:
-            return HttpResponse(json.dumps(data))
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id: #Checking scanned sku first, if not present then checking based on configuration.
         print("SKUCode Before Change::%s" %sku_code)
@@ -4862,6 +4842,26 @@ def check_sku(request, user=''):
                     'sgst':'', 'igst':''}
         return HttpResponse(json.dumps(data))
 
+    barcode_res=check_barcode_scanner(sku_code, sku_brand, user)
+    if(barcode_res["status"]):
+        data = {"status": 'barcode_confirmed',
+                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
+                    'sgst':'', 'igst':'', "barcode_data": barcode_res["data"]}
+        check_sku=True
+        for d in barcode_res["data"]:
+            for k, v in d.iteritems():
+                if(k=="GTIN"):
+                    sku_id = check_and_return_mapping_id(v, '', user, check)
+                    if sku_id:
+                        sku_data = SKUMaster.objects.get(id=sku_id)
+                        data["sku_code"]=sku_data.sku_code
+                        data['description']= sku_data.sku_desc
+                    else:                                                                                                                                       
+                        check_sku=False
+                elif(k=="LOT"):
+                    data["batch_no"]=v
+        if check_sku:
+            return HttpResponse(json.dumps(data))
     """
     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     if sku_master:

@@ -10,9 +10,10 @@ function newBarcodeConfig($scope, Session, Service, $modal) {
     vm.edit_form = false;
     vm.model_data = {};
     vm.dropdown_entities = [
-      { "name": "GTIN (SKU Number)", "value": "GTIN"},
+      { "name": "GTIN (EAN Number)", "value": "GTIN"},
+      { "name": "SKU", "value": "SKU"},
       { "name": "MFG DATE", "value": "MFG_Date" },
-      { "name": "EXPIRY DATE", "value": "EXPIRY_Date" },
+      { "name": "EXPIRY DATE", "value": "EXPIRY_Date"},
       { "name": "BATCH NUMBER (LOT)", "value": "LOT"}
     ]
     vm.entities_data = [

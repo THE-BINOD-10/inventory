@@ -1,6 +1,6 @@
 'use strict';
 
-function createAccountCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Service, Session) {
+function createAccountCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Service, Session, Analytics) {
 
   $scope.signup = function(data) {
 
@@ -12,6 +12,8 @@ function createAccountCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS,
 
           console.log(data)
           if(data.data == 'Added Successfully') {
+
+            Analytics.trackEvent('go-stockone 30 day trial', 'submit', 'go-stockone Free Trial', $scope.form_data.email);
 
             //$scope.valid_msg = 'Thank You! Please check your email to activate your subscription.';
             $scope.valid = true;
@@ -35,4 +37,4 @@ function createAccountCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS,
 
 angular
   .module('urbanApp')
-  .controller('createAccountCtrl', ['$rootScope' ,'$scope', '$state', '$http', 'Auth', 'AUTH_EVENTS', 'Service', 'Session', createAccountCtrl]);
+  .controller('createAccountCtrl', ['$rootScope' ,'$scope', '$state', '$http', 'Auth', 'AUTH_EVENTS', 'Service', 'Session', 'Analytics', createAccountCtrl]);

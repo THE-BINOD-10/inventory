@@ -757,7 +757,7 @@ def confirm_jo(request, user=''):
         creation_date = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id)[0].creation_date
         creation_date = get_local_date(user, creation_date)
         user_profile = UserProfile.objects.get(user_id=user.id)
-        user_data = {'company_name': user_profile.company_name, 'username': user.first_name,
+        user_data = {'company_name': user_profile.company.company_name, 'username': user.first_name,
                      'location': user_profile.location}
         _vendor_id = ""
         _vendor_name = ""
@@ -1028,7 +1028,7 @@ def insert_rwo_po(rw_order, request, user):
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
                  'location': profile.location, 'w_address': w_address,
-                 'company_name': profile.company_name, 'company_address': company_address,
+                 'company_name': profile.company.company_name, 'company_address': company_address,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
@@ -2333,7 +2333,7 @@ def confirm_jo_group(request, user=''):
         send_job_order_mail(request, user, job_code)
 
         user_profile = UserProfile.objects.get(user_id=user.id)
-        user_data = {'company_name': user_profile.company_name, 'username': user.username,
+        user_data = {'company_name': user_profile.company.company_name, 'username': user.username,
                      'location': user_profile.location}
 
         return render(request, 'templates/toggle/jo_template_group.html',
@@ -2697,7 +2697,7 @@ def get_grn_json_data(order, user, request):
     data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                        'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                        'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
-                       'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
+                       'company_name': profile.company.company_name, 'location': profile.location, 'w_address': profile.address,
                        'vendor_name': vendor_name, 'vendor_address': vendor_address,
                        'vendor_telephone': vendor_telephone,
                        'gstin_no': gstin_no, 'w_address': w_address, 'wh_gstin': profile.gst_number,
@@ -2977,7 +2977,7 @@ def confirm_rwo(request, user=''):
             return HttpResponse(status)
         creation_date = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id)[0].creation_date
         user_profile = UserProfile.objects.get(user_id=user.id)
-        user_data = {'company_name': user_profile.company_name, 'username': user.first_name,
+        user_data = {'company_name': user_profile.company.company_name, 'username': user.first_name,
                      'location': user_profile.location}
         rw_order = RWOrder.objects.filter(job_order__jo_reference=jo_reference, vendor__user=user.id)
 
@@ -3304,7 +3304,7 @@ def send_job_order_mail(request, user, job_code):
         log.info("Job Order Mail Notification for user %s and Job Order id is %s" % (user.username, str(job_code)))
         mail_data = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
-        mail_data['user_data'] = {'company_name': user_profile.company_name, 'username': user.username,
+        mail_data['user_data'] = {'company_name': user_profile.company.company_name, 'username': user.username,
                                   'location': user_profile.location, 'company_address': user_profile.address,
                                   'company_telephone': user_profile.phone_number}
         mail_data['job_code'] = job_code

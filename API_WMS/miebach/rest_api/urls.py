@@ -76,6 +76,9 @@ urlpatterns = [
     url(r'^insert_replenushment/$', insert_replenushment),
     url(r'^get_zone_details/$', get_zone_details),
     url(r'^delete_cluster_sku/$', delete_cluster_sku),
+    url(r'^insert_company_master/$', insert_company_master),
+    url(r'^update_company_master/$', update_company_master),
+    url(r'^get_company_list/$', get_company_list),
 
 
 
@@ -338,6 +341,7 @@ urlpatterns = [
     url(r'^get_customer_payment_tracker/$', get_customer_payment_tracker),
     url(r'^get_invoice_payment_tracker/$', get_invoice_payment_tracker),
     url(r'^get_customer_master_id/$', get_customer_master_id),
+    url(r'^get_company_master_id/$', get_company_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^search_style_data/$', search_style_data),

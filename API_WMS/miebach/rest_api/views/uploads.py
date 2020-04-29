@@ -2672,6 +2672,13 @@ def supplier_sku_upload(request, user=''):
                         supplier_data['markup_percentage'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.markup_percentage = cell_data
+                    elif col_idx == 9:
+                        if not cell_data :
+                            cell_data = 0
+                        cell_data = int(cell_data)
+                        supplier_data['lead_time'] = cell_data
+                        if cell_data and supplier_sku_instance:
+                            supplier_sku_instance.lead_time = cell_data
                 supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
                 if supplier_sku and not supplier_sku_obj:
                     supplier_sku = SKUSupplier(**supplier_data)
@@ -3219,7 +3226,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 wb.save(path)
                 report_file_names.append({'name': file_name, 'path': path})
             profile = UserProfile.objects.get(user=user.id)
-            company_name = profile.company_name
+            company_name = profile.company.company_name
             title = 'Purchase Order'
             receipt_type = request.GET.get('receipt_type', '')
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
@@ -3343,7 +3350,7 @@ def purchase_upload_mail(request, data_to_send, user):
         data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                            'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
-                           'company_name': profile.company_name, 'location': profile.location,
+                           'company_name': profile.company.company_name, 'location': profile.location,
                            'w_address': w_address, 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                            'customization': customization, 'ship_to_address': ship_to_address,
@@ -3480,7 +3487,7 @@ def purchase_order_preview_generation(request, user, data_list):
                         'wh_pan': profile.pan_number,
                         'terms_condition': '',
                         'supplier_pan':supplier.pan_number,
-                        'company_name': profile.company_name,
+                        'company_name': profile.company.company_name,
                         'company_address': company_address
                     })
     templete_data['data'] = data_dict

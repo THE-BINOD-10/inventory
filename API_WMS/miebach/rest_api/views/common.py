@@ -8500,15 +8500,15 @@ def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
         if k == 'remove_after_spaces' and v == 'true':
             sku_code = sku_code.split(' ')[0]
         elif k == 'condition1':
-            vThChar = sku_code[int(v)-1]
-            if sku_code[int(v)-1].isdigit():
-                expression1Char = int(conditions.get('expression1'))
-                sku_code = sku_code[:expression1Char]
+            if len(sku_code) >= int(v):
+                if sku_code[int(v)-1].isdigit():
+                    expression1Char = int(conditions.get('expression1'))
+                    sku_code = sku_code[:expression1Char]
         elif k == 'condition2':
-            vThChar = sku_code[int(v)-1]
-            if sku_code[int(v)-1].isalpha():
-                expression2Char = int(conditions.get('expression2'))
-                sku_code = sku_code[:expression2Char]
+            if len(sku_code) >= int(v):
+                if sku_code[int(v)-1].isalpha():
+                    expression2Char = int(conditions.get('expression2'))
+                    sku_code = sku_code[:expression2Char]
     return sku_code
 
 

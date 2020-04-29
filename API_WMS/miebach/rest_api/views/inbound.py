@@ -2999,6 +2999,7 @@ def get_supplier_data(request, user=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
+                                    "batch_ref": temp_json.get('batch_ref', ''),
                                     'pallet_number': temp_json.get('pallet_number', ''),
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
@@ -3024,7 +3025,7 @@ def get_supplier_data(request, user=''):
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': order_data['price'],
-                                 'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
+                                 'discount_percentage': 0, 'batch_no': '','batch_ref':'','mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
@@ -4187,8 +4188,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
                           'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
                           'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
-                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
-
+                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i],"batch_ref": myDict['batch_ref'][i]}
 
         seller_received_list = []
         if data.open_po or data.stpurchaseorder_set.filter():
@@ -4769,6 +4769,41 @@ def check_returns(request, user=''):
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
 
+def check_barcode_scanner(string, sku_brand, user):
+    if(sku_brand):
+        sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, length=len(string), brand=sku_brand).only('id', 'brand')
+    else:
+        sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, length=len(string)).only('id', 'brand')
+    print("string",string,sku_brand)
+    if sku_template_obj.exists():
+        if(len(sku_template_obj)==1):
+            barcode_fields=[]
+            template_id=int(sku_template_obj[0].id)
+            sku_entities=BarcodeEntities.objects.filter(template=template_id).values('entity_type','start','end','Format','regular_expression')
+            serialized_sku_entities = json.dumps(list(sku_entities), cls=DjangoJSONEncoder)
+            for row in json.loads(serialized_sku_entities):
+                try:
+                    end = row["end"]
+                    if (not end == len(string)):
+                        end = end - 1
+                    if(row["regular_expression"]):
+                        data={row["entity_type"]:re.findall(str(row["regular_expression"]),string)[0]}
+                    elif(row["Format"]):
+                        data={row["entity_type"]:string[row["start"]-1:end],"Format":row["Format"]}
+                    else:
+                        data={row["entity_type"]:string[row["start"]-1:end]}
+                    
+                    barcode_fields.append(ast.literal_eval(json.dumps(data)))
+                except Exception as e:
+                    data={row["entity_type"]:string[row["start"]-1:end]}
+                    barcode_fields.append(ast.literal_eval(json.dumps(data)))
+                    continue
+            return {"status": True, "data":barcode_fields}
+        else:
+            if(len(sku_template_obj)==0):
+                return {"status":False, "data":"Template is not present"}
+            return {"status":False, "data":"More one Templates are present"}
+    return {"status":False, "data":"Template is not present"}
 
 @csrf_exempt
 @get_admin_user
@@ -4778,6 +4813,26 @@ def check_sku(request, user=''):
     sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
+    barcode_res=check_barcode_scanner(sku_code, sku_brand, user)
+    if(barcode_res["status"]):
+        data = {"status": 'barcode_confirmed',
+                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
+                    'sgst':'', 'igst':'', "barcode_data": barcode_res["data"]}
+        check_sku=True
+        for d in barcode_res["data"]:
+            for k, v in d.iteritems():
+                if(k=="GTIN"):
+                    sku_id = check_and_return_mapping_id(v, '', user, check)
+                    if sku_id:
+                        sku_data = SKUMaster.objects.get(id=sku_id)
+                        data["sku_code"]=sku_data.sku_code
+                        data['description']= sku_data.sku_desc
+                    else:                                                                                                                                       
+                        check_sku=False
+                elif(k=="LOT"):
+                    data["batch_no"]=v
+        if check_sku:
+            return HttpResponse(json.dumps(data))
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id: #Checking scanned sku first, if not present then checking based on configuration.
         print("SKUCode Before Change::%s" %sku_code)

@@ -1,0 +1,147 @@
+<div ng-controller="newBarcodeConfig as showCase">
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-6 col-xs-6" align="center">
+            <offscreen class="visible-xs fa fa-bars pull-left" style="font-size: 22px;padding: 8px 12px 0px 5px;">
+            </offscreen>
+            <h4>Barcode Settings</h4>
+        </div>
+    </div>
+    <div class="row" align="center" style="padding-top: 25px;">
+        <div class="col-lg-4 col-md-4" align="right"><strong>Configuration Title * : </strong></div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 mbalign">
+            <input type="text" class="form-control" ng-model="showCase.model_data.configuration_title"
+                placeholder="CONFIGURATION TITLE" style="border-color: #2ecc71" required>
+        </div>
+    </div>
+
+    <div class="row" align="center" style="padding-top: 25px;">
+        <div class="col-lg-4 col-md-4" align="right"><strong>Brand * : </strong></div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 mbalign">
+            <input type="text" class="form-control" ng-model="showCase.model_data.brand"
+                placeholder="BRAND" style="border-color: #2ecc71" required>
+        </div>
+    </div>
+
+    <div class="row" align="center" style="padding-top: 25px;">
+        <div class="col-lg-4 col-md-4" align="right"><strong>String Length * : </strong></div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 mbalign">
+            <input type="text" class="form-control" ng-model="showCase.model_data.string_length"
+                placeholder="STRING LENGTH" style="border-color: #2ecc71" required>
+        </div>
+    </div>
+
+    <div class="row" style="padding-top: 25px;">
+        <div >
+            <table class="table" align="center">
+                <thead>
+                    <tr>
+                        <th>Entity * </th>
+                        <th>Start Position</th>
+                        <th>End Position</th>
+			<th>Regular expression</th>
+                        <th>Format</th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="entitie in showCase.entities_data track by $index">
+                        <td>
+                            <select class="form-control ng-pristine ng-valid valid" ng-model="entitie.entity_type">
+                                <!-- <option value="">--Select Entity--</option> -->
+                            <option ng-repeat="entitie_type in showCase.dropdown_entities" value="{{entitie_type.value}}">{{entitie_type.name}}</option>
+                            </select>
+			</td>
+                        <td>
+                            <input type="text" placeholder="START"ng-readonly="entitie.regular_expression" class="form-control" ng-model="entitie.start" required /></td>
+                        <td>
+                            <input type="text" placeholder="END" ng-readonly="entitie.regular_expression"  class="form-control" ng-model="entitie.end" required /></td>
+			<td>
+                            <input type="text"
+                                ng-readonly="entitie.start || entitie.end"
+                                placeholder="REGULAR EXPRESSION" class="form-control"
+                                ng-model="entitie.regular_expression" /></td>
+                        <td>
+                            <input type="text"  ng-readonly="entitie.entity_type == 'GTIN' || entitie.entity_type == 'LOT'"   placeholder="FORMAT" class="form-control" ng-model="entitie.format"  /></td>
+			<td><a ng-if="showCase.entities_data.length>1" class="btn btn-xs delete-record"  ng-click="showCase.remove_entitie($index)"><i class="glyphicon glyphicon-trash"></i></a></td>
+                        <td><a class="btn btn-xs delete-record"  ng-click="showCase.append_entitie()"><i class="glyphicon glyphicon-plus"></i></a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row" align="right" style="padding-top: 25px;">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 mbalign">
+            <button type="button" class="btn btn-danger btn-outline pull-right mr10"
+                ng-click="showCase.emptyData()">CANCEL</button>
+            <button type="button" class="btn btn-success btn-outline pull-right mr10"
+                ng-click="showCase.updateBarCodeConfiguration()">SAVE</button>
+        </div>
+    </div>
+    <div class="row" align="center" style="cursor: pointer;margin: 50px;">
+        <accordion close-others="oneAtATime">
+            <accordion-group>
+                <accordion-heading>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4"></div>
+                        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" ng-click="showCase.get_saved_barcodes()">
+                            <label><i class="fa fa-list">VIEW CONFIGURATIONS</i></label>
+                        </div>
+                    </div>
+                </accordion-heading>
+                <div class="over-x" ng-if="showCase.model_barcode_config_data.data">
+                    <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12"
+                        ng-repeat="configDetails in showCase.model_barcode_config_data.data"
+                        style="background: #f7f7f7;">
+                        <div class="widget widget-weather bg-format">
+                            <span class="label label-success mb15">{{configDetails.name}}</span>
+                            <div>Brand: {{configDetails.brand}}</div>
+                            <div>length: {{configDetails.length}}</div>
+                            <table class="table" align="center">
+                                <thead>
+                                    <tr>
+                                        <th>Entity </th>
+                                        <th>Start Position </th>
+                                        <th>End Position </th>
+                                        <th>Format</th>
+					<th>Regular expression</th>
+                                    <tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="entity in configDetails.entities">
+                                        <td>
+                                            <div>{{entity.entity_type}}</div>
+                                        </td>
+                                        <td>
+                                            <div>{{entity.start}}</div>
+                                        </td>
+                                        <td>
+                                            <div>{{entity.end}}</div>
+                                        </td>
+                                        <td>
+                                            <div>{{entity.Format}}</div>
+                                        </td>
+					<td>
+						<div>{{entity.regular_expression}}</div>
+					</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="over-x" ng-if="showCase.model_barcode_config_data.data == 'null'">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <div class="widget bg-format mb15">
+                            <div class="widget-icon bg-success pull-left fa fa-map-marker">
+                            </div>
+                            <div class="overflow-hidden">
+                                <span>Oh Snap! Please create New Configurations ..</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </accordion-group>
+        </accordion>
+    </div>
+</div>

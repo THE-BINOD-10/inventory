@@ -2693,6 +2693,11 @@ var app = angular.module('urbanApp')
                 })
                 .then(function(){
                   return $ocLazyLoad.load([
+                      'scripts/controllers/configs/new_barcode_configurations.js'
+                   ])
+                 })
+                .then(function(){
+                  return $ocLazyLoad.load([
                       'scripts/controllers/configs/barcode_configurations.js'
                     ])
                   });

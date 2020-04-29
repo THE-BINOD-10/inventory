@@ -697,6 +697,8 @@ urlpatterns += [
     url(r'^get_decimal_data/$', get_decimal_data),
     url(r'^update_barcode_configuration/$', update_barcode_configuration),
     url(r'^get_barcode_configurations/$', get_barcode_configurations),
+    url(r'^update_new_barcode_configuration/$', update_new_barcode_configuration),
+    url(r'^get_new_barcode_configurations/$', get_new_barcode_configurations),
 
 
     # Retailone

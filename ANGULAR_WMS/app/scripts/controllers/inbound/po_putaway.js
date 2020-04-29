@@ -236,6 +236,51 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     }) 
   }
 
+  vm.check_serial_number = function (event, field) {
+    var field = field;
+    vm.service.scan(event, field).then(function (data) {
+      if (data) {
+        if (vm.model_data.scan_location) {
+          if (vm.check_serial_number_match(field)) {
+            field = vm.serial_nuber_wms_code.wms_code;
+            let serial_number = vm.serial_nuber_wms_code.serial_num;
+            if (vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+              alert("Reservered quantity equal to picked quantity")
+            } else {
+              if (vm.serial_number_check_comb()) {
+                vm.incr_qty();
+                // $("textarea[attr-name='location']").focus();
+              }
+              else {
+                vm.service.apiCall("get_location_capacity/", "GET", { location: vm.model_data.scan_location, wms_code: field })
+                  .then(function (data) {
+                    if (data.data.message == "Invalid Location") {
+                      alert("Invalid Location");
+                    } else if (data.data.capacity == 0) {
+                      alert("Zero Capacity");
+                    } else {
+                      var required = vm.model_data.sku_total_quantities[field] - vm.remain_quantity[field];
+                      var temp_reserve = (data.data.capacity < required) ? data.data.capacity : required;
+                      vm.model_data.data.push({ image: "", order_id: "", original_quantity: temp_reserve, wms_code: field, sub_data: [{ loc: vm.model_data.scan_location, quantity: 1, new: true }] })
+                      vm.count_sku_quantity();
+                    }
+                  })
+              }
+            }
+          }
+          else {
+            alert("Invalid Serial Number");
+          }
+          vm.model_data.scan_serial_number = "";
+        } else {
+          alert("Please Enter location first");
+          vm.model_data.scan_serial_number = "";
+          $("textarea[attr-name='location']").focus();
+        }
+      }
+    });
+  }
+  
   vm.current_data = [];
   vm.check_sku = function(event, field) {
 
@@ -278,25 +323,64 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     });
   }
 
-  vm.incr_qty = function() {
-    var sku = vm.model_data.scan_sku;
+  vm.incr_qty = function () {
+    let sku=''
+    let serial_number='';
+    if (vm.model_data.scan_sku) {
+      sku = vm.model_data.scan_sku;
+    }
+    else if (vm.model_data.scan_serial_number) {
+      serial_number= vm.model_data.scan_serial_number;
+    }
+
     var location = vm.model_data.scan_location;
     var status = false;
-    for(var i=0; i < vm.model_data.data.length; i++) {
-
-      if(vm.model_data.data[i].wms_code == sku) {
-        if(vm.increase(vm.model_data.data[i])) {
-          status = false;
-          break;
-        } else {
-          status = true;
+    for (var i = 0; i < vm.model_data.data.length; i++) {
+      if (vm.model_data.scan_sku) {
+        if (vm.model_data.data[i].wms_code == sku) {
+          // $("input[attr-name='imei_" + vm.field + "']").trigger('focus');
+          if (vm.increase(vm.model_data.data[i])) 
+          {
+            var temp_dict = [];
+            if (i != 0) {
+              angular.copy(vm.model_data.data[0], temp_dict);
+              vm.model_data.data[0] = vm.model_data.data[i];
+              vm.model_data.data[i] = temp_dict;
+            }
+            status = false;
+            break;
+          }
+          else {
+            status = true;
+          }
+        }
+      }
+      else if(vm.model_data.scan_serial_number){
+        if (vm.model_data.data[i].batch_ref == serial_number) 
+        {
+          // $("input[attr-name='imei_" + vm.field + "']").trigger('focus');
+          if (vm.increase(vm.model_data.data[i])) {
+            var temp_dict = {};
+            if (i != 0) {
+              angular.copy(vm.model_data.data[0], temp_dict);
+              angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
+              angular.copy(temp_dict, vm.model_data.data[i]);
+              // vm.model_data.data[0] = vm.model_data.data[i];
+              // vm.model_data.data[i] = temp_dict;
+            }
+            status = false;
+            break;
+          } else {
+            status = true;
+          }
         }
       }
     }
-    if(status) {
+    if (status) {
       alert("Reserved quantity equal to picked quantity");
     }
   }
+  
 
   vm.increase = function(data) {
 
@@ -318,6 +402,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       })
     }
     return status;
+  }
+
+  vm.check_serial_number_match = function (field) {
+
+    var exist = false;
+    angular.forEach(vm.model_data.data, function (record) {
+      if (record.batch_ref) {
+        if (record.batch_ref == field) {
+          vm["serial_nuber_wms_code"] = { "serial_num": record.batch_ref, "wms_code": record.wms_code }
+          exist = true;
+          return exist;
+        }
+      }
+    });
+    return exist;
+  }
+
+  vm.serial_number_check_comb = function () {
+    var exist = false;
+    angular.forEach(vm.model_data.data, function (record) {
+      if (record.batch_ref == vm.model_data.scan_serial_number) {
+        angular.forEach(record.sub_data, function (record1) {
+          if (record1.loc == vm.model_data.scan_location) {
+            exist = true;
+            return exist;
+          }
+        });
+      }
+    });
+    return exist;
   }
 
   vm.check_sku_match = function(field){

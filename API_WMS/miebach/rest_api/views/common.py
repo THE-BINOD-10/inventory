@@ -8467,6 +8467,55 @@ def get_barcode_configurations(request, user=''):
     else:
         return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_new_barcode_configuration(request, user=''):
+    "BarCode Configurations will be stored"
+    try:
+        entities_data= json.loads(request.POST.get("data",''))
+        string_length=request.POST.get('string_length', '')
+        configuration_name=request.POST.get('configuration_title', '')
+        brand_name=request.POST.get('brand', '')
+        barcodetemplate_Obj = BarcodeTemplate.objects.create(name=configuration_name, user=user.id, brand=brand_name,length=string_length)
+        if(entities_data):
+            for entity in entities_data:
+                entity_type= entity['entity_type']
+                start=entity['start']
+                end=entity['end']
+                entity_format= entity['format']
+                regular_expression= entity['regular_expression']
+                BarcodeEntities.objects.create(template = barcodetemplate_Obj, entity_type=entity_type, start=start, end=end, Format=entity_format,regular_expression=regular_expression)
+            return HttpResponse('Success')
+        else:
+            return HttpResponse('Failed')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('updation of Barcode Configurations failed %s and error statement is %s ' % (str(user.username),str(e)))
+
+@login_required
+@get_admin_user
+def get_new_barcode_configurations(request, user=''):
+    barcode_configs = []
+    barcodeTemplate = BarcodeTemplate.objects.filter(user=user.id)
+    if barcodeTemplate.exists():
+        for template in barcodeTemplate:
+            barcodeEntities=BarcodeEntities.objects.filter(template=template.id).values('entity_type','start','end','Format','regular_expression')
+            serialized_barcode_entities = json.dumps(list(barcodeEntities), cls=DjangoJSONEncoder)
+            entities=[]
+            for entity in json.loads(serialized_barcode_entities):
+                entities.append(entity)
+            barcode_configs.append({
+                "id":template.id,
+                "length":template.length,
+                "brand":template.brand,
+                "name":template.name,
+                "entities":entities,
+            })
+        return HttpResponse(json.dumps({'msg':1, 'data': barcode_configs}))
+    else:
+        return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
 
 def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
     configName = ''
@@ -9209,7 +9258,8 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight','batch_ref')[0]
+        # batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:

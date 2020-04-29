@@ -9,6 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.statesList = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu Kashmir', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Orissa', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Tripura', 'Uttar Pradesh', 'West Bengal', 'Chhattisgarh', 'Uttarakhand', 'Jharkhand', 'Telangana'];
     vm.warehouse_type = Session.user_profile.warehouse_type;
+    vm.warehouse_level = Session.user_profile.warehouse_level;
+    vm.company_id = Session.user_profile.company_id;
     vm.filters = {'datatable': 'WarehouseMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -46,7 +48,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     var empty_data = {"username":"","first_name":"", "last_name":"", "phone_number":"", "email":"",
-                      "country":"", "state":"", "city":"", "address":"", "pin_code":""}
+                      "country":"", "state":"", "city":"", "address":"", "pin_code":"", "company_id": "",
+                      "warehouse_level": vm.warehouse_level + 1}
 
     function reloadData () {
         vm.dtInstance.reloadData();
@@ -101,6 +104,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.message = "";
       vm.model_data = {};
       angular.extend(vm.model_data, empty_data);
+      if(vm.warehouse_level != 0){
+        vm.model_data.company_id = vm.company_id;
+      }
       vm.update = false;
       $state.go('app.masters.WarehouseMaster.Warehouse');
     }
@@ -163,4 +169,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.customer_name = true;
     }
   }
+
+  vm.company_list = [];
+  function get_company_list() {
+    vm.service.apiCall("get_company_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.company_list = data.data.company_list;
+      }
+    });
+  }
+  get_company_list()
+
+
 }

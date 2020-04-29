@@ -259,7 +259,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'request_user_type': request_user_profile.user_type,
                                              'warehouse_type': user_profile.warehouse_type,
                                              'warehouse_level': user_profile.warehouse_level,
-                                             'multi_level_system': user_profile.multi_level_system}
+                                             'multi_level_system': user_profile.multi_level_system,
+                                             'company_id': user_profile.company_id}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -319,11 +320,13 @@ def add_user_type_permissions(user_profile):
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
+                     'companymaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
+                     'companymaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -8287,7 +8290,7 @@ def get_user_profile_data(request, user=''):
     data['address'] = main_user.address
     data['gst_number'] = main_user.gst_number
     data['main_user'] = request.user.is_staff
-    data['company_name'] = main_user.company_name
+    data['company_name'] = main_user.company.company_name
     data['cin_number'] = request.user.userprofile.cin_number
     data['wh_address'] = main_user.wh_address
     data['wh_phone_number'] = main_user.wh_phone_number
@@ -8383,7 +8386,7 @@ def update_profile_data(request, user=''):
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
-    main_user.company_name = company_name
+    #main_user.company_name = company_name
     main_user.cin_number = cin_number
     main_user.wh_address = wh_address
     main_user.wh_phone_number = wh_phone_number
@@ -11209,3 +11212,19 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
+
+
+def get_companies_list(user):
+    company_list = list(CompanyMaster.objects.filter(parent_id=user.userprofile.company_id).\
+                            values('id', 'company_name'))
+    return company_list
+
+
+def get_company_id(user, level=''):
+    company = user.userprofile.company
+    while(1):
+        if not company.parent:
+            break
+        else:
+            company = company.parent
+    return company.id

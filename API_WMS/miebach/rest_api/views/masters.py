@@ -693,10 +693,10 @@ def get_customer_sku_mapping(start_index, stop_index, temp_data, search_term, or
 
 def get_company_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # search_params = get_filtered_params(filters, CUSTOMER_SKU_MAPPING_HEADERS.values())
-    if order_term == 'desc':
-        order_data = '-%s' % order_data
-    if order_term:
-        master_data = CompanyMaster.objects.filter()
+    # if order_term == 'desc':
+    #     order_data = '-%s' % order_data
+    # if order_term:
+    master_data = CompanyMaster.objects.filter(parent_id=user.userprofile.company_id)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -917,7 +917,8 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis = ['username', 'first_name', 'email', 'id']
-    warehouse_admin = get_warehouse_admin(user)
+    #warehouse_admin = get_warehouse_admin(user)
+    warehouse_admin = user
     exclude_admin = {}
     if warehouse_admin.id == user.id:
         exclude_admin = {'admin_user_id': user.id}
@@ -1924,6 +1925,8 @@ def insert_company_master(request, user=''):
                 data_dict[key] = value
 
             # data_dict['parent'] = user.id
+            if user.userprofile.company:
+                data_dict['parent_id'] = user.userprofile.company_id
             company_master = CompanyMaster(**data_dict)
             company_master.save()
             image_file = request.FILES.get('files-0', '')
@@ -2284,8 +2287,14 @@ def add_warehouse_user(request, user=''):
         admin_group = AdminGroups(**admin_dict)
         admin_group.save()
         new_user.groups.add(group)
-        warehouse_admin = get_warehouse_admin(user)
-        UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id)
+        warehouse_admin = user
+        #warehouse_admin = get_warehouse_admin(user)
+        company = user.userprofile.company
+        if company.parent:
+            company_id = company.parent_id
+        else:
+            company_id = company.id
+        UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id, company_id=company_id)
         if customer_name:
             WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
         status = 'Added Successfully'
@@ -4674,3 +4683,10 @@ def insert_supplier_attribute(request, user=''):
     else:
         data = 'Error Case'
     return HttpResponse(data)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_company_list(request, user=''):
+    data = get_companies_list(user)
+    return HttpResponse(json.dumps({'company_list': data}))

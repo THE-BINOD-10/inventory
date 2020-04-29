@@ -78,6 +78,7 @@ urlpatterns = [
     url(r'^delete_cluster_sku/$', delete_cluster_sku),
     url(r'^insert_company_master/$', insert_company_master),
     url(r'^update_company_master/$', update_company_master),
+    url(r'^get_company_list/$', get_company_list),
 
 
 

@@ -3585,8 +3585,12 @@ def st_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
+    if enable_damaged_stock == 'true':
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
+                                                                                location__zone__zone__in=[
+                                                                                    'DAMAGED_ZONE'])
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
                                     exclude(location__zone__zone__in=picklist_exclude_zones)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),

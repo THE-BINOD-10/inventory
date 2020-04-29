@@ -2291,12 +2291,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     if wmscode:
         sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
         if not sku:
-            return 'Invalid WMS Code'
+            return 'Invalid WMS Code' ,[]
         sku_id = sku[0].id
     if loc:
         location = LocationMaster.objects.filter(zone__user=user.id, location=loc)
         if not location:
-            return 'Invalid Location'
+            return 'Invalid Location' ,[]
     if quantity == '':
         return 'Quantity should not be empty'
     quantity = float(quantity)

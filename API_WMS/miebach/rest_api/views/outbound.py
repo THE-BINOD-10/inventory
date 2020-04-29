@@ -4389,6 +4389,20 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
                 other_charge_amounts += float(myDict['charge_amount'][i])
     return other_charge_amounts
 
+def send_mail_dispatch(order_shipment,invoice_number,original_order_id ,user):
+    email = ''
+    admin_user = get_admin(user)
+    company_name = UserProfile.objects.filter(user=user.id)[0].company_name
+    data_dict = {'order_id':original_order_id, 'invoice_number':invoice_number,'shipment_id':order_shipment.id,
+                 'company_name':company_name, 'user':user, 'admin_user':admin_user.username.lower()}
+    order_obj = OrderDetail.objects.filter(original_order_id=original_order_id,user=user.id)
+    if order_obj:
+        email = order_obj[0].email_id
+        data_dict['customer_name'] = order_obj[0].customer_name
+    t = loader.get_template('templates/dispatched.html')
+    rendered = t.render(data_dict)
+    if email:
+        send_mail([email], 'Order Dispatched: %s of Invoice Number %s' % (original_order_id,invoice_number), rendered)
 
 def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user, gen_order_id=None):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')
@@ -5913,6 +5927,7 @@ def insert_shipment_info(request, user=''):
     myDict = dict(request.POST.iterlists())
     log.info('Request params are ' + str(request.POST.dict()))
     user_profile = UserProfile.objects.filter(user_id=user.id)
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
     created_order_objs = []
     try:
         order_shipment = create_shipment(request, user)
@@ -5968,6 +5983,7 @@ def insert_shipment_info(request, user=''):
                                                         order__user=user.id)
                 order_quantity = int(order_detail.original_quantity)
                 customers_name = order_detail.customer_name
+                original_order_id = order_detail.original_order_id
                 if order_quantity == 0:
                     continue
                 elif order_quantity < received_quantity:
@@ -6023,6 +6039,8 @@ def insert_shipment_info(request, user=''):
             log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
             # Until Here
+        if misc_detail:
+            send_mail_dispatch(order_shipment,invoice_number,original_order_id ,user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -25,7 +25,7 @@
                   <td ng-if="pop.permissions.dispatch_qc_check">
                     <input type="hidden" name="extra_data" value="{{data.extra}}">
                     <input type="hidden" name="discount" class="form-control" value="{{data.discount}}">
-                    <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="pop.get_sku_data(data, $item, $index)" ng-keyup="pop.key_event($event, data, $item, $index)">
+                    <input type="text" autocomplete="off" name="sku_id" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="pop.get_sku_data(data, $item, $index)" ng-keyup="pop.key_event($event, data, $item, $index)">
                   </td>
                   <td><input type="text" ng-model="product.remarks" name="remarks" class="form-control"></td>
                 </tr>

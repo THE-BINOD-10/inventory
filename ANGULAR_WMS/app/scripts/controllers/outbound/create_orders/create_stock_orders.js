@@ -8,8 +8,12 @@ function CreateStockOrders($scope, $http, $q, $state, Session, colFilters, Servi
   vm.current_user = {[$scope.user.userName]: $scope.user.user_profile.state};
   vm.tax_cg_sg = false;
   vm.igst_enable = false;
-  vm.model_data = {}
-  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: ""};
+  vm.dest_sellers_list = [];
+  vm.model_data = {};
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type = Session.user_profile.user_type;
+  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: "",
+                            source_seller_id:"", dest_seller_id: ""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -56,6 +60,7 @@ vm.changeUnitPrice = function(data){
   else{
     data.total_price += cgst_percentage + sgst_percentage;
   }
+  data.total_price = (data.total_price).toFixed(3).slice(0,-1);
 }
   vm.warehouse_list = [];
   vm.service.apiCall('get_warehouses_list/').then(function(data){
@@ -64,6 +69,17 @@ vm.changeUnitPrice = function(data){
       vm.warehouse_list_states = data.data.states;
     }
   })
+
+  vm.sellers_list = [];
+  vm.service.apiCall('get_sellers_list/').then(function(data){
+    if(data.message) {
+      vm.sellers_list = data.data.sellers;
+      if(vm.sellers_list) {
+        vm.model_data.source_seller_id = vm.sellers_list[0].id;
+      }
+    }
+  });
+
   vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
@@ -108,6 +124,7 @@ vm.changeUnitPrice = function(data){
     vm.get_customer_sku_prices(item.wms_code).then(function(data){
       if(data.length > 0) {
         data = data[0]
+        record.mrp = data.mrp;
         // record["price"] = data.mrp;
           if(!(record.order_quantity)) {
             record.order_quantity = 1
@@ -115,15 +132,23 @@ vm.changeUnitPrice = function(data){
           if(!(record.price)) {
             record.price = data.mrp;
           }
-          if(data.igst_tax && vm.igst_enable){
+          if(vm.igst_enable){
+            if(data.igst_tax){
             record.igst = data.igst_tax;
+            }else{
+            record.igst = data.sgst_tax+data.cgst_tax;
+            }
+          }else {
+           if(data.igst_tax){
+            record.sgst_tax = data.igst_tax / 2;
+            record.cgst_tax = data.igst_tax / 2 ;
+            }else{
+            record.sgst_tax = data.sgst_tax;
+            record.cgst_tax = data.cgst_tax;
+            }
+
           }
-          if(data.sgst_tax && vm.tax_cg_sg){
-            record.sgst = data.sgst_tax;
-          }
-          if(data.cgst_tax && vm.tax_cg_sg){
-            record.cgst = data.cgst_tax;
-          }
+
 
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         vm.update_availabe_stock(record)
@@ -141,6 +166,20 @@ vm.changeUnitPrice = function(data){
       vm.igst_enable = true;
     }
   }
+
+  vm.changeDestSeller = function() {
+    vm.dest_sellers_list = [];
+    var temp_data = {warehouse: vm.model_data.selected}
+    vm.service.apiCall("get_sellers_list/", "GET", temp_data).then(function(data){
+      if(data.message) {
+        vm.dest_sellers_list = data.data.sellers;
+        if(vm.sellers_list) {
+          vm.model_data.dest_seller_id = vm.sellers_list[0].id;
+        }
+      }
+    });
+  }
+
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();

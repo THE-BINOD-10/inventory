@@ -23,6 +23,9 @@
                     {% endif %}
                     <th><center>Unit</br>Rate</center></th>
                     <th><center>Qty</center></th>
+                    {% if sku_packs_invoice %}
+                    <th><center>SKU</br>Packs</center></th>
+                    {% endif %}
                     {% if show_disc_invoice == 'true' %}
                     <th><center>Disc</center></th>
                     {% endif %}
@@ -54,6 +57,7 @@
                           {% endfor %}
                           <!-- {% endif %} -->
                        {% endif %}
+                      </div>
                       </td>
                     <td class="text-left">{{record.hsn_code}}</td>
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
@@ -63,7 +67,9 @@
                     <td class="text-right">{{record.unit_price}}</td>
 
                     <td class="text-right">{{record.quantity}} {{record.measurement_type}}</td>
-
+                    {% if sku_packs_invoice %}
+                    <td class="text-right">{{record.sku_packs}}</td>
+                    {% endif %}
                     {% if show_disc_invoice == 'true' %}
                     <td class="text-right">{{record.discount}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
                     {% endif %}
@@ -121,6 +127,9 @@
                     {% if show_mrp == 'true' or show_sno == 'true' %}
                       <td></td>
                     {% endif %}
+                    {% if sku_packs_invoice %}
+                      <td></td>
+                    {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
                     <td><b>Taxable</br>Value</b></td>
                     <td><b>CGST</b></td>
@@ -136,6 +145,9 @@
                     <td></td>
                     <td></td>
                     {% if show_mrp == 'true' or show_sno == 'true' %}
+                      <td></td>
+                    {% endif %}
+                    {% if sku_packs_invoice %}
                       <td></td>
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
@@ -158,13 +170,14 @@
                     {% else %}
                       <td colspan="3" style="text-align:left"><b>Total: </b></td>
                     {% endif %}
-
                     <td></td>
                     <td>{{total_quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
                     <td class="text-right">{{record.discount}}</td>
                     {% endif %}
-                    <!--<td></td>-->
+                    {% if sku_packs_invoice %}
+                    <td class="text-right">{{total_sku_packs}}</td>
+                    {% endif %}
                     <td>{{total_taxable_amt}}</td>
                     <td>{{total_taxes.cgst_amt}}</td>
                     <td>{{total_taxes.sgst_amt}}</td>
@@ -271,7 +284,11 @@
                       {% endif %}
                     </td>
                     <td colspan='{{html_data.hsn_summary_span}}'>
+                      {% if sale_signature %}
+                      <img src="{{sale_signature}}" style="width: 120px;">
+                      {% else %}
                       <p align="center"><b class="fs16 m0">{{company_name}}</b></p>
+                      {% endif %}
                       </br></br>
                       <p align="center" class="fs14 m0">Authorised Signatory</p>
                     </td>

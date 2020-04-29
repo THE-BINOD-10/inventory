@@ -5742,18 +5742,29 @@ def get_sku_stock_check(request, user=''):
         poOrderedQty = poQs[0]['total_order']
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
+    openpr_qty = 0
+    openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=user.id, 
+                            purchase_type='PR',
+                            sku__sku_code=sku_code, 
+                            pending_pr__final_status__in=['pending', 'approved']). \
+                        aggregate(openpr_qty=Sum('quantity'))
+    
+    openpr_qty = openPRQtyQs['openpr_qty']
+
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
-                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                'openpr_qty': openpr_qty}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                                    'openpr_qty': openpr_qty}))
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):

@@ -272,6 +272,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -763,10 +764,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
+        sku_data["openpr_qty"] = 0;
         if(data.message) {
           // if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
+            sku_data["openpr_qty"] = data.data.openpr_qty;
           // }
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;

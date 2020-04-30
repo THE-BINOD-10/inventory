@@ -10943,7 +10943,6 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     new_list = []
     summary_params = {}
     new_data = {}
-    import pdb;pdb.set_trace()
     if order_term == 'desc':
         order_by_term = '-'+lis[col_num]
         summary_term = '-'+st_list[col_num]

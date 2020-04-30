@@ -4630,11 +4630,15 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
+        if noOfTestsQs.exists():
+            noOfTests = noOfTestsQs.values('attribute_value')[0]
+        else:
+            noOfTests = 0
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp})
+                           'mrp': master_data.mrp, 'noOfTests': noOfTests})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4822,6 +4826,15 @@ def build_search_data(to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
+            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
+            if noOfTestsQs.exists():
+                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
+                try:
+                    noOfTests = int(noOfTests)
+                except:
+                    noOfTests = 0
+            else:
+                noOfTests = 0
             if (len(to_data) >= limit):
                 break
             else:
@@ -4834,7 +4847,7 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name})
+                                    'style_name': data.style_name, 'noOfTests': noOfTests})
         return to_data
 
 

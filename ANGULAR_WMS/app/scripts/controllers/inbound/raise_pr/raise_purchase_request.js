@@ -341,6 +341,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.populate_last_transaction('');
     }
 
+    vm.getNoOfTests = function(order_quantity, data) {
+      var ordQty = parseInt(order_quantity)
+      if (ordQty > 0){
+        data.no_of_tests = ordQty * data.sku.no_of_tests;
+      }
+    }
+
     vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
@@ -802,10 +809,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+      product.fields.sku.no_of_tests = item.noOfTests;
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
+      product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;

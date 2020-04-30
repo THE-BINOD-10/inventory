@@ -4391,10 +4391,16 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
 
 def send_mail_dispatch(order_shipment,invoice_number,original_order_id ,user):
     email = ''
+    diff = 1
     admin_user = get_admin(user)
+    today = datetime.date.today()
+    if order_shipment.shipment_date:
+        diff = order_shipment.shipment_date - today
+        diff = diff.days
     company_name = UserProfile.objects.filter(user=user.id)[0].company_name
     data_dict = {'order_id':original_order_id, 'invoice_number':invoice_number,'shipment_id':order_shipment.id,
-                 'company_name':company_name, 'user':user, 'admin_user':admin_user.username.lower()}
+                 'company_name':company_name, 'user':user, 'admin_user':admin_user.username.lower(), 'eta':diff,
+                 'shipment_reference':order_shipment.shipment_reference}
     order_obj = OrderDetail.objects.filter(original_order_id=original_order_id,user=user.id)
     if order_obj:
         email = order_obj[0].email_id
@@ -4402,7 +4408,7 @@ def send_mail_dispatch(order_shipment,invoice_number,original_order_id ,user):
     t = loader.get_template('templates/dispatched.html')
     rendered = t.render(data_dict)
     if email:
-        send_mail([email], 'Order Dispatched: %s of Invoice Number %s' % (original_order_id,invoice_number), rendered)
+        send_mail([email], 'Order Dispatched: %s' % (original_order_id), rendered)
 
 def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user, gen_order_id=None):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')

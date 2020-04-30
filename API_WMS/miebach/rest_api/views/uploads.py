@@ -2240,11 +2240,11 @@ def validate_supplier_form(open_sheet, user_id):
                     return 'Invalid File'
                 break
 
-            if key == 'id':
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data:
-                    supplier_master = SupplierMaster.objects.filter(id=cell_data)
+                    supplier_master = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
                     if supplier_master and not str(supplier_master[0].user) == str(user_id):
                         index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
@@ -2304,11 +2304,11 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
         supplier_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
-            if key == 'id':
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
-                supplier_data['id'] = cell_data
-                supplier_obj = SupplierMaster.objects.filter(id=cell_data)
+                supplier_data['supplier_id'] = cell_data
+                supplier_obj = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
                 if supplier_obj:
                     supplier_master = supplier_obj[0]
                 if demo_data:
@@ -2350,19 +2350,22 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                     if supplier_master and cell_data:
                         setattr(supplier_master, key, cell_data)
         if not supplier_master:
-            supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
+            supplier = SupplierMaster.objects.filter(supplier_id=supplier_data['supplier_id'], user=user.id)
             if not supplier:
                 supplier_data['creation_date'] = datetime.datetime.now()
-                supplier_data['user'] = user.id
-                supplier = SupplierMaster(**supplier_data)
-                supplier.save()
+                #supplier_data['user'] = user.id
+                supplier_id = supplier_data['supplier_id']
+                del supplier_data['supplier_id']
+                supplier_master = create_new_supplier(user, supplier_id, supplier_data)
+                # supplier = SupplierMaster(**supplier_data)
+                # supplier.save()
         else:
             supplier_master.save()
         if secondary_email_ids:
             master_data_dict = {}
             master_data_dict['user_id'] = user.id
             master_data_dict['master_type'] = 'supplier'
-            master_data_dict['master_id'] = supplier_data['id']
+            master_data_dict['master_id'] = supplier_master.id
             master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
             if master_email_map:
                 master_email_map.delete()
@@ -2370,7 +2373,7 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 master_data_dict = {}
                 master_data_dict['user_id'] = user.id
                 master_data_dict['email_id'] = mail
-                master_data_dict['master_id'] = supplier_data['id']
+                master_data_dict['master_id'] = supplier_master.id
                 master_data_dict['master_type'] = 'supplier'
                 MasterEmailMapping.objects.create(**master_data_dict)
     return 'success'

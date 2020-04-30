@@ -105,7 +105,7 @@ VENDOR_DATA = {'vendor_id': '', 'name': '', 'address': '', 'phone_number': '', '
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
-SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
+SUPPLIER_DATA = {'supplier_id': '', 'name': '', 'address': '', 'phone_number': '', 'email_id': '',
                  'status': 1, 'tax_type': '', 'po_exp_duration': 0,
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
                  'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
@@ -1335,7 +1335,7 @@ SKU_WH_MAPPING = OrderedDict(
      ('MOQ', 'moq'), ('Price', 'price')])
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
-    [('Supplier ID', 'id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
+    [('Supplier ID', 'supplier_id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
      ('Email', 'email_id'), ('Status', 'status')])
 
 STOCK_DET = ([('0', 'receipt_number'), ('1', 'receipt_date'), ('2', 'sku_id__sku_code'), ('3', 'sku_id__wms_code'),
@@ -2285,7 +2285,7 @@ DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quant
 # End of Supplier Invoices page headers based on user type
 
 
-SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
+SUPPLIER_EXCEL_FIELDS = OrderedDict((('supplier_id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
                                      ('credibility', 13), ('tax_type', 14), ('po_exp_duration', 15),

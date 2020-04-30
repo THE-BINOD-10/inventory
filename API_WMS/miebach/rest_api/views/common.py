@@ -8779,26 +8779,21 @@ def get_supplier_info(request):
         return True, supplier_data, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
-def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, supp_tin):
+def create_new_supplier(user, supp_id, supplier_dict=None):#supp_name, supp_email, supp_phone, supp_address, supp_tin):
     ''' Create New Supplier with dynamic supplier id'''
     max_sup_id = SupplierMaster.objects.count()
     run_iterator = 1
-    supplier_id = ''
+    supplier_master = None
     while run_iterator:
         supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
         if not supplier_obj:
             supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                            name=supp_name,
-                                                                            email_id=supp_email,
-                                                                            phone_number=supp_phone,
-                                                                            address=supp_address,
-                                                                            tin_number=supp_tin,
-                                                                            status=1)
+                                                                            supplier_id=supp_id, **supplier_dict)
             run_iterator = 0
-            supplier_id = supplier_master.id
+            #supplier_id = supplier_master.id
         else:
             max_sup_id += 1
-    return supplier_id
+    return supplier_master
 
 
 def create_order_pos(user, order_objs, admin_user=None):

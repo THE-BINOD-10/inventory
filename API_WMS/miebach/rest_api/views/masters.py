@@ -317,7 +317,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -1240,8 +1240,8 @@ def update_supplier_values(request, user=''):
     """ Update Supplier Data """
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
-        data_id = request.POST['id']
-        data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
+        data_id = request.POST['supplier_id']
+        data = get_or_none(SupplierMaster, {'supplier_id': data_id, 'user': user.id})
         old_name = data.name
         upload_master_file(request, user, data.id, "SupplierMaster")
         create_login = request.POST.get('create_login', '')
@@ -1318,11 +1318,11 @@ def insert_supplier(request, user=''):
     """ Add New Supplier"""
     log.info('Add New Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
-        supplier_id = request.POST['id']
+        supplier_id = request.POST['supplier_id']
         secondary_email_id = ''
         if not supplier_id:
             return HttpResponse('Missing Required Fields')
-        data = filter_or_none(SupplierMaster, {'id': supplier_id})
+        data = filter_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user': user.id})
         status_msg = 'Supplier Exists'
         sku_status = 0
         rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
@@ -1333,8 +1333,8 @@ def insert_supplier(request, user=''):
         #     return HttpResponse('Phone Number already exists')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
         for mail in secondary_email_id:
-            if validate_supplier_email(mail):
-		return HttpResponse('Enter Correct Secondary Email ID')
+            if mail and validate_supplier_email(mail):
+                return HttpResponse('Enter Correct Secondary Email ID')
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
@@ -1359,8 +1359,11 @@ def insert_supplier(request, user=''):
                 if key in ['login_created', 'create_login', 'password', 'username', 'secondary_email_id']:
                     continue
                 data_dict[key] = value
-            data_dict['user'] = user.id
-            supplier_master = SupplierMaster(**data_dict)
+            #data_dict['user'] = user.id
+            supplier_id = data_dict['supplier_id']
+            del data_dict['supplier_id']
+            supplier_master = create_new_supplier(user, supplier_id, data_dict)
+            #supplier_master = SupplierMaster(**data_dict)
             upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'

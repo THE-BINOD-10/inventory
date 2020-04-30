@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Total Quantity", 
+    var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
                     "PR Created Date", "PR Delivery Date", "Warehouse",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
@@ -161,6 +161,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
+                  "product_category": data.data.product_category,
+                  "priority_type": data.data.priority_type,
                   // "supplier_name": data.data.supplier_name,
                   "warehouse": data.data.warehouse,
                   "data": data.data.data,
@@ -273,6 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
       vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {

@@ -92,7 +92,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': ''}
+            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -327,7 +327,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'SKU Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'SKU Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage','Lead Time']
 
 SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
@@ -1281,7 +1281,7 @@ SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
-               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Status']
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based','Status']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1327,8 +1327,9 @@ PRINT_PICKLIST_HEADERS = (
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
 SKU_SUPPLIER_MAPPING = OrderedDict(
-    [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
-     ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage'), ('MRP', 'mrp')])
+    [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),('Costing Type', 'costing_type'),
+     ('Price', 'price'), ('Margin Percentage', 'margin_percentage'),('Markup Percentage', 'markup_percentage'),
+      ('MRP', 'mrp'),('Priority', 'preference'),  ('MOQ', 'moq'),('Lead Time', 'lead_time')])
 
 SKU_WH_MAPPING = OrderedDict(
     [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),
@@ -1461,6 +1462,10 @@ CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 
                  'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '',
                  'shipping_address': ''}
 
+COMPANY_DATA = {'id':0, 'address': '', 'phone_number': '', 'email_id': '', 'company_name':'',
+                'city':'', 'state':'', 'country':'', 'pincode':'', 'gstin_number':'', 'cin_number':'',
+                'pan_number':''}
+
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
 
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'],
@@ -1519,7 +1524,8 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '',
+                      'company_id': 0}
 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
@@ -1615,7 +1621,8 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
-                                  ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options')
+                                  ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options'),
+                                  ('Batch Based', 'batch_based')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -1626,7 +1633,8 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 20),
                              ('sale_through', 21), ('color', 22), ('ean_number', 23), ('load_unit_handle', 24),
                              ('hsn_code', 25),
-                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30), ('status', 31)
+                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30), 
+                             ('batch_based', 31),('status', 32)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -2149,8 +2157,6 @@ R1_RETURN_ORDER_MAPPING = {'order_id': 'order_id', 'items': 'items', 'return_id'
                            'order_items': '', 'reason': 'order["return_reason"]',
                            'marketplace': 'order["channel_sku"]["channel"]["name"]'}
 
-# BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
-
 BARCODE_DICT = {
     'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
     'format2': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
@@ -2183,6 +2189,12 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
                                ('min_unit_range', 2), ('max_unit_range', 3),
                                ('price', 4), ('discount', 5)))
 
+#BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
+
+BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA',
+			'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India', 'bcbs_retail': 'Scholar Clothing Co.',
+                        'bcgs_retail': 'Scholar Clothing Co.', 'SSRVM_RETAIL': 'Scholar Clothing Co.', 'stjohns_retail': 'Scholar Clothing Co.',
+                        'narayana_retail': 'Scholar Clothing Co.', 'vps_retail': 'Scholar Clothing Co.', 'christ_retail': 'Scholar Clothing Co.'}
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',

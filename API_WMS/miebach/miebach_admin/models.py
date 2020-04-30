@@ -128,6 +128,7 @@ class SKUMaster(models.Model):
     enable_serial_based = models.IntegerField(default=0)
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
+    batch_based = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -276,6 +277,7 @@ class SKUSupplier(models.Model):
     supplier_code = models.CharField(max_length=128, default='')
     price = models.FloatField(default=0)
     costing_type = models.CharField(max_length=128, default='Price Based')
+    lead_time = models.IntegerField(default=0)
     margin_percentage = models.FloatField(default=0)
     markup_percentage = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -496,6 +498,8 @@ class PendingPR(models.Model):
     prefix = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
+    product_category = models.CharField(max_length=64, default='')
+    priority_type = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
@@ -1109,6 +1113,31 @@ class CustomerUserMapping(models.Model):
         db_table = 'CUSTOMER_USER_MAPPING'
 
 
+class CompanyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company_name = models.CharField(max_length=32, default='')
+    address = models.CharField(max_length=256, default='', blank=True)
+    city = models.CharField(max_length=64, default='', blank=True)
+    state = models.CharField(max_length=64, default='', blank=True)
+    country = models.CharField(max_length=64, default='', blank=True)
+    pincode = models.CharField(max_length=64, default='', blank=True)
+    phone_number = models.CharField(max_length=32, blank=True)
+    email_id = models.EmailField(max_length=64, default='', blank=True)
+    gstin_number = models.CharField(max_length=64, default='', blank=True)
+    cin_number = models.CharField(max_length=64, default='', blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
+    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
+    parent = models.ForeignKey("self", blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'COMPANY_MASTER'
+
+    def __unicode__(self):
+        return str(self.company_name)
+
+
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.OneToOneField(User)
@@ -1120,7 +1149,6 @@ class UserProfile(models.Model):
     timezone = models.CharField(max_length=64, default='', blank=True)
     swx_id = models.IntegerField(default=None, blank=True, null=True)
     prefix = models.CharField(max_length=64, default='')
-    company_name = models.CharField(max_length=256, default='')
     location = models.CharField(max_length=60, default='', blank=True)
     city = models.CharField(max_length=60, default='', blank=True)
     state = models.CharField(max_length=60, default='', blank=True)
@@ -1147,6 +1175,7 @@ class UserProfile(models.Model):
     industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1260,6 +1289,7 @@ class UserGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     admin_user = models.ForeignKey(User, related_name='admin_user', blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
 
     class Meta:
         db_table = 'USER_GROUPS'
@@ -3644,7 +3674,10 @@ def save_user_to_reversion(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=User)
 def delete_user_in_reversion(sender, instance, **kwargs):
     if kwargs.get('using') =='default':
-        User.objects.using('reversion').filter(id=instance.id).delete()
+        try:
+            User.objects.using('reversion').filter(id=instance.id).delete()
+        except:
+            pass
 
 class StockTransferSummary(models.Model):
     id = BigAutoField(primary_key=True)

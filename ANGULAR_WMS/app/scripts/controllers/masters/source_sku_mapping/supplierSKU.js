@@ -38,6 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('mrp').withTitle('MRP'),
         DTColumnBuilder.newColumn('preference').withTitle('Priority'),
         DTColumnBuilder.newColumn('moq').withTitle('MOQ'),
+        DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time'),
     ];
 
     vm.dtInstance = {};

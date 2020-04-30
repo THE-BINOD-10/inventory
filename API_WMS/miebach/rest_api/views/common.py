@@ -246,20 +246,26 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['weight_integration_name'] = get_misc_value('weight_integration_name', request.user.id)
     if response_data['data']['roles']['permissions']['weight_integration_name'] == 'false':
         response_data['data']['roles']['permissions']['weight_integration_name'] = ''
+    company_name = ''
+    if user_profile.company:
+        company_name = user_profile.company.company_name
+        if user_profile.company.logo:
+            response_data['data']['parent']['logo'] = user_profile.company.logo.url
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
                                              'email': request.user.email,
                                              'state': user_profile.state,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
-                                             'company_name': user_profile.company_name,
+                                             'company_name': company_name,
                                              'wh_address': user_profile.wh_address,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
                                              'request_user_type': request_user_profile.user_type,
                                              'warehouse_type': user_profile.warehouse_type,
                                              'warehouse_level': user_profile.warehouse_level,
-                                             'multi_level_system': user_profile.multi_level_system}
+                                             'multi_level_system': user_profile.multi_level_system,
+                                             'company_id': user_profile.company_id}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -319,11 +325,13 @@ def add_user_type_permissions(user_profile):
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
+                     'companymaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
+                     'companymaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -402,7 +410,7 @@ def create_user(request):
             if user:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=request.POST.get('phone', ''),
-                                                          company_name=request.POST.get('company', ''), user_id=user.id,
+                                                            user_id=user.id,
                                                           api_hash=hash_code,
                                                           is_trail=1, prefix=prefix, setup_status='')
                 user_profile.save()
@@ -539,7 +547,7 @@ data_datatable = {  # masters
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
-    'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',\
+    'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master','CompanyMaster':'get_company_master',\
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
@@ -3878,7 +3886,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
-    company_name = user_profile.company_name
+    company_name = user_profile.company.company_name
     company_address = user_profile.address
     company_number = user_profile.phone_number
     email = user.email
@@ -4622,11 +4630,15 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
+        if noOfTestsQs.exists():
+            noOfTests = noOfTestsQs.values('attribute_value')[0]
+        else:
+            noOfTests = 0
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp})
+                           'mrp': master_data.mrp, 'noOfTests': noOfTests})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4814,6 +4826,15 @@ def build_search_data(to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
+            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
+            if noOfTestsQs.exists():
+                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
+                try:
+                    noOfTests = int(noOfTests)
+                except:
+                    noOfTests = 0
+            else:
+                noOfTests = 0
             if (len(to_data) >= limit):
                 break
             else:
@@ -4826,7 +4847,7 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name})
+                                    'style_name': data.style_name, 'noOfTests': noOfTests})
         return to_data
 
 
@@ -5742,18 +5763,29 @@ def get_sku_stock_check(request, user=''):
         poOrderedQty = poQs[0]['total_order']
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
+    openpr_qty = 0
+    openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=user.id, 
+                            purchase_type='PR',
+                            sku__sku_code=sku_code, 
+                            pending_pr__final_status__in=['pending', 'approved']). \
+                        aggregate(openpr_qty=Sum('quantity'))
+
+    openpr_qty = openPRQtyQs['openpr_qty']
+
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
-                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                'openpr_qty': openpr_qty}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                                    'openpr_qty': openpr_qty}))
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
@@ -6152,10 +6184,10 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                                 attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
                                 if attr_obj.exists():
                                     single[show_key] = attr_obj[0].attribute_value
-                single['Company'] = user_prf.company_name.replace("'", '')
+                single['Company'] = user_prf.company.company_name.replace("'", '')
                 present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
                 single["Packed on"] = str(present).replace("'", '')
-                single['Marketed By'] = user_prf.company_name.replace("'", '')
+                single['Marketed By'] = user_prf.company.company_name.replace("'", '')
                 single['MFD'] = str(present).replace("'", '')
                 phone_number = user_prf.phone_number
                 if not phone_number:
@@ -6253,10 +6285,10 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                             attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
                             if attr_obj.exists():
                                 single[show_key] = attr_obj[0].attribute_value
-            single['Company'] = user_prf.company_name.replace("'", '')
+            single['Company'] = user_prf.company.company_name.replace("'", '')
             present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
             single["Packed on"] = str(present).replace("'", '')
-            single['Marketed By'] = user_prf.company_name.replace("'", '')
+            single['Marketed By'] = user_prf.company.company_name.replace("'", '')
             single['MFD'] = str(present).replace("'", '')
             phone_number = user_prf.phone_number
             if not phone_number:
@@ -8287,7 +8319,7 @@ def get_user_profile_data(request, user=''):
     data['address'] = main_user.address
     data['gst_number'] = main_user.gst_number
     data['main_user'] = request.user.is_staff
-    data['company_name'] = main_user.company_name
+    data['company_name'] = main_user.company.company_name
     data['cin_number'] = request.user.userprofile.cin_number
     data['wh_address'] = main_user.wh_address
     data['wh_phone_number'] = main_user.wh_phone_number
@@ -8383,7 +8415,7 @@ def update_profile_data(request, user=''):
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
-    main_user.company_name = company_name
+    #main_user.company_name = company_name
     main_user.cin_number = cin_number
     main_user.wh_address = wh_address
     main_user.wh_phone_number = wh_phone_number
@@ -11266,3 +11298,19 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
+
+
+def get_companies_list(user):
+    company_list = list(CompanyMaster.objects.filter(parent_id=user.userprofile.company_id).\
+                            values('id', 'company_name'))
+    return company_list
+
+
+def get_company_id(user, level=''):
+    company = user.userprofile.company
+    while(1):
+        if not company.parent:
+            break
+        else:
+            company = company.parent
+    return company.id

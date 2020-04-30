@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Total Quantity", 
+    var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
                     "PR Created Date", "PR Delivery Date", "Warehouse",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
@@ -161,6 +161,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
+                  "product_category": data.data.product_category,
+                  "priority_type": data.data.priority_type,
                   // "supplier_name": data.data.supplier_name,
                   "warehouse": data.data.warehouse,
                   "data": data.data.data,
@@ -232,6 +234,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
+          vm.convertPoFlag = data.data.convertPoFlag
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
@@ -272,6 +275,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -334,6 +339,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
       vm.getCompany();
       vm.populate_last_transaction('');
+    }
+
+    vm.getNoOfTests = function(order_quantity, data) {
+      var ordQty = parseInt(order_quantity)
+      if (ordQty > 0){
+        data.no_of_tests = ordQty * data.sku.no_of_tests;
+      }
     }
 
     vm.update_data = function (index, flag=true, plus=false) {
@@ -763,10 +775,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
+        sku_data["openpr_qty"] = 0;
         if(data.message) {
           // if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
+            sku_data["openpr_qty"] = data.data.openpr_qty;
           // }
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
@@ -795,10 +809,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+      product.fields.sku.no_of_tests = item.noOfTests;
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
+      product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;

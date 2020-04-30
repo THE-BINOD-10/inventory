@@ -5158,12 +5158,14 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     warehouse = request.GET.get('warehouse', '')
+    admin_user = get_warehouse_admin(user)
     if warehouse:
-        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs = list(get_sister_warehouse(admin_user).values_list('user__username', flat=True))
+        sister_whs.append(admin_user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return json.dumps(json.dumps({'error': 'Invalid Warehouse Name'}))
+            return HttpResponse(json.dumps({'error': 'Invalid Warehouse Name'}))
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():
@@ -7121,7 +7123,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     return final_data_dict
 
 
-def update_order_dicts(orders, user='', company_name=''):
+def update_order_dicts(orders, user='', company_name='', payment_info=''):
     from outbound import check_stocks
     trans_mapping = {}
     orderId = []
@@ -7132,6 +7134,7 @@ def update_order_dicts(orders, user='', company_name=''):
         order_det_dict = order['order_details']
         original_order_id = order_det_dict.get('original_order_id', '')
         orderId = [original_order_id]
+        user = User.objects.get(id=order_det_dict['user'])
         if not order.get('order_detail_obj', None):
             order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
                                                    order_id=order_det_dict['order_id'],
@@ -7166,12 +7169,28 @@ def update_order_dicts(orders, user='', company_name=''):
         else:
             continue
         order_sku.update({sku_obj: order_det_dict['quantity']})
+        if payment_info:
+            if payment_info[original_order_id]:
+                payment_data = payment_info[original_order_id]
+                check_create_payment_info(original_order_id, payment_data, user)
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
         status = {'status': 1, 'messages': 'Success', 'order_id':orderId}
     return status
 
+def check_create_payment_info(order_id, payment_data, user=''):
+    payment_id = get_incremental(user, "payment_summary", 1)
+    order_obj = OrderDetail.objects.filter(original_order_id=order_id, user=user.id)
+    payment_mode = payment_data['payment_info']['payment_mode']
+    payment_date = payment_data['payment_info']['payment_date']
+    transaction_id = payment_data['payment_info']['transaction_id']
+    paid_amount = payment_data['payment_info']['paid_amount']
+    method_of_payment = payment_data['payment_info']['method_of_payment']
+    payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+    payment_info = PaymentInfo.objects.create(**payment_dict)
+    PaymentSummary.objects.create(order_id=order_obj[0].id, payment_id=payment_id, payment_info=payment_info)
 
 def update_ingram_order_dicts(orders, seller_obj, user=''):
     status = {'status': 0, 'messages': ['Something went wrong']}

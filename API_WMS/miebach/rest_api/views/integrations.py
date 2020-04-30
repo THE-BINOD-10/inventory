@@ -2240,6 +2240,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                 payment_info['paid_amount'] = order['payment_info'].get('paid_amount', 0)
                 payment_info['payment_date'] = order['payment_info'].get('payment_date', '')
                 payment_info['method_of_payment'] = order['payment_info'].get('method', '')
+                payment_info['aux_info'] = json.dumps(order['payment_info'])
                 try:
                     if payment_info['payment_date']:
                         payment_info['payment_date'] = parser.parse(payment_info['payment_date'])

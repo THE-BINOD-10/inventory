@@ -7186,7 +7186,8 @@ def check_create_payment_info(order_id, payment_data, user=''):
     paid_amount = payment_data['payment_info']['paid_amount']
     method_of_payment = payment_data['payment_info']['method_of_payment']
     payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
-                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id,
+                    'aux_info':payment_data['payment_info']['aux_info']}
     payment_info = PaymentInfo.objects.create(**payment_dict)
     PaymentSummary.objects.create(order_id=order_obj[0].id, payment_id=payment_id, payment_info=payment_info)
 

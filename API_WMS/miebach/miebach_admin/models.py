@@ -2022,6 +2022,18 @@ class Integrations(models.Model):
     class Meta:
         db_table = 'INTEGRATIONS'
 
+class PaymentInfo(models.Model):
+    id = BigAutoField(primary_key=True)
+    paid_amount = models.FloatField(default=0)
+    transaction_id = models.CharField(max_length=64, default='')
+    payment_mode = models.CharField(max_length=64, default='')
+    method_of_payment = models.CharField(max_length=64, default='')
+    payment_date = models.DateTimeField(auto_now=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'PAYMENT_INFO'
 
 class PaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2036,6 +2048,7 @@ class PaymentSummary(models.Model):
     tds_amount = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=128, default='')
     payment_date = models.DateField(blank=True, null=True)
+    payment_info = models.ForeignKey(PaymentInfo, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

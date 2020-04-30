@@ -4630,11 +4630,15 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
+        if noOfTestsQs.exists():
+            noOfTests = noOfTestsQs.values('attribute_value')[0]
+        else:
+            noOfTests = 0
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp})
+                           'mrp': master_data.mrp, 'noOfTests': noOfTests})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4822,6 +4826,15 @@ def build_search_data(to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
+            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
+            if noOfTestsQs.exists():
+                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
+                try:
+                    noOfTests = int(noOfTests)
+                except:
+                    noOfTests = 0
+            else:
+                noOfTests = 0
             if (len(to_data) >= limit):
                 break
             else:
@@ -4834,7 +4847,7 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name})
+                                    'style_name': data.style_name, 'noOfTests': noOfTests})
         return to_data
 
 
@@ -5750,18 +5763,29 @@ def get_sku_stock_check(request, user=''):
         poOrderedQty = poQs[0]['total_order']
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
+    openpr_qty = 0
+    openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=user.id, 
+                            purchase_type='PR',
+                            sku__sku_code=sku_code, 
+                            pending_pr__final_status__in=['pending', 'approved']). \
+                        aggregate(openpr_qty=Sum('quantity'))
+    
+    openpr_qty = openPRQtyQs['openpr_qty']
+
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
-                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                'openpr_qty': openpr_qty}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
-                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
+                                    'openpr_qty': openpr_qty}))
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
@@ -8489,15 +8513,15 @@ def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
         if k == 'remove_after_spaces' and v == 'true':
             sku_code = sku_code.split(' ')[0]
         elif k == 'condition1':
-            vThChar = sku_code[int(v)-1]
-            if sku_code[int(v)-1].isdigit():
-                expression1Char = int(conditions.get('expression1'))
-                sku_code = sku_code[:expression1Char]
+            if len(sku_code) >= int(v):
+                if sku_code[int(v)-1].isdigit():
+                    expression1Char = int(conditions.get('expression1'))
+                    sku_code = sku_code[:expression1Char]
         elif k == 'condition2':
-            vThChar = sku_code[int(v)-1]
-            if sku_code[int(v)-1].isalpha():
-                expression2Char = int(conditions.get('expression2'))
-                sku_code = sku_code[:expression2Char]
+            if len(sku_code) >= int(v):
+                if sku_code[int(v)-1].isalpha():
+                    expression2Char = int(conditions.get('expression2'))
+                    sku_code = sku_code[:expression2Char]
     return sku_code
 
 

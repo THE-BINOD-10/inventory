@@ -45,8 +45,12 @@ def get_filtered_params(filters, data_list):
 
 @csrf_exempt
 def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PR'} #'pending_pr__wh_user':use
-    if request.user.id != user.id:
+    filtersMap = {'purchase_type': 'PR'}
+    if user.userprofile.warehouse_level == 2:
+        pr_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        filtersMap['pending_pr__wh_user__in'] = pr_users
+        filtersMap['pending_pr__final_status'] = 'approved'
+    if request.user.id != user.id and user.userprofile.warehouse_level != 2:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data',
@@ -67,7 +71,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
             filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
-    lis = ['-pending_pr__pr_number', 'total_qty', 'total_amt', 'creation_date',
+    lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type', 
+            'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__pr_number',
             'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks']
@@ -77,7 +82,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
         order_data = '-%s' % order_data
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
-        'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date']
+        'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
+        'pending_pr__product_category', 'pending_pr__priority_type']
 
     results = PendingLineItems.objects.filter(**filtersMap).exclude(pending_pr__final_status='pr_converted_to_po').values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -135,6 +141,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pending_pr__pr_number']),
+                                                ('Product Category', result['pending_pr__product_category']),
+                                                ('Priority Type', result['pending_pr__priority_type']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PR Created Date', pr_date),
@@ -1102,6 +1110,13 @@ def generated_actual_pr_data(request, user=''):
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
     # prApprQs = PurchaseApprovals.objects.filter(pr_user=pr_user.id, purchase_number=pr_number, purchase_type='PR')
+    convertPoFlag = False
+    if record[0].final_status == 'approved':
+        db_wh_level = int(record[0].wh_user.userprofile.warehouse_level)
+        current_wh_level = int(user.userprofile.warehouse_level)
+        if (db_wh_level - 1) == current_wh_level:
+            convertPoFlag = True
+
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1122,7 +1137,8 @@ def generated_actual_pr_data(request, user=''):
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
-                                    'validateFlag': validateFlag}))
+                                    'validateFlag': validateFlag, 'product_category': record[0].product_category,
+                                    'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag}))
 
 
 @csrf_exempt
@@ -2027,6 +2043,8 @@ def get_raisepo_group_data(user, myDict):
         cess_tax = 0
         utgst_tax = 0
         apmc_tax = 0
+        product_category = ''
+        priority_type = ''
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'approval_remarks' in myDict.keys():
@@ -2081,6 +2099,10 @@ def get_raisepo_group_data(user, myDict):
             if myDict['apmc_tax'][i]:
                 apmc_tax = float(myDict['apmc_tax'][i])
                 show_apmc_tax = True
+        if 'product_category' in myDict.keys():
+            product_category = myDict['product_category'][0]
+        if 'priority_type' in myDict.keys():
+            priority_type = myDict['priority_type'][0]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -2105,7 +2127,8 @@ def get_raisepo_group_data(user, myDict):
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax, 'apmc_tax': apmc_tax, 'po_delivery_date': po_delivery_date,
-                                   'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date})
+                                   'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date,
+                                   'product_category': product_category, 'priority_type': priority_type})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -2509,6 +2532,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
+        purchaseMap['product_category'] = firstEntryValues['product_category']
+        purchaseMap['priority_type'] = firstEntryValues['priority_type']
 
     if myDict.get('pr_number') and not convertPRtoPO:
         pr_number = int(myDict.get('pr_number')[0])
@@ -4776,10 +4801,12 @@ def check_sku(request, user=''):
     sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
-    print("SKUCode Before Change::%s" %sku_code)
-    sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
-    print("SKUCode After Change::%s" %sku_code)
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+    if not sku_id: #Checking scanned sku first, if not present then checking based on configuration.
+        print("SKUCode Before Change::%s" %sku_code)
+        sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
+        print("SKUCode After Change::%s" %sku_code)
+        sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
             sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')

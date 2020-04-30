@@ -10935,19 +10935,22 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
     filter_params ={}
-    lis = ['order_id','order_id','order_id','quantity','updation_date','quantity']
-    st_list=['stock_transfer__order_id','stock_transfer__order_id','quantity','creation_date','quantity','stock_transfer__order_id']
+    lis = ['order_id','order_id','order_id','quantity','updation_date','quantity','quantity']
+    st_list=['stock_transfer__order_id','stock_transfer__order_id','stock_transfer__order_id','quantity','stock_transfer__creation_date','invoice_number','quantity']
     order_by_term = 'order_id'
     summary_term = 'stock_transfer__order_id'
     old_list = []
     new_list = []
+    summary_params = {}
     new_data = {}
+    import pdb;pdb.set_trace()
     if order_term == 'desc':
         order_by_term = '-'+lis[col_num]
         summary_term = '-'+st_list[col_num]
     if search_term :
         filter_params['order_id__icontains']=search_term
-    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id).order_by(summary_term)
+        summary_params['stock_transfer__order_id__icontains'] = search_term
+    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id,**summary_params).order_by(summary_term)
     stock_transfer_ids = stock_transfer_summary.values_list('stock_transfer__id', flat=True).distinct()
     get_stock_transfer = StockTransfer.objects.filter(**filter_params)\
         .exclude(id__in=stock_transfer_ids)\

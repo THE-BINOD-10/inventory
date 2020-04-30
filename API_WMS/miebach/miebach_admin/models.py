@@ -624,6 +624,7 @@ class PurchaseOrder(models.Model):
     payment_received = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
@@ -727,7 +728,8 @@ class BatchDetail(models.Model):
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-
+    batch_ref = models.CharField(max_length=100, default='')
+    
     class Meta:
         db_table = 'BATCH_DETAIL'
         index_together = (('transact_id', 'transact_type'), ('batch_no', 'buy_price', 'mrp', 'manufactured_date', 'expiry_date', 'tax_percent'),
@@ -3606,6 +3608,26 @@ class SkuClassification(models.Model):
         index_together = (('sku', 'status'),)
         #unique_together = ('sku', 'classification', 'source_stock', 'seller', 'status')
 
+class BarcodeTemplate(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    name = models.CharField(max_length=64, default='')
+    brand = models.CharField(max_length=64, default='')
+    length = models.PositiveIntegerField(default=None)
+    class Meta:
+        db_table = 'BARCODE_TEMPLATE'
+
+class BarcodeEntities(models.Model):
+    id = BigAutoField(primary_key=True)
+    template = models.ForeignKey(BarcodeTemplate,null=True, blank=True, default=None)
+    entity_type = models.CharField(max_length=64, default='')
+    start=models.PositiveIntegerField(default=None, blank=True, null=True)
+    end = models.PositiveIntegerField(default=None, blank=True, null=True)
+    Format= models.CharField(max_length=256, null=True, blank=True)
+    regular_expression= models.CharField(max_length=256, null=True, blank=True)
+    class Meta:
+        db_table = 'BARCODE_ENTITIES'
+        
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)

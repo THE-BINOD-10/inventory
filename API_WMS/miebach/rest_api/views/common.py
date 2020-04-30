@@ -8474,7 +8474,7 @@ def update_new_barcode_configuration(request, user=''):
     "BarCode Configurations will be stored"
     try:
         entities_data= json.loads(request.POST.get("data",''))
-        string_length=request.POST.get('string_length', '')
+        string_length=request.POST.get('string_length', 0)
         configuration_name=request.POST.get('configuration_title', '')
         brand_name=request.POST.get('brand', '')
         barcodetemplate_Obj = BarcodeTemplate.objects.create(name=configuration_name, user=user.id, brand=brand_name,length=string_length)
@@ -8516,6 +8516,13 @@ def get_new_barcode_configurations(request, user=''):
         return HttpResponse(json.dumps({'msg':1, 'data': barcode_configs}))
     else:
         return HttpResponse(json.dumps({'msg':1, 'data': 'null'}))
+
+
+@login_required
+@get_admin_user
+def get_distnict_brands(request, user=''):
+    brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True).distinct().exclude(brand_name ='All')
+    return HttpResponse(json.dumps({'msg':1, 'data': list(brands)}))
 
 def check_and_return_barcodeconfig_sku(user, sku_code, sku_brand):
     configName = ''

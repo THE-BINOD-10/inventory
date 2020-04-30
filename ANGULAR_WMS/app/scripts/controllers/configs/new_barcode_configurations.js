@@ -16,6 +16,13 @@ function newBarcodeConfig($scope, Session, Service, $modal) {
       { "name": "EXPIRY DATE", "value": "EXPIRY_Date"},
       { "name": "BATCH NUMBER (LOT)", "value": "LOT"}
     ]
+    vm.brands=[]
+    Service.apiCall('get_distnict_brands/').then(function (data) {
+      if (data.message) {
+        vm.brands= data.data.data
+        // angular.copy(data.data, vm.model_barcode_config_data);
+      }
+    });
     vm.entities_data = [
       {
         "entity_type": '',
@@ -70,13 +77,13 @@ function newBarcodeConfig($scope, Session, Service, $modal) {
       if (vm.model_data.string_length) {
         vm.model_data.string_length = Number(vm.model_data.string_length)
       }
-      if (vm.model_data.brand && vm.model_data.configuration_title && Number(vm.model_data.string_length) > 0) {
+      // && Number(vm.model_data.string_length) > 0
+      if (vm.model_data.brand && vm.model_data.configuration_title) {
         angular.forEach(vm.entities_data, function (entity, entity_ind) {
-
           entity.start = Number(entity.start)
           entity.end = Number(entity.end)
           if (entity.entity_type && ((entity.start > 0 && entity.end > 0) || entity.regular_expression)) {
-            if (  entity.regular_expression || entity.start < entity.end) {
+            if ( entity.regular_expression || entity.start < entity.end) {
               if(entity.entity_type=="GTIN"){
                 sku_count=sku_count+1
               }

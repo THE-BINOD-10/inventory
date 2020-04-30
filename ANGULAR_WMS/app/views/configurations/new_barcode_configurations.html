@@ -17,8 +17,13 @@
     <div class="row" align="center" style="padding-top: 25px;">
         <div class="col-lg-4 col-md-4" align="right"><strong>Brand * : </strong></div>
         <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 mbalign">
-            <input type="text" class="form-control" ng-model="showCase.model_data.brand" placeholder="BRAND"
-                style="border-color: #2ecc71" required>
+            <select class="form-control ng-pristine ng-valid valid" style="border-color: #2ecc71" required ng-model="showCase.model_data.brand">
+                <!-- <option value="">--Select Entity--</option> -->
+                <option ng-repeat="entitie_type in showCase.brands"
+                    value="{{entitie_type}}">{{entitie_type}}</option>
+            </select>
+            <!-- <input type="text" class="form-control" ng-model="showCase.model_data.brand" placeholder="BRAND"
+                style="border-color: #2ecc71" required> -->
         </div>
     </div>
 

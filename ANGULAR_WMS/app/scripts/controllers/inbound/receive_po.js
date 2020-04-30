@@ -1008,8 +1008,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           })
         } else {
-          var sku_brand = vm.model_data.data[0][0].sku_brand;
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand}).then(function(data){
+          
+          // var sku_brand = vm.model_data.data[0][0].sku_brand;
+          // 178010N0502
+          var sku_brand=[]
+          vm.model_data.data.forEach(function (d) {
+            d.forEach(function (e) {
+              if(e.sku_brand){
+                sku_brand.push(e.sku_brand)
+              }
+            })
+          });
+          vm.field=""
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand, "po_reference":vm.model_data.po_reference}).then(function(data){
             if(data.message) {
               if(data.data.sku_code){
                 vm.field = data.data.sku_code;

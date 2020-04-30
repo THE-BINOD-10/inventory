@@ -502,7 +502,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true', {withCredential: true})
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var warehouse = '';
+      angular.forEach(elem, function(key, index) {
+        if(key.name == 'warehouse') {
+          warehouse = key.value;
+        }
+      });
+      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
       .success(function(data, status, headers, config) {
         vm.service.print_data(data, vm.model_data.pr_number);
       });

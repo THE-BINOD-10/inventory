@@ -1147,8 +1147,12 @@ def generated_actual_pr_data(request, user=''):
 def print_pending_po_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
+    warehouse = request.GET.get('warehouse', '')
     purchase_number = int(po_id.split('_')[-1])
     filtersMap = {'wh_user': user.id}
+    if warehouse:
+        wh_user = User.objects.filter(first_name=warehouse)
+        filtersMap['wh_user'] = wh_user[0].id
     if is_actual_pr == 'true':
         model_name = PendingPR
         filtersMap['pr_number'] = purchase_number

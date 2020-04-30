@@ -1,5 +1,5 @@
 FUN = {};
-
+var vm;
 ;(function() {
 
 'use strict';
@@ -8,7 +8,7 @@ var stockone = angular.module('urbanApp', ['datatables'])
 stockone.controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', '$rootScope', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data, $rootScope) {
-    var vm = this;
+    vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -257,6 +257,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     }
+    $(document).on('keydown', 'div.modal', function(e) {
+      var keyCode = e.keyCode || e.which;
+       if (e.ctrlKey && e.shiftKey && e.which == 83) { //  ctrl + shift + s
+          e.preventDefault();
+          $scope.$apply(function () {
+            vm.submit = submit;
+            form.$valid=true
+            vm.submit(form)
+          });
+        }
+        else if (e.ctrlKey && e.shiftKey && e.which == 70 ) { // ctrl + shift + f
+          e.preventDefault();
+          $scope.$apply(function () {
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
+          //  vm.submit = submit;
+          //  form.$valid=true
+          //  vm.submit(form)
+          });
+        }
+        else if (e.ctrlKey && e.altKey && e.which == 67) { // ctrl + alt + c  enter key
+          e.preventDefault();
+          $scope.$apply(function () {
+            vm.submit = submit;
+            form.$valid=true
+            vm.close_po(form)
+          });
+        }
+        else if (e.ctrlKey && e.altKey && e.which ==71) { // ctrl+ alt + g enter key
+          e.preventDefault();
+          $scope.$apply(function () {
+            vm.submit = submit;
+            form.$valid=true
+            vm.confirm_grn(form)
+          });
+        }
+     });
 
     $(document).on('keydown', 'input.detectTab', function(e) {
       var keyCode = e.keyCode || e.which;
@@ -915,7 +951,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     }
+    function format(inputDate) {
+      var date = new Date(inputDate);
+      if (!isNaN(date.getTime())) {
+        var day = date.getDate().toString();
+        var month = (date.getMonth() + 1).toString();
+        // Months use 0 index.
+        return (month[1] ? month : '0' + month[0]) + '/' +
+          (day[1] ? day : '0' + day[0]) + '/' +
+          date.getFullYear();
+      }
 
+    }
     vm.sort_items = [];
     vm.sort_flag = false;
     vm.scan_sku = function(event, field) {
@@ -961,32 +1008,134 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           })
         } else {
-          var sku_brand = vm.model_data.data[0][0].sku_brand;
-          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand}).then(function(data){
+          // var sku_brand = vm.model_data.data[0][0].sku_brand;
+          var sku_brand=[]
+          vm.model_data.data.forEach(function (d) {
+            d.forEach(function (e) {
+              if(e.sku_brand){
+                sku_brand.push(e.sku_brand)
+              }
+            })
+          });
+          vm.field=""
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand':sku_brand, "po_reference":vm.model_data.po_reference}).then(function(data){
             if(data.message) {
-              vm.field = data.data.sku_code;
+              if(data.data.sku_code){
+                vm.field = data.data.sku_code;
+              }
+              // vm.field = data.data.sku_code;
               vm.sort_flag = false;
-              for(var i=0; i<vm.model_data.data.length; i++) {
-
-                angular.forEach(vm.model_data.data[i], function(sku){
-
-                  // vm.sku_list_1.push(sku.wms_code);
-                  if(vm.field == sku.wms_code){
-                    // $timeout(function() {
-                      //vm.sort_items = [];
-                      //vm.sort_items.push(vm.model_data.data[i]);
-                      if(i != 0) {
-                        var temp_dict = [];
-                        angular.copy(vm.model_data.data[0], temp_dict);
-                        angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
-                        angular.copy(temp_dict, vm.model_data.data[i]);
+              var keepGoing = true;
+              var temp_count = 0;
+              let expiry_displayDate;
+              let mfg_displayDate;
+              var copy_sku;
+              for (var i = 0; i < vm.model_data.data.length; i++) {
+                if (keepGoing) 
+                {
+                  angular.forEach(vm.model_data.data[i], function (sku, index) {
+                    if (vm.field === sku.wms_code) 
+                    {
+                      if (data.data.status === "barcode_confirmed") 
+                      {
+                        angular.forEach(data.data.barcode_data, function (barcode) {
+                          if (Object.keys(barcode).length === 2) {
+                            if ("MFG_Date" in barcode) {
+                              let mfg_date = barcode.MFG_Date;
+                              if (barcode.Format == "YYMMDD") {
+                                let year = "20" + mfg_date.substring(0, 2);
+                                let month = mfg_date.substring(2, 4);
+                                let day = mfg_date.substring(4, 6);
+                                mfg_displayDate = year + '-' + month + '-' + day;
+                                mfg_displayDate = format(mfg_displayDate);
+                              }
+                              else if (barcode.Format == "DDMMYY") {
+                                let year = "20" + mfg_date.substring(4, 6);
+                                let month = mfg_date.substring(2, 4);
+                                let day = mfg_date.substring(0, 2);
+                                mfg_displayDate = year + '-' + month + '-' + day;
+                                mfg_displayDate = format(mfg_displayDate);
+                              }
+                            }
+                            else if ("EXPIRY_Date" in barcode) {
+                              let expiry_date = barcode.EXPIRY_Date;
+                              if (barcode.Format == "YYMMDD") {
+                                let year = "20" + expiry_date.substring(0, 2);
+                                let month = expiry_date.substring(2, 4);
+                                let day = expiry_date.substring(4, 6);
+                                expiry_displayDate = year + '-' + month + '-' + day;
+                                expiry_displayDate = format(expiry_displayDate);
+                                // $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", expiry_displayDate);
+                              }
+                              else if (barcode.Format == "DDMMYY") {
+                                let year = "20" + expiry_date.substring(4, 6);
+                                let month = expiry_date.substring(2, 4);
+                                let day = expiry_date.substring(0, 2);
+                                expiry_displayDate = year + '-' + month + '-' + day;
+                                expiry_displayDate = format(expiry_displayDate);
+                              }
+                            }
+                          }
+                        })
+                        console.log("index,batchno ", index, sku.batch_no)
+                        if (Number(sku.value) === 0 || sku.value === '' || sku.batch_no === data.data.batch_no ) {
+                          if (sku.batch_no === '' || sku.batch_no === null) {
+                            sku.batch_no = data.data.batch_no;
+                            sku.batch_ref = field
+                          }
+                          if(sku.value === ''){
+                            sku.value=0
+                          }
+                          sku.mfg_date = mfg_displayDate;
+                          sku.exp_date = expiry_displayDate;
+                          keepGoing = false;
+                        }
                       }
-                      //vm.show_sel_item_top(vm.model_data.data[i]);
-                    // }, 500);
-                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                    //vm.sort_flag = true;
-                  }
-                });
+                      else if(sku.batch_no=='' && data.data.status==="confirmed")
+                      {
+                        temp_count= temp_count+1;
+                        keepGoing = false;
+                      }
+                      if(sku.batch_ref==field){
+                        temp_count= temp_count+1;
+                        keepGoing = false;
+                      }
+                      copy_sku= {...sku};
+                      var temp_dict = [];
+                      if (i != 0) {
+                          if (!keepGoing) {
+                          angular.copy(vm.model_data.data[0], temp_dict);
+                          angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
+                          angular.copy(temp_dict, vm.model_data.data[i]);
+                        }
+                      }
+                      $("input[attr-name='imei_" + vm.field + "']").trigger('focus');
+                      //vm.sort_flag = true;
+                    }
+                  });
+                }
+              }
+              if (copy_sku) 
+              {
+                if (data.data.status === "confirmed" && temp_count === 0) {
+                  copy_sku["value"] = 0;
+                  copy_sku["batch_ref"]= field;
+                  copy_sku["batch_no"] = '';
+                  copy_sku["mfg_date"] = '';
+                  copy_sku["exp_date"] = '';
+                  vm.model_data.data.unshift([copy_sku]);
+                }
+                if (keepGoing && data.data.status === "barcode_confirmed") {
+                  copy_sku["value"] = 0;
+                  copy_sku["batch_ref"]= field;
+                  copy_sku["batch_no"] = data.data.batch_no;
+                  copy_sku["mfg_date"] = mfg_displayDate;
+                  copy_sku["exp_date"] = expiry_displayDate;
+                  vm.model_data.data.unshift([copy_sku]);
+                }
+              }
+              if (data.data.status === "barcode_confirmed"){
+                field=vm.field;
               }
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
@@ -1010,21 +1159,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
               } else {
                 vm.sku_list_1 = [];
-                for(var i=0; i<vm.model_data.data.length; i++) {
-
-                  angular.forEach(vm.model_data.data[i], function(sku, temp_sku_ind){
-
-                    vm.sku_list_1.push(sku.wms_code);
-                    if(vm.field == sku.wms_code){
-                      if(sku.value < sku.po_quantity) {
-                        sku["value"] = Number(sku["value"]) + 1;
-                        vm.calc_total_amt(event, vm.model_data, temp_sku_ind,Number(i));
-                      } else {
-                         Service.showNoty("Received Quantity Equal To PO Quantity");
-                      }
-                      $('textarea[name="scan_sku"]').trigger('focus').val('');
+                var sku_value = {};
+                vm.model_data.data.forEach(function (d) {
+                  d.forEach(function (e) {
+                    if (sku_value.hasOwnProperty(e.wms_code)) {
+                      sku_value[e.wms_code] = sku_value[e.wms_code] + Number(e.value);
+                    } else {
+                      sku_value[e.wms_code] = Number(e.value);
                     }
-                  });
+                  })
+                });
+
+                for (var i = 0; i < vm.model_data.data.length; i++) {
+                    let t_value = true;
+                    angular.forEach(vm.model_data.data[i], function (sku, temp_sku_ind) {
+                      vm.sku_list_1.push(sku.wms_code);
+                      if (vm.field == sku.wms_code) {
+                        if (t_value) {
+                          if (sku_value[vm.field] < sku.po_quantity) {
+                            if (sku.batch_no === data.data.batch_no || sku.batch_no === '') {
+                              sku["value"] = Number(sku["value"]) + 1;
+                              t_value=false;
+                            }
+                            else if (data.data.status === "confirmed") {
+                              if (sku.batch_no === '') {
+                                sku["value"] = Number(sku["value"]) + 1;
+                                t_value=false;
+                              }
+                              else if(sku.batch_ref==field){
+                                sku["value"] = Number(sku["value"]) + 1;
+                                t_value=false;
+                              }
+                            }
+                            vm.calc_total_amt(event, vm.model_data, temp_sku_ind, Number(i));
+                          }
+                          else {
+                            if(Number(sku["value"])==0){
+                              vm.model_data.data.shift()
+                            } 
+                            Service.showNoty("Received Quantity Equal To PO Quantity");
+                            t_value=false;
+                          }
+                          $('textarea[name="scan_sku"]').trigger('focus').val('');
+                        }
+                      }
+                    });
+                    if(!t_value){
+                        break
+                    }
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
 
@@ -2569,6 +2751,23 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
     if($ctrl.model_data.map_sku_code) {
 
       $ctrl.processing = true;
+      let check_wms_code=true
+      for (var i = 0; i <vm.model_data.data.length; i++) {
+          angular.forEach(vm.model_data.data[i], function (sku, index) {
+            if(check_wms_code){
+              if ($ctrl.model_data.map_sku_code=== sku.wms_code) 
+              {
+                sku.value=Number(sku.value)+1;
+                sku.batch_ref=$ctrl.model_data.scanned_val;
+                sku.batch_no=$ctrl.model_data.map_batch_no;
+                sku.mfg_date=$ctrl.model_data.map_mfg_date;
+                sku.exp_date=$ctrl.model_data.map_expiry_date;
+                check_wms_code=false;
+              }
+            }
+          })
+      }
+      
       var data = {ean_number: $ctrl.model_data.scanned_val, map_sku_code: $ctrl.model_data.map_sku_code};
 
       Service.apiCall("map_ean_sku_code/", "GET", data).then(function(data) {

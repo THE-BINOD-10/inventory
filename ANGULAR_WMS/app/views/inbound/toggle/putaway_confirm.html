@@ -23,6 +23,19 @@
                 <input class="form-control" type="text" value="{{showCase.model_data.po_number}}" disabled="">
               </div>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.industry_type=='FMCG'">
+              <div class="form-group">
+                <label class="control-label" >Scan Location</label>
+                <textarea class="form-control" cols="27" ng-model="showCase.model_data.scan_location" ng-keydown="showCase.check_location($event, showCase.model_data.scan_location)" attr-name="location"></textarea>
+              </div>
+            </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.industry_type=='FMCG'">
+              <div class="form-group">
+                <label class="control-label">Scan Serial Number</label>
+                <textarea class="form-control" cols="27" ng-model="showCase.model_data.scan_serial_number" ng-keydown="showCase.check_serial_number($event, showCase.model_data.scan_serial_number)" attr-name="serial_number"></textarea>
+              </div>
+            </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei">
               <div class="form-group">
                 <label class="control-label">Scan Location</label>

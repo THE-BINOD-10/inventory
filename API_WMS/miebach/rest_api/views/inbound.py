@@ -3026,6 +3026,7 @@ def get_supplier_data(request, user=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
+                                    "batch_ref": temp_json.get('batch_ref', ''),
                                     'pallet_number': temp_json.get('pallet_number', ''),
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
@@ -3051,7 +3052,7 @@ def get_supplier_data(request, user=''):
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': order_data['price'],
-                                 'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
+                                 'discount_percentage': 0, 'batch_no': '','batch_ref':'','mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
@@ -4214,8 +4215,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
                           'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
                           'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
-                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
-
+                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i],"batch_ref": myDict['batch_ref'][i]}
 
         seller_received_list = []
         if data.open_po or data.stpurchaseorder_set.filter():
@@ -4797,12 +4797,111 @@ def check_returns(request, user=''):
     return HttpResponse(status)
 
 
+def po_wise_check_sku(po_number, sku_code='', user='',check = False):
+    check_po=False
+    if(sku_code):
+        order_id=po_number.split("_")[-1]
+        purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
+        for orders in purchase_orders:
+            if(sku_code==str(orders.open_po.sku)):
+                check_po=True
+        if(check_po):
+            sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+            if not sku_id:
+                try:
+                    sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+                    if sku_ean_objs.exists():
+                        sku_id = sku_ean_objs[0].id
+                    else:
+                        ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                        if ean_obj.exists():
+                            sku_id = ean_obj[0].sku_id
+                except:
+                    sku_id = ''
+            if(sku_id):
+                return sku_id
+            else:
+                return ''
+    return ''
+def check_entities(template_id, string, po_reference, user):
+    sku_entities=BarcodeEntities.objects.filter(template=template_id).values('entity_type','start','end','Format','regular_expression')
+    serialized_sku_entities = json.dumps(list(sku_entities), cls=DjangoJSONEncoder)
+    final_data = {"status": 'barcode_confirmed',
+                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
+                    'sgst':'', 'igst':''}
+    barcode_fields=[]
+    sku_res=''
+    batch_no=''
+    for row in json.loads(serialized_sku_entities):
+        try:
+            end = row["end"]
+            if(not end == len(string)):
+                end = end - 1
+            if(row["Format"]):
+                data={row["entity_type"]:string[row["start"]-1:end],"Format":row["Format"]}
+            else:
+                if(row["regular_expression"]):
+                    if(row["entity_type"]=="SKU"):
+                        sku_num=re.findall(str(row["regular_expression"]),string)[0]
+                        sku_res=po_wise_check_sku(po_reference,sku_num,user)
+                    elif(row["entity_type"]=="GTIN"):
+                        gtin_num=re.findall(str(row["regular_expression"]),string)[0]   
+                        sku_res=po_wise_check_sku(po_reference,gtin_num,user) 
+                    elif(row["entity_type"]=="LOT"):
+                        batch_no=re.findall(str(row["regular_expression"]),string)[0]
+                    data={row["entity_type"]:re.findall(str(row["regular_expression"]),string)[0]}
+                else:
+                    if(row["entity_type"]=="SKU"):
+                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user)
+                    elif(row["entity_type"]=="GTIN"):
+                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user)
+                    elif(row["entity_type"]=="LOT"):
+                        batch_no=string[row["start"]-1:end]
+                    data={row["entity_type"]:string[row["start"]-1:end]}
+            if(data):
+                barcode_fields.append(ast.literal_eval(json.dumps(data)))
+        except Exception as e:
+            print(e,"exception")
+            continue
+    if(sku_res):
+        sku_data = SKUMaster.objects.get(id=sku_res)
+        final_data["sku_code"]=sku_data.sku_code
+        final_data["batch_no"]=batch_no
+        final_data['description']= sku_data.sku_desc
+        final_data["barcode_data"]=barcode_fields
+        return {"status":True,"data":final_data}
+    else:
+        return {"status":False}
+ 
+def check_barcode_scanner(string, sku_brands, po_reference, user):
+    for sku_brand in sku_brands:
+        if(sku_brand):
+            sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, brand=sku_brand).only('id', 'brand',"length")
+        else:
+            sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, length=len(string)).only('id', 'brand',"length")
+        print("string",string,sku_brand)
+        if sku_template_obj.exists():
+            for template in sku_template_obj:
+                if(int(template.length)>0):
+                    res=check_entities(int(template.id),string, po_reference,user)
+                    if(res["status"]):
+                        return {"status":True,"data":res["data"]}
+            for template in sku_template_obj:
+                if(int(template.length)==0):
+                    res=check_entities(int(template.id),string, po_reference,user)
+                    if(res["status"]):
+                        return {"status":True,"data":res["data"]}
+    return {"status":False, "data":"No Templates are present"}
+
+
 @csrf_exempt
 @get_admin_user
 def check_sku(request, user=''):
     data = {}
     sku_code = request.GET.get('sku_code')
-    sku_brand = request.GET.get('sku_brand')
+    # sku_brand = request.GET.get('sku_brand')
+    sku_brand = request.GET.getlist('sku_brand[]')
+    po_reference= request.GET.get('po_reference')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
@@ -4833,7 +4932,11 @@ def check_sku(request, user=''):
                     'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
                     'sgst':'', 'igst':''}
         return HttpResponse(json.dumps(data))
-
+    barcode_res=check_barcode_scanner(sku_code, sku_brand, po_reference, user)
+    if(barcode_res["status"]):
+        return HttpResponse(json.dumps(barcode_res["data"]))
+    # if(not barcode_res["status"])
+    #     return HttpResponse("%s not found" % sku_code)
     """
     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     if sku_master:

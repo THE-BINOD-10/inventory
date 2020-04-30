@@ -1110,6 +1110,13 @@ def generated_actual_pr_data(request, user=''):
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
     # prApprQs = PurchaseApprovals.objects.filter(pr_user=pr_user.id, purchase_number=pr_number, purchase_type='PR')
+    convertPoFlag = False
+    if record[0].final_status == 'approved':
+        db_wh_level = int(record[0].wh_user.userprofile.warehouse_level)
+        current_wh_level = int(user.userprofile.warehouse_level)
+        if (db_wh_level - 1) == current_wh_level:
+            convertPoFlag = True
+
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1131,7 +1138,7 @@ def generated_actual_pr_data(request, user=''):
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
-                                    'priority_type': record[0].priority_type}))
+                                    'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag}))
 
 
 @csrf_exempt

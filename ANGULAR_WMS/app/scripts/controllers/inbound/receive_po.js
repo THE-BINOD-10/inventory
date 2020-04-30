@@ -1008,9 +1008,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           })
         } else {
-          
           // var sku_brand = vm.model_data.data[0][0].sku_brand;
-          // 178010N0502
           var sku_brand=[]
           vm.model_data.data.forEach(function (d) {
             d.forEach(function (e) {
@@ -1092,9 +1090,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                           sku.exp_date = expiry_displayDate;
                           keepGoing = false;
                         }
-                        // else {
-                        //   copy_sku = { ...sku};
-                        // }
                       }
                       else if(sku.batch_no=='' && data.data.status==="confirmed")
                       {

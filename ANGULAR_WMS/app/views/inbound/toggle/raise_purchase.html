@@ -8,7 +8,14 @@
   .modal-body{
   overflow: scroll;
   }
-
+  .table > tbody > tr > td {
+    border-color: #ffffff !important;
+    border-top: #fff !important;
+  }
+  .select2-container .select2-choice{
+    height: 30px !important;
+    border: 1px solid #e8e8e8 !important;
+  }
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
@@ -220,8 +227,6 @@
                     <th>Title</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user') && !showCase.model_data.is_approval">Supplier Code</th>
-
-                    <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
@@ -238,8 +243,8 @@
                     <th class="plus"></th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+                <tbody ng-repeat="product in showCase.model_data.data">
+                  <tr id="tab_count">
                     <td>
                       <input type="text" autocomplete="off" name="wms_code"
                              ng-readonly="showCase.model_data.is_approval"
@@ -254,10 +259,6 @@
                              ng-readonly="showCase.model_data.is_approval"
                              title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
-                    <!--<td ng-if="user.user_profile.user_type == 'marketplace_user'">
-                      <input type="text" ng-model="product.fields.description" name="description" class="form-control"
-                             ng-readonly="showCase.default_status">
-                    </td>-->
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
@@ -315,10 +316,24 @@
                     <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
                       <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
                     </td>
-
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)" ng-if="!showCase.model_data.is_approval"></i></td>
+                  </tr>
+                  <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">
+                    <td class="mb8" style="border-color: #e4e4e400; padding-left: 12px;">
+                      <select ui-select2 ng-model="datum.warehouse_loc">
+                        <option ng-selected="datum.warehouse_loc" value="{{datum.warehouse_loc}}">{{datum.warehouse_loc}}</option>
+                      </select>
+                    </td>
+                    <td><input ng-model="product.fields.description" type="text" class="form-control detectTab" readonly size="50"></td>
+                    <td><input ng-model="datum.order_qty" placeholder="Quantity" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.measurement_unit" placeholder="UOM" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.price" placeholder="Unit Price" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.sgst_tax" placeholder="SGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.cgst_tax" placeholder="CGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.igst_tax" placeholder="IGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.utgst_tax" placeholder="UTGST(%)" type="text" class="form-control detectTab" readonly></td>
                   </tr>
                 </tbody>
               </table>
@@ -388,20 +403,17 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && !(showCase.is_purchase_request)">
+        <div class="modal-footer" ng-if="!(showCase.is_purchase_request)">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin' && (showCase.is_purchase_request)">
-          <!-- <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button> -->
+        <div class="modal-footer" ng-if="(showCase.is_purchase_request)">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.add_pendingpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
-          <!-- <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes
-          </button> -->
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type == 'admin'">
+        <div class="modal-footer">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>

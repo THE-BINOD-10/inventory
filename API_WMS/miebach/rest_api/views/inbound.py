@@ -1064,7 +1064,7 @@ def generated_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
                     'cgst_tax', 'sgst_tax', 'igst_tax']
-    lineItems = record[0].pending_polineItems.values_list(*lineItemVals)
+    lineItems = record[0].pending_polineItems.values_list(*lineItemVals) 
     for rec in lineItems:
         sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
         ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
@@ -1073,11 +1073,14 @@ def generated_pr_data(request, user=''):
                                     'igst_tax': igst_tax,
                                     'measurement_unit': uom,
                                     }, 'pk': apprId})
+    central_po_data = TempJson.objects.filter(model_id=pr_number, model_name='CENTRAL_PO') or ''
+    if central_po_data:
+        central_po_data = json.loads(eval(central_po_data[0].model_json)[0])
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
-                                    'validateFlag': validateFlag}))
+                                    'validateFlag': validateFlag, 'central_po_data': central_po_data}))
 
 
 @csrf_exempt
@@ -2465,7 +2468,7 @@ def approve_pr(request, user=''):
 
 
 def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, orderStatus='pending',
-                                    prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False):
+                                    prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False, central_po_data=None):
     firstEntryValues = all_data.values()[0]
     purchaseMap = {
             'requested_user': request.user,
@@ -2508,7 +2511,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
-
+    if central_po_data and pendingPurchaseObj:
+        TempJson.objects.create(model_id=pendingPurchaseObj.id, model_name='CENTRAL_PO', model_json=central_po_data)
     totalAmt = 0
     for key, value in all_data.iteritems():
         if convertPRtoPO and is_po_creation and key not in skusInPO:
@@ -2655,7 +2659,11 @@ def add_pr(request, user=''):
     try:
         reversion.set_user(request.user)
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
+        central_po_data = ''
         myDict = dict(request.POST.iterlists())
+        if myDict.get('location_sku_data', ''):
+            central_po_data = myDict['location_sku_data']
+            del myDict['location_sku_data']
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
             reversion.set_comment("addPendingPR")
@@ -2694,7 +2702,7 @@ def add_pr(request, user=''):
                     sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number,
-                                        baseLevel, is_po_creation=True)
+                                        baseLevel, is_po_creation=True, central_po_data=central_po_data)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
             prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
                                     pendingPRObj, master_type=master_type, forPO=True)

@@ -21,6 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.warehouse_level = vm.user_profile.warehouse_level;
     vm.multi_level_system = vm.user_profile.multi_level_system;
+    vm.send_sku_dict = {};
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -164,6 +165,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "supplier_name": data.data.supplier_name,
             "warehouse": data.data.warehouse,
             "data": data.data.data,
+            "send_sku_dict": data.data.central_po_data,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
@@ -259,11 +261,54 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.base();
-
+    vm.sku_record_updation = function(data, records) {
+      data.order_quantity = 0;
+      angular.forEach(records, function(rows){
+        if (rows['warehouse_loc']){
+          data.order_quantity += parseInt(rows['order_qty']);
+        }
+      })
+    }
+    vm.remove_location_sku = function(sku, location) {
+      delete vm.send_sku_dict[sku][location]
+    }
+    vm.reset_warehouse_sku_dict = function(sku){
+      var temp_dict = {}
+      temp_dict['z'] = {
+                    'warehouse_loc': '',
+                    'available_quantity': 0,
+                    'intransit_quantity': 0,
+                    'skuPack_quantity': 0,
+                    'order_qty': 0
+                  }
+      vm.send_sku_dict[sku]=temp_dict;
+    }
+    vm.confirm_location = function(sku_code, datum, location){
+        vm.send_sku_dict[sku_code][location] = datum['warehouse_data'][location];
+        vm.send_sku_dict[sku_code][location]['warehouse_loc'] = location;
+        vm.send_sku_dict[sku_code]['z']['warehouse_loc'] = '';
+    }
+    vm.generate_sku_warehouses = function(record, wms_code) {
+      if (wms_code) {
+        var data_dict = {
+          'sku_code': wms_code,
+          'location': '',
+          'all_users': JSON.stringify(vm.model_data.warehouse_names)
+        }
+        vm.service.apiCall('get_warehouse_level_data/', 'GET', data_dict).then(function(data){
+          if (data.message) {
+            record['warehouses'] = Object.keys(data.data);
+            record['warehouse_data'] = data.data;
+            vm.reset_warehouse_sku_dict(wms_code);
+          }
+        });
+      } else {
+        vm.service.showNoty('First Enter The SKU Code *');
+      }
+    }
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
           var seller_data = data.data.sellers;
@@ -355,6 +400,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       } else {
         if (flag) {
+          if (Object.keys(vm.send_sku_dict).includes(vm.model_data.data[index].fields.sku.wms_code)) {
+            delete vm.send_sku_dict[vm.model_data.data[index].fields.sku.wms_code];
+          }
           if(vm.model_data.data[index].seller_po_id){
               vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
           } else {
@@ -400,6 +448,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.save_raise_pr = function(data, type) {
+      if (Object.keys(vm.send_sku_dict).length > 0) {
+        angular.forEach(vm.send_sku_dict, function(data, key){
+          if (Object.keys(data).includes('z')) {
+            delete (vm.send_sku_dict[key]['z'])
+          }
+        })
+      }
       if (data.$valid) {
         if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
@@ -741,7 +796,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.get_sku_details = function(product, item, index) {
-      console.log(item);
       vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;
       vm.blur_focus_flag = false;
@@ -763,7 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
-      product.fields.order_quantity = 1;
+      product.fields.order_quantity = 0;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
@@ -876,7 +930,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.fields.sku.wms_code, {withCredentials : true}).success(function(data, status, headers, config) {
           if(Object.keys(data).length){
-            console.log(data);
           } else {
             Service.searched_sup_code = supplier;
             Service.searched_wms_code = product.fields.sku.wms_code;
@@ -893,6 +946,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add_raise_pr = function(elem) {
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
+      }
+      if (Object.keys(vm.send_sku_dict).length > 0) {
+        elem.push({name:'location_sku_data', value:JSON.stringify(vm.send_sku_dict)})
       }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){

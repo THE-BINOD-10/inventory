@@ -678,6 +678,7 @@ urlpatterns += [
     url(r'get_tally_data/', get_tally_data),
     url(r'get_categories_list/', get_categories_list),
     url(r'get_sku_stock_check/', get_sku_stock_check),
+    url(r'get_warehouse_level_data/', get_warehouse_level_data),
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),

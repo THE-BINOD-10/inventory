@@ -7031,6 +7031,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    source_seller = ''
+    dest_seller = ''
     for row_idx in range(1, no_of_rows):
         print 'Validation : %s' % str(row_idx)
         user_obj = ''
@@ -7118,8 +7120,6 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
-        source_seller = ''
-        dest_seller = ''
         mrp =0
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':

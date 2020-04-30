@@ -2099,10 +2099,12 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
+    payment_dict = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
     sister_whs = []
     inter_state = 0
+    payment_info = {}
     cgst_tax, igst_tax, sgst_tax = 0,0,0
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2232,6 +2234,22 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
+            if order.has_key('payment_info'):
+                payment_info['payment_mode'] = order['payment_info'].get('payment_mode', '')
+                payment_info['transaction_id'] = order['payment_info'].get('transaction_id', '')
+                payment_info['paid_amount'] = order['payment_info'].get('paid_amount', 0)
+                payment_info['payment_date'] = order['payment_info'].get('payment_date', '')
+                payment_info['method_of_payment'] = order['payment_info'].get('method', '')
+                try:
+                    if payment_info['payment_date']:
+                        payment_info['payment_date'] = parser.parse(payment_info['payment_date'])
+                    else:
+                        payment_info['payment_date'] = NOW
+                except:
+                    update_error_message(failed_status, 5024, 'Invalid Payment Date Format', '')
+                grouping_key = str(original_order_id)
+                payment_dict = check_and_add_dict(grouping_key, 'payment_info',
+                                                             payment_info, final_data_dict=payment_dict)
             for sku_item in sku_items:
                 failed_sku_status = []
                 sku_code = sku_item['sku']
@@ -2334,7 +2352,7 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
         log.debug(traceback.format_exc())
         log.info('Update Order API failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(orders), str(e)))
-    return insert_status, failed_status.values(), final_data_dict
+    return insert_status, failed_status.values(), final_data_dict, payment_dict
 
 def validate_orders_format(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}

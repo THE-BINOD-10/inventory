@@ -11179,7 +11179,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                          ('check_field', 'Order ID')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', picked_amount), ('Delivered Flag', delivered_status),
+                                          ('Invoice Amount', picked_amount), ('Delivered Flag', delivered_status),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)

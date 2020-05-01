@@ -4795,26 +4795,28 @@ def check_returns(request, user=''):
 
 def po_wise_check_sku(po_number, sku_code='', user='',check = False):
     check_po=False
+    print(po_number)
     if(sku_code):
-        order_id=po_number.split("_")[-1]
-        purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
-        for orders in purchase_orders:
-            if(sku_code==str(orders.open_po.sku)):
-                check_po=True
-        if(check_po):
-            sku_id = check_and_return_mapping_id(sku_code, '', user, check)
-            if not sku_id:
-                try:
-                    sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
-                    if sku_ean_objs.exists():
-                        sku_id = sku_ean_objs[0].id
-                    else:
-                        ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
-                        if ean_obj.exists():
-                            sku_id = ean_obj[0].sku_id
-                except:
-                    sku_id = ''
-            if(sku_id):
+        sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+        if not sku_id:
+            try:
+                sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+                if sku_ean_objs.exists():
+                    sku_id = sku_ean_objs[0].id
+                else:
+                    ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                    if ean_obj.exists():
+                        sku_id = ean_obj[0].sku_id
+            except:
+                sku_id = ''
+        if(sku_id):
+            order_id=po_number.split("_")[-1]
+            purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
+            sku_data = SKUMaster.objects.get(id=sku_id)
+            for orders in purchase_orders:
+                if(str(sku_data.sku_code)==str(orders.open_po.sku)):
+                    check_po=True
+            if(check_po):
                 return sku_id
             else:
                 return ''
@@ -4831,8 +4833,8 @@ def check_entities(template_id, string, po_reference, user):
     for row in json.loads(serialized_sku_entities):
         try:
             end = row["end"]
-            if(not end == len(string)):
-                end = end - 1
+            #if(not end == len(string)):
+            #    end = end - 1
             if(row["Format"]):
                 data={row["entity_type"]:string[row["start"]-1:end],"Format":row["Format"]}
             else:
@@ -10948,7 +10950,7 @@ def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company__company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
-        'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
+        'company__company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
     total_order_qty = 0

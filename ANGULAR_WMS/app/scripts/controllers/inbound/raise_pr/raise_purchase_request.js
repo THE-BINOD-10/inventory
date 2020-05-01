@@ -56,7 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
-                    "PR Created Date", "PR Delivery Date", "Warehouse",
+                    "PR Created Date", "Department",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -422,7 +422,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.save_raise_pr = function(data, type) {
       if (data.$valid) {
-        if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+        // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
@@ -432,11 +432,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             confirm_api ? vm.add_raise_pr(elem) : '';
           }
-        } else {
-          // data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
-          typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
-        }
+        // } else {
+        //   typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
+        //   vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
+        // }
       }
     }
 
@@ -779,7 +778,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       return tax;
    }
    vm.update_available_stock = function(sku_data) {
-      var send = {sku_code: sku_data.wms_code, location: ""}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true"}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
@@ -836,6 +835,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.openpr_qty = item.openpr_qty;
+      product.fields.available_qty = item.available_qty;
+      product.fields.openpo_qty = item.openpo_qty;
       product.fields.edit_tax = false;
       product.taxes = [];
       vm.getTotals();

@@ -147,7 +147,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                                                 ('Total Amount', result['total_amt']),
                                                 ('PR Created Date', pr_date),
                                                 ('PR Delivery Date', pr_delivery_date),
-                                                ('Warehouse', warehouse),
+                                                ('Department', warehouse),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
                                                 ('Validation Status', result['pending_pr__final_status'].title()),
@@ -198,7 +198,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                     'pending_po__requested_user__username', 'pending_po__po_number',
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
-                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
+                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number',
+                    'pending_po__pending_prs__wh_user__first_name']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -264,14 +265,15 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
-                                                # ('Approved PRs', approvedPRs),
+                                                ('PR No', approvedPRs),
                                                 ('Supplier ID', result['pending_po__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
-                                                ('Warehouse', warehouse),
+                                                ('Store', warehouse),
+                                                ('Department', result['pending_po__pending_prs__wh_user__first_name']),
                                                 ('PO Raise By', result['pending_po__requested_user__first_name']),
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
@@ -1126,13 +1128,27 @@ def generated_actual_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id']
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id']
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
-        sku_code, sku_desc, qty, price, uom, apprId = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, apprId = rec
+        search_params = {'sku__user': user.id}
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id, 
+                                                attribute_name='No.OfTests')
+        if noOfTestsQs.exists():
+            noOfTests = int(noOfTestsQs[0].attribute_value)
+        else:
+            noOfTests = 0
+        stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+                                                    search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
                                     'order_quantity': qty, 'price': price,
                                     'measurement_unit': uom,
+                                    'openpr_qty': openpr_qty,
+                                    'available_qty': st_avail_qty + avail_qty,
+                                    'openpo_qty': intransitQty,
+                                    'no_of_tests': noOfTests,
                                     }, 'pk': apprId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
@@ -2507,11 +2523,23 @@ def approve_pr(request, user=''):
 def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, orderStatus='pending',
                                     prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False):
     firstEntryValues = all_data.values()[0]
+    if not firstEntryValues['pr_delivery_date']:
+        pr_delivery_date = datetime.datetime.today()
+    else:
+        pr_delivery_date = firstEntryValues['pr_delivery_date']
+    if convertPRtoPO:
+        shipments = user.useraddresses_set.filter(address_type='Shipment Address').values()
+        if shipments.exists():
+            shipToAddress = shipments[0]['address']
+        else:
+            shipToAddress = ''
+    else:
+        shipToAddress = firstEntryValues['ship_to'] 
     purchaseMap = {
             'requested_user': request.user,
             'wh_user': user,
-            'delivery_date': firstEntryValues['pr_delivery_date'],
-            'ship_to': firstEntryValues['ship_to'],
+            'delivery_date': pr_delivery_date,
+            'ship_to': shipToAddress,
             'pending_level': baseLevel,
             'final_status': orderStatus,
             'remarks': firstEntryValues['approval_remarks'],
@@ -2542,10 +2570,9 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
     if myDict.get('pr_number') and not convertPRtoPO:
         pr_number = int(myDict.get('pr_number')[0])
         remarks = firstEntryValues['approval_remarks']
-        delivery_date = firstEntryValues['pr_delivery_date']
         pendingPurchaseObj = model_name.objects.get(**filtersMap)
         pendingPurchaseObj.remarks = remarks
-        pendingPurchaseObj.delivery_date = delivery_date
+        pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
         pendingPurchaseObj.save()
     else:
@@ -2778,6 +2805,8 @@ def save_pr(request, user=''):
                 purchase_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
                 purchase_number = get_purchase_order_id(user)
+                # if purchase_number == 0:
+                #     purchase_number = 1
                 # purchase_number = get_incremental(user, 'PurchaseRequest')
         supplier = myDict.get('supplier_id', '')
         if supplier:

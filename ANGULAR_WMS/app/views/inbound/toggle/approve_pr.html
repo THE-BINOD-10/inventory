@@ -33,7 +33,7 @@
               <label class="control-label"> PR Number </label>
               <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="form-control" ng-readonly="true"> </div>
             </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
+<!--             <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group" ng-if="!showCase.permissions.po_or_pr_edit_permission_approver">
                 <label class="control-label">PR Delivery Date</label> 
                 <input name="pr_delivery_date" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" ng-readonly="!showCase.permissions.po_or_pr_edit_permission_approver">
@@ -42,7 +42,7 @@
                 <label class="control-label">PR Delivery Date</label> 
                 <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
-            </div>
+            </div> -->
             <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
                 <label class="control-label">PR Date</label>
@@ -50,13 +50,13 @@
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
-            <div class="form-group">
+<!--             <div class="form-group">
               <label class="control-label"> Ship To </label>
               <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
+            </div> -->
+            <div class="col-md-6 col-sm-6 col-xs-8">
             <div class="form-group">
-              <label class="control-label"> Warehouse </label>
+              <label class="control-label"> Department </label>
               <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true"> </div>
             </div>
             <div class="col-md-12"><hr></div>
@@ -160,7 +160,7 @@
               </table>
             </div>
           </div>
-        <div class="row" style="padding-bottom:0px;">
+        <div class="row">
           <!-- <div class="col-md-6 col-sm-6">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
@@ -208,10 +208,10 @@
 
       <div class="row">
         <div class="col-md-10">
-          <strong class="pull-left" style="margin-left: 10px;">
+          <strong class="pull-left" style="margin-left: 20px;">
           Remarks History:
           </strong>
-          <table class="table">
+          <table class="table" class="pull-left" style="margin-left: 20px;">
             <thead>
               <tr>
                 <th>Level</th>

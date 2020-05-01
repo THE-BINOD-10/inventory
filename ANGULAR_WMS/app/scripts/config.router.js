@@ -772,7 +772,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Raise PR',
+            title: 'Purchase Request',
           }
         })
         .state('app.inbound.RaisePr.OpenPr', {
@@ -828,7 +828,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Raise PO',
+            title: 'Purchase Order',
           }
         })
           .state('app.inbound.RaisePo.PurchaseOrder', {

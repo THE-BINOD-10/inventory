@@ -1072,16 +1072,31 @@ def generated_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
                     'cgst_tax', 'sgst_tax', 'igst_tax']
     lineItems = record[0].pending_polineItems.values_list(*lineItemVals)
     for rec in lineItems:
-        sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
-        ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
+        sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
+        search_params = {'sku__user': user.id}
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id, 
+                                                attribute_name='No.OfTests')
+        if noOfTestsQs.exists():
+            noOfTests = int(noOfTestsQs[0].attribute_value)
+        else:
+            noOfTests = 0
+        stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+                                                    search_params, includeStoreStock=True)
+        ser_data.append({'fields': {'sku': {'wms_code': sku_code, 
+                                            'capacity': st_avail_qty+avail_qty,
+                                            'intransit_quantity': intransitQty,
+                                            }, 
+                                    'description': sku_desc,
                                     'order_quantity': qty, 'price': price,
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                     'igst_tax': igst_tax,
                                     'measurement_unit': uom,
+
                                     }, 'pk': apprId})
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
@@ -2494,6 +2509,7 @@ def approve_pr(request, user=''):
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
+        PRQs.update(remarks=remarks)
         updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                             remarks, purchase_type=purchase_type)
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
@@ -2502,12 +2518,14 @@ def approve_pr(request, user=''):
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
+            PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
             sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor)
         else:
             PRQs.update(pending_level=nextLevel)
+            PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
             prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,

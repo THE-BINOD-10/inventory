@@ -4632,7 +4632,7 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
         if noOfTestsQs.exists():
-            noOfTests = noOfTestsQs.values('attribute_value')[0]
+            noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
@@ -5721,29 +5721,7 @@ def folder_check(path):
     return True
 
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def get_sku_stock_check(request, user=''):
-    ''' Check and return sku level stock'''
-    sku_code = request.GET.get('sku_code')
-    search_params = {'sku__user': user.id}
-    if request.GET.get('sku_code', ''):
-        search_params['sku__sku_code'] = sku_code
-    if request.GET.get('location', ''):
-        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
-        if not location_master:
-            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
-        search_params['location__location'] = request.GET.get('location')
-    if request.GET.get('pallet_code', ''):
-        search_params['pallet_detail__pallet_code'] = request.GET.get('pallet_code')
-        stock_detail = StockDetail.objects.exclude(
-            Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
-            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
-                   sku__sku_code=search_params['sku__sku_code'],
-                   pallet_detail__pallet_code=request.GET['pallet_code'])
-        if not stock_detail:
-            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
+def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False):
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
@@ -5753,7 +5731,17 @@ def get_sku_stock_check(request, user=''):
         skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
         if skuPack_data:
             skuPack_quantity = skuPack_data[0].pack_quantity
-
+    st_avail_qty = 0
+    if includeStoreStock:
+        storeUserQs = UserGroups.objects.filter(user=user.id)
+        if storeUserQs.exists():
+            storeUser = storeUserQs[0].admin_user
+            store_stock_data = StockDetail.objects.exclude(
+                            Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+                            filter(sku__user=storeUser.id)
+            st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
+            st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
+            
     po_search_params = {'open_po__sku__user': user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
@@ -5771,21 +5759,51 @@ def get_sku_stock_check(request, user=''):
                             sku__sku_code=sku_code, 
                             pending_pr__final_status__in=['pending', 'approved']). \
                         aggregate(openpr_qty=Sum('quantity'))
-
     openpr_qty = openPRQtyQs['openpr_qty']
 
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
-    else:
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+
+    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_stock_check(request, user='', includeStoreStock=False):
+    ''' Check and return sku level stock'''
+    sku_code = request.GET.get('sku_code')
+    includeStoreStock = request.GET.get('includeStoreStock', '')
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = sku_code
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
+        search_params['location__location'] = request.GET.get('location')
+    if request.GET.get('pallet_code', ''):
+        search_params['pallet_detail__pallet_code'] = request.GET.get('pallet_code')
+        stock_detail = StockDetail.objects.exclude(
+            Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
+                   sku__sku_code=search_params['sku__sku_code'],
+                   pallet_detail__pallet_code=request.GET['pallet_code'])
+        if not stock_detail:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config = get_pr_related_stock(user, 
+                                                                    sku_code, search_params, includeStoreStock)
+    if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                'openpr_qty': openpr_qty}))
+                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
-    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
                                     'openpr_qty': openpr_qty}))
 

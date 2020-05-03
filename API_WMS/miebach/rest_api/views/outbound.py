@@ -12041,7 +12041,7 @@ def generate_stock_transfer_invoice(request, user=''):
     order_date = get_stock_transfer[0].creation_date
     invoice_date = ''
     is_cess_tax_flag = 0
-    if user.username not in MILKBASKET_USERS:
+    if user.username  in MILKBASKET_USERS:
         is_cess_tax_flag = 1
     interfix , prefix, date_type,full_invoice_number, invoice_number = '','','','',''
     prefix_obj= UserTypeSequence.objects.filter(user=user.id,type_name='stock_transfer_invoice',type_value = 'Offline')

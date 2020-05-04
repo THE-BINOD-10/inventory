@@ -4931,7 +4931,7 @@ def check_barcode_scanner(string, sku_brands, po_reference, user):
         print("string",string,sku_brand)
         if sku_template_obj.exists():
             for template in sku_template_obj:
-                if(int(template.length)>0):
+                if(int(template.length)>0 and int(template.length)==len(string)):
                     res=check_entities(int(template.id),string, po_reference,user)
                     if(res["status"]):
                         return {"status":True,"data":res["data"]}

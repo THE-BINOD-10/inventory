@@ -1,0 +1,177 @@
+{% load tag_extras %}
+
+<style>
+  {% include 'toggle/bootstrap.min.css' %}
+  {% include 'toggle/page1.css' %}
+  html { zoom: 0.79; /*workaround for phantomJS2 rendering pages too large }
+</style>
+
+{% load tag_extras %}
+
+<div>
+<style>
+{% include 'toggle/page1.css' %}
+/* @media print{
+table{
+  border-collapse: collapse;
+}
+tr,td{
+  page-break-inside: avoid;
+  white-space:nowrap;
+}
+} */
+
+</style>
+{% for page in data_slices %}
+<div class="print-invoice2 mb20">
+<div class="invoice-body">
+<table class="table table-bordered m0" width="960">
+  <tbody>
+    <tr>
+      <td colspan="2">
+        <h3 class="m0" align="center"><b>Debit Note (Discrepancy Note)</b></h3>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
+        <p class="m0" align="center">{{ company_address }}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 50%">
+        <div class="row m0" style="height: 105px;overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+            </div>
+            <div class="col-md-12 p0">
+              <span><b>Serial No. on Debit Note: </b>{{ discrepancy_number }}</span><br>
+              <span><b>Date of Debit Note </b>{{ order_date }}</span><br>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td class="fs14">
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+           <p><strong>Original Invoice No.</strong>{{ bill_no }}</p>
+          </div>
+          <div class="col-xs-6 text-left">
+          </div>
+        </div>
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+            <p><strong>Date of Issue of the Original Invoice:</strong>{{ bill_date }}</p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  <tr>
+      <td style="width: 50%">
+        <div class="row m0" style="overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+              <h4>Details of Receiver (Billed to) :</h4>
+              <span><b>Supplier ID :</b></span>{{ supplier_id }}<br>
+              <span><b>Supplier Name :</b></span>{{ supplier_name }}<br>
+              <span><b>Address  line :</b></span>{{ address }}<br>
+<!--              <span><b>City :</b></span>{{ page.city }}<br>-->
+<!--              <span><b>Pincode :</b></span>{{ page.pincode }}<br>-->
+              <span><b>GST No :</b></span>{{ supplier_gst  }}<br>
+            </div>
+          </div>
+        </div>
+            </td>
+            <td style="width: 50%">
+        <div class="row m0" style="overflow: hidden;">
+          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+            <div class="col-md-12 p0">
+              <h4>Details of Consignee (Shipped to) :</h4>
+              <span><b>Supplier ID :</b></span>{{ supplier_id }}<br>
+              <span><b>Supplier Name :</b></span>{{ supplier_name }}<br>
+              <span><b>Address  line :</b></span>{{ address }}<br>
+<!--              <span><b>City :</b></span>{{ page.city }}<br>-->
+<!--              <span><b>Pincode :</b></span>{{ page.pincode }}<br>-->
+              <span><b>GST No :</b></span>{{ supplier_gst }}<br>
+            </div>
+          </div>
+        </div>
+      </td>
+  </tr>
+  </tbody>
+</table>
+<table class="table-bordered bl br cal-table m0 table-custom" width="960">
+  <thead>
+    <tr class="fs14">
+      <th class="w5"><center>SL NO</center></th>
+      <th><center>SKU Code</center></th>
+      <th><center>SKU Description</center></th>
+      <th class="w6"><center>QTY</center></th>
+      <th class="w6"><center>Rate Per Unit(Excluding tax)</center></th>
+      <th class="w6"><center>Sub Total (Excluding Tax)</center></th>
+      <th class="w6"><center>CGST(%)</center></th>
+      <th class="w6"><center>SGST(%)</center></th>
+      <th class="w6"><center>IGST(%)</center></th>
+      <th class="w6"><center>Amount(including tax)</center></th>
+      <th class="w6"><center>Reason</center></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in page %}
+    <tr class="fs14 rm-border">
+      {% if i.discrepency_quantity %}
+        <td class="text-left">{{ forloop.counter }}</td>
+      {% else %}
+        <td class="text-left"></td>
+      {% endif %}
+      <td class="text-left"><div class="wrap">{{i.wms_code}}</div></td>
+      <td class="text-left"><div class="wrap">{{i.sku_desc}}</div></td>
+      <td class="text-right"> {{ i.discrepency_quantity}} </td>
+      <td class="text-right">{{i.price}}</td>
+      <td class="text-right">{{i.discrepencey_price}}</td>
+      <td class="text-right">{{i.cgst_tax}}</td>
+      <td class="text-right">{{i.sgst_tax}}</td>
+      <td class="text-right">{{i.igst_tax}}</td>
+      <td class="text-right">{{i.discrepencey_price_tax}}</td>
+      <td class="text-right">{{i.discrepency_reason}}</td>
+    </tr>
+    {% endfor %}
+    {% if forloop.last %}
+    <tr style="border-top: 1px solid black;">
+        <td class="fs14" colspan="11">
+        <div class="row m0">
+        </div>
+        <div class="row m0">
+          <div class="col-xs-6 text-left">
+          </div>
+          <div class="col-xs-6 text-left">
+            <span>Total Qty: </span>
+            <span class="pull-right">{{ total_discrepency_qty }}</span>
+            <br><br><br>
+            <span>Total Amount(including Tax): </span>
+            <span class="pull-right"> {{ total_discrepency_amount }}</span>
+          </div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="fs14" colspan="4">
+        <div class="row m0">
+          <div class="col-xs-12 text-left">
+            <span>GRN No. :</span> {{ po_number  }}<br>
+            <span>GRN Date:</span> {{ order_date }} <br>
+          </div>
+        </div>
+      </td>
+      <td class="fs14 text-center" colspan="9">
+        <h5 class="m0">For {{ company_name }}</h5><br><br>
+        <h5 class="m0">Authorised Signatory</h5>
+      </td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endfor %}
+</div>

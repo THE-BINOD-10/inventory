@@ -1,0 +1,204 @@
+      {% load tag_extras %}
+
+<div>
+<style>
+  {% include 'toggle/page1.css' %}
+  /* @media print{
+    table{
+      border-collapse: collapse;
+    }
+    tr,td{
+      page-break-inside: avoid;
+      white-space:nowrap;
+    }
+  } */
+</style>
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+      <table class="table table-bordered m0" width="1045">
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>Discrepancy NOTE</b></h3>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
+              <p class="m0" align="center">{{ company_address }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <span><b>GSTIN :</b>{{ page.warehouse_details.gst_number }}</span><br>
+                    <span><b>PAN No :</b>{{ page.warehouse_details.pan_number }}</span><br>
+                    <span><b>Serial no. of Debit Note :</b>{{ page.rtv_number }}</span><br>
+					          <span><b>Date of Debit Note :</b> {{ page.rtv_creation_date }}</span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="width: 50%">
+                <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <span><b>Original Invoice No. :</b> {{ page.invoice_num }}</span><br>
+                    <span><b>Date of Issue of the Original Invoice :</b>{{ page.date_of_issue_of_original_invoice }}</span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Details of Receiver (Billed to) :</h4>
+                    <span><b>Supplier ID :</b> {{data_dict.1.1 }}</span><br>
+                    <span><b>Name :</b></span>{{ data_dict.3.1}}<br>
+                    <span><b>Address :</b></span>{{ page.supplier_address }}<br>
+                    <span><b>City :</b></span>{{ page.city }}<br>
+                    <span><b>Pincode :</b></span>{{ page.pincode }}<br>
+                    <span><b>PAN No :</b></span>{{ page.pan }}<br>
+                  </div>
+                </div>
+              </div>
+			      </td>
+			      <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Details of Consignee (Shipped to) :</h4>
+                    <span><b>Name :</b></span> {{ page.supplier_name }}<br>
+                    <span><b>Address  line 1 :</b></span>{{ page.supplier_address }} <br>
+                    <span><b>Address  line 2 :</b></span><br>
+                    <span><b>City :</b></span>{{ page.city }}<br>
+                    <span><b>Pincode :</b></span>{{ page.pincode }}<br>
+                    <span><b>PAN No :</b></span>{{ page.pan }}<br>
+                  </div>
+                </div>
+              </div>
+            </td>
+		      </tr>
+        </tbody>
+      </table>
+      <table class="table table-bordered m0">
+    		<thead>
+      		<tr align="center">
+      			<th style="padding:2.5px;" rowspan="2"><center>SKU Code</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Description of Goods</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>HSN Code</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>QTY</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Unit</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Rate Per Unit</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Total</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Discount</center></th>
+      			<th style="padding:2.5px;" rowspan="2"><center>Taxable value</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>CGST</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>SGST/UTGST</center></th>
+      			<th style="padding:2.5px;" colspan="2"><center>IGST</center></th>
+                  <th style="padding:2.5px;" colspan="2"><center>CESS</center></th>
+                  <th style="padding:2.5px;"><center>APMC</center></th>
+      		</tr>
+      		<tr>
+      			<th>Rate</th>
+      			<th>Amt</th>
+      			<th>Rate</th>
+      			<th>Amt</th>
+      			<th>Rate</th>
+            <th>Amt</th>
+            <th>Rate</th>
+            <th>Amt</th>
+<!--            <th>Rate</th>-->
+            <th>Amt</th>
+      		</tr>
+    		</thead>
+        <tbody>
+          {% for i in page.item_details %}
+          <tr class="fs14 rm-border">
+            <td class="text-left" style="padding:2.5px;">{{ i.sku_code }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.sku_desc }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.hsn_code }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.order_qty }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.measurement_unit }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.price }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.total_amt }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.taxable_value }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cgst }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.cgst_value }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.sgst }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.sgst_value }}</td>
+			      <td class="text-right" style="padding:2.5px;">{{ i.igst }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.igst_value }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cess }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cess_value }}</td>
+<!--            <td class="text-right" style="padding:2.5px;">{{ i.apmc }}</td>-->
+            <td class="text-right" style="padding:2.5px;">{{ i.apmc_value }}</td>
+          </tr>
+          {% endfor %}
+		      <tr style="border-top: 1px solid black;">
+			      <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+			      <td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
+			      <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{page.total_without_discount}}</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ page.total_taxable_value }}</td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_cgst_value }}</td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_sgst_value }}</td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_igst_value }}</td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_cess_value }}</td>
+<!--            <td class="text-right" style="padding:2.5px;"></td>-->
+            <td class="text-right" style="padding:2.5px;">{{ page.total_apmc_value }}</td>
+		      </tr>
+		      <tr>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+<!--            <td class="text-right" style="padding:2.5px;"></td>-->
+            <td class="text-right" style="padding:2.5px;" colspan="3">Total Invoice Value</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_invoice_value }}</td>
+          </tr>
+          {% if forloop.last %}
+          <tr>
+            <td class="fs14" colspan="5">
+              <div class="row m0">
+                <div class="col-xs-12 text-left">
+                  <span>GRN No. :</span> {{ page.grn_no }}<br>
+                  <span>GRN Date:</span> {{ page.grn_date }} <br>
+                </div>
+              </div>
+            </td>
+            <td class="fs14 text-center" colspan="15">
+              <h5 class="m0">For {{ page.warehouse_details.company_name }}</h5><br><br>
+              <h5 class="m0">Authorised Signatory</h5>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

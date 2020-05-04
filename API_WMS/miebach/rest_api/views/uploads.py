@@ -2497,7 +2497,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     temp1 = ''
-    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('supplier_id', flat=True)
     auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
@@ -2619,7 +2619,7 @@ def supplier_sku_upload(request, user=''):
                     if col_idx == 0:
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
-                        supplier_data['supplier_id'] = cell_data
+                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
                     elif col_idx == 1:
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)
@@ -2830,7 +2830,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = user_profile.prefix + '_' + cell_data
                 ep_supplier = 0
                 if cell_data:
-                    supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
+                    supplier = SupplierMaster.objects.filter(user=user.id, supplier_id=cell_data.upper())
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
                     else:
@@ -5499,7 +5499,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                 else:
                     if isinstance(supplier_id, float):
                         supplier_id = int(supplier_id)
-                    supplier_master = SupplierMaster.objects.filter(user=user.id, id=supplier_id)
+                    supplier_master = SupplierMaster.objects.filter(user=user.id, supplier_id=supplier_id)
                     if not supplier_master:
                         index_status.setdefault(count, set()).add('Invalid Supplier ID')
                 if supplier_master:
@@ -8347,7 +8347,7 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
     supplier_ids = []
     final_data = []
     attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
-    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('supplier_id', flat=True)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
@@ -8365,7 +8365,7 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data and cell_data in supplier_ids:
-                    row_data['supplier_id'] = cell_data
+                    row_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user_id).id
                 else:
                     index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
 

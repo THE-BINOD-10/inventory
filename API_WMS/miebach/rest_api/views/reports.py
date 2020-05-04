@@ -507,7 +507,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         order_id = search_params.get('order_id')
         search_parameters['order_id'] = order_id
     if supplier_name:
-        search_parameters['open_po__supplier__id'] = supplier_name
+        search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user=user.id, **search_parameters)
     else:

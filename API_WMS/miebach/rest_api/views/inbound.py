@@ -564,7 +564,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     if supplier_status:
         request.user.id = supplier.user
         # user.id = supplier.user
-        filters['search_9'] = supplier.id
+        filters['search_9'] = supplier.supplier_id
         users = [supplier.user]
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         warehouses = get_sister_warehouse(user)
@@ -11650,7 +11650,7 @@ def download_grn_invoice_mapping(request, user=''):
     if request.GET.get('invoice_number', ''):
         search_parameters['invoice_number'] = request.GET['invoice_number']
     if 'supplier' in request.GET and ':' in request.GET['supplier']:
-        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',

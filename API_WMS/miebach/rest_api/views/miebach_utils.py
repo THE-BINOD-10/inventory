@@ -1327,7 +1327,7 @@ PRINT_PICKLIST_HEADERS = (
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
 SKU_SUPPLIER_MAPPING = OrderedDict(
-    [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
+    [('Supplier ID', 'supplier__supplier_id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
      ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage'), ('MRP', 'mrp')])
 
 SKU_WH_MAPPING = OrderedDict(
@@ -8173,11 +8173,14 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty']
+    lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty']
     unsorted_dict = {}
     model_name = PurchaseOrder
-    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
-    result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'prefix',
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id',
+                     'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user',
+                     'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix',
+                     'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
+    result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
            'sellerposummary__receipt_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'

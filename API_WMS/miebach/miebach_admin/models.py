@@ -512,7 +512,7 @@ class PendingPR(models.Model):
 @reversion.register()
 class PendingPO(models.Model):
     id = BigAutoField(primary_key=True)
-    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
+    #supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True, related_name='pendingpos')
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')

@@ -6376,6 +6376,7 @@ def get_purchase_order_data(order):
         rw_purchase = rw_purchase[0]
         open_data = rw_purchase.rwo
         user_data = UserProfile.objects.get(user_id=open_data.vendor.user)
+        supplier_id = user_data.user.id
         address = open_data.vendor.address
         email_id = open_data.vendor.email_id
         username = open_data.vendor.name
@@ -6395,6 +6396,7 @@ def get_purchase_order_data(order):
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
+        supplier_id = order.open_po.supplier.supplier_id
         address = user_data.address
         email_id = user_data.email_id
         username = user_data.name
@@ -6423,6 +6425,7 @@ def get_purchase_order_data(order):
         st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
         open_data = st_order[0].open_st
         user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
+        supplier_id = user_data.user.id
         address = user_data.location
         email_id = user_data.user.email
         username = user_data.user.username
@@ -6440,7 +6443,7 @@ def get_purchase_order_data(order):
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': supplier_id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
@@ -8779,7 +8782,7 @@ def get_supplier_info(request):
         return True, supplier_data, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
-def create_new_supplier(user, supp_id, supplier_dict=None):#supp_name, supp_email, supp_phone, supp_address, supp_tin):
+def create_new_supplier(user, supp_id, supplier_dict=None):
     ''' Create New Supplier with dynamic supplier id'''
     max_sup_id = SupplierMaster.objects.count()
     run_iterator = 1
@@ -8787,8 +8790,15 @@ def create_new_supplier(user, supp_id, supplier_dict=None):#supp_name, supp_emai
     while run_iterator:
         supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
         if not supplier_obj:
-            supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                            supplier_id=supp_id, **supplier_dict)
+            if supp_id:
+                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                                supplier_id=supp_id, **supplier_dict)
+            else:
+                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                                **supplier_dict)
+                if created:
+                    supplier_master.supplier_id = supplier_master.id
+                    supplier_master.save()
             run_iterator = 0
             #supplier_id = supplier_master.id
         else:
@@ -9833,7 +9843,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
                                                    invoice_number=invoice_num,
-                                                   purchase_order__open_po__supplier_id=supplier_id)
+                                                   purchase_order__open_po__supplier__supplier_id=supplier_id)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
                                                              str(exist_inv_obj[0].receipt_number))

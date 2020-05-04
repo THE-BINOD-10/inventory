@@ -51,4 +51,5 @@ urlpatterns = [
     url(r'^get_customers/$', get_customers),
     url(r'^get_skufilters/$', get_skufilters),
     url(r'^create_orders/$', create_orders),
+    url(r'^get_shipmentinfo/$', get_shipmentinfo),
 ]

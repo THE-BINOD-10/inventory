@@ -2139,3 +2139,92 @@ def get_customers(request, user=''):
                            'total_order_amount':customer_amount})
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))
+
+@login_required
+@get_admin_user
+def get_shipmentinfo(request, user=''):
+    request_data = request.body
+    limit = 10
+    sister_whs = []
+    search_query = Q()
+    total_data = []
+    search_params = {}
+    data_dict = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            if request_data.get('limit'):
+                limit = request_data['limit']
+            if request_data.has_key('invoice_number'):
+                search_params['invoice_number'] = request_data['invoice_number']
+                if type(request_data['invoice_number']) == list:
+                    search_params['invoice_number'] = search_params['invoice_number']
+                else:
+                    search_parameters['invoice_number'] = search_params['invoice_number']
+            if request_data.has_key('order_id'):
+                if type(request_data['order_id']) == list:
+                    search_params['order__original_order_id__in'] = search_params['order_id']
+                else:
+                    search_parameters['order__original_order_id'] = search_params['order_id']
+            if request_data.has_key('shipment_number'):
+                search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+        search_params['order__user'] = user.id
+    master_data = ShipmentInfo.objects.filter(**search_params)
+    page_info = scroll_data(request, master_data, limit=limit, request_type='body')
+    master_data = page_info['data']
+    count = 1
+    for data in master_data:
+        shipping_address,address = '',''
+        charge_amount = 0
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
+                                        values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
+        status = 'Dispatched'
+        original_order_id = data.order.original_order_id
+        address = customer_details[0]['address']
+        shipping_address = customer_details[0]['shipping_address']
+        other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
+        if other_charges:
+            charge_amount = other_charges[0].charge_amount
+        if not shipping_address:
+            shipping_address = address
+        grouping_key = original_order_id
+        tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+        if tracking:
+            status = tracking[0]
+        if data.order_shipment:
+            order_shipment = data.order_shipment
+            shipment_number = str(order_shipment.shipment_number)
+            awb_number = order_shipment.shipment_reference
+            ewaybill_number = order_shipment.ewaybill_number
+            estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
+            # manifest_number = str(order_shipment.manifest_number)
+        if grouping_key in data_dict.keys():
+            count += 1
+        data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
+                           'awb_number': awb_number,
+                           'shipment_number': shipment_number,
+                           'estimated_shipment_date':estimated_shipment_date,
+                           'invoice_number': data.invoice_number,
+                           'delivery_status':status,
+                           'package_dispatch_date': get_local_date(user, data.creation_date),
+                           'delivery_charges':charge_amount,
+                           'shipping_address':shipping_address,
+                           })
+        data_dict[grouping_key]['no_of_items_in_package'] = count
+    order_data_loop = data_dict.values()
+    for data1 in order_data_loop:
+        total_data.append(data1)
+    page_info['data'] = total_data
+    return HttpResponse(json.dumps(page_info))
+

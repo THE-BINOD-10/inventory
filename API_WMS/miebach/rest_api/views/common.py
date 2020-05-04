@@ -7815,7 +7815,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
     allow_partial_picklist = False
-    if switch_vals['allow_partial_picklist'] == 'true':
+    if switch_vals.get('allow_partial_picklist', '') == 'true':
         allow_partial_picklist = True
     combo_allocate_stock = False
     if switch_vals.get('combo_allocate_stock', '') == 'true':

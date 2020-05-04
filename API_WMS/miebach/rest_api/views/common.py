@@ -5158,12 +5158,14 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     warehouse = request.GET.get('warehouse', '')
+    admin_user = get_warehouse_admin(user)
     if warehouse:
-        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs = list(get_sister_warehouse(admin_user).values_list('user__username', flat=True))
+        sister_whs.append(admin_user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return json.dumps(json.dumps({'error': 'Invalid Warehouse Name'}))
+            return HttpResponse(json.dumps({'error': 'Invalid Warehouse Name'}))
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():
@@ -7814,7 +7816,7 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
     allow_partial_picklist = False
-    if switch_vals['allow_partial_picklist'] == 'true':
+    if switch_vals.get('allow_partial_picklist', '') == 'true':
         allow_partial_picklist = True
     combo_allocate_stock = False
     if switch_vals.get('combo_allocate_stock', '') == 'true':

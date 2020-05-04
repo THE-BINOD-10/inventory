@@ -933,6 +933,7 @@ def get_skus(request):
     skus = []
     search_params = {'user': user.id}
     sister_whs = []
+    order_by = 'creation_date'
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -960,6 +961,8 @@ def get_skus(request):
         if request_data.get('sku_search'):
             search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+        if request_data.get('sort_by'):
+            order_by = sort_get_skus(sku_model, request_data['sort_by'])
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
@@ -982,7 +985,7 @@ def get_skus(request):
                         attr_filter_ids = attr_ids
             if attr_found:
                 search_params['id__in'] = attr_filter_ids
-    sku_records = SKUMaster.objects.filter(search_query, **search_params)
+    sku_records = SKUMaster.objects.filter(search_query, **search_params).order_by(order_by)
     error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
     total_count = sku_records.count()
     for error_sku in error_skus:
@@ -1059,6 +1062,14 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
+def sort_get_skus(model,sort_option):
+    order_by = 'creation_date'
+    sort_check = sort_option.split('-')
+    sort_check = sort_check[-1]
+    if sort_check in model:
+        order_by = sort_option
+    return order_by
 
 @csrf_exempt
 @login_required
@@ -1528,6 +1539,7 @@ def get_orders(request):
             unit_discount = 0
             discount_amount = 0
             dispatched_quantity = 0
+            cancelled_quantity = 0
             order_summary = CustomerOrderSummary.objects.filter(order_id=data.id,order__user=user.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
             seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
@@ -1556,9 +1568,11 @@ def get_orders(request):
             # if picked_quantity_sku == 0:
             #         sku_status = 'Open'
             dispatched_quantity = shipment_dict.get(data.id, 0)
-            picked_quantity_sku -= dispatched_quantity
+            # picked_quantity_sku -= dispatched_quantity
+            cancelled_quantity = data.cancelled_quantity
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
+                         'cancelled_quantity':cancelled_quantity,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
                          'shipment_charge':float('%.2f' % charge_amount), 'discount_amount':'',
                          'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
@@ -2065,6 +2079,8 @@ def get_customers(request, user=''):
     limit = 30
     sister_whs = []
     search_query = Q()
+    customer_mapping = {}
+    customer_dict = {}
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2096,9 +2112,18 @@ def get_customers(request, user=''):
     master_data = CustomerMaster.objects.filter(search_query,**search_params)
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
+    customer_ids = list(master_data.values_list('customer_id', flat=True))
+    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids).values('customer_id', 'invoice_amount')
+    for item in customer_mapping:
+        if item['customer_id'] in customer_dict:
+            customer_dict[item['customer_id']] += item['invoice_amount']
+        else:
+            customer_dict[item['customer_id']] = item['invoice_amount']
     for data in master_data:
+        customer_amount = 0
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        customer_amount = float('%.2f' % customer_dict.get(data.customer_id, 0))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
                            'last_name': data.last_name, 'billing_address': data.address,
                            'shipping_address': data.shipping_address,
@@ -2110,6 +2135,7 @@ def get_customers(request, user=''):
                            'tax_type': data.tax_type,
                            'price_type':data.price_type,
                            'phone_number': str(data.phone_number), 'email': data.email_id,
-                           'customer_type':data.customer_type})
+                           'customer_type':data.customer_type,
+                           'total_order_amount':customer_amount})
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))

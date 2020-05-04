@@ -608,6 +608,7 @@ class PurchaseOrder(models.Model):
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)
+    discrepancy_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=256, default='')
     priority = models.IntegerField(default=0)
@@ -713,6 +714,7 @@ class BatchDetail(models.Model):
     batch_no = models.CharField(max_length=64, default='')
     buy_price = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
+    receipt_number = models.PositiveIntegerField(default=1)
     manufactured_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     tax_percent = models.FloatField(default=0)
@@ -2031,7 +2033,7 @@ class PaymentInfo(models.Model):
     payment_date = models.DateTimeField(auto_now=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'PAYMENT_INFO'
 
@@ -3654,3 +3656,23 @@ class StockTransferSummary(models.Model):
 
     class Meta:
         db_table = 'STOCK_TRANSFER_SUMMARY'
+
+
+@reversion.register()
+class Discrepancy(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    discrepancy_number = models.CharField(max_length=32, default='')
+    receipt_number  = models.PositiveIntegerField(default=0)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    new_data = models.TextField(default='')
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    return_reason = models.CharField(max_length=64, default='')
+    return_type = models.CharField(max_length=32, default='Discrepancy')
+    po_number = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'DISCREPANCY'

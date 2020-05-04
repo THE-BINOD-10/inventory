@@ -535,7 +535,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['PO Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
             #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -693,8 +693,8 @@ PO_REPORT_DICT = {
         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location'],
-    'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location'],
+    'dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity','PO No','Location','PO Date'],
+    'mk_dt_headers': ['SKU Code','Sku Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Manufacturer', 'Searchable', 'Bundle', 'Quantity','PO No','Location','PO Date'],
     'dt_url': 'get_po_report', 'excel_name': 'get_po_report',
     'print_url': 'print_po_report',
  }
@@ -1124,6 +1124,17 @@ INVENTORY_VALUE_REPORT_DICT = {
     'print_url': 'print_inventory_value_report',
 }
 
+DISCREPANCY_REPORT_DICT = {
+    'filters': [
+        {'label': 'PO Number', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
+        {'label': 'Supplier ID/Name', 'name': 'supplier_id', 'type': 'supplier_search'},
+    ],
+    'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
+    'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
+    'print_url': 'print_discrepancy_report',
+}
+
 BULK_TO_RETAIL_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1255,7 +1266,9 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'bulk_stock_update': BULK_STOCK_UPDATE,
                      'credit_note_form_report': CREDIT_NOTE_FORM_REPORT_DICT,
                      'cancel_invoice_report':CANCEL_INVOICE_REPORT_DICT,
+                     'discrepancy_report':DISCREPANCY_REPORT_DICT,
                     }
+
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -1491,6 +1504,7 @@ MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'recei
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
                                  ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
+                                 ('GRN Discrepancy', 'grn_discrepancy'),
                                  ('GRN Approval', 'grn_approval'),('Allow Secondary Emails', 'allow_secondary_emails'),('RTV Mail','rtv_mail'),
                                  ))
 
@@ -2461,6 +2475,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      'sales_return_reasons': 'sales_return_reasons',
                      'rtv_prefix_code': 'rtv_prefix_code',
+                     'discrepency_prefix':'discrepency_prefix',
                      'weight_integration_name': 'weight_integration_name',
                      'delivery_challan_terms_condtions': 'delivery_challan_terms_condtions',
                      'order_prefix': 'order_prefix',
@@ -3786,7 +3801,7 @@ def get_po_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity']
+    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity','received_quantity']
     unsorted_dict = {}
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
@@ -3869,19 +3884,28 @@ def get_po_filter_data(search_params, user, sub_user):
         else:
             po_number = '%s/%s' % (po_number, receipt_no)
         received_qty = data['total_received']
+        discrepancy_filter = {}
         if data.get('sellerposummary__receipt_number', ''):
+            discrepancy_filter['receipt_number'] = data['sellerposummary__receipt_number']
             received_qty =  po_result.filter(sellerposummary__receipt_number=data['sellerposummary__receipt_number']).aggregate(
                 Sum(rec_quan1))[rec_quan1 + '__sum']
             if not received_qty:
                 received_qty = 0
         #if data['grn_rec']:
         #    received_qty = data['grn_rec']
+        discrepancy_quantity = 0
+        if user.userprofile.industry_type == 'FMCG':
+            discrepancy_filter['user'] = user.id
+            discrepancy_filter['purchase_order__order_id'] =data[field_mapping['order_id']]
+            discrepancy_quantity = sum(list(Discrepancy.objects.exclude(purchase_order=None).filter(**discrepancy_filter)\
+                                            .values_list('quantity',flat=True)))
         temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('PO Reference', po_reference_name),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
                                                 ('Order Quantity', total_ordered),
                                                 ('Received Quantity', received_qty),
+                                                ('Discrepancy Quantity', discrepancy_quantity),
                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
                                             )))
@@ -7771,12 +7795,14 @@ def get_po_report_data(search_params, user, sub_user, serial_view=False):
                         sr_number = courtesy_sr_number[0].value
         po_quantity = float(order.open_po.order_quantity) - float(order.received_quantity)
         warehouse_location = warehouse_users[order.open_po.sku.user]
+        po_date = get_local_date(user , order.creation_date)
         ord_dict = OrderedDict((('SKU Code',order.open_po.sku.wms_code),('PO No',po_reference_no),
                                                 ('SKU Category',order.open_po.sku.sku_category),('Sub Category',order.open_po.sku.sub_category),
                                                 ('SKU Brand',order.open_po.sku.sku_brand),
                                                 ('Quantity',po_quantity ), ('Sku Description', order.open_po.sku.sku_desc),
                                                 ('Location',warehouse_location), ('Customer Name', customer_name),
-                                ('SR Number', sr_number)))
+                                                ('PO Date',po_date),
+                                                ('SR Number', sr_number)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
@@ -10040,4 +10066,50 @@ def get_credit_note_report_data(search_params, user, sub_user, serial_view=False
                                 ('Invoice Number', order.get('invoice_number','')),('Return Date', return_date),
                                 ('Reason', order.get('reason','')),('Updated User', updated_user)))
         temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+
+def get_discrepancy_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    lis = ['id','po_number','discrepancy_number']
+    col_num = search_params.get('order_index', 1)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['creation_date__lte'] = search_params['to_date']
+    if 'order_id' in search_params:
+        search_parameters['purchase_order__order_id'] = search_params['order_id']
+    if 'discrepancy_number' in search_params:
+        search_parameters['discrepancy_number'] = search_params['discrepancy_number']
+    if 'supplier_id' in search_params and ':' in search_params['supplier_id']:
+            search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+                search_params['supplier_id'].split(':')[0]
+
+
+    search_parameters['user'] = user.id
+    master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\
+        .order_by(order_data).values('po_number','discrepancy_number','purchase_order__open_po__supplier__id','purchase_order__open_po__supplier__name').distinct()
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict((('PO Number', data['po_number']),
+                                                ('Discrepancy Number', data['discrepancy_number']),
+                                                ('Supplier ID', data['purchase_order__open_po__supplier__id']),
+                                                ('Supplier Name', data['purchase_order__open_po__supplier__name']),)))
     return temp_data

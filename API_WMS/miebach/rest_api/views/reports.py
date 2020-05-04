@@ -836,9 +836,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                  'reason': adjustment.reason,
                                                  'creation_date': creation_date,
                                                  'quantity': 0,
+                                                 'cycle_quantity':0,
                                                  'prices_list': [], 'amount': 0,
                                                  'cycle': adjustment.cycle})
             grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['cycle_quantity'] +=adjustment.cycle.seen_quantity
             grouping_data[group_key]['amount'] += amount
             grouping_data[group_key]['prices_list'].append(price)
         adjustments = grouping_data.values()
@@ -871,6 +873,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                         searchable = attribute.attribute_value
                     if attribute.attribute_name == 'Bundle':
                         bundle = attribute.attribute_value
+            if data['quantity'] < 0 :
+                initial_quantity = abs(data['quantity'])
+            else:
+                initial_quantity = data['cycle_quantity'] - data['quantity']
+
             temp_data['aaData'].append(OrderedDict((('SKU Code', sku.sku_code),
                                                     ('Name', sku.sku_desc),
                                                     ('Weight', weight),
@@ -889,10 +896,14 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Quantity', data['quantity']),
                                                     ('Average Cost', avg_cost),
                                                     ('Value', amount),
+                                                    ('changed_qty', data['quantity']),
+                                                    ('post_adjustment_qty', data['cycle_quantity']),
+                                                    ('initial_quantity', initial_quantity),
+                                                    ('changed_unit_value', avg_cost),
+                                                    ('changed_total_value', amount),
                                                     ('Reason', data['reason']),
                                                     ('User', updated_user_name),
                                                     ('Transaction Date', data['creation_date']),
-
                                                     )))
     else:
         temp_data['recordsTotal'] = len(adjustments)

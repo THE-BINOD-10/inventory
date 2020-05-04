@@ -3585,8 +3585,12 @@ def st_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
+    if enable_damaged_stock == 'true':
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
+                                                                                location__zone__zone__in=[
+                                                                                    'DAMAGED_ZONE'])
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
                                     exclude(location__zone__zone__in=picklist_exclude_zones)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -3615,6 +3619,8 @@ def st_generate_picklist(request, user=''):
     all_sku_stocks = stock_detail1 | stock_detail2
     seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
+        if key =='enable_damaged_stock':
+            continue
         order_data = StockTransfer.objects.filter(id=key)
         if order_data and order_data[0].st_seller:
             sku_stocks = all_sku_stocks
@@ -5608,12 +5614,13 @@ def create_stock_transfer(request, user=''):
         data_dict['cgst'][i] = data_dict['cgst'][i] if data_dict['cgst'][i] else 0
         data_dict['sgst'][i] = data_dict['sgst'][i] if data_dict['sgst'][i] else 0
         data_dict['igst'][i] = data_dict['igst'][i] if data_dict['igst'][i] else 0
+        data_dict['cess'][i] = data_dict['cess'][i] if data_dict['cess'][i] else 0
         mrp = data_dict['mrp'][i] if data_dict.get('mrp', '') and data_dict['mrp'][i] else 0
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],data_dict['cgst'][i],
-             data_dict['sgst'][i],data_dict['igst'][i], data_id, mrp])
+             data_dict['sgst'][i],data_dict['igst'][i], data_dict['cess'][i],data_id, mrp])
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
     if not status:
@@ -10928,19 +10935,21 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
     filter_params ={}
-    lis = ['order_id','order_id','order_id','quantity','updation_date','quantity']
-    st_list=['stock_transfer__order_id','stock_transfer__order_id','quantity','creation_date','quantity','stock_transfer__order_id']
+    lis = ['order_id','order_id','order_id','quantity','updation_date','quantity','quantity']
+    st_list=['stock_transfer__order_id','stock_transfer__order_id','stock_transfer__order_id','quantity','stock_transfer__creation_date','invoice_number','quantity']
     order_by_term = 'order_id'
     summary_term = 'stock_transfer__order_id'
     old_list = []
     new_list = []
+    summary_params = {}
     new_data = {}
     if order_term == 'desc':
         order_by_term = '-'+lis[col_num]
         summary_term = '-'+st_list[col_num]
     if search_term :
         filter_params['order_id__icontains']=search_term
-    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id).order_by(summary_term)
+        summary_params['stock_transfer__order_id__icontains'] = search_term
+    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id,**summary_params).order_by(summary_term)
     stock_transfer_ids = stock_transfer_summary.values_list('stock_transfer__id', flat=True).distinct()
     get_stock_transfer = StockTransfer.objects.filter(**filter_params)\
         .exclude(id__in=stock_transfer_ids)\
@@ -12026,11 +12035,14 @@ def generate_stock_transfer_invoice(request, user=''):
     data= json.loads(request.POST.get('data'))
     total_invoice_amount, total_taxable_amount, total_tax, total_cgst_amt, total_sgst_amt, total_igst_amt,total_quantity,invoice_number,full_invoice_number = 0,0,0,0,0,0,0,0,0
     order_id=data['order_id']
+    cess_amt,total_cess_amt = 0 ,0
     get_stock_transfer = StockTransfer.objects.filter(sku__user=user.id, order_id=order_id)
     warehouse_id = get_stock_transfer[0].st_po.open_st.sku.user
     order_date = get_stock_transfer[0].creation_date
     invoice_date = ''
-
+    is_cess_tax_flag = 0
+    if user.username  in MILKBASKET_USERS:
+        is_cess_tax_flag = 1
     interfix , prefix, date_type,full_invoice_number, invoice_number = '','','','',''
     prefix_obj= UserTypeSequence.objects.filter(user=user.id,type_name='stock_transfer_invoice',type_value = 'Offline')
     if prefix_obj.exists():
@@ -12067,6 +12079,7 @@ def generate_stock_transfer_invoice(request, user=''):
             cgst_tax = stock_transfer.st_po.open_st.cgst_tax
             sgst_tax = stock_transfer.st_po.open_st.sgst_tax
             igst_tax = stock_transfer.st_po.open_st.igst_tax
+            cess_tax = stock_transfer.st_po.open_st.cess_tax
             rate = stock_transfer.st_po.open_st.price
             if data.get('pick_number','')[0]:
                 stock_transfer_summary =StockTransferSummary.objects.filter(stock_transfer_id=stock_transfer.id,pick_number__in=data.get('pick_number'))
@@ -12106,30 +12119,36 @@ def generate_stock_transfer_invoice(request, user=''):
                 total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
             price = rate * total_picked_quantity
             total_quantity+=total_picked_quantity
-            cgst_amt, sgst_amt ,igst_amt,gst = 0,0,0,0
+            cgst_amt, sgst_amt ,igst_amt,gst,cess_amt = 0,0,0,0,0
             if cgst_tax :
                 cgst_amt = (price * cgst_tax)/100
                 sgst_amt = (price * sgst_tax)/100
             else:
                 igst_amt  = (price * igst_tax)/100
+            if cess_tax:
+                cess_amt = (price * cess_tax)/100
             total_cgst_amt+=cgst_amt
             total_sgst_amt+=sgst_amt
             total_igst_amt+=igst_amt
+            total_cess_amt+=cess_amt
             gst = cgst_amt+ sgst_amt + igst_amt
-            total_price = price+gst
+            total_price = price+gst+cess_amt
             total_taxable_amount +=price
             total_invoice_amount += total_price
             total_tax +=gst
             sku_description = stock_transfer.sku.sku_desc
             sku = stock_transfer.sku.wms_code
             hsn_code = stock_transfer.sku.hsn_code
-        except:
-            continue
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Stock Transfer  invoice Generation failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
         final_data = {'order_id' : order_id, 'picked_quantity' : total_picked_quantity,'price':price,
                 'cgst_tax':cgst_tax,'sgst_tax':sgst_tax,'igst_tax':igst_tax,'unit_price' : rate,
                 'igst_amt':igst_amt, 'cgst_amt':cgst_amt , 'sgst_amt':sgst_amt,'hsn_code':hsn_code,
                 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
-                'sku_code' : sku, 'invoice_date' : '',
+                'sku_code' : sku, 'invoice_date' : '','cess_tax':cess_tax,'cess_amt':cess_amt,
                 'to_warehouse' : to_warehouse, 'title' : sku_description,
                 'invoice_number' : '' }
         resp_list['data'].append(final_data)
@@ -12140,7 +12159,7 @@ def generate_stock_transfer_invoice(request, user=''):
     total_prices_dict = {'total_taxable_amount':total_taxable_amount,'total_quantity':total_quantity,'full_invoice_number':full_invoice_number,
                          'order_id':order_id,'invoice_date':invoice_date,'order_date':order_date,'declaration': DECLARATIONS['default'],
                          'total_invoice_amount':total_invoice_amount,'total_tax':total_tax,'total_tax_words':number_in_words(total_tax),
-                         'invoice_header':'Stock transfer invoice (Non-Commercial)',
+                         'invoice_header':'Stock transfer invoice (Non-Commercial)','is_cess_tax_flag':is_cess_tax_flag,'total_cess_amt':total_cess_amt,
                          'rounded_invoice_amount':round(total_invoice_amount), 'price_in_words':number_in_words(round(total_invoice_amount)),
                          'total_igst_amt':total_igst_amt, 'total_cgst_amt':total_cgst_amt, 'total_sgst_amt': total_sgst_amt}
     title_dat = get_misc_value('invoice_titles', user.id)
@@ -14970,8 +14989,13 @@ def stock_transfer_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
+    if enable_damaged_stock == 'true':
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
+                                                                                location__zone__zone__in=[
+                                                                                    'DAMAGED_ZONE'])
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+                                    location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -14987,8 +15011,19 @@ def stock_transfer_generate_picklist(request, user=''):
             'location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
+    seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
+        if key == 'enable_damaged_stock':
+            continue
         orders_data = StockTransfer.objects.filter(order_id=key, status=1, sku__user=user.id)
+        if orders_data and orders_data[0].st_seller:
+            seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(orders_data[0].st_seller_id),
+                                       seller_stocks)
+            if seller_stock_dict:
+                sell_stock_ids = map(lambda person: person['stock_id'], seller_stock_dict)
+                sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+            else:
+                sku_stocks = sku_stocks.filter(id=0)
         stock_status, picklist_number = picklist_generation(orders_data, enable_damaged_stock, picklist_number, user,
                                                             sku_combos, sku_stocks, switch_vals)
 

@@ -392,7 +392,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
           data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
         }
-
+        data["enable_damaged_stock"] = vm.enable_damaged_stock;
         var url = 'st_generate_picklist/';
         if (vm.alt_view) {
           url = 'stock_transfer_generate_picklist/';

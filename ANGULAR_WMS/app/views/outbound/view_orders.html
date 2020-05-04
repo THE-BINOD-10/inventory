@@ -117,9 +117,20 @@
       <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
             <!-- <form name="form" role="form" class="filters"> -->
-              <div class="clearfix">
 
+              <div class="clearfix">
                 <div class="row">
+                  <div class="col-md-10 col-sm-10 col-xs-12" style="padding-top: 7px;text-align: right;">
+                    <strong class="ml20">Enable Damaged Stocks</strong>
+                  </div>
+                <div class="col-md-2 col-sm-2 col-xs-12">
+                  <label class="switch switch-sm square mt5">
+                    <div>
+                      <input type="checkbox" ng-model="showCase.enable_damaged_stock" ng-change="showCase.change_enable_damaged_stock(showCase.enable_damaged_stock)" class="ng-valid ng-dirty">
+                      <span><i class="handle"></i></span>
+                    </div>
+                  </label>
+                </div>
                   <div class="col-md-11 col-sm-11 col-xs-10">
                     <p align="right"><b>Alternative View</b></p>
                   </div>

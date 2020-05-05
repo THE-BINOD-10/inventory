@@ -24,9 +24,9 @@
                     <th><center>CGST</center></th>
                     <th><center>SGST</center></th>
                     <th><center>IGST</center></th>
-                    {% if is_cess_tax_flag == 'true' %}
+                    {% if is_cess_tax_flag  %}
                       <th><center>CESS</center></th>
-                    {% endif%}
+                    {% endif %}
                     <th><center>Total</center></th>
                   </tr>
                 </thead>
@@ -51,8 +51,8 @@
                     <td class="text-right">{{record.cgst_amt}}<br><span class="tax-percentage">@{{record.cgst_tax}}%</span></td>
                     <td class="text-right">{{record.sgst_amt}}<br><span class="tax-percentage">@{{record.sgst_tax}}%</span></td>
                     <td class="text-right">{{record.igst_amt}}<br><span class="tax-percentage">@{{record.igst_tax}}%</span></td>
-                    {% if is_cess_tax_flag == 'true' %}
-                      <td class="text-right">{{record.taxes.cess_amt}}<br><span class="tax-percentage">@{{record.taxes.cess_tax}}%</span></td>
+                    {% if is_cess_tax_flag %}
+                      <td class="text-right">{{record.cess_amt}}<br><span class="tax-percentage">@{{record.cess_tax}}%</span></td>
                     {% endif %}
                     <td class="text-right">{{record.amount}}</td>
                   </tr>
@@ -81,6 +81,9 @@
                         {% for i in empty_td %}
                         <td><p style="height:10px"></p></td>
                         {% endfor %}
+                        {% if is_cess_tax_flag %}
+                           <td><p style="height:10px"></p></td>
+                        {% endif %}
                       </tr>
                   {% endfor %}
                   {% if forloop.last %}
@@ -96,13 +99,17 @@
                     <td>{{total_cgst_amt}}</td>
                     <td>{{total_sgst_amt}}</td>
                     <td>{{total_igst_amt}}</td>
-                    {% if is_cess_tax_flag == 'true' %}
-                      <td>{{total_taxes.cess_amt}}</td>
+                    {% if is_cess_tax_flag %}
+                      <td>{{ total_cess_amt }}</td>
                     {% endif %}
                     <td>{{total_invoice_amount}}</td>
                   </tr>
                   <tr ng-if="$last">
+                    {% if is_cess_tax_flag %}
+                    <td colspan='11' class="fs14">
+                    {% else %}
                     <td colspan='10' class="fs14">
+                    {% endif %}
                       <div class="row no-margin" style="position:relative">
                         {% if invoice_remarks != 'false' %}
                         <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black !important;"></div>
@@ -166,7 +173,11 @@
                     </td>
                   </tr>
                   <tr ng-if="$last">
-                      <td colspan='8' style="text-align:left;" class="fs14">
+                    {% if is_cess_tax_flag %}
+                    <td colspan='9' class="fs14">
+                    {% else %}
+                    <td colspan='8' style="text-align:left;" class="fs14">
+                    {% endif %}
                       <span><b class="fs16">DECLARATION:</b></span><br>
                       <p class="pre-custom fs14" style ="display:inline; word-wrap: break-word;">{{declaration}}</p>
                       {% if invoice_remarks != 'false' %}

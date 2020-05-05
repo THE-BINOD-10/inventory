@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
                     'sku_packs_invoice':false,
@@ -53,6 +54,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_allocate_sale_order':false,
                     'po_or_pr_edit_permission_approver': false,
                     'stock_auto_receive': false,
+                    'discrepency_prefix':'',
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -95,6 +97,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
+                     113:'discrepency_prefix',
                      }
 
   vm.check_box_data = [
@@ -1226,6 +1229,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
         $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
         $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
         $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
         $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
         if (vm.model_data.invoice_titles) {

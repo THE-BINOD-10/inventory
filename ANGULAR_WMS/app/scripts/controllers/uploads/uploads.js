@@ -477,8 +477,9 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
       vm.service.showNotyNotHide("Please Download The Error Form");
-    } else {
-      vm.service.showNoty(msg);
+    }
+    else {
+      vm.service.showNotyNotHide(msg);
     }
     $scope.disable = false;
     $(".preloader").removeClass("ng-show").addClass("ng-hide");

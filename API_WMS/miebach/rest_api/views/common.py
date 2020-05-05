@@ -484,7 +484,7 @@ def get_search_params(request, user=''):
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
-                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
+                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status','discrepancy_number':'discrepancy_number',
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
                     'grn_from_date':'grn_from_date','grn_to_date':'grn_to_date',
@@ -1214,10 +1214,14 @@ def configurations(request, user=''):
         config_dict['po_fields'] = po_fields
 
     rtv_reasons = get_misc_value('rtv_reasons', user.id)
+    discrepancy_reasons = get_misc_value('discrepancy_reasons', user.id)
     if rtv_reasons == 'false' :
         config_dict['rtv_reasons'] = ''
     else:
         config_dict['rtv_reasons'] = rtv_reasons
+    config_dict['discrepancy_reasons'] = ''
+    if discrepancy_reasons != 'false':
+        config_dict['discrepancy_reasons'] = discrepancy_reasons
     move_inventory_reasons = get_misc_value('move_inventory_reasons', user.id)
     if move_inventory_reasons == 'false':
         config_dict['move_inventory_reasons'] = ''
@@ -2287,15 +2291,16 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
+    return_status = 'Added Successfully'
     if wmscode:
         sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
         if not sku:
-            return 'Invalid WMS Code'
+            return 'Invalid WMS Code' ,[]
         sku_id = sku[0].id
     if loc:
         location = LocationMaster.objects.filter(zone__user=user.id, location=loc)
         if not location:
-            return 'Invalid Location'
+            return 'Invalid Location' ,[]
     if quantity == '':
         return 'Quantity should not be empty'
     quantity = float(quantity)
@@ -2465,9 +2470,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
 
     if adjustment_objs:
         InventoryAdjustment.objects.bulk_create(adjustment_objs)
-
-    return 'Added Successfully', stock_stats_objs
-
+    else:
+        return_status = 'Failed'
+    return return_status, stock_stats_objs
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
     for pic_loc in pick_loc:
@@ -2863,7 +2868,7 @@ def save_config_extra_fields(request, user=''):
     field_type = request.GET.get('field_type', '')
     fields = request.GET.get('config_extra_fields', '')
     field_type =field_type.strip('.')
-    if len(fields.split(',')) <=  4 or field_type == 'move_inventory_reasons' :
+    if len(fields.split(',')) <=  4 or field_type in ['move_inventory_reasons', 'discrepancy_reasons'] :
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=field_type)
         try:
             if not misc_detail.exists():
@@ -6434,11 +6439,11 @@ def get_purchase_order_data(order):
         mrp = 0
         order_type = ''
         supplier_code = ''
-        cgst_tax = 0
-        sgst_tax = 0
-        igst_tax = 0
+        cgst_tax = open_data.cgst_tax
+        sgst_tax = open_data.sgst_tax
+        igst_tax = open_data.igst_tax
         utgst_tax = 0
-        cess_tax = 0
+        cess_tax = open_data.cess_tax
         apmc_tax = 0
         tin_number = ''
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
@@ -9592,18 +9597,20 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
 
 def update_stock_detail(stocks, quantity, user, rtv_id):
     for stock in stocks.iterator():
-        save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
             stock.save()
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
+            rtv_quantity = stock.quantity
+            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', rtv_quantity, stock)
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
@@ -9611,6 +9618,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
             stock.save()
         if quantity == 0:
             break
+
 
 
 def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp='',price ='',
@@ -10297,7 +10305,7 @@ def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
         for val_idx, val in enumerate(value):
             print val_idx
-            if val[6]:
+            if val[7]:
                 open_st = OpenST.objects.get(id=val[6])
                 open_st.warehouse_id = User.objects.get(username=key[0]).id
                 open_st.sku_id = SKUMaster.objects.get(user=user.id, sku_code=val[0]).id
@@ -10306,7 +10314,8 @@ def insert_st_gst(all_data, user):
                 open_st.cgst_tax = float(val[3])
                 open_st.sgst_tax = float(val[4])
                 open_st.igst_tax = float(val[5])
-                open_st.mrp = float(val[7])
+                open_st.cess_tax = float(val[6])
+                open_st.mrp = float(val[8])
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
@@ -10317,12 +10326,13 @@ def insert_st_gst(all_data, user):
             stock_dict['cgst_tax'] = float(val[3])
             stock_dict['sgst_tax'] = float(val[4])
             stock_dict['igst_tax'] = float(val[5])
-            stock_dict['mrp'] = float(val[7])
+            stock_dict['cess_tax'] = float(val[6])
+            stock_dict['mrp'] = float(val[8])
             if user.userprofile.user_type == 'marketplace_user':
                 stock_dict['po_seller_id'] = key[3].id
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
-            all_data[key][all_data[key].index(val)][6] = stock_transfer.id
+            all_data[key][all_data[key].index(val)][7] = stock_transfer.id
     return all_data
 
 
@@ -10338,7 +10348,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             order_id = 1001
         for val_idx, val in enumerate(value):
             print 'Confirming: %s' % val_idx
-            open_st = OpenST.objects.get(id=val[6])
+            open_st = OpenST.objects.get(id=val[7])
             sku_id = SKUMaster.objects.get(user=warehouse.id, sku_code=val[0]).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
@@ -10355,7 +10365,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             st_purchase.save()
             st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
             st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5])
+            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5]) + + float(val[6])
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id
@@ -10594,6 +10604,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
                     temp_json['wms_code'] = open_st.sku.wms_code
                     temp_json['tax_percent'] = open_st.cgst_tax + open_st.sgst_tax + open_st.igst_tax
                     temp_json['mrp'] = 0
+                    temp_json['cess_percent'] = open_st.cess_tax
                     temp_json['mfg_date'] = ''
                     temp_json['exp_date'] = ''
                     temp_json['weight'] = ''
@@ -11035,7 +11046,7 @@ def validate_mrp_weight(data_dict, user):
     if data_dict['location'] in sellable_bulk_locations:
         sku_mrp_weight_map = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku__wms_code=data_dict['sku_code'],
                                              location__location__in=sellable_bulk_locations).\
-                            exclude(batch_detail__mrp=data_dict['mrp'], batch_detail__weight=data_dict['weight']).\
+                            exclude(batch_detail__mrp=data_dict.get('mrp',0), batch_detail__weight=data_dict.get('weight','')).\
                             exclude(batch_detail__mrp=None, batch_detail__weight=None).\
                             values_list('sku__wms_code', 'batch_detail__mrp', 'batch_detail__weight').distinct()
         if sku_mrp_weight_map:

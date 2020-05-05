@@ -144,7 +144,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
-      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+      vm.data_id = aData['id']?aData['id']:''
+      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'], id:vm.data_id };
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
@@ -263,30 +264,68 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.base();
     vm.sku_record_updation = function(data, records) {
       data.order_quantity = 0;
-      angular.forEach(records, function(rows){
+      angular.forEach(records, function(rows, index){
         if (rows['warehouse_loc']){
           data.order_quantity += parseInt(rows['order_qty']);
         }
+        if (index == records.length-1){
+          vm.getTotals();
+        }
       })
     }
-    vm.remove_location_sku = function(sku, location) {
-      delete vm.send_sku_dict[sku][location]
+    vm.remove_location_sku = function(main_data, sku, location, datum) {
+      for(var i=0; i<vm.send_sku_dict[sku].length; i++) {
+        if (vm.send_sku_dict[sku][i]['warehouse_loc'] == location){
+          main_data.order_quantity -= parseInt(vm.send_sku_dict[sku][i]['order_qty']);
+          vm.send_sku_dict[sku][i]['order_qty'] = 0
+          vm.send_sku_dict[sku].splice(i,1);
+        }
+      }
     }
-    vm.reset_warehouse_sku_dict = function(sku){
-      var temp_dict = {}
-      temp_dict['z'] = {
+    vm.reset_warehouse_sku_dict = function(sku, map){
+      var temp_data = {
                     'warehouse_loc': '',
                     'available_quantity': 0,
                     'intransit_quantity': 0,
                     'skuPack_quantity': 0,
                     'order_qty': 0
                   }
-      vm.send_sku_dict[sku]=temp_dict;
+      if (map) {
+        for(var i=0; i<vm.send_sku_dict[sku].length; i++) {
+          if (vm.send_sku_dict[sku][i]['warehouse_loc'] == ''){
+            vm.service.showNoty('New Record Available for ' + sku);
+            break;
+          }
+          if (i == vm.send_sku_dict[sku].length-1) {
+            vm.send_sku_dict[sku].push(temp_data);
+            break;
+          }
+        }
+      } else {
+        vm.send_sku_dict[sku] = [temp_data];
+      }
     }
-    vm.confirm_location = function(sku_code, datum, location){
-        vm.send_sku_dict[sku_code][location] = datum['warehouse_data'][location];
-        vm.send_sku_dict[sku_code][location]['warehouse_loc'] = location;
-        vm.send_sku_dict[sku_code]['z']['warehouse_loc'] = '';
+    vm.confirm_location = function(sku_code, datum, location, record){
+      var count = 0;
+      for(var i=0; i<vm.send_sku_dict[sku_code].length; i++) {
+        if (vm.send_sku_dict[sku_code][i]['warehouse_loc'] == location){
+          count = count+1;
+          if (count > 1) {
+            vm.send_sku_dict[sku_code][i]['warehouse_loc'] = '';
+            vm.send_sku_dict[sku_code][i]['available_quantity'] = 0;
+            vm.send_sku_dict[sku_code][i]['intransit_quantity'] = 0;
+            vm.send_sku_dict[sku_code][i]['skuPack_quantity'] = 0;
+            vm.service.showNoty('Location Already Assined for ' + sku_code);
+            break;
+          }
+        }
+        if (i == vm.send_sku_dict[sku_code].length-1) {
+          record['available_quantity'] = datum['warehouse_data'][location]['available_quantity'];
+          record['intransit_quantity'] = datum['warehouse_data'][location]['intransit_quantity'];
+          record['skuPack_quantity'] = datum['warehouse_data'][location]['skuPack_quantity'];
+          break;
+        }
+      }
     }
     vm.generate_sku_warehouses = function(record, wms_code) {
       if (wms_code) {
@@ -299,7 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (data.message) {
             record['warehouses'] = Object.keys(data.data);
             record['warehouse_data'] = data.data;
-            vm.reset_warehouse_sku_dict(wms_code);
+            vm.reset_warehouse_sku_dict(wms_code, false);
           }
         });
       } else {
@@ -307,6 +346,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     vm.add = function () {
+      vm.final_send_sku_dict = {};
+      vm.send_sku_dict = {};
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -332,7 +373,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.model_data.receipt_type = 'Hosted Warehouse';
           }
           $state.go('app.inbound.RaisePo.PurchaseRequest');
-
         }
       });
     }
@@ -447,29 +487,52 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
+    vm.confirm_validation = function(type) {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
+      if (type == 'save'){
+        confirm_api ? vm.update_raise_pr() : '';
+      } else {
+        confirm_api ? vm.add_raise_pr(elem) : '';
+      }
+    }
     vm.save_raise_pr = function(data, type) {
-      if (Object.keys(vm.send_sku_dict).length > 0) {
+      if (Object.keys(vm.send_sku_dict).length > 0 && vm.permissions.central_admin_level_po) {
+        vm.final_send_sku_dict = {}
         angular.forEach(vm.send_sku_dict, function(data, key){
-          if (Object.keys(data).includes('z')) {
-            delete (vm.send_sku_dict[key]['z'])
+          vm.final_send_sku_dict[key] = {}
+          var temp_dict = {}
+          for (var i = 0; i < data.length; i++) {
+            temp_dict[data[i]['warehouse_loc']] = {
+                                           'warehouse_loc': data[i]['warehouse_loc'],
+                                           'available_quantity': data[i]['available_quantity'],
+                                           'intransit_quantity': data[i]['intransit_quantity'],
+                                           'skuPack_quantity': data[i]['skuPack_quantity'],
+                                           'order_qty': parseInt(data[i]['order_qty'])
+                                          }
+            if (i == data.length-1){
+              vm.final_send_sku_dict[key] = temp_dict;
+            }
           }
         })
       }
       if (data.$valid) {
-        if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
-          var elem = angular.element($('form'));
-          elem = elem[0];
-          elem = $(elem).serializeArray();
-          var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-          if (type == 'save'){
-            confirm_api ? vm.update_raise_pr() : '';
+        if (vm.permissions.central_admin_level_po) {
+          if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue) {
+            vm.confirm_validation(type);
           } else {
-            confirm_api ? vm.add_raise_pr(elem) : '';
+            vm.service.showNoty('Please fill required Fields');
           }
+        } else if (data.supplier_id.$viewValue && data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+          vm.confirm_validation(type);
         } else {
           data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
           typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
+          if (!vm.permissions.central_admin_level_po) {
+            vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
+          }
         }
       }
     }
@@ -498,9 +561,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else{
         elem.push({name: 'validation_type', value: 'rejected'})
       }
+      if (vm.permissions.central_admin_level_po){
+        elem.push({name:'data_id', value:vm.data_id});
+      }
       vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
+            vm.data_id = '';
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
@@ -595,7 +662,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.common_confirm('confirm_add_po/', elem);
+      if (vm.model_data.send_sku_dict && vm.permissions.central_admin_level_po) {
+        elem.push({name:"data_id", value: vm.data_id})
+        vm.common_confirm('confirm_central_add_po/', elem);
+      } else {
+        vm.common_confirm('confirm_add_po/', elem);
+      }
     }
 
     vm.confirm_pr = function() {
@@ -814,10 +886,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+      if (vm.permissions.central_admin_level_po) {
+        product.fields.order_quantity = '';
+      } else {
+        product.fields.order_quantity = 1;
+      }
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
-      product.fields.order_quantity = 0;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
@@ -947,8 +1023,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }
-      if (Object.keys(vm.send_sku_dict).length > 0) {
-        elem.push({name:'location_sku_data', value:JSON.stringify(vm.send_sku_dict)})
+      if (Object.keys(vm.final_send_sku_dict).length > 0 && vm.permissions.central_admin_level_po) {
+        elem.push({name:'ship_to', value:''});
+        elem.push({name:'location_sku_data', value:JSON.stringify(vm.final_send_sku_dict)});
       }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
@@ -956,6 +1033,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.service.apiCall('add_pr/', 'POST', elem, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
+                  vm.final_send_sku_dict = {};
+                  vm.send_sku_dict = {};
                   vm.close();
                   vm.service.refresh(vm.dtInstance);
                 } else {

@@ -56,7 +56,7 @@
                 <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
-            <div class="col-md-2 col-sm-4 col-xs-6">
+            <div class="col-md-2 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
               <div class="form-group">
                 <label class="control-label">Address *</label><br>
                 <div class="btn-group mr15" dropdown="">
@@ -67,7 +67,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!showCase.permissions.central_admin_level_po">
               <div class="form-group">
                 <label class="control-label"> Ship To *</label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
@@ -118,14 +118,14 @@
                   </td>
                   <td>
                     <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
-                             ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
-                             ng-keyup="showCase.getTotals()" size="12">
+                             ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status || showCase.permissions.central_admin_level_po"
+                             ng-keyup="showCase.getTotals()" size="12" required>
                   </td>
                   <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                     <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
                   </td>
                   <td>
-                    <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number ng-readonly="!showCase.permissions.is_staff" ng-keyup="showCase.getTotals()" size="12">
+                    <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number ng-readonly="!showCase.permissions.is_staff && !showCase.permissions.central_admin_level_po" ng-keyup="showCase.getTotals()" size="12">
                   </td>
                   <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
@@ -143,35 +143,39 @@
 	                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                     <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                   </td>
-                  <td ng-click="showCase.generate_sku_warehouses(product.fields, product.fields.sku.wms_code)" style="font-size: 24px;cursor: pointer;"><i class="glyphicon glyphicon-edit"></i></td>
+                  <td ng-if="showCase.permissions.central_admin_level_po" ng-click="showCase.generate_sku_warehouses(product.fields, product.fields.sku.wms_code)" style="font-size: 24px;cursor: pointer;"><i class="glyphicon glyphicon-edit"></i></td>
                   <td>
                     <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                     <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>
                   </td>
                 </tr>
                 <tr ng-repeat="(key, datum) in showCase.send_sku_dict[product.fields.sku.wms_code]" style="background: #f5f6f78f;">
-                  <td>
-                    <span ng-if="datum.warehouse_loc" class="plus pull-right" style="color: #d03b02b5;">
+                  <td style="padding-left: 12px;">
+                    <span class="plus pull-right" style="color: #d03b02b5; margin-right: 6px;">
                       <i class="fa fa-minus-circle" style="font-size: 25px;margin-top: 0px;" title="Remove sku location"
-                         ng-click="showCase.remove_location_sku(product.fields.sku.wms_code, datum.warehouse_loc)"></i>
+                         ng-click="showCase.remove_location_sku(product.fields, product.fields.sku.wms_code, datum.warehouse_loc, datum)"></i>
+                    </span>
+                    <span ng-if="key == 0" class="plus pull-right" style="color: #18d002b5; margin-right: 12px;">
+                      <i class="fa fa-plus-circle" style="font-size: 25px;margin-top: 0px;" title="Add sku location"
+                         ng-click="showCase.reset_warehouse_sku_dict(product.fields.sku.wms_code, true)"></i>
                     </span>
                   </td>
                   <td class="mb8" style="border-color: #e4e4e400; padding-left: 12px;">
-                    <select ui-select2 ng-model="datum.warehouse_loc" ng-change="showCase.confirm_location(product.fields.sku.wms_code, product.fields, datum.warehouse_loc)">
-                      <option value ="" ng-selected="datum.warehouse_loc == ''">- Please Select Location -</option>
+                    <select ui-select2 ng-model="datum.warehouse_loc" ng-change="showCase.confirm_location(product.fields.sku.wms_code, product.fields, datum.warehouse_loc, datum)">
+                      <option value ="" ng-selected="datum.warehouse_loc == ''">Please Select Location</option>
                       <option ng-repeat="location in product.fields.warehouses" ng-selected="datum.warehouse_loc == location" value="{{location}}">{{location}}</option>
                     </select>
                   </td>
                   <td><input ng-model="datum.available_quantity" type="text" class="form-control detectTab" readonly></td>
                   <td><input ng-model="datum.intransit_quantity" type="text" class="form-control detectTab" readonly></td>
                   <td><input ng-model="datum.skuPack_quantity" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="datum.order_qty" placeholder="Quantity" ng-change="showCase.sku_record_updation(product.fields, showCase.send_sku_dict[product.fields.sku.wms_code])" type="text" class="form-control detectTab" ng-readonly="!datum.warehouse_loc"></td>
-                  <td><input ng-model="product.fields.measurement_unit" placeholder="UOM" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="product.fields.price" placeholder="Unit Price" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="product.fields.sgst_tax" placeholder="SGST(%)" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="product.fields.cgst_tax" placeholder="CGST(%)" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="product.fields.igst_tax" placeholder="IGST(%)" type="text" class="form-control detectTab" readonly></td>
-                  <td><input ng-model="product.fields.utgst_tax" placeholder="UTGST(%)" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="datum.order_qty" ng-change="showCase.sku_record_updation(product.fields, showCase.send_sku_dict[product.fields.sku.wms_code])" type="text" class="form-control detectTab" ng-readonly="!datum.warehouse_loc"></td>
+                  <td><input ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="product.fields.price" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="product.fields.sgst_tax" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="product.fields.cgst_tax" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="product.fields.igst_tax" type="text" class="form-control detectTab" readonly></td>
+                  <td><input ng-model="product.fields.utgst_tax" type="text" class="form-control detectTab" readonly></td>
                 </tr>
               </tbody>
             </table>

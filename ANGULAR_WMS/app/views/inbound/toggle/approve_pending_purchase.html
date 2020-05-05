@@ -139,7 +139,7 @@
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">
                     <td class="mb8" style="border-color: #e4e4e400; padding-left: 12px;">
-                      <select ui-select2 ng-model="datum.warehouse_loc">
+                      <select ui-select2 ng-model="datum.warehouse_loc" disabled>
                         <option ng-selected="datum.warehouse_loc" value="{{datum.warehouse_loc}}">{{datum.warehouse_loc}}</option>
                       </select>
                     </td>

@@ -136,6 +136,7 @@ urlpatterns = [
     url(r'^confirm_po1/$', confirm_po1),
     url(r'^delete_po_group/$', delete_po_group),
     url(r'^confirm_add_po/$', confirm_add_po),
+    url(r'^confirm_central_add_po/$', confirm_central_add_po),
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
     url(r'^get_ep_supplier_value/$', get_ep_supplier_value),

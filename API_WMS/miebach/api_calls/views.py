@@ -12,9 +12,10 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check
+from rest_api.views.common import get_local_date, folder_check,build_invoice
 from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE, MILKBASKET_USERS
 from rest_api.views.integrations import *
+from rest_api.views.outbound import add_consignee_data,modify_invoice_data,get_auth_signature
 import json
 import datetime
 import os
@@ -933,6 +934,7 @@ def get_skus(request):
     skus = []
     search_params = {'user': user.id}
     sister_whs = []
+    order_by = 'creation_date'
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -960,6 +962,8 @@ def get_skus(request):
         if request_data.get('sku_search'):
             search_query = build_search_term_query(['sku_code', 'sku_desc','sku_brand','sku_category'], request_data['sku_search'])
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
+        if request_data.get('sort_by'):
+            order_by = sort_get_skus(sku_model, request_data['sort_by'])
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
@@ -982,7 +986,7 @@ def get_skus(request):
                         attr_filter_ids = attr_ids
             if attr_found:
                 search_params['id__in'] = attr_filter_ids
-    sku_records = SKUMaster.objects.filter(search_query, **search_params)
+    sku_records = SKUMaster.objects.filter(search_query, **search_params).order_by(order_by)
     error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
     total_count = sku_records.count()
     for error_sku in error_skus:
@@ -1059,6 +1063,14 @@ def get_skus(request):
     if error_status:
         page_info['error_data'] = [{'errors': error_status}]
     return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
+
+def sort_get_skus(model,sort_option):
+    order_by = 'creation_date'
+    sort_check = sort_option.split('-')
+    sort_check = sort_check[-1]
+    if sort_check in model:
+        order_by = sort_option
+    return order_by
 
 @csrf_exempt
 @login_required
@@ -1326,8 +1338,8 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        UIN, failed_status = update_customers(customers, user=request.user, company_name='mieone')
-        status = {'status': 200, 'message': 'Success', 'UIN': UIN}
+        UIN, failed_status, customer_id = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 200, 'message': 'Success', 'UIN': UIN, 'customer_id': customer_id}
         if failed_status:
             status = failed_status[0]
         return HttpResponse(json.dumps(status))
@@ -1338,6 +1350,58 @@ def update_customer(request):
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
+
+@csrf_exempt
+@login_required
+def invoice_pdf(request):
+    from io import BytesIO
+    from xhtml2pdf import pisa
+    user = request.user
+    request_data = request.body
+    search_params = {}
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'order__user': user.id}
+        if request_data.get('order_id', ''):
+            search_params['order__original_order_id'] = request_data['order_id']
+        if request_data.get('invoice_number', ''):
+            search_params['full_invoice_number'] = request_data['invoice_number']
+    if search_params.has_key('full_invoice_number') or search_params.has_key('order__original_order_id'):
+        seller_summary = SellerOrderSummary.objects.filter(**search_params).exclude(invoice_number='')
+        ord_ids = list(seller_summary.values_list('order_id',flat=True))
+        order_ids = map(lambda x: str(x), ord_ids)
+        order_ids = ','.join(order_ids)
+        invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
+        invoice_data = get_invoice_data(order_ids, user, is_seller_order=True)
+        invoice_data = modify_invoice_data(invoice_data, user)
+        invoice_data['sale_signature'] = get_auth_signature(request, user, invoice_date)
+        inv_month_year = invoice_date.strftime("%m-%y")
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+        invoice_date = invoice_date.strftime("%d %b %Y")
+        invoice_data['pick_number'] = 1
+        invoice_data['sequence_number'] = seller_summary[0].invoice_number if seller_summary else ''
+        invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        invoice_data = build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=True)
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(invoice_data.encode("ISO-8859-1")), result)
+        if not pdf.err:
+            return HttpResponse(result.getvalue(), content_type='application/pdf')
+        return None
+    else: 
+        status = {'message': 'Required Order ID or Invoice Number'}
+        return status
 
 @csrf_exempt
 @login_required
@@ -1528,6 +1592,7 @@ def get_orders(request):
             unit_discount = 0
             discount_amount = 0
             dispatched_quantity = 0
+            cancelled_quantity = 0
             order_summary = CustomerOrderSummary.objects.filter(order_id=data.id,order__user=user.id)
             charge = OrderCharges.objects.filter(order_id = data.original_order_id, user=request.user.id, charge_name = 'Shipping Charge').values('charge_amount')
             seller_sku = SellerOrderSummary.objects.filter(order__user=user.id, order__id=data.id)
@@ -1556,9 +1621,11 @@ def get_orders(request):
             # if picked_quantity_sku == 0:
             #         sku_status = 'Open'
             dispatched_quantity = shipment_dict.get(data.id, 0)
-            picked_quantity_sku -= dispatched_quantity
+            # picked_quantity_sku -= dispatched_quantity
+            cancelled_quantity = data.cancelled_quantity
             item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
+                         'cancelled_quantity':cancelled_quantity,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
                          'shipment_charge':float('%.2f' % charge_amount), 'discount_amount':'',
                          'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
@@ -2062,9 +2129,11 @@ def get_inventory(request,user=''):
 def get_customers(request, user=''):
     search_params = {'user': user.id}
     request_data = request.body
-    limit = 30
+    limit = 10
     sister_whs = []
     search_query = Q()
+    customer_mapping = {}
+    customer_dict = {}
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     for sister_wh1 in sister_whs1:
         sister_whs.append(str(sister_wh1).lower())
@@ -2096,9 +2165,18 @@ def get_customers(request, user=''):
     master_data = CustomerMaster.objects.filter(search_query,**search_params)
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
+    customer_ids = list(master_data.values_list('customer_id', flat=True))
+    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids).values('customer_id', 'invoice_amount')
+    for item in customer_mapping:
+        if item['customer_id'] in customer_dict:
+            customer_dict[item['customer_id']] += item['invoice_amount']
+        else:
+            customer_dict[item['customer_id']] = item['invoice_amount']
     for data in master_data:
+        customer_amount = 0
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        customer_amount = float('%.2f' % customer_dict.get(data.customer_id, 0))
         total_data.append({'customer_id': data.customer_id, 'first_name': data.name,
                            'last_name': data.last_name, 'billing_address': data.address,
                            'shipping_address': data.shipping_address,
@@ -2110,6 +2188,96 @@ def get_customers(request, user=''):
                            'tax_type': data.tax_type,
                            'price_type':data.price_type,
                            'phone_number': str(data.phone_number), 'email': data.email_id,
-                           'customer_type':data.customer_type})
+                           'customer_type':data.customer_type,
+                           'total_order_amount':customer_amount})
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))
+
+@login_required
+@get_admin_user
+def get_shipmentinfo(request, user=''):
+    request_data = request.body
+    limit = 10
+    sister_whs = []
+    search_query = Q()
+    total_data = []
+    search_params = {}
+    data_dict = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            if request_data.get('limit'):
+                limit = request_data['limit']
+            if request_data.has_key('invoice_number'):
+                search_params['invoice_number'] = request_data['invoice_number']
+                if type(request_data['invoice_number']) == list:
+                    search_params['invoice_number'] = search_params['invoice_number']
+                else:
+                    search_parameters['invoice_number'] = search_params['invoice_number']
+            if request_data.has_key('order_id'):
+                if type(request_data['order_id']) == list:
+                    search_params['order__original_order_id__in'] = search_params['order_id']
+                else:
+                    search_parameters['order__original_order_id'] = search_params['order_id']
+            if request_data.has_key('shipment_number'):
+                search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+        search_params['order__user'] = user.id
+    master_data = ShipmentInfo.objects.filter(**search_params)
+    page_info = scroll_data(request, master_data, limit=limit, request_type='body')
+    master_data = page_info['data']
+    count = 1
+    for data in master_data:
+        shipping_address,address = '',''
+        charge_amount = 0
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
+                                        values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
+        status = 'Dispatched'
+        original_order_id = data.order.original_order_id
+        address = customer_details[0]['address']
+        shipping_address = customer_details[0]['shipping_address']
+        other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
+        if other_charges:
+            charge_amount = other_charges[0].charge_amount
+        if not shipping_address:
+            shipping_address = address
+        grouping_key = original_order_id
+        tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+        if tracking:
+            status = tracking[0]
+        if data.order_shipment:
+            order_shipment = data.order_shipment
+            shipment_number = str(order_shipment.shipment_number)
+            awb_number = order_shipment.shipment_reference
+            ewaybill_number = order_shipment.ewaybill_number
+            estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
+            # manifest_number = str(order_shipment.manifest_number)
+        if grouping_key in data_dict.keys():
+            count += 1
+        data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
+                           'awb_number': awb_number,
+                           'shipment_number': shipment_number,
+                           'estimated_shipment_date':estimated_shipment_date,
+                           'invoice_number': data.invoice_number,
+                           'delivery_status':status,
+                           'package_dispatch_date': get_local_date(user, data.creation_date),
+                           'delivery_charges':charge_amount,
+                           'shipping_address':shipping_address,
+                           })
+        data_dict[grouping_key]['no_of_items_in_package'] = count
+    order_data_loop = data_dict.values()
+    for data1 in order_data_loop:
+        total_data.append(data1)
+    page_info['data'] = total_data
+    return HttpResponse(json.dumps(page_info))
+

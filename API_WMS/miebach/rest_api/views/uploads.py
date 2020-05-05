@@ -3640,12 +3640,13 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                     else:
                         data_dict[key] = cell_data
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-                data_dict['sku_code'] = data_dict['wms_code']
-                data_dict['location'] = dest_location[0].location
-                status = validate_mrp_weight(data_dict,user)
-                if status:
-                    index_status.setdefault(row_idx, set()).add(status)
+            if not index_status:
+                if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+                    data_dict['sku_code'] = data_dict['wms_code']
+                    data_dict['location'] = dest_location[0].location
+                    status = validate_mrp_weight(data_dict,user)
+                    if status:
+                        index_status.setdefault(row_idx, set()).add(status)
 
             if row_idx not in index_status:
                 stock_dict = {"sku_id": data_dict['sku_id'],
@@ -4183,12 +4184,13 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 #if isinstance(cell_data, (int, float)):
                 #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
-            data_dict['sku_code'] = sku_master[0].sku_code
-            data_dict['location'] = location_master[0].location
-            status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
+        if not index_status:
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
+                data_dict['sku_code'] = sku_master[0].sku_code
+                data_dict['location'] = location_master[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
         data_list.append(data_dict)
 
     if not index_status:
@@ -4223,6 +4225,7 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
 def inventory_adjust_upload(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("upload_inv_adj")
+    count = 0
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
@@ -4277,11 +4280,14 @@ def inventory_adjust_upload(request, user=''):
         adj_status, stock_stats_objs = adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, stock_stats_objs, batch_no=batch_no, mrp=mrp,
                               seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                               price = price, receipt_type='inventory-adjustment')
+        if adj_status == 'Added Successfully':
+            count+=1
+
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     check_and_update_stock(sku_codes, user)
     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock(sku_codes, user)
-    return HttpResponse('Success')
+    return HttpResponse('Adjusted {} Entries got Success'.format(count))
 
 
 @csrf_exempt
@@ -6463,10 +6469,10 @@ def stock_transfer_order_form(request, user=''):
         return error_file_download(error_file)
     headers = copy.deepcopy(STOCK_TRANSFER_ORDER_MAPPING.keys())
     if user.userprofile.user_type != 'marketplace_user':
-        del headers['Source Warehouse Seller ID']
-        del headers['Destination Warehouse Seller ID']
+        headers.remove('Source Warehouse Seller ID')
+        headers.remove('Destination Warehouse Seller ID')
     if user.userprofile.industry_type != 'FMCG':
-        del headers['MRP']
+        headers.remove('MRP')
     wb, ws = get_work_sheet('stock_transfer_order_form', headers)
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.username))
 
@@ -6474,12 +6480,8 @@ def create_order_fields_entry(interm_order_id, name, value, user, is_bulk_create
                               order_fields_objs=None):
     if not order_fields_objs:
         order_fields_objs = []
-    order_fields_data = {}
-    order_fields_data['original_order_id'] = interm_order_id
-    order_fields_data['name'] = name
-    order_fields_data['value'] = value
-    order_fields_data['user'] = user.id
-    order_fields_data['order_type'] = 'intermediate_order'
+    order_fields_data = {'original_order_id': interm_order_id, 'name': name, 'value': value, 'user': user.id,
+                         'order_type': 'intermediate_order'}
     if not is_bulk_create:
         OrderFields.objects.create(**order_fields_data)
     else:
@@ -7020,8 +7022,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     order_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  st_mapping)
     if user.userprofile.user_type != 'marketplace_user':
-        del st_mapping['source_seller_id']
-        del st_mapping['dest_seller_id']
+        del st_mapping['Source Warehouse Seller ID']
+        del st_mapping['Destination Warehouse Seller ID']
     if set(st_mapping.keys()).\
             issubset(order_mapping.keys()):
         return "Headers not matching"
@@ -7032,6 +7034,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    source_seller = ''
+    dest_seller = ''
     for row_idx in range(1, no_of_rows):
         print 'Validation : %s' % str(row_idx)
         user_obj = ''
@@ -7119,6 +7123,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     all_data = {}
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
+        mrp =0
         for key, value in order_mapping.iteritems():
             if key == 'warehouse_name':
                 try:
@@ -7163,11 +7168,18 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     igst_tax = str(get_cell_data(row_idx, value, reader, file_type))
                 if igst_tax == '':
                     igst_tax = 0
+            elif key == 'cess_tax':
+                try:
+                    cess_tax = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    cess_tax = str(get_cell_data(row_idx, value, reader, file_type))
+                if cess_tax == '':
+                    cess_tax = 0
 
         warehouse = User.objects.get(username=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax, 0, mrp])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp])
     all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 

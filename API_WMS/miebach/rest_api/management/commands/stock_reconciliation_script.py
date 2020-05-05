@@ -202,7 +202,7 @@ class Command(BaseCommand):
                                 tax = picklist_obj.stock.batch_detail.tax_percent
                             order_type = 'stock_transfer'
                             tax_type = 'intra_state'
-                            cess_tax = 0
+                            cess_tax = stock_transfer.st_po.open_st.cess_tax
                             #unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                     else:
                         unit_price = 0

@@ -3534,7 +3534,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                                 'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
         if po_received.get('put_zone', ''):
-            put_zone = po_received['put_zne']
+            put_zone = po_received['put_zone']
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
@@ -5418,6 +5418,9 @@ def validate_putaway(all_data, user):
             for pol in po_location:
                 if pol.purchase_order.open_po:
                     validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+                elif pol.purchase_order.stpurchaseorder_set.filter():
+                     validate_seller_id = purchase_order.stpurchaseorder_set.filter()[0].open_st.po_seller_id
+
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
 

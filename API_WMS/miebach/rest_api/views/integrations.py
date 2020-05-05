@@ -1295,15 +1295,18 @@ def update_customers(customers, user='', company_name=''):
         if not customers:
             customers = {}
         customers = customers.get(customer_mapping['customers'], [])
-        price_types = list(
-            PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
+        price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
         for customer_data in customers:
             customer_master = None
             customer_id = customer_data.get(customer_mapping['customer_id'], '')
             if not customer_id:
-                error_message = 'Customer ID should not be empty for customer name %s' % str(customer_data.get(customer_mapping['first_name'], ''))
-                update_error_message(failed_status, 5024, error_message, '', field_key='customer_id')
-                break
+                # error_message = 'Customer ID should not be empty for customer name %s' % str(customer_data.get(customer_mapping['first_name'], ''))
+                # update_error_message(failed_status, 5024, error_message, '', field_key='customer_id')
+                # break
+                customer_obj = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).\
+                                                        order_by('-customer_id')
+                if customer_obj:
+                    customer_id = customer_obj[0] + 1
             try:
                 customer_id = int(customer_id)
             except:
@@ -1315,8 +1318,7 @@ def update_customers(customers, user='', company_name=''):
             customer_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
             exclude_list = ['customers']
             number_fields = {'credit_period': 'Credit Period', 'status': 'Status', 'customer_id': 'Customer ID',
-                             'pincode': 'Pin Code',
-                             'phone_number': 'Phone Number'}
+                             'pincode': 'Pin Code','phone_number': 'Phone Number','discount_percentage':'discount_percentage'}
             for key, val in customer_mapping.iteritems():
                 if key in exclude_list:
                     continue
@@ -1348,6 +1350,8 @@ def update_customers(customers, user='', company_name=''):
                         error_message = 'Invalid price type for Customer id %s' % str(customer_id)
                         update_error_message(failed_status, 5024, error_message, customer_id, field_key='customer_id')
                         break
+                elif key == 'customer_aux_info':
+                    value = json.dumps(customer_data.get('customer_info', ''))
                 elif key == 'name':
                     value = customer_data.get('first_name', '')
                 elif key =='address':
@@ -1382,11 +1386,11 @@ def update_customers(customers, user='', company_name=''):
         #     if not value:
         #         continue
         #     final_status[key] = ','.join(value)
-        return UIN, failed_status.values()
+        return UIN, failed_status.values(),customer_id
 
     except:
         traceback.print_exc()
-        return UIN, failed_status.values()
+        return UIN, failed_status.values(), customer_id
 
 
 def validate_sellers(sellers, user=None, seller_mapping=None):

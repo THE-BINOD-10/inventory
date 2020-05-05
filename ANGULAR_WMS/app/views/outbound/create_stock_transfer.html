@@ -53,6 +53,7 @@
                     <th>CGST (%)</th>
                     <th>SGST (%)</th>
                     <th>IGST(%)</th>
+                    <th>CESS(%)</th>
                     <th>Total Price</th>
                     <th class="plus">
                   </tr>
@@ -86,6 +87,9 @@
                     </td>
                     <td>
                       <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.tax_cg_sg">
+                    </td>
+                    <td>
+                      <input type="text" name="cess" class="form-control" size="2" ng-model="data.cess" ng-keyup="showCase.changeUnitPrice(data)" decimal-number >
                     </td>
                     <td>
                       <input type="text" name="total_price" class="form-control" ng-model="data.total_price" decimal-number>

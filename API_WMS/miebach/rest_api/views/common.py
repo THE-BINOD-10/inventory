@@ -6550,7 +6550,7 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-def build_invoice(invoice_data, user, css=False, stock_transfer=False):
+def build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
     if not stock_transfer:
@@ -6679,6 +6679,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+    if api_invoice:
+        invoice_data['titles'] = ['Original for Receipient']
 
     if css:
         c = {'name': 'invoice'}
@@ -6687,6 +6689,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
     if stock_transfer:
         invoice_data['empty_td'] = [0]*10
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/stock_transfer_invoice.html')
+    # elif api_invoice:
+        # html = loader.get_template('../miebach_admin/templates/toggle/invoice/api_invoice.html')
     else:
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)

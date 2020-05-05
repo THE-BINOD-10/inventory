@@ -12,9 +12,10 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check
+from rest_api.views.common import get_local_date, folder_check,build_invoice
 from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE, MILKBASKET_USERS
 from rest_api.views.integrations import *
+from rest_api.views.outbound import add_consignee_data,modify_invoice_data,get_auth_signature
 import json
 import datetime
 import os
@@ -1337,8 +1338,8 @@ def update_customer(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(customers))
     try:
-        UIN, failed_status = update_customers(customers, user=request.user, company_name='mieone')
-        status = {'status': 200, 'message': 'Success', 'UIN': UIN}
+        UIN, failed_status, customer_id = update_customers(customers, user=request.user, company_name='mieone')
+        status = {'status': 200, 'message': 'Success', 'UIN': UIN, 'customer_id': customer_id}
         if failed_status:
             status = failed_status[0]
         return HttpResponse(json.dumps(status))
@@ -1349,6 +1350,58 @@ def update_customer(request):
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
+
+@csrf_exempt
+@login_required
+def invoice_pdf(request):
+    from io import BytesIO
+    from xhtml2pdf import pisa
+    user = request.user
+    request_data = request.body
+    search_params = {}
+    sister_whs = []
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data:
+        try:
+            request_data = json.loads(request_data)
+        except:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Json', 'data': []}))
+        if request_data.has_key('warehouse'):
+            warehouse = request_data['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+        search_params = {'order__user': user.id}
+        if request_data.get('order_id', ''):
+            search_params['order__original_order_id'] = request_data['order_id']
+        if request_data.get('invoice_number', ''):
+            search_params['full_invoice_number'] = request_data['invoice_number']
+    if search_params.has_key('full_invoice_number') or search_params.has_key('order__original_order_id'):
+        seller_summary = SellerOrderSummary.objects.filter(**search_params).exclude(invoice_number='')
+        ord_ids = list(seller_summary.values_list('order_id',flat=True))
+        order_ids = map(lambda x: str(x), ord_ids)
+        order_ids = ','.join(order_ids)
+        invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
+        invoice_data = get_invoice_data(order_ids, user, is_seller_order=True)
+        invoice_data = modify_invoice_data(invoice_data, user)
+        invoice_data['sale_signature'] = get_auth_signature(request, user, invoice_date)
+        inv_month_year = invoice_date.strftime("%m-%y")
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+        invoice_date = invoice_date.strftime("%d %b %Y")
+        invoice_data['pick_number'] = 1
+        invoice_data['sequence_number'] = seller_summary[0].invoice_number if seller_summary else ''
+        invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        invoice_data = build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=True)
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(invoice_data.encode("ISO-8859-1")), result)
+        if not pdf.err:
+            return HttpResponse(result.getvalue(), content_type='application/pdf')
+        return None
+    else: 
+        status = {'message': 'Required Order ID or Invoice Number'}
+        return status
 
 @csrf_exempt
 @login_required
@@ -2076,7 +2129,7 @@ def get_inventory(request,user=''):
 def get_customers(request, user=''):
     search_params = {'user': user.id}
     request_data = request.body
-    limit = 30
+    limit = 10
     sister_whs = []
     search_query = Q()
     customer_mapping = {}

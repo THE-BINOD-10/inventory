@@ -10428,6 +10428,7 @@ def get_debit_note_data(rtv_number, user):
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:
             data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax
+        data_dict_item['return_reason'] = obj.return_reason
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
@@ -10481,8 +10482,8 @@ def prepare_rtv_json_data(request_data, user):
         data_dict = {}
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
-        if 'rtv_reasons' in request_data:
-            data_dict['rtv_reasons'] = request_data['rtv_reasons'][0]
+        if 'rtv_reason' in request_data:
+            data_dict['rtv_reasons'] = request_data['rtv_reason'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])

@@ -470,6 +470,12 @@ def get_receive_po_datatable_filters(user, filters, request):
 
     return search_params, search_params1, search_params2
 
+def generate_po_qty_dict(purchase_ord_qty):
+    if purchase_ord_qty:
+        temp_dict = {}
+        for record in purchase_ord_qty:
+            temp_dict["%s%s"%(record[1], record[0])] = record[2]
+        return temp_dict
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term):
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
@@ -503,10 +509,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
-    st_order_qtys_dict = dict(stock_results_objs.values_list('po__order_id'). \
-                           annotate(total_order_qty=Sum('open_st__order_quantity')))
-    st_receive_qtys_dict = dict(stock_results_objs.values_list('po__order_id'). \
-                             annotate(total_received_qty=Sum('po__received_quantity')))
+    stock_trs_ord_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
+    stock_trs_recv_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
+    if stock_trs_ord_qty.exists():
+        st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty)
+    if stock_trs_recv_qty.exists():
+        st_receive_qtys_dict = generate_po_qty_dict(stock_trs_recv_qty)
 
     st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')). \
         values_list('po__id', flat=True)
@@ -515,10 +523,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
                                                                              'stock-transfer']). \
         filter(purchase_order__open_po__isnull=True, rwo__job_order__product_code_id__in=sku_master_ids,
                **search_params2).filter(rw_purchase_query, rwo__vendor__user__in=user)
-    order_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct(). \
-                                annotate(total_order_qty=Sum('rwo__job_order__product_quantity'))))
-    receive_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct(). \
-                                  annotate(total_received_qty=Sum('purchase_order__received_quantity'))))
+    rw_order_qty = rw_results_objs.values_list('purchase_order__order_id', 'purchase_order__prefix').distinct().annotate(total_order_qty=Sum('rwo__job_order__product_quantity'))
+    rw_receive_qty = rw_results_objs.values_list('purchase_order__order_id', 'purchase_order__prefix').distinct().annotate(total_received_qty=Sum('purchase_order__received_quantity'))
+    if rw_order_qty.exists():
+        order_qtys_dict.update(generate_po_qty_dict(rw_order_qty))
+    if rw_receive_qty.exists():
+        receive_qtys_dict.update(generate_po_qty_dict(rw_receive_qty))
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)
@@ -527,11 +537,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway'])
     po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
                                                        order_id__in=results_objs.values_list('order_id', flat=True))
-    order_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
-                                annotate(total_order_qty=Sum('open_po__order_quantity'))))
-    receive_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
-                                  annotate(total_received_qty=Sum('received_quantity'))))
-
+    po_ord_qty = po_result_order_ids.values_list('order_id', 'prefix').distinct().annotate(total_order_qty=Sum('open_po__order_quantity'))
+    po_recv_qty = po_result_order_ids.values_list('order_id', 'prefix').distinct().annotate(total_received_qty=Sum('received_quantity'))
+    if po_ord_qty.exists():
+        order_qtys_dict.update(generate_po_qty_dict(po_ord_qty))
+    if po_recv_qty.exists():
+        receive_qtys_dict.update(generate_po_qty_dict(po_recv_qty))
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned', 'confirmed-putaway']). \
         filter(received_quantity__lt=F('open_po__order_quantity')).values_list('id',
                                                                                flat=True)
@@ -616,13 +627,14 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
 
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Warehouse','Order Type', 'Receive Status']
+        full_po_id="%s%s"%(supplier.prefix, supplier.order_id)
         if order_type == 'Stock Transfer':
-            total_order_qty = st_order_qtys_dict.get(supplier.order_id, 0)
-            total_received_qty = st_receive_qtys_dict.get(supplier.order_id, 0)
+            total_order_qty = st_order_qtys_dict.get(full_po_id, 0)
+            total_received_qty = st_receive_qtys_dict.get(full_po_id, 0)
             total_receivable_qty = total_order_qty - total_received_qty
         else:
-            total_order_qty = order_qtys_dict.get(supplier.order_id, 0)
-            total_received_qty = receive_qtys_dict.get(supplier.order_id, 0)
+            total_order_qty = order_qtys_dict.get(full_po_id, 0)
+            total_received_qty = receive_qtys_dict.get(full_po_id, 0)
             total_receivable_qty = total_order_qty - total_received_qty
         if total_received_qty:
             receive_status = 'Partially Receive'

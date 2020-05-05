@@ -111,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
+
     var row_click_bind = 'td';
     if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
@@ -127,6 +128,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }
+    if (vm.industry_type == 'FMCG')
+        {
+            vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+        }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -206,7 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1400px'
+                        'width': '1550px'
                       };
                     } else {
                       vm.extra_width = {
@@ -383,7 +388,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
-      $state.go('app.inbound.RevceivePo');
+      if (vm.discrepancy_data) {
+         vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
+         vm.discrepancy_data = ''
+      } else {
+          $state.go('app.inbound.RevceivePo');
+      }
     }
 
     vm.update_data = update_data;
@@ -678,6 +688,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.absOfQtyTolerence = function(inv_value, total_value){
       return Math.abs(1.1*inv_value);
     }
+    vm.discrepancy_data = ''
 
     // vm.skus_total_amount
 
@@ -786,11 +797,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.failed_serial_number = {}
               vm.collect_imei_details = {}
               vm.extra_width = {}
-              vm.html = $(data.data);
+//              vm.html = $(data.data);
               vm.extra_width = {}
               //var html = $(vm.html).closest("form").clone();
               //angular.element(".modal-body").html($(html).find(".modal-body"));
-              angular.element(".modal-body").html($(data.data));
+              if (data.data.search('discrepancy_data') != -1) {
+                   vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                   angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+              } else{
+                   angular.element(".modal-body").html($(data.data));
+              }
+
               vm.print_enable = true;
               vm.service.refresh(vm.dtInstance);
               if(vm.permissions.use_imei) {
@@ -2350,7 +2367,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.discount_percentage == ''){
         sku_row_data.discount_percentage = 0;
       }
-
+      if(sku_row_data.discrepency_quantity == ''){
+        sku_row_data.discrepency_quantity = 0;
+      } else{
+            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value))
+                {
+                    Service.showNoty('Returning Quantity is Greater than PO Quantity ');
+                }
+      }
+      if(sku_row_data.value == ''){
+        sku_row_data.value = 0;
+      }
       if (Number(sku_row_data.tax_percent)) {
 
         sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
@@ -2367,6 +2394,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if (vm.industry_type == 'FMCG') {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+        if (Number(sku_row_data.discrepency_quantity)) {
+            total_amt +=  Number(sku_row_data.buy_price)* Number(sku_row_data.discrepency_quantity)
+        }
       } else {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
       }

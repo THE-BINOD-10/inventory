@@ -44,10 +44,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
+                    'allow_partial_picklist': false,
                     'enable_pending_approval_prs': false,
+                    'auto_allocate_sale_order':false,
+                    'po_or_pr_edit_permission_approver': false,
+                    'stock_auto_receive': false,
+                    'discrepency_prefix':'',
                     'st_po_prefix': false,
                   };
   vm.all_mails = '';
@@ -86,7 +93,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
-                     108: 'st_po_prefix',
+                     108: 'auto_allocate_sale_order',
+                     109: 'sku_packs_invoice',
+                     110: 'allow_partial_picklist',
+                     111: 'po_or_pr_edit_permission_approver',
+                     112: 'stock_auto_receive',
+                     113:'discrepency_prefix',
+                     114: 'st_po_prefix',
                      }
 
   vm.check_box_data = [
@@ -615,6 +628,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+{
+   name: "Enable Pending For Approval POs",
+   model_name: "enable_pending_approval_pos",
+   param_no: 105,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Mandate EwayBillNumber in ShipmentInfo",
+   model_name: "mandate_ewaybill_number",
+   param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
   {
    name: "Enable Pending For Approval PRs",
    model_name: "enable_pending_approval_prs",
@@ -623,19 +650,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-   name: "Enable Pending For Approval POs",
-   model_name: "enable_pending_approval_pos",
-   param_no: 105,
+   name: "Allow Partial Picklist Generation",
+   model_name: "allow_partial_picklist",
+   param_no: 110,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Auto Allocate Sale Order",
+   model_name: "auto_allocate_sale_order",
+   param_no: 108,
+   class_name: "fa fa-server",
+   display: true
+ },
+ {
+   name: "Display SKU Packs In Invoice",
+   model_name: "sku_packs_invoice",
+   param_no: 109,
    class_name: "fa fa-server",
    display: true
   },
-{
-   name: "Mandate EwayBillNumber in ShipmentInfo",
-   model_name: "mandate_ewaybill_number",
-   param_no: 106,
+  {
+   name: "Edit permission to Approvers for POs/PRs",
+   model_name: "po_or_pr_edit_permission_approver",
+   param_no: 111,
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 112,
+   class_name: "fa fa-server",
+   display: true
+   }
 ]
 
   vm.empty = {};
@@ -893,6 +941,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data['prefix_data'] = [];
       vm.model_data['prefix_dc_data'] = [];
       vm.model_data['prefix_cn_data'] = [];
+      vm.model_data['prefix_st_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -902,6 +951,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
       angular.forEach(data.data.prefix_cn_data, function(data){
         vm.model_data.prefix_cn_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+      })
+      angular.forEach(data.data.prefix_st_data, function(data){
+        vm.model_data.prefix_st_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -1185,6 +1237,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
         $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
         $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
         $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
         $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
         if (vm.model_data.invoice_titles) {
@@ -1864,16 +1917,115 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   }
   //Credit Note Config Code Ended
 
+  vm.marketplace_add_show_st = false;
+  vm.marketplace_selected_st = '';
+  vm.saveStockTransferInvoice = function(name, value) {
 
+    if(!name) {
 
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else {
+      vm.updateMarketplaceSt(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
 
+        if(vm.model_data.prefix_st_data[i].marketplace_name == vm.model_data.marketplace_name_st) {
 
+          vm.model_data.prefix_st_data[i].marketplace_name = vm.model_data.marketplace_name_st;
+          vm.model_data.prefix_st_data[i].marketplace_prefix = vm.model_data.marketplace_prefix_st;
+          vm.model_data.prefix_st_data[i].marketplace_interfix = vm.model_data.marketplace_interfix_st;
+          vm.model_data.prefix_st_data[i].marketplace_date_type = vm.model_data.marketplace_date_type_st;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
 
+        vm.model_data.prefix_st_data.push({marketplace_name: vm.model_data.marketplace_name_st,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix_st,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix_st,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type_st});
+      }
+      vm.marketplace_add_show_st = false;
+      vm.marketplace_selected_st = "";
+      vm.model_data.marketplace_name_st = "";
+      vm.model_data.marketplace_prefix_st = "";
+      vm.model_data.marketplace_interfix_st = "";
+      vm.model_data.marketplace_date_type_st = "";
+      vm.model_data.marketplace_new_st = true;
+    }
+  }
 
+   vm.marketplaceSelectedst = function(name) {
 
+    if (name) {
 
+      for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
 
+        if(vm.model_data.prefix_st_data[i].marketplace_name == name) {
 
+          vm.model_data.marketplace_name_st = vm.model_data.prefix_st_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix_st = vm.model_data.prefix_st_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix_st= vm.model_data.prefix_st_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type_st = vm.model_data.prefix_st_data[i].marketplace_date_type;
+          vm.model_data["marketplace_new_st"] = false;
+          vm.marketplace_add_show_st = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["marketplace_new_st"] = true;
+      vm.marketplace_add_show_st = false;
+      vm.model_data.marketplace_name_st = "";
+      vm.model_data.marketplace_prefix_st = "";
+    }
+  }
+
+  vm.updateMarketplaceSt = function(name, value, type) {
+
+      var send = {marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix_st,
+                  marketplace_date_type: vm.model_data.marketplace_date_type_st,
+                  type_name: 'stock_transfer_invoice', type_value: name}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
+
+          if(vm.model_data.prefix_st_data[i].marketplace_name == vm.model_data.marketplace_name_st) {
+
+            vm.model_data.prefix_st_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show_st = false;
+        vm.marketplace_selected_st = "";
+        vm.model_data.marketplace_name_st = "";
+        vm.model_data.marketplace_prefix_st = "";
+        vm.model_data.marketplace_new_st = true;
+      }
+      vm.service.apiCall("update_user_type_sequence/", "GET", send).then(function(data) {
+
+        console.log(data);
+        Service.showNoty(data.data.status);
+      })
+  }
+  vm.saved_marketplaces_st = [];
+  vm.filterMarkeplacesSt = function() {
+    vm.saved_marketplaces_st = [];
+    angular.forEach(vm.model_data.prefix_st_data, function(data){
+      vm.saved_marketplaces_st.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces_st.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
 
 
 

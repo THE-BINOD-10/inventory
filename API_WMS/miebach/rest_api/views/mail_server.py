@@ -11,7 +11,6 @@ def send_mail(send_to, subject, body):
         return
 
     fromaddr = 'noreply@mieone.com'
-
     msg = MIMEMultipart()
 
     msg['From'] = fromaddr

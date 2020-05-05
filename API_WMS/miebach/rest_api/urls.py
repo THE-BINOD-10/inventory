@@ -437,6 +437,10 @@ urlpatterns = [
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+    url(r'^get_discrepancy_report/$', get_discrepancy_report),
+    url(r'^print_descrepancy_note/$', print_descrepancy_note),
+
+
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -552,8 +556,9 @@ urlpatterns = [
     url(r'^get_credit_note_form_report/$', get_credit_note_form_report),
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
+    url(r'^get_credit_note_report/$', get_credit_note_report),
+    url(r'print_credit_note_report/$', print_credit_note_report),
     url(r'^get_st_po_filter/$', get_st_po_filter),
-    # url(r'^print_credit_note_form_report/$', print_credit_note_form_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -721,6 +726,7 @@ urlpatterns += [
     url('^validate_sales_person', validate_sales_person),
     url('^add_customer/$', add_customer),
     url('^search_pos_customer_data/$', search_pos_customer_data),
+    url('^search_pos_order_ids/$', search_pos_order_ids),
     url('^search_product_data/$', search_product_data),
     url('^get_current_order_id/$', get_current_order_id),
     url('^get_pos_user_data/$', get_pos_user_data),
@@ -734,8 +740,7 @@ urlpatterns += [
     url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
-
-
+    url(r'^update_customer_orders/$', update_customer_orders),
 
 ]
 

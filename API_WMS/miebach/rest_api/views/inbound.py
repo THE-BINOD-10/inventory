@@ -23,6 +23,8 @@ from xml.etree.ElementTree import fromstring
 from sync_sku import insert_skus
 from utils import *
 from rest_api.views import *
+from inbound_descrepancy import *
+from inbound_common_operations import *
 from django.db import transaction
 
 log = init_logger('logs/inbound.log')
@@ -473,15 +475,15 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
-                           'order_id']
+                           'order_id','order_id']
     st_purchase_list = ['po__order_id', 'po__order_id', 'open_st__warehouse__username', 'po__order_id',
                         'po__creation_date', 'po__order_id', 'po__order_id', 'po__order_id', 'po__order_id',
-                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id']
+                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id']
     rw_purchase_list = ['purchase_order__order_id', 'purchase_order__order_id', 'rwo__vendor__name',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'rwo__vendor__name', 'purchase_order__order_id',
-                        'purchase_order__order_id', 'purchase_order__order_id']
+                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id']
     st_purchase_list_sort = []
     order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = {}, {}, {}, {}
     for st_purchase_lis in st_purchase_list:
@@ -646,6 +648,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     sr_number = courtesy_sr_number[0].value
                 else:
                     sr_number = ''
+        discrepency_qty = 0
+        if user.userprofile.industry_type == 'FMCG':
+            discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
+                                            .values_list('quantity',flat=True)))
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
@@ -655,6 +661,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Warehouse', warehouse),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
+                                      ('Discrepancy Qty', discrepency_qty),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix'])
                                       )))
     temp_data['aaData'] = data_list
@@ -1541,6 +1548,7 @@ def switches(request, user=''):
                        'unique_mrp_putaway': 'unique_mrp_putaway',
                        'generate_delivery_challan_before_pullConfiramation':'generate_delivery_challan_before_pullConfiramation',
                        'rtv_prefix_code': 'rtv_prefix_code',
+                       'discrepency_prefix':'discrepency_prefix',
                        'non_transacted_skus': 'non_transacted_skus',
                        'allow_rejected_serials':'allow_rejected_serials',
                        'update_mrp_on_grn': 'update_mrp_on_grn',
@@ -1561,7 +1569,14 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
+                       'allow_partial_picklist': 'allow_partial_picklist',
+                       'sku_packs_invoice':'sku_packs_invoice',
                        'enable_pending_approval_prs': 'enable_pending_approval_prs',
+                       'mandate_ewaybill_number':'mandate_ewaybill_number',
+                       'auto_allocate_sale_order':'auto_allocate_sale_order',
+                       'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
+                       'stock_auto_receive':'stock_auto_receive',
                        'st_po_prefix':'st_po_prefix',
                        }
         toggle_field, selection = "", ""
@@ -2434,6 +2449,19 @@ def approve_pr(request, user=''):
                     master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
+
+    editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
+    if editPermission == 'true':
+        myDict = dict(request.POST.iterlists())
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        baseLevel = pendingPRObj.pending_level
+        orderStatus = pendingPRObj.final_status
+        if is_actual_pr == 'true':
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus)
+        else:
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
@@ -2535,7 +2563,10 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
                     value['sgst_tax'] = taxes[0]['sgst_tax']
                     value['cgst_tax'] = taxes[0]['cgst_tax']
                     value['igst_tax'] = taxes[0]['igst_tax']
-                value['price'] = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    value['price'] = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    value['price'] = skuTaxVal['mrp']
         data_id = value['data_id']
         if data_id:
             record = PendingLineItems.objects.get(id=data_id)
@@ -2618,7 +2649,7 @@ def convert_pr_to_po(request, user=''):
             existingPRObj = existingPRQs[0]
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
-        orderStatus = 'pending'
+        orderStatus = 'saved'
         mailSub = 'po_created'
         poSuppliers = splitPRtoPO(all_data, user)
 
@@ -2629,12 +2660,12 @@ def convert_pr_to_po(request, user=''):
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
                                         supplier=supplier, convertPRtoPO=True)
             pendingPoObj.pending_prs.add(existingPRObj)
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
-            if mailsList:
-                for eachMail in mailsList:
-                    hash_code = generateHashCodeForMail(prObj, eachMail)
-                    sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
+            # reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
+            # prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, po_number, pendingPoObj, forPO=True)
+            # if mailsList:
+            #     for eachMail in mailsList:
+            #         hash_code = generateHashCodeForMail(prObj, eachMail)
+            #         sendMailforPendingPO(po_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True)
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
     except Exception as e:
@@ -2726,7 +2757,7 @@ def save_pr(request, user=''):
             reversion.set_comment("SavePendingPO")
 
         if myDict.get('pr_number'):
-            pr_number = int(myDict.get('pr_number')[0])
+            purchase_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
                 purchase_number = get_incremental(user, 'ActualPurchaseRequest')
@@ -2820,9 +2851,9 @@ def insert_inventory_adjust(request, user=''):
         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
                                        seller_master_id=seller_master_id, weight=weight)
     else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp, price=price,
+        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
-                                       receipt_type='inventory-adjustment')
+                                       receipt_type='inventory-adjustment',price=price)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
@@ -2963,8 +2994,8 @@ def get_supplier_data(request, user=''):
                                     'value': temp_json.get('quantity', 0),
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                    'price': order_data['price'],
-                                    'mrp': temp_json.get('mrp', 0),
+                                    'price':float("%.2f"% float(order_data.get('price',0))),
+                                    'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
                                     'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
@@ -2993,9 +3024,9 @@ def get_supplier_data(request, user=''):
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                 'value': get_decimal_limit(user.id, order.saved_quantity),
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                                'price': order_data['price'],
-                                'grn_price':order_data['price'],
-                                'mrp': order_data['mrp'],
+                                'price': float("%.2f"% float(order_data.get('price',0))),
+                                'grn_price':float("%.2f"% float(order_data.get('price',0))),
+                                'mrp': float("%.2f"% float(order_data.get('mrp',0))),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                 'unit': order_data['unit'],
                                 'dis': True,'wrong_sku':0,
@@ -3041,13 +3072,18 @@ def get_supplier_data(request, user=''):
                 uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                                       'file_url': '/' + master_docs[0].uploaded_file.name}
         orders =  sorted(orders, key = lambda i: i[0]['wrong_sku'],reverse=True)
+        discrepancy_reasons = ''
+        if user.userprofile.industry_type == 'FMCG':
+            discrepancy_reasons = get_misc_value('discrepancy_reasons', user.id)
+            if discrepancy_reasons != 'false':
+                discrepancy_reasons = discrepancy_reasons.split(',')
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
                                     'supplier_name': supplier_name, 'order_date': order_date, \
                                     'expected_date': expected_date, 'remarks': remarks,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
-                                    'invoice_date': invoice_date, 'dc_number': dc_number,
+                                    'invoice_date': invoice_date, 'dc_number': dc_number,'discrepancy_reasons':discrepancy_reasons,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
                                     'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
@@ -3503,7 +3539,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                                 'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
         if po_received.get('put_zone', ''):
-            put_zone = po_received['put_zone']
+            put_zone = po_received['put_zne']
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
@@ -3517,7 +3553,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
         for loc in location:
-
             location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
                                                                           pallet_number, user)
             if not location_quantity:
@@ -3526,9 +3561,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 po_received = update_seller_summary_locs(data, loc, location_quantity, po_received)
             if not 'quality_check' in temp_dict.keys():
                 location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1,
-                                 'quantity': location_quantity,
-                                 'original_quantity': location_quantity,
-                                 }
+                                 'quantity': location_quantity,'original_quantity': location_quantity,}
                 user_check = 'location__zone__user'
                 if data.open_po:
                     user_check = 'purchase_order__open_po__sku__user'
@@ -3542,6 +3575,10 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if pallet_number:
                     if temp_dict['pallet_data'] == 'true':
                         insert_pallet_data(temp_dict, po_loc)
+                if float(purchase_data['order_quantity']) <= data.received_quantity+ float(temp_dict.get('discrepency_quantity',0)):
+                    data.status = 'location-assigned'
+                    data.save()
+                    break
                 if received_quantity == 0:
                     if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
                         data.status = 'location-assigned'
@@ -4018,6 +4055,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
 def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
+    po_new_data = OrderedDict()
     seller_receipt_id = 0
     po_data = []
     status_msg = ''
@@ -4040,6 +4078,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
     mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
+    send_discrepencey = False
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
     else:
@@ -4054,6 +4093,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     for i in range(len(myDict['id'])):
         mrp = 0
         temp_dict = {}
+        discrepency_quantity, discrepency_reason = 0, ''
+        if myDict.get('discrepency_check','') :
+            if myDict.get('discrepency_check')[0]!='false':
+                if myDict.get('discrepency_check', '')[i]:
+                    if myDict['discrepency_quantity'][i]:
+                        discrepency_quantity = float(myDict['discrepency_quantity'][i])
+                    discrepency_reason = myDict['discrepency_reason'][i]
+                    send_discrepencey = True
+
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
             failed_qty = len(failed_qty_dict.get(wms_code, ''))
@@ -4068,8 +4116,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             value = float(value)
         except:
             value = 0
-        if not value:
-            continue
         #if 'mrp' in myDict.keys() and update_mrp_on_grn == 'true' and myDict['mrp'][i]:
         #    sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
         #    if sku_master:
@@ -4087,9 +4133,19 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
                     else:
                         status_msg += ',' + myDict['wms_code'][i]
+                    if user.userprofile.industry_type == 'FMCG':
+                        cond = ('',myDict['wms_code'][i],'', myDict['buy_price'][i],0,0,myDict['tax_percent'][i],
+                                 '',myDict['sku_desc'][i],0,0,0,0,myDict['mrp'][i])
+                        po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                             'discrepency_reason': ''})
+                        po_new_data[cond]['discrepency_quantity']+=discrepency_quantity
+                        po_new_data[cond]['discrepency_reason'] = discrepency_reason
                     continue
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
+
+        if not value:
+            continue
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
             data.remarks = remarks
@@ -4127,6 +4183,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         purchase_data['cess_tax'] = sku_row_cess_percent
         purchase_data['apmc_tax'] = sku_row_apmc_percent
         purchase_data['remarks'] = remarks
+
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -4155,6 +4212,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
+        po_new_data.setdefault(cond, {'value' : 0,'discrepency_quantity':0})
+        po_new_data[cond]['value'] += float(value)
+        po_new_data[cond]['discrepency_quantity']+=discrepency_quantity
+        po_new_data[cond]['discrepency_reason']=discrepency_reason
+        if myDict['id'][i]:
+            po_new_data[cond]['po_id'] = myDict['id'][i]
         if data.id not in order_quantity_dict:
             order_quantity_dict[data.id] = float(purchase_data['order_quantity']) - temp_quantity
         data.received_quantity = float(data.received_quantity) + float(value)
@@ -4233,6 +4296,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
+        if discrepency_quantity:
+            temp_dict['discrepency_quantity'] = discrepency_quantity
         if get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1:
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
@@ -4268,7 +4333,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey
 
 
 def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data='', po_id=''):
@@ -4297,10 +4362,7 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
         if key:
             for dict_obj in value:
                 for key_obj, value_obj in dict_obj.items():
-                    disp_imei_map = {}
-                    disp_imei_map['qc_type'] = 'purchase_order'
-                    disp_imei_map['po_imei_num'] = get_po_imei_qs[0]
-                    disp_imei_map['qc_name'] = key_obj
+                    disp_imei_map = {'qc_type': 'purchase_order', 'po_imei_num': get_po_imei_qs[0], 'qc_name': key_obj}
                     dispatch_checklist = DispatchIMEIChecklist.objects.filter(**disp_imei_map)
                     if value_obj[1] == "false":
                         value_obj[1] = False
@@ -4357,6 +4419,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    fmcg = False
+    if user.userprofile.industry_type == 'FMCG':
+        fmcg = True
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
@@ -4385,7 +4450,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -4393,13 +4458,14 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            if user.userprofile.industry_type == 'FMCG':
+
+            if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
-                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
                                                'mrp': key[13]})
             else:
@@ -4409,7 +4475,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'received_quantity': value,
                                               'measurement_unit': key[2], 'price': key[3],
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
-                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
+                                              'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
                                               'mrp': key[12]})
             total_order_qty += order_quantity_dict[key[0]]
@@ -4423,7 +4489,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             btn_class = 'inb-putaway'
         else:
             btn_class = 'inb-qc'
-        if not status_msg:
+
+        if not status_msg or send_discrepencey:
             if not purchase_data:
                 return HttpResponse('Success')
             address = purchase_data['address']
@@ -4480,10 +4547,11 @@ def confirm_grn(request, confirm_returns='', user=''):
             if total_price:
                 tax_value = (total_price * total_tax)/(100 + total_tax)
                 tax_value = ("%.2f" % tax_value)
+                total_price = float("%.2f" % total_price)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
-                                'tax_value': tax_value,
+                                'tax_value': tax_value, 'receipt_number':seller_receipt_id,
                                 'overall_discount':overall_discount,
                                 'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
@@ -4497,6 +4565,21 @@ def confirm_grn(request, confirm_returns='', user=''):
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+            if send_discrepencey and fmcg:
+                discrepency_rendered, data_dict_po = generate_discrepancy_data(user, po_new_data, print_des=False, **report_data_dict)
+                send_email_discrepancy = get_misc_value('grn_discrepancy' ,user.id , number=False, boolean=True)
+                if send_email_discrepancy:
+                    secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=data_dict[1][1], user=user.id,
+                                                                                  master_type='supplier').values_list(
+                                                                                    'email_id', flat=True).distinct())
+                    supplier_email_id = []
+                    supplier_email_id.insert(0, supplier_email)
+                    supplier_email_id.extend(secondary_supplier_email)
+                    write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email_id, telephone,po_data,
+                                        order_date, internal=True, report_type="Discrepancy Note", data_dict_po=data_dict_po)
+                t = loader.get_template('templates/toggle/c_putaway_toggle.html')
+                rendered = t.render(report_data_dict)
+                return HttpResponse(json.dumps({'grn_data': rendered,'discrepancy_data':discrepency_rendered}))
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
@@ -4510,33 +4593,7 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 
 
-def generate_grn_pagination(sku_list):
-    # header 220
-    # footer 125
-    # table header 44
-    # row 46
-    # total 1358
-    # default 24 items
-    # last page 21 items
-    sku_len = len(sku_list)
-    sku_list1 = []
-    for index, sku in enumerate(sku_list):
-        #sku += (index+1,)
-        sku_list1.append(sku)
-    sku_list = sku_list1
-    t = sku_list[0]
-    #for i in range(47): sku_list.append(t)#remove it
-    sku_slices = [sku_list[i: i+24] for i in range(0, len(sku_list), 24)]
-    extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
-    if len(sku_slices[-1]) == 24:
-        temp = sku_slices[-1]
-        sku_slices[-1] = temp[:23]
-        temp = [temp[-1]]
-        for i in range(20): temp.append(extra_tuple)
-        sku_slices.append(temp)
-    else:
-        for i in range((21 - len(sku_slices[-1]))): sku_slices[-1].append(extra_tuple)
-    return sku_slices
+
 
 
 @csrf_exempt
@@ -4758,10 +4815,12 @@ def check_sku(request, user=''):
     sku_brand = request.GET.get('sku_brand')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
-    print("SKUCode Before Change::%s" %sku_code)
-    sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
-    print("SKUCode After Change::%s" %sku_code)
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+    if not sku_id: #Checking scanned sku first, if not present then checking based on configuration.
+        print("SKUCode Before Change::%s" %sku_code)
+        sku_code = check_and_return_barcodeconfig_sku(user, sku_code, sku_brand)
+        print("SKUCode After Change::%s" %sku_code)
+        sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
             sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
@@ -6587,6 +6646,7 @@ def confirm_add_po(request, sales_data='', user=''):
                                             receipt_type=value['receipt_type'])
 
             amount = float(purchase_order.order_quantity) * float(purchase_order.price)
+            amount = float("%.2f" % amount)
             tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax'] + \
                   value['apmc_tax'] + value['cess_tax']
             if not tax:
@@ -6601,6 +6661,7 @@ def confirm_add_po(request, sales_data='', user=''):
 
             if industry_type == 'FMCG':
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
@@ -6618,6 +6679,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
@@ -6828,19 +6890,19 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'Job Order':
         email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
         email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
-    if report_type == 'Save PO':
+    elif report_type == 'Save PO':
         email_body = 'Saved PO Data'
         email_subject = po_data
-    if report_type == 'posform' :
+    elif report_type == 'posform' :
         email_body = 'pls find the attachment'
         email_subject = 'pos order'
-    if report_type == 'rtv_mail':
+    elif report_type in ['rtv_mail', 'Discrepancy Note'] :
         t = loader.get_template('templates/toggle/auto_rtv_mail_format.html')
         email_body = t.render(data_dict_po)
         extra_data = ''
         if user.username in MILKBASKET_USERS:
             extra_data = 'ASPL'
-        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('rtv_number',''),
+        email_subject = 'Debit Note {} from {} {} to  {}'.format(data_dict_po.get('number',''),
                                                                  extra_data,user.username,data_dict_po.get('supplier_name',''))
 
     if report_type == 'Purchase Order' and data_dict_po and user.username in MILKBASKET_USERS:
@@ -7093,14 +7155,6 @@ def delete_po_group(request, user=''):
                                                    sku__user=user.id).delete()
 
     return HttpResponse('Updated Successfully')
-
-
-def get_misc_value(misc_type, user):
-    misc_value = 'false'
-    data = MiscDetail.objects.filter(user=user, misc_type=misc_type)
-    if data:
-        misc_value = data[0].misc_value
-    return misc_value
 
 
 @csrf_exempt
@@ -7654,6 +7708,7 @@ def cancelled_putaway_data(request, user=''):
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
                 mod_locations.append(new_stock.location.location)
+
             if cancelled_data.seller_id:
                 seller_stock_obj = SellerStock.objects.filter(stock_id=new_stock.id, seller_id=cancelled_data.seller_id)
                 if seller_stock_obj:
@@ -8055,7 +8110,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i] or not (int(myDict['id'][i]) in created_qc_ids):
                 continue
@@ -8143,8 +8198,7 @@ def confirm_receive_qc(request, user=''):
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
                                 'seller_name': seller_name, 'company_name': profile.company_name,
                                 'company_address': profile.address, 'bill_no': bill_no,
-                                'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
-                                    data.order_id),
+                                'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': str(bill_date),
                                 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
@@ -8220,9 +8274,7 @@ def generate_po_labels(request, user=''):
                 data['label'].append(label)
                 data['quantity'].append(1)
                 label_dict = {'purchase_order_id': order.id, 'serial_number': serial_number, 'label': label,
-                              'status': 1,
-                              'creation_date': creation_date}
-                label_dict['sku_id'] = sku.id
+                              'status': 1, 'creation_date': creation_date, 'sku_id': sku.id}
                 data['wms_code'].append(sku.wms_code)
                 POLabels.objects.create(**label_dict)
 
@@ -9794,7 +9846,7 @@ def payment_supplier_invoice_data(request, user=''):
         payment_obj = POPaymentSummary.objects.filter(invoice_number=data['invoice_number'], order__open_po__sku__user = user.id)
         if payment_obj:
             payment_received = payment_obj.aggregate(payment_received = Sum('payment_received'))['payment_received']
-        payment_receivable = tot_amt - round(payment_received)
+        payment_receivable = tot_amt - payment_received
         if invoice_date:
             invoice_date = (invoice_date).strftime("%d %b %Y")
         grouping_key = data['invoice_number']
@@ -9803,9 +9855,9 @@ def payment_supplier_invoice_data(request, user=''):
                                             'po_number':order_reference,
                                             'invoice_number': data['invoice_number'],
                                             'supplier_name':data['purchase_order__open_po__supplier__name'],
-                                            'invoice_amount': round(tot_amt),
-                                            'payment_received': round(payment_received),
-                                            'payment_receivable': round(payment_receivable)
+                                            'invoice_amount': float("%.2f" % tot_amt),
+                                            'payment_received': float("%.2f" % payment_received),
+                                            'payment_receivable': float("%.2f" % payment_receivable)
                                             })
     order_data_loop = data_dict.values()
     data_append = []
@@ -9871,12 +9923,15 @@ def invoice_payment_tracker(request,user=''):
                                                 'payment_received': 0,
                                                 'payment_receivable': 0
                                                 })
-            data_dict[grouping_key]['invoice_amount'] +=round(tot_amt)
-            data_dict[grouping_key]['payment_received'] +=round(payment_received)
-            data_dict[grouping_key]['payment_receivable'] +=round(receivable)
+            data_dict[grouping_key]['invoice_amount'] +=tot_amt
+            data_dict[grouping_key]['payment_received'] +=payment_received
+            data_dict[grouping_key]['payment_receivable'] +=receivable
     order_data_loop = data_dict.values()
     data_append = []
     for data1 in order_data_loop:
+        data1['invoice_amount'] = float("%.2f" % data1['invoice_amount'])
+        data1['payment_received'] = float("%.2f" % data1['payment_received'])
+        data1['payment_receivable'] = float("%.2f" % data1['payment_receivable'])
         supplier_data.append(data1)
     response["data"] = supplier_data
     response.update({'total_payment_received': "%.2f" % total_payment_received,
@@ -10076,7 +10131,7 @@ def get_inbound_payment_report(start_index, stop_index, temp_data, search_term, 
         data_dict = OrderedDict((('payment_id', data['payment_id']),
                                 ('invoicee_number', data['invoice_number']),
                                 ('supplier_name', data['order__open_po__supplier__name']),
-                                ('invoice_amount', round(tot_amt)),
+                                ('invoice_amount', float('%.2f' % tot_amt)),
                                 ('payment_date', payment_date),
                                 ('due_date', payment_date),
                                 ('order_id', data['order_id']),
@@ -10348,6 +10403,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict['supplier_name'] = get_po.supplier.name
         data_dict['supplier_address'] = get_po.supplier.address
         data_dict['supplier_email'] = get_po.supplier.email_id
+        data_dict['owner_email'] = get_po.supplier.owner_email_id
+        data_dict['supplier_id'] = get_po.supplier.id
         data_dict['supplier_gstin'] = get_po.supplier.tin_number
         data_dict['phone_number'] = get_po.supplier.phone_number
         data_dict['city'] = get_po.supplier.city
@@ -10559,6 +10616,7 @@ def save_rtv(request, user=''):
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
+    log.info('Request params for Create RTV' + user.username + ' is ' + str(request_data))
     sku_codes = request_data['sku_code']
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     rtv_prefix_code = get_misc_value('rtv_prefix_code', user.id)
@@ -10601,6 +10659,19 @@ def create_rtv(request, user=''):
             show_data_invoice = get_debit_note_data(rtv_number, user)
             if send_rtv_mail:
                 supplier_email = show_data_invoice.get('supplier_email', '')
+                supplier_id = show_data_invoice.get('supplier_id', '')
+                owner_email = show_data_invoice.get('owner_email', '')
+                supplier_email_id = []
+                supplier_email_id.insert(0, supplier_email)
+                if supplier_id:
+                    secondary_supplier_email = list(
+                        MasterEmailMapping.objects.filter(master_id=supplier_id, user=user.id,
+                                                      master_type='supplier').values_list(
+                            'email_id', flat=True).distinct())
+
+                    supplier_email_id.extend(secondary_supplier_email)
+                if owner_email:
+                    supplier_email_id.append(owner_email)
                 data_dict_po = {'po_date': show_data_invoice.get('grn_date',''),
                                 'po_reference': show_data_invoice.get('grn_no',''),
                                 'invoice_number': invoice_number,
@@ -10612,7 +10683,7 @@ def create_rtv(request, user=''):
                 supplier_phone_number = show_data_invoice.get('phone_number', '')
                 company_name = show_data_invoice.get('warehouse_details', '').get('company_name', '')
                 write_and_mail_pdf('Return_to_Vendor', rendered_mail, request, user,
-                                   supplier_email, supplier_phone_number, company_name + 'Return to vendor order',
+                                   supplier_email_id, supplier_phone_number, company_name + 'Return to vendor order',
                                    '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
@@ -11022,10 +11093,10 @@ def get_grn_level_data(request, user=''):
             quantity = data.received_quantity
             #invoice_date = data.updation_date
             if receipt_no:
-                po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
+                    po_data_dict = {}
                     if seller_summary_obj.invoice_date:
                         invoice_date = seller_summary_obj.invoice_date
                     if seller_summary_obj.challan_date:

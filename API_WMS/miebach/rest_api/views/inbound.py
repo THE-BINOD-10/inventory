@@ -178,7 +178,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['-pending_po__po_number','pending_po__supplier_id', 'pending_po__supplier__name',
+    lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
             'pending_po__final_status', 'pending_po__pending_level',
@@ -191,7 +191,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                     'pending_po__requested_user__username', 'pending_po__po_number',
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
-                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
+                    'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
@@ -259,7 +259,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
                                                 # ('Approved PRs', approvedPRs),
-                                                ('Supplier ID', result['pending_po__supplier_id']),
+                                                ('Supplier ID', result['pending_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -2514,9 +2514,9 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         model_name = PendingPO
         purchaseMap['po_number'] = purchase_number
         if supplier:
-            purchaseMap['supplier_id'] = supplier
+            purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=supplier).id#supplier
         else:
-            purchaseMap['supplier_id'] = firstEntryValues.get('supplier_id', '')
+            purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=firstEntryValues.get('supplier_id', '')).id#firstEntryValues.get('supplier_id', '')
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
@@ -2769,7 +2769,7 @@ def save_pr(request, user=''):
                 # purchase_number = get_incremental(user, 'PurchaseRequest')
         supplier = myDict.get('supplier_id', '')
         if supplier:
-            supplier = supplier[0]
+            supplier = supplier[0]#SupplierMaster.objects.get(user=user.id, supplier_id=supplier[0]).id
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'

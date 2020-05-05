@@ -1085,7 +1085,7 @@ def generated_pr_data(request, user=''):
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code, 
                                             'capacity': st_avail_qty+avail_qty,
@@ -1155,7 +1155,7 @@ def generated_actual_pr_data(request, user=''):
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
                                     'order_quantity': qty, 'price': price,

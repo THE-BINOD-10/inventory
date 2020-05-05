@@ -1899,7 +1899,7 @@ PERMISSION_DICT = OrderedDict((
     #Master Edit Access
     ("MASTERS_EDIT_LABEL", (('SKU Master View','view_skumaster'),
                         ('Supplier Master View','view_suppliermaster'),
-                        ('Source SKU Mapping View', 'view_supplierskumaster'),
+                        ('Source SKU Mapping View', 'view_skusupplier'),
                         ('Pricing Master View', 'view_pricemaster'),
                         ('Customer Master View', 'view_customermaster'),)),
 

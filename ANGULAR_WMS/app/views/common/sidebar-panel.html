@@ -49,13 +49,13 @@
 
     <!--
       Masters -->
-    <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
+    <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL') || show_tab('MASTERS_EDIT_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-cubes"></i>
         <span>Masters</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active" ng-show="show_tab('add_skumaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_skumaster') || show_tab('add_skumaster')">
           <a ui-sref="app.masters.SKUMaster">
             <span>SKU Master</span>
           </a>
@@ -65,13 +65,13 @@
             <span>Location Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_suppliermaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_suppliermaster') || show_tab('add_suppliermaster')">
           <a ui-sref="app.masters.SupplierMaster">
             <span>Supplier Master</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('add_skusupplier')">
+          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('view_skusupplier') || show_tab('add_skusupplier')">
             <span>Source-SKU Mapping</span>
           </a>
         </li>
@@ -101,7 +101,7 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster')">
+          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('view_customermaster')">
             <span>Customer Master</span>
           </a>
         </li>
@@ -140,7 +140,7 @@
             <span>Size Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_pricemaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_pricemaster') || show_tab('add_pricemaster')">
           <a ui-sref="app.masters.PricingMaster">
             <span>Pricing Master</span>
           </a>
@@ -716,11 +716,6 @@
         <li ui-sref-active="active" ng-show="user.userName == 'ola_admin'">
           <a ui-sref="app.reports.creditNoteForm">
             <span>Credit Note Form (ORACLE Upload File)</span>
-          </a>
-        </li>
-        <li ui-sref-active="active">
-          <a ui-sref="app.reports.StockSummaryReport">
-            <span>Master Edit Access</span>
           </a>
         </li>
       </ul>

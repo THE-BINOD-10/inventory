@@ -6557,7 +6557,7 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-def build_invoice(invoice_data, user, css=False, stock_transfer=False):
+def build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
     if not stock_transfer:
@@ -6686,6 +6686,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+    if api_invoice:
+        invoice_data['titles'] = ['Original for Receipient']
 
     if css:
         c = {'name': 'invoice'}
@@ -6694,6 +6696,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
     if stock_transfer:
         invoice_data['empty_td'] = [0]*10
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/stock_transfer_invoice.html')
+    # elif api_invoice:
+        # html = loader.get_template('../miebach_admin/templates/toggle/invoice/api_invoice.html')
     else:
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
@@ -7195,7 +7199,8 @@ def check_create_payment_info(order_id, payment_data, user=''):
     paid_amount = payment_data['payment_info']['paid_amount']
     method_of_payment = payment_data['payment_info']['method_of_payment']
     payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
-                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id,
+                    'aux_info':payment_data['payment_info']['aux_info']}
     payment_info = PaymentInfo.objects.create(**payment_dict)
     PaymentSummary.objects.create(order_id=order_obj[0].id, payment_id=payment_id, payment_info=payment_info)
 

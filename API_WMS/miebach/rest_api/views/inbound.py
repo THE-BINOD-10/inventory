@@ -5419,7 +5419,7 @@ def validate_putaway(all_data, user):
                 if pol.purchase_order.open_po:
                     validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
                 elif pol.purchase_order.stpurchaseorder_set.filter():
-                     validate_seller_id = purchase_order.stpurchaseorder_set.filter()[0].open_st.po_seller_id
+                     validate_seller_id = pol.purchase_order.stpurchaseorder_set.filter()[0].open_st.po_seller_id
 
     mrp_putaway_status = []
     for key, value in all_data.iteritems():

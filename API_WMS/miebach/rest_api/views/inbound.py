@@ -11906,7 +11906,7 @@ def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_i
             setattr(suggestion, 'status', 0)
             suggestion.save()
         if status and not suggestion:
-            check_purchase_order_created(user, po_id)
+            check_purchase_order_created(user, po_id, po_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))

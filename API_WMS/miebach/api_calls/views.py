@@ -964,18 +964,19 @@ def get_skus(request):
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if request_data.get('sort_by'):
             order_by = sort_get_skus(sku_model, request_data['sort_by'])
+        for key, value in request_data.items():
+            if key in sku_model:
+                if type(request_data[key]) == list:
+                    search_params[key+'__in'] = request_data[key]
+                else:
+                    search_params[key] = request_data[key]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
             attr_filter_ids = []
             attr_found = False
             for key, value in request_data.items():
-                if key in sku_model:
-                    if type(request_data[key]) == list:
-                        search_params[key+'__in'] = request_data[key]
-                    else:
-                        search_params[key] = request_data[key]
-                elif key in attr_list:
+                if key in attr_list:
                     attr_found = True
                     attr_ids = SKUAttributes.objects.filter(sku__user=user.id, attribute_name=key,
                                                             attribute_value=value).\
@@ -2155,6 +2156,11 @@ def get_customers(request, user=''):
             search_params['customer_id__icontains'] = request_data['customer_id_search']
         elif request_data.get('customer_id', ''):
             search_params['customer_id'] = request_data['customer_id']
+        if request_data.has_key('customer_id'):
+            if type(request_data['customer_id']) == list:
+                search_params['customer_id__in'] = request_data['customer_id']
+            else:
+                search_params['customer_id'] = request_data['customer_id']
         if request_data.get('limit'):
             limit = request_data['limit']
         if request_data.get('customer_type'):

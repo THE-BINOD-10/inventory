@@ -1295,6 +1295,8 @@ def update_customers(customers, user='', company_name=''):
         if not customers:
             customers = {}
         customers = customers.get(customer_mapping['customers'], [])
+        if isinstance(customers, dict):
+            customers = [customers]
         price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
         for customer_data in customers:
             customer_master = None
@@ -1324,6 +1326,8 @@ def update_customers(customers, user='', company_name=''):
                     continue
                 value = customer_data.get(key, '')
                 if key in number_fields.keys():
+                    if key == 'customer_id':
+                        value = customer_id
                     if key == 'pincode':
                         value = customer_data.get('shipping_pincode', '')
                     if not value:

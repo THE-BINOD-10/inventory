@@ -137,6 +137,10 @@ class SKUMaster(models.Model):
         unique_together = ('user', 'sku_code', 'wms_code')
         index_together = (('user', 'sku_code', 'wms_code'), ('user', 'sku_code'))
 
+    # def get_queryset(self):
+    #     qs = super().get_queryset()
+    #     return qs.exclude(id__in=AssetMaster.objects.filter())
+
     def __unicode__(self):
         return str(self.sku_code)
 
@@ -150,6 +154,15 @@ class SKUMaster(models.Model):
                 'threshold_quantity': self.threshold_quantity, 'online_percentage': self.online_percentage,
                 'discount_percentage': self.discount_percentage, 'price': self.price, 'image_url': self.image_url,
                 'qc_check': self.qc_check, 'status': self.status, 'relation_type': self.relation_type}
+
+
+class AssetMaster(SKUMaster):
+    parrent_asset_code = models.CharField(max_length=64, default='')
+    asset_number = models.PositiveIntegerField(default=0)
+    store_id = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'ASSET_MASTER'
 
 
 class EANNumbers(models.Model):

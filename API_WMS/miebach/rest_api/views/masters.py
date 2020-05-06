@@ -73,7 +73,10 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    instanceName = SKUMaster
+    if request.POST.get('datatable') == 'AssetMaster':
+        instanceName = AssetMaster
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
@@ -1078,7 +1081,10 @@ def update_sku(request, user=''):
         zone = request.POST['zone_id']
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
-        data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        instanceName = SKUMaster
+        if request.POST.get('is_asset') == 'true':
+            instanceName = AssetMaster
+        data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
         if image_file:
@@ -2647,7 +2653,10 @@ def insert_sku(request, user=''):
         filter_params = {'zone': zone, 'user': user.id}
         zone_master = filter_or_none(ZoneMaster, filter_params)
         filter_params = {'wms_code': wms, 'user': user.id}
-        data = filter_or_none(SKUMaster, filter_params)
+        instanceName = SKUMaster
+        if request.POST.get('is_asset') == 'true':
+            instanceName = AssetMaster
+        data = filter_or_none(instanceName, filter_params)
         status_msg = 'SKU exists'
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
@@ -2691,7 +2700,13 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
-            sku_master = SKUMaster(**data_dict)
+            if instanceName.__name__ == 'AssetMaster':
+                respFields = [f.name for f in instanceName._meta.get_fields()]
+                for k, v in data_dict.items():
+                    if k not in respFields:
+                        data_dict.pop(k)
+
+            sku_master = instanceName(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
             if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':

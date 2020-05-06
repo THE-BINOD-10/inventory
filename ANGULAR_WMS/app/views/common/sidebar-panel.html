@@ -57,6 +57,11 @@
             <span>SKU Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_assetmaster')">
+          <a ui-sref="app.masters.AssetMaster">
+            <span>Asset Master</span>
+          </a>
+        </li>        
         <li ui-sref-active="active" ng-show="show_tab('add_locationmaster')">
           <a ui-sref="app.masters.LocationMaster">
             <span>Location Master</span>

@@ -964,18 +964,19 @@ def get_skus(request):
         sku_model = [field.name for field in SKUMaster._meta.get_fields()]
         if request_data.get('sort_by'):
             order_by = sort_get_skus(sku_model, request_data['sort_by'])
+        for key, value in request_data.items():
+            if key in sku_model:
+                if type(request_data[key]) == list:
+                    search_params[key+'__in'] = request_data[key]
+                else:
+                    search_params[key] = request_data[key]
         if attributes:
             attr_list = list(attributes.values_list('attribute_name', flat=True))
         if attr_list:
             attr_filter_ids = []
             attr_found = False
             for key, value in request_data.items():
-                if key in sku_model:
-                    if type(request_data[key]) == list:
-                        search_params[key+'__in'] = request_data[key]
-                    else:
-                        search_params[key] = request_data[key]
-                elif key in attr_list:
+                if key in attr_list:
                     attr_found = True
                     attr_ids = SKUAttributes.objects.filter(sku__user=user.id, attribute_name=key,
                                                             attribute_value=value).\
@@ -2155,6 +2156,11 @@ def get_customers(request, user=''):
             search_params['customer_id__icontains'] = request_data['customer_id_search']
         elif request_data.get('customer_id', ''):
             search_params['customer_id'] = request_data['customer_id']
+        if request_data.has_key('customer_id'):
+            if type(request_data['customer_id']) == list:
+                search_params['customer_id__in'] = request_data['customer_id']
+            else:
+                search_params['customer_id'] = request_data['customer_id']
         if request_data.get('limit'):
             limit = request_data['limit']
         if request_data.get('customer_type'):
@@ -2280,4 +2286,26 @@ def get_shipmentinfo(request, user=''):
         total_data.append(data1)
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))
+
+@login_required
+@get_admin_user
+def update_supplier(request, user=''):
+    try:
+        supplier = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(supplier))
+    try:
+        failed_status = validate_supplier(supplier, user=request.user)
+        status = {'status': 200, 'message': 'Success'}
+        if failed_status:
+            status = failed_status[0]
+        return HttpResponse(json.dumps(status))
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'status': 0,'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
 

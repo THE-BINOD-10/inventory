@@ -76,6 +76,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     instanceName = SKUMaster
     if request.POST.get('datatable') == 'AssetMaster':
         instanceName = AssetMaster
+    elif request.POST.get('datatable') == 'ServiceMaster':
+        instanceName = ServiceMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
@@ -1084,6 +1086,8 @@ def update_sku(request, user=''):
         instanceName = SKUMaster
         if request.POST.get('is_asset') == 'true':
             instanceName = AssetMaster
+        if request.POST.get('is_service') == 'true':
+            instanceName = ServiceMaster
         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
@@ -2654,10 +2658,14 @@ def insert_sku(request, user=''):
         zone_master = filter_or_none(ZoneMaster, filter_params)
         filter_params = {'wms_code': wms, 'user': user.id}
         instanceName = SKUMaster
+        status_msg = 'SKU exists'
         if request.POST.get('is_asset') == 'true':
             instanceName = AssetMaster
+            status_msg = 'Asset Item exists'
+        elif request.POST.get('is_service') == 'true':
+            instanceName = ServiceMaster
+            status_msg = 'Service Item exists'
         data = filter_or_none(instanceName, filter_params)
-        status_msg = 'SKU exists'
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
         notified_users = []
@@ -2700,7 +2708,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ == 'AssetMaster':
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:

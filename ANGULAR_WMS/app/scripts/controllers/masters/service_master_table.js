@@ -1,7 +1,7 @@
 'use strict';
 
 var app = angular.module('urbanApp', ['datatables'])
-app.controller('AssetMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
+app.controller('ServiceMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope, $modal) {
 
@@ -11,7 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
 
-    vm.filters = {'datatable': 'AssetMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
+    vm.filters = {'datatable': 'ServiceMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url:  Session.url+'results_data/',
@@ -37,11 +37,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('SKU Code').withTitle('Asset Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Asset Description'),
-        DTColumnBuilder.newColumn('SKU Type').withTitle('Asset Type'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('Asset Category'),
-        DTColumnBuilder.newColumn('SKU Class').withTitle('Asset Class'),
+        DTColumnBuilder.newColumn('SKU Code').withTitle('Service Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Service Description'),
+        DTColumnBuilder.newColumn('SKU Type').withTitle('Service Type'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('Service Category'),
+        DTColumnBuilder.newColumn('SKU Class').withTitle('Service Class'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
         
@@ -223,10 +223,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.model_data.sku_data.enable_serial_based = false
                   }
                   $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
-                  $state.go('app.masters.AssetMaster.update');
+                  $state.go('app.masters.ServiceMaster.update');
                  }
                 });
-                vm.title ="Update Asset";
+                vm.title ="Update Service";
             });
         });
         return nRow;
@@ -246,7 +246,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(empty_data, vm.model_data);
       vm.service.searched_wms_code = "";
       vm.service.searched_sup_code = '';
-      $state.go('app.masters.AssetMaster');
+      $state.go('app.masters.ServiceMaster');
     }
 
     vm.b_close = vm.close;
@@ -264,7 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     elem = $(elem).serializeArray();
     elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
     // elem.push({name:'substitutes', value:$('.substitutes').val()});
-    elem.push({name:'is_asset', value:true});
+    elem.push({name:'is_service', value:true});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
@@ -282,19 +282,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     var formData = new FormData()
-    var files = $("#update_sku").find('[name="files"]')[0].files;
-    $.each(files, function(i, file) {
-        formData.append('files-' + i, file);
-    });
+    // var files = $("#update_sku").find('[name="files"]')[0].files;
+    // $.each(files, function(i, file) {
+    //     formData.append('files-' + i, file);
+    // });
     // SKU Related Files
     $.each(vm.model_data.sku_files, function(i, file) {
         formData.append('sku-related-files-' + i, file);
     });
 
-    vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
-    $.each(files, function(i, file) {
-        formData.append('files-' + i, file);
-    });
+    // vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
+    // $.each(files, function(i, file) {
+    //     formData.append('files-' + i, file);
+    // });
 
     $.each(elem, function(i, val) {
         formData.append(val.name, val.value);
@@ -356,7 +356,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.submit = function(data) {
     if ( data.$valid ){
-      if ("Add Asset" == vm.title) {
+      if ("Add Service" == vm.title) {
         vm.url = "insert_sku/";
       } else {
         vm.url = "update_sku/";
@@ -383,7 +383,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.base = function() {
 
-    vm.title = "Add Asset";
+    vm.title = "Add Service";
     vm.update = false;
     vm.combo = false;
     angular.copy(empty_data, vm.model_data);
@@ -416,7 +416,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
     vm.model_data.sku_data.status = vm.status_data[1];
     vm.model_data.sku_data.qc_check = vm.qc_data[0];
-    $state.go('app.masters.AssetMaster.update');
+    $state.go('app.masters.ServiceMaster.update');
   }
 
   vm.base();

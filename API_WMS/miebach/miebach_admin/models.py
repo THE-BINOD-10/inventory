@@ -165,6 +165,15 @@ class AssetMaster(SKUMaster):
         db_table = 'ASSET_MASTER'
 
 
+class ServiceMaster(SKUMaster):
+    asset_code = models.CharField(max_length=64, default='')
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'SERVICE_MASTER'
+
+
 class EANNumbers(models.Model):
     id = BigAutoField(primary_key=True)
     ean_number = models.CharField(max_length=64, default='')

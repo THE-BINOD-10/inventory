@@ -61,6 +61,11 @@
           <a ui-sref="app.masters.AssetMaster">
             <span>Asset Master</span>
           </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_servicemaster')">
+          <a ui-sref="app.masters.ServiceMaster">
+            <span>Service Master</span>
+          </a>
         </li>        
         <li ui-sref-active="active" ng-show="show_tab('add_locationmaster')">
           <a ui-sref="app.masters.LocationMaster">

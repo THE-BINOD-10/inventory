@@ -2398,11 +2398,7 @@ def add_group(request, user=''):
     for key, value in permission_dict.iteritems():
         sub_perms = permission_dict[key]
         for i in sub_perms:
-            if key in 'MASTERS_LABEL' and i[1].startswith('add'):
-                # lis = view_master_access(user, i[1])
-                reversed_perms[i[1]] = i[0]
-            else:
-                reversed_perms[i[1]] = i[0]
+            reversed_perms[i[1]] = i[0]
     # reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
@@ -2485,10 +2481,11 @@ def add_group(request, user=''):
                                     permissions = Permission.objects.filter(codename=res)
                                     lis.append(permissions[0])
                                 group.permissions.add(*lis)
-                            else:
-                                permissions = Permission.objects.filter(codename=sub_perms[perm])
-                                for permission in permissions:
-                                    group.permissions.add(permission)
+                        else:
+                            permissions = Permission.objects.filter(codename=sub_perms[perm])
+                            for permission in permissions:
+                                print("else permission ====",permission)
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 

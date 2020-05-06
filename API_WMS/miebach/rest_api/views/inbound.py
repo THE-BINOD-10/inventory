@@ -1085,7 +1085,7 @@ def generated_pr_data(request, user=''):
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code, 
                                             'capacity': st_avail_qty+avail_qty,
@@ -1155,7 +1155,7 @@ def generated_actual_pr_data(request, user=''):
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
                                     'order_quantity': qty, 'price': price,
@@ -4844,33 +4844,42 @@ def check_returns(request, user=''):
     return HttpResponse(status)
 
 
-def po_wise_check_sku(po_number, sku_code='', user='',check = False):
+def po_wise_check_sku(po_number, sku_code='', user='', sku_brand=''):
     check_po=False
     if(sku_code):
-        order_id=po_number.split("_")[-1]
-        purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
-        for orders in purchase_orders:
-            if(sku_code==str(orders.open_po.sku)):
-                check_po=True
-        if(check_po):
-            sku_id = check_and_return_mapping_id(sku_code, '', user, check)
-            if not sku_id:
-                try:
-                    sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
-                    if sku_ean_objs.exists():
-                        sku_id = sku_ean_objs[0].id
-                    else:
-                        ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
-                        if ean_obj.exists():
-                            sku_id = ean_obj[0].sku_id
-                except:
-                    sku_id = ''
-            if(sku_id):
-                return sku_id
-            else:
+        check = False
+        #Checking sku first, if not present then checking ean Number 
+        sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+        if not sku_id:
+            try:
+                sku_ean_objs = SKUMaster.objects.filter(ean_number=sku_code, user=user.id).only('ean_number', 'sku_code')
+                if sku_ean_objs.exists():
+                    sku_id = sku_ean_objs[0].id
+                else:
+                    ean_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=sku_code)
+                    if ean_obj.exists():
+                        sku_id = ean_obj[0].sku_id
+            except:
+                sku_id = ''
+        if(sku_id):
+            #checking the sku in PO Wise
+            order_id=po_number.split("_")[-1]
+            purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
+            try:
+                #checking the sku_id and brand
+                sku_data = SKUMaster.objects.get(id=sku_id,sku_brand=sku_brand)
+                for orders in purchase_orders:
+                    if(str(sku_data.sku_code)==str(orders.open_po.sku)):
+                        check_po=True
+                if(check_po):
+                    return sku_id
+                else:
+                    return ''
+            except Exception as e:
+                print("exception",e)
                 return ''
     return ''
-def check_entities(template_id, string, po_reference, user):
+def check_entities(template_id, string, po_reference, user,sku_brand):
     sku_entities=BarcodeEntities.objects.filter(template=template_id).values('entity_type','start','end','Format','regular_expression')
     serialized_sku_entities = json.dumps(list(sku_entities), cls=DjangoJSONEncoder)
     final_data = {"status": 'barcode_confirmed',
@@ -4882,26 +4891,24 @@ def check_entities(template_id, string, po_reference, user):
     for row in json.loads(serialized_sku_entities):
         try:
             end = row["end"]
-            if(not end == len(string)):
-                end = end - 1
             if(row["Format"]):
                 data={row["entity_type"]:string[row["start"]-1:end],"Format":row["Format"]}
             else:
                 if(row["regular_expression"]):
                     if(row["entity_type"]=="SKU"):
                         sku_num=re.findall(str(row["regular_expression"]),string)[0]
-                        sku_res=po_wise_check_sku(po_reference,sku_num,user)
+                        sku_res=po_wise_check_sku(po_reference, sku_num, user, sku_brand)
                     elif(row["entity_type"]=="GTIN"):
                         gtin_num=re.findall(str(row["regular_expression"]),string)[0]   
-                        sku_res=po_wise_check_sku(po_reference,gtin_num,user) 
+                        sku_res=po_wise_check_sku(po_reference,gtin_num, user, sku_brand) 
                     elif(row["entity_type"]=="LOT"):
                         batch_no=re.findall(str(row["regular_expression"]),string)[0]
                     data={row["entity_type"]:re.findall(str(row["regular_expression"]),string)[0]}
                 else:
                     if(row["entity_type"]=="SKU"):
-                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user)
+                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user, sku_brand)
                     elif(row["entity_type"]=="GTIN"):
-                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user)
+                        sku_res=po_wise_check_sku(po_reference,string[row["start"]-1:end],user, sku_brand)
                     elif(row["entity_type"]=="LOT"):
                         batch_no=string[row["start"]-1:end]
                     data={row["entity_type"]:string[row["start"]-1:end]}
@@ -4923,19 +4930,20 @@ def check_entities(template_id, string, po_reference, user):
 def check_barcode_scanner(string, sku_brands, po_reference, user):
     for sku_brand in sku_brands:
         if(sku_brand):
+            #Checking  brand first, if not present then checking based on the string length
             sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, brand=sku_brand).only('id', 'brand',"length")
         else:
             sku_template_obj= BarcodeTemplate.objects.filter(user=user.id, length=len(string)).only('id', 'brand',"length")
         print("string",string,sku_brand)
         if sku_template_obj.exists():
             for template in sku_template_obj:
-                if(int(template.length)>0):
-                    res=check_entities(int(template.id),string, po_reference,user)
+                if(int(template.length)>0 and int(template.length)==len(string)):
+                    res=check_entities(int(template.id),string, po_reference,user,sku_brand)
                     if(res["status"]):
                         return {"status":True,"data":res["data"]}
             for template in sku_template_obj:
                 if(int(template.length)==0):
-                    res=check_entities(int(template.id),string, po_reference,user)
+                    res=check_entities(int(template.id),string, po_reference,user,sku_brand)
                     if(res["status"]):
                         return {"status":True,"data":res["data"]}
     return {"status":False, "data":"No Templates are present"}
@@ -10999,7 +11007,7 @@ def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company__company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
-        'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
+        'company__company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
     total_order_qty = 0

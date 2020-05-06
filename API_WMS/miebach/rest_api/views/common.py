@@ -5184,12 +5184,14 @@ def get_size_names(requst, user=""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     warehouse = request.GET.get('warehouse', '')
+    admin_user = get_warehouse_admin(user)
     if warehouse:
-        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs = list(get_sister_warehouse(admin_user).values_list('user__username', flat=True))
+        sister_whs.append(user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return json.dumps(json.dumps({'error': 'Invalid Warehouse Name'}))
+            return HttpResponse(json.dumps({'error': 'Invalid Warehouse Name'}))
     sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     terms_condition = UserTextFields.objects.filter(user=user.id, field_type = 'terms_conditions')
     if terms_condition.exists():

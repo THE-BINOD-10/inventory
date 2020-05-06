@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-	GroupBrand, GroupStages, OrderDetail, BarcodeSettings
+	GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster
 
 # Register your models here.
 
@@ -35,6 +35,10 @@ class BarcodeSettingsAdmin(admin.ModelAdmin):
     list_display = ('user', 'format_type', 'show_fields')
 
 
+class CompanyMasterAdmin(admin.ModelAdmin):
+    search_fields = ['company_name']
+    list_display = ('company_name', 'creation_date', 'parent')
+
 admin.site.register(UserBrand)
 admin.site.register(Brands)
 admin.site.register(UserStages)
@@ -44,3 +48,4 @@ admin.site.register(AdminGroups)
 admin.site.register(GroupBrand)
 admin.site.register(GroupStages)
 admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)
+admin.site.register(CompanyMaster, CompanyMasterAdmin)

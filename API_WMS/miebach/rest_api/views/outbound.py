@@ -1584,7 +1584,7 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'all_items': items,
                  'headers': headers, 'query_contact': user_data.phone_number,
-                 'company_name': user_data.company_name, 'client_name': client_name}
+                 'company_name': user_data.company.company_name, 'client_name': client_name}
 
     t = loader.get_template('templates/dispatch_mail.html')
     rendered = t.render(data_dict)
@@ -1607,7 +1607,7 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
             tmp_order_id = 'TI/' + tmp_invoice_date + '/' + picklist.order.original_order_id if from_pos else\
                            'TI/' + tmp_invoice_date + '/' + str(picklist.order.order_id)
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (
-            user_data.company_name, tmp_order_id), rendered, files=[pdf_file])
+            user_data.company.company_name, tmp_order_id), rendered, files=[pdf_file])
         except:
             log.info('mail issue')
 
@@ -4401,7 +4401,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
     else:
         log.info("Order ID Not Found")
     if misc_detail:
-        company_name = UserProfile.objects.filter(user=user.id)[0].company_name
+        company_name = UserProfile.objects.filter(user=user.id)[0].company.company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         if admin_user.username == 'isprava_admin':
             headers.insert(0,'Image')
@@ -4432,7 +4432,7 @@ def send_mail_enquiry_order_report(items, enquiry_id, user, customer_details, is
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
     if misc_detail:
-        company_name = UserProfile.objects.filter(user=user.id)[0].company_name
+        company_name = UserProfile.objects.filter(user=user.id)[0].company.company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         data_dict = {'customer_name': customer_details['customer_name'], 'enquiry_id': enquiry_id,
                      'items': items, 'headers': headers, 'company_name': company_name, 'user': user}
@@ -12029,7 +12029,7 @@ def generate_stock_transfer_invoice(request, user=''):
                     'gstin_no': user_profile.gst_number,
                     'pan_number': user_profile.pan_number,
                     'cin_no': user_profile.cin_number,
-                    'company_name': user_profile.company_name,
+                    'company_name': user_profile.company.company_name,
                     'company_address': user_profile.address,
                     'company_number': user_profile.phone_number,
                     'email': user.email}
@@ -12040,7 +12040,7 @@ def generate_stock_transfer_invoice(request, user=''):
     dest_data = {'destination_gstin_no': to_warehouse.gst_number,
                  'destination_pan_number': to_warehouse.pan_number,
                  'destination_cin_no': to_warehouse.cin_number,
-                 'destination_company_name': to_warehouse.company_name,
+                 'destination_company_name': to_warehouse.company.company_name,
                  'destination_company_address': to_warehouse.address,
                  'destination_company_number': to_warehouse.phone_number,
                  'destination_email': warehouse_obj.email}
@@ -14626,7 +14626,7 @@ def remove_customer_profile_image(request, user=''):
 def print_cartons_data(request, user=''):
     request_dict = dict(request.POST.iterlists())
     company_info = user.userprofile.__dict__
-    company_name = company_info['company_name']
+    company_name = user.userprofile.company.company_name
     sel_carton = request.POST.get('sel_carton', '')
     table_headers = ['S.No', 'Carton Number', 'SKU Code', ' SKU Description', 'Quantity']
     address = company_info['address']
@@ -14728,7 +14728,7 @@ def print_cartons_data_view(request, user=''):
     courier_name = ''
 
     company_info = user.userprofile.__dict__
-    company_name = company_info['company_name']
+    company_name = user.userprofile.company.company_name
     address = company_info['address']
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
     shipment_orders = ShipmentInfo.objects.filter(order__customer_id=customer_id,
@@ -16120,7 +16120,7 @@ def generate_picklist_dc(request, user=''):
     invoice_data['extra_order_fields'] = extra_fields
     user_profile = UserProfile.objects.get(user_id=user.id)
     invoice_data['gstin_no'] = user_profile.gst_number
-    invoice_data['company_name'] = user_profile.company_name
+    invoice_data['company_name'] = user_profile.company.company_name
     invoice_data['company_address'] = user_profile.address
     invoice_data['company_number'] = user_profile.phone_number
     invoice_data['order_no'] = picklist_obj.order.order_id
@@ -16463,7 +16463,7 @@ def generate_dc(request , user = ''):
                 invoice_data['extra_order_fields'] = extra_fields
                 user_profile = UserProfile.objects.get(user_id=user.id)
                 invoice_data['gstin_no'] = user_profile.gst_number
-                invoice_data['company_name'] = user_profile.company_name
+                invoice_data['company_name'] = user_profile.company.company_name
                 invoice_data['company_address'] = user_profile.address
                 invoice_data['company_number'] = user_profile.phone_number
                 invoice_data['order_no'] = order.order_id

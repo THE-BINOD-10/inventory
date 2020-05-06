@@ -62,13 +62,13 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="col-md-5 control-label">Email</label>
-                <input type="email" name="email" class="form-control" ng-model="showCase.model_data.email">
+                <input type="email" name="email" class="form-control" ng-model="showCase.model_data.email" autocomplete="off">
               </div>
             </div>
             <div class="col-md-4" ng-if="(!(showCase.update))">
               <div class="form-group">
                 <label class="control-label">Password *</label>
-                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" required>
+                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" autocomplete="off" required>
               </div>
             </div>
             <div class="col-md-4" ng-if="(!(showCase.update))">
@@ -128,26 +128,31 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4" ng-if="((showCase.update)) && permissions.user_type=='central_admin' || showCase.warehouse_type=='admin'">
+            <div class="col-md-4" ng-if="showCase.warehouse_level==0">
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
-                    <label class="control-label">Type</label>
-                    <input type="text" name="warehouse_type" class="form-control" ng-model="showCase.model_data.warehouse_type">
-                  </div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="form-group">
-                    <label class="control-label">Level</label>
-                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level">
+                    <label class="control-label"> Company List </label>
+                    <select class="form-control customer_status" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="status">
+                      <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
+                    </select>
                   </div>
                 </div>
               </div>
             </div>
-
+            <div ng-if="showCase.warehouse_level!=0">
+              <input type="hidden" name="company_id" ng-model="showCase.model_data.company_id">
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="control-label">Level</label>
+                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="row" ng-if="(!(showCase.update)) && permissions.user_type=='central_admin' || showCase.warehouse_type=='admin'">
             <div class="col-md-4">

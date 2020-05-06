@@ -8,8 +8,128 @@
   .modal-body{
   overflow: scroll;
   }
+   /* The container */
+  .container {
+      padding-left: 15px;
+      cursor: pointer;
+      font-size: 12px;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+  }
 
+  /* Hide the browser's default radio button */
+  .container input {
+      opacity: 0;
+      cursor: pointer;
+  }
+
+  /* Create a custom radio button */
+  .checkmark {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 25px;
+      width: 25px;
+      background-color: #eee;
+      border: 0px solid #eee;
+      border-radius: 50%;
+  }
+
+  /* On mouse-over, add a grey background color */
+  .container:hover input ~ .checkmark {
+      background-color: #ccc;
+  }
+
+  /* When the radio button is checked, add a blue background */
+  .container input:checked ~ .checkmark {
+      background-color: #47bf1f;
+  }
+
+  /* Create the indicator (the dot/circle - hidden when not checked) */
+  .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+  }
+
+  /* Show the indicator (dot/circle) when checked */
+  .container input:checked ~ .checkmark:after {
+      display: block;
+  }
+
+  /* Style the indicator (dot/circle) */
+  .container .checkmark:after {
+    top: 9px;
+    left: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+  }
+   /* The container */
+  .container1 {
+      padding-left: 15px;
+      cursor: pointer;
+      font-size: 12px;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+  }
+
+  /* Hide the browser's default radio button */
+  .container1 input {
+      opacity: 0;
+      cursor: pointer;
+  }
+
+  /* Create a custom radio button */
+  .checkmark1 {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 25px;
+      width: 25px;
+      background-color: #eee;
+      border: 0px solid #eee;
+      border-radius: 50%;
+  }
+
+  /* On mouse-over, add a grey background color */
+  .container1:hover input ~ .checkmark1 {
+      background-color: #ccc;
+  }
+
+  /* When the radio button is checked, add a blue background */
+  .container1 input:checked ~ .checkmark1 {
+      background-color: red;
+  }
+
+  /* Create the indicator (the dot/circle - hidden when not checked) */
+  .checkmark1:after {
+      content: "";
+      position: absolute;
+      display: none;
+  }
+
+  /* Show the indicator (dot/circle) when checked */
+  .container1 input:checked ~ .checkmark1:after {
+      display: block;
+  }
+
+  /* Style the indicator (dot/circle) */
+  .container1 .checkmark1:after {
+    top: 9px;
+    left: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+  }
 </style>
+
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
@@ -29,13 +149,13 @@
         </div>
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">PR Delivery Date *</label>
                 <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            </div> -->
+            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Address *</label><br>
                 <div class="btn-group mr15" dropdown="">
@@ -51,22 +171,54 @@
                 <label class="control-label"> Ship To *</label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
             </div>
+          </div> -->
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Product Category</label>
+              <select class="form-control" name="product_category" ng-model="showCase.model_data.product_category">
+                <option value="" style="display:None;"></option>
+                <option ng-repeat="prod_catg in showCase.model_data.product_categories" ng-selected="$first" value="{{prod_catg}}">{{prod_catg}}</option>
+              </select>
+            </div>
           </div>
+          <div class="col-md-6 col-sm-6 col-xs-8">
+            <div class="form-group">
+               <div class="col-md-3 mt30" align="right">
+                 <label class="container">Normal Request
+                  <input type="radio" name="priority_type" 
+                  ng-model="showCase.model_data.priority_type" value="normal"
+                  ng-checked="true">
+                  <span class="checkmark"></span>
+                </label>
+               </div>
+               <div class="col-md-3 mt30" align="right">
+                 <label class="container1">Urgent Request
+                  <input type="radio" name="priority_type" ng-model="showCase.model_data.priority_type" value="urgent"
+                  ng-checked="showCase.model_data.priority_type == 'urgent'">
+                  <span class="checkmark1"></span>
+                </label>
+               </div>
+              </div>
+           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>
           <div class="row">
             <div class="col-md-12">
-              <table class="table">
+              <table class="table" class="pull-left" style="margin-left: 10px;">
                 <thead>
                   <tr>
                     <th>SKU Code*</th>
                     <th>Title</th>
-                    <th>AvailableQty</th>
-                    <th>IntransitQty</th>
-                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
                     <th class="w10_">Quantity*</th>
+                    <th>No.Of Tests</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+                    <th>OpenPR Qty</th>
+                    <th>Last 3M Avg Consumption</th>
+                    <th>Available Stock</th>
+                    <th>OpenPO Qty</th>
+                    <th>Suggested PR Qty</th>
+                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -84,17 +236,27 @@
                     <td>
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
-                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                              ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
+                             ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                              ng-keyup="showCase.getTotals()" size="12">
+                    </td>
+                    <td>
+                      <input ng-model="product.fields.no_of_tests" type="text" name="no_of_tests" 
+                             class="form-control detectTab"
+                             ng-class="service.get_decimal_perm()" ng-readonly="true"
+                             size="12">
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
                     </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td>
+                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>

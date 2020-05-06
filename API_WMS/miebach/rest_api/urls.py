@@ -78,6 +78,7 @@ urlpatterns = [
     url(r'^delete_cluster_sku/$', delete_cluster_sku),
     url(r'^insert_company_master/$', insert_company_master),
     url(r'^update_company_master/$', update_company_master),
+    url(r'^get_company_list/$', get_company_list),
 
 
 
@@ -700,6 +701,9 @@ urlpatterns += [
     url(r'^get_decimal_data/$', get_decimal_data),
     url(r'^update_barcode_configuration/$', update_barcode_configuration),
     url(r'^get_barcode_configurations/$', get_barcode_configurations),
+    url(r'^update_new_barcode_configuration/$', update_new_barcode_configuration),
+    url(r'^get_new_barcode_configurations/$', get_new_barcode_configurations),
+    url(r'^get_distnict_brands/$', get_distnict_brands),
 
 
     # Retailone

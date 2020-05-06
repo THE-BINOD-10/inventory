@@ -772,7 +772,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Raise PR',
+            title: 'Purchase Request',
           }
         })
         .state('app.inbound.RaisePr.OpenPr', {
@@ -828,7 +828,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Raise PO',
+            title: 'Purchase Order',
           }
         })
           .state('app.inbound.RaisePo.PurchaseOrder', {
@@ -2709,6 +2709,11 @@ var app = angular.module('urbanApp')
                     'scripts/controllers/configs/classification.js'
                   ])
                 })
+                .then(function(){
+                  return $ocLazyLoad.load([
+                      'scripts/controllers/configs/new_barcode_configurations.js'
+                   ])
+                 })
                 .then(function(){
                   return $ocLazyLoad.load([
                       'scripts/controllers/configs/barcode_configurations.js'

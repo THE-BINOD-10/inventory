@@ -5772,7 +5772,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
 
-    return zones_data, stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config
+    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data
 
 
 
@@ -5800,8 +5800,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
-    zones_data, stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config = get_pr_related_stock(user, 
-                                                                    sku_code, search_params, includeStoreStock)
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,

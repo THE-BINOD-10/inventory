@@ -20,6 +20,8 @@ import csv
 from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
+from inbound_common_operations import *
+
 
 
 log = init_logger('logs/uploads.log')
@@ -2799,6 +2801,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     purchase_mapping = get_purchase_order_excel_headers(user)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
     fields = []
+    margin_check = get_misc_value('enable_margin_price_check', user.id, number=False, boolean=True)
     if misc_detail.exists():
         fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
@@ -2866,6 +2869,11 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not ep_supplier:
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
+                        if not index_status:
+                            if  margin_check :
+                                status = check_margin_percentage(sku_master[0].id, supplier[0].id)
+                                if status:
+                                    index_status.setdefault(row_idx, set()).add(status)
                         data_dict['sku_id'] = sku_master[0].id
                         data_dict['wms_code'] = sku_master[0].wms_code
                         data_dict['sku_product_type'] = sku_master[0].product_type

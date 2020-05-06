@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from django.conf import settings
 from views import *
+from netsuite import *
 #urlpatterns = patterns('api_calls.views',
 urlpatterns = [
     # Login and logout
@@ -51,4 +52,5 @@ urlpatterns = [
     url(r'^get_customers/$', get_customers),
     url(r'^get_skufilters/$', get_skufilters),
     url(r'^create_orders/$', create_orders),
+    url(r'^netsuite/update_supplier/$', netsuite_update_supplier),
 ]

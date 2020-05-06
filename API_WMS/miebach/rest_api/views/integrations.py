@@ -1392,6 +1392,71 @@ def update_customers(customers, user='', company_name=''):
         traceback.print_exc()
         return UIN, failed_status.values(), customer_id
 
+def validate_supplier(supplier, user=''):
+    failed_status = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs1.append(user.username)
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    try:
+        if supplier.has_key('warehouse'):
+            warehouse = supplier['warehouse']
+            if warehouse.lower() in sister_whs:
+                user = User.objects.get(username=warehouse)
+            else:
+                error_message = 'Invalid Warehouse Name'
+                update_error_message(failed_status, 5024, error_message, '')
+        if supplier.has_key('supplier_id'):
+            supplier_id = supplier.get('supplier_id')
+            supplier_master = get_or_none(SupplierMaster, {'id': supplier_id, 'user':user.id})
+        else:
+            error_message = 'supplier id missing'
+            update_error_message(failed_status, 5024, error_message, '')
+
+        supplier_dict = supplier_dict = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
+                         'tax_type': '', 'po_exp_duration': '',
+                         'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
+                         'lead_time': 0, 'credit_period': 0, 'bank_name': '', 'ifsc_code': '',
+                         'branch_name': '', 'account_number': 0, 'account_holder_name': '',
+                         'pincode':'','city':'','state':'','pan_number':'','tin_number':'','status':1
+                        }
+        data_dict = {"id":supplier_id, "user":user.id, 'creation_date':datetime.datetime.now(), 'updation_date':datetime.datetime.now()}
+        for key,val in supplier_dict.iteritems():
+            value = supplier.get(key, val)
+            if key == 'email_id' and value:
+                if validate_supplier_email(value):
+                    update_error_message(failed_status, 5024, 'Enter valid Email ID', '')
+            data_dict[key] = value
+            if supplier_master and value:
+                setattr(supplier_master, key, value)
+        secondary_email_id = supplier.get('secondary_email_id', '')
+        if secondary_email_id:
+            secondary_email_id = secondary_email_id.split(',')
+            for mail in secondary_email_id:
+                if validate_supplier_email(mail):
+                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', '')
+        if not failed_status:
+            if supplier_master:
+                supplier_master.save()
+            else:
+                supplier_master = SupplierMaster(**data_dict)
+                supplier_master.save()
+            if secondary_email_id:
+                for mail in secondary_email_id:
+                    master_email_map = {}
+                    master_email_map['user'] = user
+                    master_email_map['master_id'] = supplier_master.id
+                    master_email_map['master_type'] = 'supplier'
+                    master_email_map['email_id'] = mail
+                    master_email_map['creation_date'] = datetime.datetime.now()
+                    master_email_map['updation_date'] = datetime.datetime.now()
+                    master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+        return failed_status.values()
+
+    except:
+        traceback.print_exc()
+        return failed_status.values()
 
 def validate_sellers(sellers, user=None, seller_mapping=None):
     if not sellers or not user or not seller_mapping:

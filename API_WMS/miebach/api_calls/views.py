@@ -2281,3 +2281,25 @@ def get_shipmentinfo(request, user=''):
     page_info['data'] = total_data
     return HttpResponse(json.dumps(page_info))
 
+@login_required
+@get_admin_user
+def update_supplier(request, user=''):
+    try:
+        supplier = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(supplier))
+    try:
+        failed_status = validate_supplier(supplier, user=request.user)
+        status = {'status': 200, 'message': 'Success'}
+        if failed_status:
+            status = failed_status[0]
+        return HttpResponse(json.dumps(status))
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'status': 0,'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(message), status=message.get('status', 200))
+

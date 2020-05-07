@@ -94,7 +94,9 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
-SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': ''}            
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': ''}
+
+ASSET_SKU_DATA = {'parrent_asset_code': '', 'asset_number': '', 'store_id': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -1295,9 +1297,14 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
-ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'SKU Type(Options: FG, RM)', 
-               'Asset Category','Primary Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone', 
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Asset Type', 
+               'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone', 
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status']
+
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Service Type', 
+               'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone', 
+               'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
+               'Asset Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Manufacture Date(YYYY-MM-DD)', 'Expiry date(YYYY-MM-DD)', 'Batch Number', 'MRP', 'Weight', 'Buy Price', 'Reason']
@@ -1639,6 +1646,18 @@ ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Descript
                                   ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
                                   ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                   ('HSN Code', 'hsn_code'), ('Status', 'status')
+                                ))
+
+SERVICEMASTER_COMMON_MAPPING = OrderedDict((('Service Code', 'wms_code'), ('Service Description', 'sku_desc'),
+                                  ('Service Type', 'product_type'), ('Service Group', 'sku_group'),
+                                  ('Service Category', 'sku_category'),
+                                  ('Primary Category', 'primary_category'), ('Sub Category', 'sub_category'),
+                                  ('Service Class', 'sku_class'), ('Service Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
+                                  ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
+                                  ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
+                                  ('HSN Code', 'hsn_code'), ('Status', 'status'), ('Asset Code', 'asset_code'),
+                                  ('Service Start Date(YYYY-MM-DD)', 'service_start_date'),
+                                  ('Service End Date(YYYY-MM-DD)', 'service_end_date')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),

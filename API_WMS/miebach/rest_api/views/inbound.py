@@ -3556,9 +3556,9 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
         batch_obj = get_or_create_batch_detail(batch_dict, temp_dict)
+        if batch_obj and po_received.get('id', ''):
+            SellerPOSummary.objects.filter(id=po_received['id']).update(batch_detail_id=batch_obj.id)
         if sellable_segregation == 'true' and run_segregation:
-            if batch_obj and po_received.get('id', ''):
-                SellerPOSummary.objects.filter(id=po_received['id']).update(batch_detail_id=batch_obj.id)
             create_update_primary_segregation(data, po_received['quantity'], temp_dict, batch_obj=batch_obj,
                                               sps_id=po_received.get('id', ''))
             continue
@@ -4238,7 +4238,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         else:
             data.intransit_quantity = 0
         data.saved_quantity = 0
-
         batch_dict = {}
         if 'batch_no' in myDict.keys():
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],

@@ -4803,7 +4803,7 @@ def get_customer_sku_prices(request, user=""):
                     skuPack_quantity = skuPack_data[0].pack_quantity
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': float("%.2f" % price), 'discount': discount, 'sku_pack_quantity': skuPack_quantity,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': float("%.2f" % data.mrp), 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': float("%.2f" % data.mrp), 'cost_price':data.cost_price, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
         import traceback
@@ -5788,7 +5788,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number, batch, mrp, ean, weight = ['']*5
+        pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -5796,13 +5796,14 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             batch = batch_detail.batch_no
             mrp = batch_detail.mrp
             weight = batch_detail.weight
+            buy_price = batch_detail.buy_price
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
-                               'weight': weight})
+                               'weight': weight, 'buy_price': buy_price})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -6370,6 +6371,7 @@ def get_purchase_order_data(order):
     unit = ""
     gstin_number = ''
     order_type = 'purchase order'
+    supplier_id = ''
     intransit_quantity = 0
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
@@ -6384,6 +6386,7 @@ def get_purchase_order_data(order):
         rw_purchase = rw_purchase[0]
         open_data = rw_purchase.rwo
         user_data = UserProfile.objects.get(user_id=open_data.vendor.user)
+        supplier_id = user_data.id
         address = open_data.vendor.address
         email_id = open_data.vendor.email_id
         username = open_data.vendor.name
@@ -6403,6 +6406,7 @@ def get_purchase_order_data(order):
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
+        supplier_id = user_data.id
         address = user_data.address
         email_id = user_data.email_id
         username = user_data.name
@@ -6431,6 +6435,7 @@ def get_purchase_order_data(order):
         st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
         open_data = st_order[0].open_st
         user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
+        supplier_id = st_order[0].open_st.warehouse_id
         address = user_data.location
         email_id = user_data.user.email
         username = user_data.user.username
@@ -6449,7 +6454,7 @@ def get_purchase_order_data(order):
         tin_number = ''
         order_type = 'stock transfer'
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': user_data.id, 'zone': sku.zone,
+                  'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': supplier_id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
@@ -10577,6 +10582,22 @@ def cancel_emiza_order(gen_ord_id, cm_id):
     gen_qs.delete()
 
 
+def get_warehouses_list_states(user):
+    user_list = []
+    user_states = {}
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username', 'user__userprofile__state')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if value not in user_list and key not in ['user__userprofile__state']:
+                user_list.append(value)
+                user_states[value] = users['user__userprofile__state']
+    return user_states
+
+
 def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
     try:
         st_po = stock_transfer.st_po
@@ -10619,6 +10640,19 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
                         temp_json['batch_no'] = batch_detail.batch_no
                         temp_json['buy_price'] = batch_detail.buy_price
                         temp_json['tax_percent'] = batch_detail.tax_percent
+                        datum = get_warehouses_list_states(user)
+                        compare_user = User.objects.get(id=st_po.open_st.sku.user).username
+                        current_user = user.username
+                        if datum[compare_user] == datum[current_user]:
+                            temp_total_tax = temp_json['tax_percent'] / 2
+                            open_st.cgst_tax = truncate_float(temp_total_tax, 1)
+                            open_st.sgst_tax = truncate_float(temp_total_tax, 1)
+                            open_st.igst_tax = 0
+                        else:
+                            open_st.cgst_tax = 0
+                            open_st.sgst_tax = 0
+                            open_st.igst_tax = truncate_float(temp_json['tax_percent'], 1)
+                        open_st.save()
                         if batch_detail.manufactured_date:
                             temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                         if batch_detail.expiry_date:

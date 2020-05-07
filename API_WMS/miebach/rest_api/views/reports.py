@@ -1150,16 +1150,17 @@ def print_po_reports(request, user=''):
                         price = seller_summary_obj.batch_detail.buy_price
                         mrp = seller_summary_obj.batch_detail.mrp
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
-                        if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
-                            temp_tax_percent = temp_tax_percent / 2
-                            cgst_tax = truncate_float(temp_tax_percent, 1)
-                            sgst_tax = truncate_float(temp_tax_percent, 1)
-                            igst_tax = 0
-                        else:
-                            igst_tax = temp_tax_percent
-                            cgst_tax = 0
-                            sgst_tax = 0
-                        gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
+                        if not st_grn:
+                            if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
+                                temp_tax_percent = temp_tax_percent / 2
+                                cgst_tax = truncate_float(temp_tax_percent, 1)
+                                sgst_tax = truncate_float(temp_tax_percent, 1)
+                                igst_tax = 0
+                            else:
+                                igst_tax = temp_tax_percent
+                                cgst_tax = 0
+                                sgst_tax = 0
+                            gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
                     grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
                     amount = float(quantity) * float(price)
                     if discount:
@@ -1228,7 +1229,6 @@ def print_po_reports(request, user=''):
             total_qty += po_order.received_quantity
             receipt_type = data.seller_po.receipt_type
             total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
-
     if results:
         purchase_order = results[0]
         if not po_id:

@@ -26,6 +26,26 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_skumaster"
                  }, {
+                   title: "ASSET Download/ Upload",
+                   download: "Download ASSET Form",
+                   upload: "Upload ASSET Form",
+                   durl: "asset_form/",
+                   uurl: "asset_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_assetmaster"
+                 }, {
+                   title: "ServiceMaster Download/ Upload",
+                   download: "Download Service Form",
+                   upload: "Upload Service Form",
+                   durl: "service_form/",
+                   uurl: "service_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_servicemaster"
+                 }, {
                    title: "Inventory Download/ Upload",
                    download: "Download Inventory Form",
                    upload: "Upload Inventory Form",

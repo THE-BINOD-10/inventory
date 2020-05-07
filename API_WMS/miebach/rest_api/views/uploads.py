@@ -2005,7 +2005,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
             else:
                 data_dict[key] = cell_data
         if not index_status:
-            sku_master = SKUMaster.objects.filter(id=data_dict['sku_id'])
+            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
             if user.username in MILKBASKET_USERS and unique_mrp == 'true' and sku_master:
                 data_dict['sku_code'] = sku_master.sku_code
                 data_dict['location'] = location_obj[0].location

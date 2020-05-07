@@ -13,7 +13,6 @@ from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
 from rest_api.views.common import get_local_date, folder_check
-from rest_api.views.miebach_utils import MILKBASKET_BULK_ZONE, MILKBASKET_USERS
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -35,7 +34,6 @@ def netsuite_update_supplier(request, user=''):
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(supplier))
-    # import pdb;pdb.set_trace()
     try:
         failed_status = netsuite_validate_supplier(supplier, user=request.user)
         status = {'status': 200, 'message': 'Success'}
@@ -101,7 +99,6 @@ def netsuite_validate_supplier(supplier, user=''):
             if supplier_master:
                 supplier_master.save()
             else:
-            	import pdb;pdb.set_trace()
                 supplier_master = SupplierMaster(**data_dict)
                 supplier_master.save()
             if secondary_email_id:

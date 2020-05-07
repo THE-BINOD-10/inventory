@@ -73,7 +73,12 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    instanceName = SKUMaster
+    if request.POST.get('datatable') == 'AssetMaster':
+        instanceName = AssetMaster
+    elif request.POST.get('datatable') == 'ServiceMaster':
+        instanceName = ServiceMaster
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
@@ -802,7 +807,13 @@ def get_sku_data(request, user=''):
     data_id = request.GET['data_id']
 
     filter_params = {'id': data_id, 'user': user.id}
-    data = get_or_none(SKUMaster, filter_params)
+    instanceName = SKUMaster
+    if request.GET.get('is_asset') == 'true':
+        instanceName = AssetMaster
+    if request.GET.get('is_service') == 'true':
+        instanceName = ServiceMaster
+    
+    data = get_or_none(instanceName, filter_params)
 
     filter_params = {'user': user.id}
     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
@@ -880,6 +891,13 @@ def get_sku_data(request, user=''):
         substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
     substitutes_list = ','.join(map(str, substitutes_list))
     sku_data['substitutes'] = substitutes_list
+
+    if instanceName == ServiceMaster:
+        if data.service_start_date:
+            sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
+        if data.service_end_date:
+            sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
+        sku_data['asset_code'] = data.asset_code
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1078,7 +1096,12 @@ def update_sku(request, user=''):
         zone = request.POST['zone_id']
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
-        data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        instanceName = SKUMaster
+        if request.POST.get('is_asset') == 'true':
+            instanceName = AssetMaster
+        if request.POST.get('is_service') == 'true':
+            instanceName = ServiceMaster
+        data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
         if image_file:
@@ -1145,6 +1168,9 @@ def update_sku(request, user=''):
                     value = 'PO'
                 else:
                     value = ''
+            if instanceName == ServiceMaster:
+                if key in ['service_start_date', 'service_end_date']:
+                    value = datetime.datetime.strptime(value, '%d-%m-%Y')
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -2647,8 +2673,15 @@ def insert_sku(request, user=''):
         filter_params = {'zone': zone, 'user': user.id}
         zone_master = filter_or_none(ZoneMaster, filter_params)
         filter_params = {'wms_code': wms, 'user': user.id}
-        data = filter_or_none(SKUMaster, filter_params)
+        instanceName = SKUMaster
         status_msg = 'SKU exists'
+        if request.POST.get('is_asset') == 'true':
+            instanceName = AssetMaster
+            status_msg = 'Asset Item exists'
+        elif request.POST.get('is_service') == 'true':
+            instanceName = ServiceMaster
+            status_msg = 'Service Item exists'
+        data = filter_or_none(instanceName, filter_params)
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
         notified_users = []
@@ -2657,6 +2690,8 @@ def insert_sku(request, user=''):
         notified_users = list(set(notified_users))
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
+            if instanceName == ServiceMaster:
+                data_dict.update(SERVICE_SKU_DATA)
             data_dict['user'] = user.id
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
@@ -2688,10 +2723,24 @@ def insert_sku(request, user=''):
                             value = ''
                     if value == '':
                         continue
+                    if key in ['service_start_date', 'service_end_date']:
+                        if value:
+                            try:
+                                value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                            except:
+                                value = ''
+                        else:
+                            value = ''
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
-            sku_master = SKUMaster(**data_dict)
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+                respFields = [f.name for f in instanceName._meta.get_fields()]
+                for k, v in data_dict.items():
+                    if k not in respFields:
+                        data_dict.pop(k)
+
+            sku_master = instanceName(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
             if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
@@ -2733,7 +2782,7 @@ def insert_sku(request, user=''):
         log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                str(request.POST.dict()),
                                                                                                str(e)))
-        status_msg = 'Insert SKU Falied'
+        status_msg = 'Insert SKU Failed'
 
     return HttpResponse(status_msg)
 

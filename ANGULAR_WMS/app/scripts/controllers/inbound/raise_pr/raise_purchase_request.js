@@ -348,47 +348,71 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.update_data = function (index, flag=true, plus=false) {
+    vm.reset_model_data = function(product_category){
+      vm.model_data.data = [];
+      var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "sku": {"wms_code": "", "price":""}
+                          }
+      if (product_category == 'Kits&Category'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if (product_category == 'Assets'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'Services'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      }
+    }
+    vm.update_data = function (index, flag=true, plus=false, product_category='') {
+      var emptylineItems = {}
+      if (product_category == 'Kits&Consumables'){
+        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                          }
+      } else if (product_category == 'Assets'){
+        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                          }
+      }
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
-
           if (plus) {
+            vm.model_data.data.push({"fields": emptylineItems});
 
-            vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                     "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-                                     "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "", "utgst_tax": "", "tax": "", "is_new":true
-                                     }});
+          } 
+          // else {
 
-          } else {
+          //   $scope.$apply(function() {
 
-            $scope.$apply(function() {
+          //     vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
+          //                              "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+          //                              "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "","utgst_tax": "", "tax": "", "is_new":true
+          //                              }});
 
-              vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                       "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-                                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "","utgst_tax": "", "tax": "", "is_new":true
-                                       }});
-
-            });
-          }
+          //   });
+          // }
         } else {
-
           Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
-        if (flag) {
-          if(vm.model_data.data[index].seller_po_id){
-              vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-          } else {
-              vm.delete_data('id', vm.model_data.data[index].pk, index);
-          }
-          if(vm.permissions.show_purchase_history) {
-              $timeout( function() {
-                  vm.populate_last_transaction('delete')
-              }, 2000 );
-          }
-          vm.model_data.data.splice(index,1);
-          vm.getTotals();
-        }
+        vm.model_data.data.splice(index,1);
+        vm.getTotals();
+        // if (flag) {
+        //   if(vm.model_data.data[index].seller_po_id){
+        //       vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
+        //   } else {
+        //       vm.delete_data('id', vm.model_data.data[index].pk, index);
+        //   }
+        //   if(vm.permissions.show_purchase_history) {
+        //       $timeout( function() {
+        //           vm.populate_last_transaction('delete')
+        //       }, 2000 );
+        //   }
+        //   vm.model_data.data.splice(index,1);
+        //   vm.getTotals();
+        // }
       }
     }
 
@@ -821,6 +845,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
+      product.fields.asset_code = item.asset_code;
+      product.fields.service_start_date = item.service_start_date;
+      product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;

@@ -315,6 +315,42 @@ var app = angular.module('urbanApp')
             title: 'Image Upload',
           }
         })
+        .state('app.masters.AssetMaster', {
+          url: '/AssetMaster',
+          permission: 'add_assetmaster',
+          templateUrl: 'views/masters/asset_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/asset_master_table.js'
+                ])
+             }]
+          },
+          data: {
+            title: 'Asset Master',
+          }
+        })
+          .state('app.masters.AssetMaster.update', {
+            url: '/Asset',
+            templateUrl: 'views/masters/toggles/asset_update.html'
+          })
+        .state('app.masters.ServiceMaster', {
+          url: '/ServiceMaster',
+          permission: 'add_servicemaster',
+          templateUrl: 'views/masters/service_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/service_master_table.js'
+                ])
+             }]
+          },
+          data: {
+            title: 'Service Master',
+          }
+        })
+          .state('app.masters.ServiceMaster.update', {
+            url: '/Service',
+            templateUrl: 'views/masters/toggles/service_update.html'
+          })
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',
           permission: 'add_locationmaster',

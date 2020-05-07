@@ -551,6 +551,7 @@ data_datatable = {  # masters
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
+    'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -4616,7 +4617,13 @@ def get_file_content(request, user=''):
 
 @get_admin_user
 def search_wms_data(request, user=''):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    instanceName = SKUMaster
+    product_type = request.GET.get('type')
+    if product_type == 'Assets':
+        instanceName = AssetMaster
+    elif product_type == 'Services':
+        instanceName = ServiceMaster
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     search_key = request.GET.get('q', '')
     total_data = []
     limit = 10
@@ -4635,10 +4642,18 @@ def search_wms_data(request, user=''):
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
-        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
-                           'measurement_unit': master_data.measurement_type,
-                           'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp, 'noOfTests': noOfTests})
+        data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
+                       'measurement_unit': master_data.measurement_type,
+                       'load_unit_handle': master_data.load_unit_handle,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests}
+        if instanceName == ServiceMaster:
+            asset_code = master_data.asset_code
+            service_start_date = master_data.service_start_date
+            service_end_date = master_data.service_end_date
+            data_dict.update({'asset_code': asset_code, 
+                            'service_start_date': service_start_date,
+                            'service_end_date': service_end_date})
+        total_data.append(data_dict)
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4835,6 +4850,23 @@ def build_search_data(to_data, from_data, limit):
                     noOfTests = 0
             else:
                 noOfTests = 0
+            data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
+                        'measurement_unit': data.measurement_type,
+                        'mrp': data.mrp, 'sku_class': data.sku_class,
+                        'style_name': data.style_name, 'noOfTests': noOfTests}
+            if isinstance(data, ServiceMaster):
+                asset_code = data.asset_code
+                if data.service_start_date:
+                    service_start_date = data.service_start_date.strftime('%d-%m-%Y')
+                else:
+                    service_start_date = ''
+                if data.service_end_date:
+                    service_end_date = data.service_end_date.strftime('%d-%m-%Y')
+                else:
+                    service_end_date = ''
+                data_dict.update({'asset_code': asset_code, 
+                                'service_start_date': service_start_date,
+                                'service_end_date': service_end_date})
             if (len(to_data) >= limit):
                 break
             else:
@@ -4844,10 +4876,7 @@ def build_search_data(to_data, from_data, limit):
                         status = False
                         break
                 if status:
-                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                                    'measurement_unit': data.measurement_type,
-                                    'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name, 'noOfTests': noOfTests})
+                    to_data.append(data_dict)
         return to_data
 
 
@@ -4922,11 +4951,14 @@ def get_group_data(request, user=''):
                                                        'View Order Statuses': statuses}}))
 
 
-def get_sku_master(user, sub_user, is_list=''):
+def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster):
     if not is_list:
-        sku_master = SKUMaster.objects.filter(user=user.id)
+        sku_master = instanceName.objects.filter(user=user.id)
     else:
-        sku_master = SKUMaster.objects.filter(user__in=user)
+        sku_master = instanceName.objects.filter(user__in=user)
+
+    if instanceName.__name__ == 'SKUMaster':
+        sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all())
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         if is_list:
@@ -5767,7 +5799,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
 
-    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config
+    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data
 
 
 
@@ -5795,8 +5827,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
-    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config = get_pr_related_stock(user, 
-                                                                    sku_code, search_params, includeStoreStock)
+    stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+        skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,

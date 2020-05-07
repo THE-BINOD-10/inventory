@@ -4642,10 +4642,18 @@ def search_wms_data(request, user=''):
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
-        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
-                           'measurement_unit': master_data.measurement_type,
-                           'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp, 'noOfTests': noOfTests})
+        data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
+                       'measurement_unit': master_data.measurement_type,
+                       'load_unit_handle': master_data.load_unit_handle,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests}
+        if instanceName == ServiceMaster:
+            asset_code = master_data.asset_code
+            service_start_date = master_data.service_start_date
+            service_end_date = master_data.service_end_date
+            data_dict.update({'asset_code': asset_code, 
+                            'service_start_date': service_start_date,
+                            'service_end_date': service_end_date})
+        total_data.append(data_dict)
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4842,6 +4850,23 @@ def build_search_data(to_data, from_data, limit):
                     noOfTests = 0
             else:
                 noOfTests = 0
+            data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
+                        'measurement_unit': data.measurement_type,
+                        'mrp': data.mrp, 'sku_class': data.sku_class,
+                        'style_name': data.style_name, 'noOfTests': noOfTests}
+            if isinstance(data, ServiceMaster):
+                asset_code = data.asset_code
+                if data.service_start_date:
+                    service_start_date = data.service_start_date.strftime('%d-%m-%Y')
+                else:
+                    service_start_date = ''
+                if data.service_end_date:
+                    service_end_date = data.service_end_date.strftime('%d-%m-%Y')
+                else:
+                    service_end_date = ''
+                data_dict.update({'asset_code': asset_code, 
+                                'service_start_date': service_start_date,
+                                'service_end_date': service_end_date})
             if (len(to_data) >= limit):
                 break
             else:
@@ -4851,10 +4876,7 @@ def build_search_data(to_data, from_data, limit):
                         status = False
                         break
                 if status:
-                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                                    'measurement_unit': data.measurement_type,
-                                    'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name, 'noOfTests': noOfTests})
+                    to_data.append(data_dict)
         return to_data
 
 

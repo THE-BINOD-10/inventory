@@ -2084,8 +2084,8 @@ def print_descrepancy_note(request, user=''):
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
                 filter_params = {'purchase_order_id': obj.purchase_order.id}
-                if len(obj.po_number.split('/')) >= 2:
-                    reciept_number = obj.po_number.split('/')[1]
+                if obj.receipt_number:
+                    filter_params['receipt_number'] = obj.receipt_number
                 seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
                 price = obj.purchase_order.open_po.price
                 mrp = 0

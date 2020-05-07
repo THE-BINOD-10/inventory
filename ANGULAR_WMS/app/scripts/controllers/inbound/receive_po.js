@@ -433,17 +433,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (flag) {
 
           vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
-                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "","value":0,
                                   "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_percent": "",
-                                  "total_amt": "", "discount_percentage": 0,
+                                  "total_amt": "", "discount_percentage": 0,'sku_desc_flag':true,
                                   "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
         } else {
 
           $scope.$apply(function() {
             vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
-                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "","value":0,
                                     "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_tax": "",
-                                    "total_amt": "", "discount_percentage": 0,
+                                    "total_amt": "", "discount_percentage": 0,'sku_desc_flag':true,
                                     "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
           });
         }
@@ -2369,7 +2369,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.discrepency_quantity == ''){
         sku_row_data.discrepency_quantity = 0;
       } else{
-            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value))
+            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value) && !sku_row_data.sku_desc_flag)
                 {
                     Service.showNoty('Returning Quantity is Greater than PO Quantity ');
                 }
@@ -2527,14 +2527,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         po_quantity = sku_row_data[0].po_quantity;
       }
       if(po_quantity && po_quantity < tot_qty) {
-        var abs_qty_value = vm.absOfQtyTolerence(po_quantity, tot_qty);
-        console.log(abs_qty_value);
-        if(tot_qty > abs_qty_value) {
           vm.display_approval_button = true;
           if (outerindex != undefined ){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }
-        }
       }
     })
   }

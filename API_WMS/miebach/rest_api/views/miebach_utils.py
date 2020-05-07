@@ -1126,9 +1126,12 @@ INVENTORY_VALUE_REPORT_DICT = {
 
 DISCREPANCY_REPORT_DICT = {
     'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'PO Number', 'name': 'order_id', 'type': 'input'},
         {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
-        {'label': 'Supplier ID/Name', 'name': 'supplier_id', 'type': 'supplier_search'},
+        {'label': 'Supplier ID/Name', 'name': 'supplier', 'type': 'supplier_search'},
     ],
     'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
     'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
@@ -10098,10 +10101,11 @@ def get_discrepancy_report_data(search_params, user, sub_user):
         search_parameters['purchase_order__order_id'] = search_params['order_id']
     if 'discrepancy_number' in search_params:
         search_parameters['discrepancy_number'] = search_params['discrepancy_number']
-    if 'supplier_id' in search_params and ':' in search_params['supplier_id']:
-            search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
-                search_params['supplier_id'].split(':')[0]
-
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+                search_params['supplier'].split(':')[0]
+    if 'sku_code' in search_params:
+        search_parameters['purchase_order__open_po__sku__wms_code'] = search_params['sku_code']
 
     search_parameters['user'] = user.id
     master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\

@@ -10942,10 +10942,12 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     old_list = []
     new_list = []
     summary_params = {}
-    new_data = {}
+    new_data = OrderedDict()
+    order_by_term = lis[col_num]
+    summary_term = st_list[col_num]
     if order_term == 'desc':
-        order_by_term = '-'+lis[col_num]
-        summary_term = '-'+st_list[col_num]
+        order_by_term = '-%s' % order_by_term
+        summary_term = '-%s' % summary_term
     if search_term :
         filter_params['order_id__icontains']=search_term
         summary_params['stock_transfer__order_id__icontains'] = search_term
@@ -11020,7 +11022,7 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
              'Warehouse Name': value['warehouse_name'],})
 
     if order_term == 'desc':
-        temp_data['aaData'] = new_list[::-1]+old_list
+        temp_data['aaData'] = new_list+old_list
     else:
         temp_data['aaData'] = old_list+new_list
     temp_data['recordsTotal'] = get_stock_transfer.count()+len(new_data)

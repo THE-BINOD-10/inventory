@@ -238,7 +238,12 @@
                       <!-- out of elements end -->
                     </td>
                     <td>
-                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="!data.sku_desc_flag"
+                             class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="data.sku_desc_flag"
+                             class="form-control detectTab">
                     </td>
                     <td ng-if="showCase.industry_type!='FMCG'">
                       <input type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>

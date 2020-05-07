@@ -6369,6 +6369,7 @@ def get_purchase_order_data(order):
     rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
+    owner_email = '',
     unit = ""
     gstin_number = ''
     intransit_quantity = 0
@@ -6406,6 +6407,7 @@ def get_purchase_order_data(order):
         user_data = order.open_po.supplier
         address = user_data.address
         email_id = user_data.email_id
+        owner_email = user_data.owner_email_id
         username = user_data.name
         order_quantity = open_data.order_quantity
         intransit_quantity = order.intransit_quantity
@@ -6454,7 +6456,7 @@ def get_purchase_order_data(order):
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
-                  'order_type': order_type,
+                  'order_type': order_type,'owner_email':owner_email,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
                   'intransit_quantity': intransit_quantity,

@@ -94,6 +94,8 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': ''}            
+
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1,
@@ -1293,6 +1295,10 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'SKU Type(Options: FG, RM)', 
+               'Asset Category','Primary Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone', 
+               'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status']
+
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Manufacture Date(YYYY-MM-DD)', 'Expiry date(YYYY-MM-DD)', 'Batch Number', 'MRP', 'Weight', 'Buy Price', 'Reason']
 
@@ -1623,6 +1629,16 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
                                   ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options'),
                                   ('Batch Based', 'batch_based')
+                                ))
+
+ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Description', 'sku_desc'),
+                                  ('Asset Type', 'product_type'), ('Asset Group', 'sku_group'),
+                                  ('SKU Type(Options: FG, RM)', 'sku_type'), ('Asset Category', 'sku_category'),
+                                  ('Primary Category', 'primary_category'), ('Sub Category', 'sub_category'),
+                                  ('Asset Class', 'sku_class'), ('Asset Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
+                                  ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
+                                  ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
+                                  ('HSN Code', 'hsn_code'), ('Status', 'status')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),

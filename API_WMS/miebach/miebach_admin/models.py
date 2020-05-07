@@ -157,7 +157,7 @@ class SKUMaster(models.Model):
 
 
 class AssetMaster(SKUMaster):
-    parrent_asset_code = models.CharField(max_length=64, default='')
+    parrent_asset_code = models.CharField(max_length=128, default='')
     asset_number = models.PositiveIntegerField(default=0)
     store_id = models.PositiveIntegerField(default=0)
 
@@ -167,9 +167,9 @@ class AssetMaster(SKUMaster):
 
 class ServiceMaster(SKUMaster):
     asset_code = models.CharField(max_length=64, default='')
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
-    
+    service_start_date = models.DateField(null=True, blank=True)
+    service_end_date = models.DateField(null=True, blank=True)
+
     class Meta:
         db_table = 'SERVICE_MASTER'
 

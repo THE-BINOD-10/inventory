@@ -807,7 +807,13 @@ def get_sku_data(request, user=''):
     data_id = request.GET['data_id']
 
     filter_params = {'id': data_id, 'user': user.id}
-    data = get_or_none(SKUMaster, filter_params)
+    instanceName = SKUMaster
+    if request.GET.get('is_asset') == 'true':
+        instanceName = AssetMaster
+    if request.GET.get('is_service') == 'true':
+        instanceName = ServiceMaster
+    
+    data = get_or_none(instanceName, filter_params)
 
     filter_params = {'user': user.id}
     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
@@ -885,6 +891,13 @@ def get_sku_data(request, user=''):
         substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
     substitutes_list = ','.join(map(str, substitutes_list))
     sku_data['substitutes'] = substitutes_list
+
+    if instanceName == ServiceMaster:
+        if data.service_start_date:
+            sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
+        if data.service_end_date:
+            sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
+        sku_data['asset_code'] = data.asset_code
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1155,6 +1168,9 @@ def update_sku(request, user=''):
                     value = 'PO'
                 else:
                     value = ''
+            if instanceName == ServiceMaster:
+                if key in ['service_start_date', 'service_end_date']:
+                    value = datetime.datetime.strptime(value, '%d-%m-%Y')
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -2674,6 +2690,8 @@ def insert_sku(request, user=''):
         notified_users = list(set(notified_users))
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
+            if instanceName == ServiceMaster:
+                data_dict.update(SERVICE_SKU_DATA)
             data_dict['user'] = user.id
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
@@ -2705,6 +2723,14 @@ def insert_sku(request, user=''):
                             value = ''
                     if value == '':
                         continue
+                    if key in ['service_start_date', 'service_end_date']:
+                        if value:
+                            try:
+                                value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                            except:
+                                value = ''
+                        else:
+                            value = ''
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
@@ -2756,7 +2782,7 @@ def insert_sku(request, user=''):
         log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                str(request.POST.dict()),
                                                                                                str(e)))
-        status_msg = 'Insert SKU Falied'
+        status_msg = 'Insert SKU Failed'
 
     return HttpResponse(status_msg)
 

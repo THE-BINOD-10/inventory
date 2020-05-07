@@ -2154,8 +2154,7 @@ def get_customers(request, user=''):
             search_params['name'] = request_data['name']
         if request_data.get('customer_id_search', ''):
             search_params['customer_id__icontains'] = request_data['customer_id_search']
-        elif request_data.get('customer_id', ''):
-            search_params['customer_id'] = request_data['customer_id']
+
         if request_data.has_key('customer_id'):
             if type(request_data['customer_id']) == list:
                 search_params['customer_id__in'] = request_data['customer_id']
@@ -2164,7 +2163,10 @@ def get_customers(request, user=''):
         if request_data.get('limit'):
             limit = request_data['limit']
         if request_data.get('customer_type'):
-            search_params['customer_type'] = request_data['customer_type']
+            if type(request_data['customer_type']) == list:
+                search_params['customer_type__in'] = request_data['customer_type']
+            else:
+                search_params['customer_type'] = request_data['customer_type']
         if request_data.get('customer_search'):
             search_query = build_search_term_query(['customer_id', 'name','phone_number'], request_data['customer_search'])
     total_data = []

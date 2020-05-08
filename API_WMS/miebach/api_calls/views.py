@@ -1355,7 +1355,6 @@ def update_customer(request):
 @csrf_exempt
 @login_required
 def invoice_pdf(request):
-    from io import BytesIO
     from xhtml2pdf import pisa
     user = request.user
     request_data = request.body
@@ -1395,10 +1394,11 @@ def invoice_pdf(request):
         invoice_data['challan_number'] = seller_summary[0].challan_number if seller_summary else ''
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_data = build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=True)
-        result = BytesIO()
-        pdf = pisa.pisaDocument(BytesIO(invoice_data.encode("ISO-8859-1")), result)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="report.pdf"'
+        pdf = pisa.CreatePDF(invoice_data, dest=response)
         if not pdf.err:
-            return HttpResponse(result.getvalue(), content_type='application/pdf')
+            return response
         return None
     else: 
         status = {'message': 'Required Order ID or Invoice Number'}
@@ -2228,60 +2228,62 @@ def get_shipmentinfo(request, user=''):
             if request_data.has_key('invoice_number'):
                 search_params['invoice_number'] = request_data['invoice_number']
                 if type(request_data['invoice_number']) == list:
-                    search_params['invoice_number'] = search_params['invoice_number']
+                    search_params['invoice_number'] = request_data['invoice_number']
                 else:
-                    search_parameters['invoice_number'] = search_params['invoice_number']
+                    search_params['invoice_number'] = request_data['invoice_number']
             if request_data.has_key('order_id'):
                 if type(request_data['order_id']) == list:
-                    search_params['order__original_order_id__in'] = search_params['order_id']
+                    search_params['order__original_order_id__in'] = request_data['order_id']
                 else:
-                    search_parameters['order__original_order_id'] = search_params['order_id']
+                    search_params['order__original_order_id'] = request_data['order_id']
             if request_data.has_key('shipment_number'):
                 search_params['order_shipment__shipment_number'] = request_data['shipment_number']
         search_params['order__user'] = user.id
-    master_data = ShipmentInfo.objects.filter(**search_params)
+    master_data = ShipmentInfo.objects.filter(**search_params).values_list('order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     count = 1
-    for data in master_data:
-        shipping_address,address = '',''
-        charge_amount = 0
-        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
-                                        values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
-        status = 'Dispatched'
-        original_order_id = data.order.original_order_id
-        address = customer_details[0]['address']
-        shipping_address = customer_details[0]['shipping_address']
-        other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
-        if other_charges:
-            charge_amount = other_charges[0].charge_amount
-        if not shipping_address:
-            shipping_address = address
-        grouping_key = original_order_id
-        tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
-                                            order_by('-creation_date'). \
-                                            values_list('ship_status', flat=True)
-        if tracking:
-            status = tracking[0]
-        if data.order_shipment:
-            order_shipment = data.order_shipment
-            shipment_number = str(order_shipment.shipment_number)
-            awb_number = order_shipment.shipment_reference
-            ewaybill_number = order_shipment.ewaybill_number
-            estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
-            # manifest_number = str(order_shipment.manifest_number)
-        if grouping_key in data_dict.keys():
-            count += 1
-        data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
-                           'awb_number': awb_number,
-                           'shipment_number': shipment_number,
-                           'estimated_shipment_date':estimated_shipment_date,
-                           'invoice_number': data.invoice_number,
-                           'delivery_status':status,
-                           'package_dispatch_date': get_local_date(user, data.creation_date),
-                           'delivery_charges':charge_amount,
-                           'shipping_address':shipping_address,
-                           })
+    for order in master_data:
+        shiment_dict = ShipmentInfo.objects.filter(order_id=order)
+        for data in shiment_dict:
+            shipping_address,address = '',''
+            charge_amount = 0
+            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
+                                            values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
+            status = 'Dispatched'
+            original_order_id = data.order.original_order_id
+            address = customer_details[0]['address']
+            shipping_address = customer_details[0]['shipping_address']
+            other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
+            if other_charges:
+                charge_amount = other_charges[0].charge_amount
+            if not shipping_address:
+                shipping_address = address
+            grouping_key = original_order_id
+            tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
+                                                order_by('-creation_date'). \
+                                                values_list('ship_status', flat=True)
+            if tracking:
+                status = tracking[0]
+            if data.order_shipment:
+                order_shipment = data.order_shipment
+                shipment_number = str(order_shipment.shipment_number)
+                awb_number = order_shipment.shipment_reference
+                ewaybill_number = order_shipment.ewaybill_number
+                estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
+                # manifest_number = str(order_shipment.manifest_number)
+            if grouping_key in data_dict.keys():
+                count += 1
+            data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
+                               'awb_number': awb_number,
+                               'shipment_number': shipment_number,
+                               'estimated_shipment_date':estimated_shipment_date,
+                               'invoice_number': data.invoice_number,
+                               'delivery_status':status,
+                               'package_dispatch_date': get_local_date(user, data.creation_date),
+                               'delivery_charges':charge_amount,
+                               'shipping_address':shipping_address,
+                               })
         data_dict[grouping_key]['no_of_items_in_package'] = count
     order_data_loop = data_dict.values()
     for data1 in order_data_loop:

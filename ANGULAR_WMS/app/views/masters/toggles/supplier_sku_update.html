@@ -8,14 +8,20 @@
         </div>
         <div class="modal-body">
           <!-- body -->
-          <div class="row">
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Supplier ID *</label>
-                <input ng-if="showCase.update" type="text" name="supplier_id" class="form-control" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
-                <select ng-if="!(showCase.update)" class="form-control" ng-model="showCase.model_data.supplier_id" ng-options="supplier for supplier in showCase.supplier_list" required>
-                      </select>
-              </div>
+            <div class="row">
+                <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
+                  <div class="form-group">
+                    <label class="control-label"> Supplier ID * </label>
+                    <input type="text" autocomplete="off" ng-if="(!(showCase.update))" name="supplier_ide" ng-model="showCase.model_data.supplier_id" placeholder="Search Supplier"
+                      typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+                      typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id); showCase.update_wms_records()"
+                      ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');"
+                      ng-keyup="$event.keyCode == 13 ? showCase.checkSupplierExist(showCase.model_data.supplier_id) : null"
+                      ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"
+                    >
+                    <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
+                    <input name="supplier_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}" ng-readonly="showCase.update">
+                  </div>
             </div>
 	    <div class="col-md-4 col-sm-6 col-xs-6">
 	      <div class="form-group">

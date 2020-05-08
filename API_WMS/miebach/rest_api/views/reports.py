@@ -531,11 +531,13 @@ def get_supplier_details_data(search_params, user, sub_user):
     for purchase_order in purchase_orders:
         po_data = suppliers.filter(order_id=purchase_order['order_id'])
         total_amt = 0
+        total_ordered= 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity
             taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax
             amt = price * quantity
             total_amt += amt + ((amt / 100) * taxes)
+            total_ordered += quantity
         total_amt = truncate_float(total_amt, 2)
         po_obj = po_data[0]
         design_codes = SKUSupplier.objects.filter(supplier=po_obj.open_po.supplier, sku=po_obj.open_po.sku,
@@ -557,7 +559,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
-                                                    ('Ordered Quantity', purchase_order['total_ordered']),
+                                                    ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status_var), ('order_id', po_obj.order_id))))

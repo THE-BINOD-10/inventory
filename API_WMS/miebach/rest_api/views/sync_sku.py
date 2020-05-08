@@ -101,7 +101,6 @@ def create_update_sku(all_skus, all_users):
         for sku in all_skus:
             if not sku or sku.user == user:
                 continue
-            print 'Syncing: %s, %s' % (str(user), str(sku.sku_code))
             size_type = ''
             sku_size_type = sku.skufields_set.filter(field_type='size_type').only('field_value')
             if sku_size_type:

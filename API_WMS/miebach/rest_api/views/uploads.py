@@ -1437,7 +1437,6 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                           only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
     for row_idx in range(1, no_of_rows):
-        print row_idx
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
@@ -1851,7 +1850,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))
         sku_key_map = OrderedDict(new_sku_master.values_list('sku_code', 'id'))
         for sku_code, sku_id in sku_key_map.items():
-            print sku_id
             sku_data = SKUMaster.objects.get(id=sku_id)
             if new_skus[sku_code].get('size_type', ''):
                 check_update_size_type(sku_data, new_skus[sku_code].get('size_type', ''))

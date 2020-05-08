@@ -954,6 +954,20 @@ DEALLOCATION_REPORT_DICT = {
     'dt_url': 'get_deallocation_report', 'excel_name': 'get_deallocation_report',
     'print_url': 'get_deallocation_report',
 }
+ALLOCATION_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Allocation ID', 'name': 'return_id', 'type': 'input'},
+        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'vehicle_search'},
+
+    ],
+    'dt_headers': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+    'mk_dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item','Item Category',  'Vehicle Registration Number','Chassis Number','ForCarvariant','InventoryType','Make','Model','Make-Model','Quantity'],
+    'dt_url': 'get_allocation_filter', 'excel_name': 'get_allocation_filter',
+    'print_url': 'get_allocation_filter',
+}
 
 
 STOCK_TRANSFER_REPORT_DICT = {
@@ -1157,6 +1171,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
+                     'allocation_report':ALLOCATION_REPORT_DICT,
                      'deallocation_report':DEALLOCATION_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
                      'order_flow_report':ORDER_FLOW_REPORT_DICT,
@@ -1755,6 +1770,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_move_inventory_report':'get_move_inventory_report_data',
                         'get_financial_report':'get_financial_report_data',
                         'get_bulk_stock_update':'get_bulk_stock_update_data',
+                        'get_allocation_filter':'get_allocation_data',
+                        'get_deallocation_report':'get_deallocation_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -3241,6 +3258,7 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
 
     if stop_index:
         model_data = model_data[start_index:stop_index]
+    count = 0
     for data in model_data:
         customer_name = data.order.customer_name if data.order.customer_name else ''
         customer_id = data.order.customer_id if data.order.customer_id else ''
@@ -3289,7 +3307,8 @@ def get_allocation_data(search_params, user, sub_user, serial_view=False, custom
                                     ('Make-Model', make_model),
                                     ('Quantity', data.picked_quantity)
                                     ))
-            temp_data['aaData'].append(ord_dict)
+        count =+1
+        temp_data['aaData'].append(ord_dict)
     return temp_data
 
 def get_deallocation_report_data(search_params, user, sub_user):

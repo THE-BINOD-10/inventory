@@ -59,9 +59,6 @@
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
                     <span><b>Order ID :</b>{{ order_id }}</span><br>
-                    {% if not is_draft %}
-                      <span><b>PO Reference :</b>{{ po_reference }}</span><br>
-                    {% endif %}
                     <span><b>PO Number :</b>{{ po_number }}</span><br>
                     <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
                     <span><b>Pan No :</b>{{ wh_pan }}</span><br>
@@ -94,6 +91,9 @@
         {% for warehouse in data %}
           <div class="col-md-12" style="padding-top: 14px;">
             <span style="color: #8a8080;"><b>Warehouse Name: </b></span><label>{{warehouse.location}}</label>
+          </div>
+          <div class="col-md-12">
+            <span style="color: #8a8080;"><b>PO Shipping Reference: </b></span><label>{{warehouse.shipment_ref}}</label>
           </div>
           <div class="col-md-12">
             <span style="color: #8a8080;"><b>Shipping Address: </b></span><label>{{warehouse.address}}</label>

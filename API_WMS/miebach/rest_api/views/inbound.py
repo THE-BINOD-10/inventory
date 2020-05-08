@@ -561,6 +561,11 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     po_reference_no = ''
     sr_number = ''
     users = [user.id]
+    parent_po_prefix = ''
+    parent_user = get_admin(user)
+    parent_user_profile = UserProfile.objects.filter(user_id=parent_user.id)
+    if parent_user_profile:
+        parent_po_prefix = parent_user_profile[0].prefix
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
         request.user.id = supplier.user
@@ -603,6 +608,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     order_type = 'Vendor Receipt'
                 if supplier.open_po and supplier.open_po.order_type == 'SP':
                     order_type = 'Sample Order'
+                if str(parent_po_prefix) == str(supplier.prefix):
+                    order_type = 'Central Order'
         elif result['rwpurchase__rwo__vendor__user']:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
                                                 rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'])[0]
@@ -2434,8 +2441,8 @@ def approve_pr(request, user=''):
         return HttpResponse(status)
 
     pendingPRObj = PRQs[0]
-    if pendingPRObj.final_status == 'cancelled':
-        status = "This PO has been already Cancelled. Further action cannot be made."
+    if pendingPRObj.final_status in ['cancelled', 'rejected']:
+        status = "This PO has been already %s. Further action cannot be made."%(pendingPRObj.final_status)
         return HttpResponse(status)
     if is_actual_pr:
         totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
@@ -2482,7 +2489,7 @@ def approve_pr(request, user=''):
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
             prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
-                                    master_type=master_type, forPO=poFor, central_po_data=central_po_data)
+                                    master_type=master_type, forPO=poFor)
             for eachMail in mailsList:
                 hash_code = generateHashCodeForMail(prObj, eachMail)
                 sendMailforPendingPO(pr_number, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
@@ -12012,25 +12019,29 @@ def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_i
         return HttpResponse("Confirm Add PO Failed")
     return data_dict
 
+def get_increment_series_no(ids):
+    return_string = ''
+    if len(str(ids)) == 1:
+        return_sting = '00'+str(ids)
+    elif len(str(ids)) == 2:
+        return_sting = '0'+str(ids)
+    else:
+        return_sting = ids
+    return return_sting
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def confirm_central_add_po(request, sales_data='', user=''):
+    shipment_reference = {}
+    counter = 0
     pdf_generation= {}
     purchase_total_amt = 0
     purchase_total_qty = 0
     myDict = dict(request.POST.iterlists())
-    inc_data = IncrementalTable.objects.filter(user=user.id, type_name='central_po')
-    if inc_data:
-        inc_data = inc_data[0]
-        po_id = inc_data.value + 1
-        inc_data.value = inc_data.value + 1
-        inc_data.save()
-    else:
-        IncrementalTable.objects.create(user_id=user.id, type_name='central_po', value=1)
-        po_id = 1
-    pr_number = int(request.POST.get('pr_number'))
+    po_id = int(request.POST.get('pr_number'))
+    if not po_id:
+        return HttpResponse("Purchase Order Id is missing")
     pr_data_id = int(request.POST.get('data_id'))
     central_po_data = TempJson.objects.filter(model_id=pr_data_id, model_name='CENTRAL_PO') or ''
     if central_po_data:
@@ -12040,6 +12051,9 @@ def confirm_central_add_po(request, sales_data='', user=''):
             send_data = OrderedDict()
             if key in central_po_data.keys():
                 for warehouse, record in central_po_data[key].items():
+                    if warehouse not in shipment_reference.keys():
+                        counter += 1
+                        shipment_reference[warehouse] = counter
                     warehouse_user = User.objects.get(username=warehouse)
                     admin_user = user
                     admin_user_profile = UserProfile.objects.filter(user_id=admin_user.id)
@@ -12049,11 +12063,12 @@ def confirm_central_add_po(request, sales_data='', user=''):
                         po_prefix = "CTPO"
                     value['order_quantity'] = float(record['order_qty'])
                     send_data.setdefault(key, value)
+                    value['po_name'] ='%s%s_%s-%s' % (po_prefix, str(datetime.datetime.now()).split(' ')[0].replace('-', ''), po_id, get_increment_series_no(shipment_reference[warehouse]))
                     rendered_data = confirm_add_central_po(request, send_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, warehouse_user, admin_user)
                     if rendered_data['data'] and (warehouse_user.username in pdf_generation.keys()):
                         pdf_generation[warehouse_user.username]['data'].append(rendered_data['data'][0]) 
                     else:
-                        pdf_generation[warehouse_user.username] = {'location':warehouse_user.username, 'address': rendered_data['w_address'], 'data': rendered_data['data']}
+                        pdf_generation[warehouse_user.username] = {'location':warehouse_user.username, 'address': rendered_data['w_address'], 'data': rendered_data['data'], 'shipment_ref': rendered_data['po_reference'] }
                     purchase_total_amt += rendered_data['total']
                     purchase_total_qty += rendered_data['total_qty']
     all_warehouse_data = []

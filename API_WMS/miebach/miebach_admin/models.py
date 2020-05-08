@@ -1608,6 +1608,8 @@ class StockTransfer(models.Model):
     class Meta:
         db_table = 'STOCK_TRANSFER'
         unique_together = ('order_id', 'st_po', 'sku')
+        index_together = (('sku',))
+
 
     def __unicode__(self):
         return str(self.order_id)
@@ -3658,6 +3660,7 @@ class StockTransferSummary(models.Model):
 
     class Meta:
         db_table = 'STOCK_TRANSFER_SUMMARY'
+        index_together = (('stock_transfer',))
 
 
 @reversion.register()

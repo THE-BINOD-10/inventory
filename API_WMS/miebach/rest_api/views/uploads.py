@@ -3266,7 +3266,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
-            check_purchase_order_created(user, value)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile.prefix
+            check_purchase_order_created(user, value, check_prefix)
     return 'success'
 
 
@@ -5670,7 +5673,10 @@ def create_po_serial_mapping(final_data_dict, user):
 
     for key, value in order_id_dict.iteritems():
         if value:
-            check_purchase_order_created(user, value)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile.prefix
+            check_purchase_order_created(user, value, check_prefix)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 

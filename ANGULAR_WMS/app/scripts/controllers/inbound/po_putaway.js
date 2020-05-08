@@ -46,7 +46,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.message = "";
-                vm.service.apiCall('get_received_orders/', 'GET', {supplier_id: aData.DT_RowAttr["data-id"]}).then(function(data){
+                var data_to_send ={
+                  'supplier_id': aData.DT_RowAttr["data-id"],
+                  'prefix': aData['prefix']
+                }
+                vm.service.apiCall('get_received_orders/', 'GET', data_to_send).then(function(data){
                   if(data.message) {
                     
                     if(vm.industry_type == 'FMCG'){

@@ -56,6 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'po_or_pr_edit_permission_approver': false,
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
+                    'st_po_prefix': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -100,6 +101,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      112: 'stock_auto_receive',
                      113:'discrepency_prefix',
                      114: 'auto_generate_receive_qty',
+                     115: 'st_po_prefix',
                      }
 
   vm.check_box_data = [
@@ -798,6 +800,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data[vm.switch_names[switch_num]] = value;
       Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
+    }
+    if (vm.switch_names[switch_num] === "st_po_prefix" || vm.switch_names[switch_num] === "invoice_prefix") {
+      if (vm.model_data.st_po_prefix && vm.model_data.prefix && vm.model_data.st_po_prefix.toLocaleLowerCase() == vm.model_data.prefix.toLocaleLowerCase()) {
+        Service.showNoty("po prefix , stock Transfer Prefix cannot be same !!! ", 'warning');
+        return
+      }
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {

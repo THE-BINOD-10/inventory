@@ -637,13 +637,13 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     if stop_index:
         sales_return = sales_return[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
-    order_id, order_date = '', ''
-    customer_id, customer_name = '', ''
-    invoice_number, invoice_date, credit_note_number = '', '', ''
-    credit_wo_tax_amount,credit_tax_amount, tax_percent = 0, 0, 0
-    state, city, customer_gst_no, unit_price, gst_number, hsn_code  = '', '', '', '', '', ''
-    manufacturer, searchable, bundle, marketplace= '', '', '', ''
     for data in sales_return:
+        order_id, order_date = '', ''
+        customer_id, customer_name = '', ''
+        invoice_number, invoice_date, credit_note_number = '', '', ''
+        credit_wo_tax_amount, credit_tax_amount, tax_percent = 0, 0, 0
+        state, city, customer_gst_no, unit_price, gst_number, hsn_code = '', '', '', '', '', ''
+        manufacturer, searchable, bundle, marketplace = '', '', '', ''
         attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:

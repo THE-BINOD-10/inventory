@@ -57,6 +57,11 @@ vm.changeUnitPrice = function(data){
     var igst_percentage = (data.total_price * parseFloat(data.igst)) / 100
     data.total_price += igst_percentage;
   }
+   if(data.cess)
+  {
+    var cess_percentage = (data.total_price * parseFloat(data.cess)) / 100
+    data.total_price += cess_percentage;
+  }
   else{
     data.total_price += cgst_percentage + sgst_percentage;
   }

@@ -500,7 +500,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     order_index = search_params.get('order_index', 0)
     search_parameters = {'open_po__sku_id__in': sku_master_ids}
     supplier_data = {'aaData': []}
-    supplier_name = search_params.get('supplier')
+    supplier_name = search_params.get('supplier_id')
     lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id']
     order_val = lis[order_index]
@@ -662,11 +662,12 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         sales_return = sales_return[start_index:stop_index]
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in sales_return:
-        order_id = ''
-        customer_id = ''
-        marketplace = ''
-        customer_name = ''
-        manufacturer, searchable, bundle = '', '', ''
+        order_id, order_date = '', ''
+        customer_id, customer_name = '', ''
+        invoice_number, invoice_date, credit_note_number = '', '', ''
+        credit_wo_tax_amount, credit_tax_amount, tax_percent = 0, 0, 0
+        state, city, customer_gst_no, unit_price, gst_number, hsn_code = '', '', '', '', '', ''
+        manufacturer, searchable, bundle, marketplace = '', '', '', ''
         attributes_obj = SKUAttributes.objects.filter(sku_id=data.sku.id, attribute_name__in=attributes_list)
         if attributes_obj.exists():
             for attribute in attributes_obj:
@@ -678,9 +679,31 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                     bundle = attribute.attribute_value
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
+            order_date = get_local_date(user, data.order.creation_date)
             customer_id = data.order.customer_id
             customer_name = data.order.customer_name
             marketplace = data.order.marketplace
+            credit_note_number = data.credit_note_number
+            unit_price = data.sku.price
+            hsn_code = data.sku.hsn_code
+            customer_data = CustomerMaster.objects.filter(user=user.id,customer_id=data.order.customer_id)
+            if customer_data:
+                state = customer_data[0].state
+                customer_gst_no = customer_data[0].tin_number
+                city = customer_data[0].city
+            cod = data.order.customerordersummary_set.filter()
+            invoice_number = data.invoice_number
+            invoice_data = SellerOrderSummary.objects.filter(full_invoice_number=data.invoice_number)
+            invoice_date = get_local_date(user, invoice_data[0].creation_date)
+            if cod:
+                cgst_tax = cod[0].cgst_tax
+                sgst_tax = cod[0].sgst_tax
+                igst_tax = cod[0].igst_tax
+                credit_tax_amount = (credit_wo_tax_amount) * (cgst_tax + sgst_tax + igst_tax)/100
+                tax_percent = cgst_tax + sgst_tax + igst_tax
+            user_data = UserProfile.objects.filter(user=user.id)
+            if user_data:
+                gst_number = user_data[0].gst_number
             if not marketplace:
                 marketplace = data.marketplace
         else:
@@ -689,50 +712,74 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         reasons = OrderReturnReasons.objects.filter(order_return=data.id)
         reasons_data = []
         return_date = get_local_date(user, data.creation_date)
-
         if is_excel:
             if reasons:
                 for reason in reasons:
                     temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
+                                                            ('SKU Description',data.sku.sku_desc),
                                                             ('SKU Category', data.sku.sku_category),
                                                             ('SKU Sub Category', data.sku.sub_category),
                                                             ('SKU Brand', data.sku.sku_brand),
                                                             ('Order ID', order_id),
+                                                            ('Order Date', order_date),
+                                                            ('Credit Note Number', credit_note_number),
+                                                            ('Credit Note Date', return_date),
                                                             ('Customer ID', customer_id),
-                                                            ('Return Date', return_date),
+                                                            ('Customer Name', customer_name),
+                                                            ('Invoice Number', invoice_number),
+                                                            ('Invoice Date', invoice_date),
+                                                            # ('Return Date', return_date),
+                                                            ('Unit Price', unit_price),
+                                                            ('HSN Code', hsn_code),
                                                             ('Market Place', marketplace),
+                                                            ('City', city),
                                                             ('Quantity', reason.quantity), ('Reason', reason.reason),
                                                             ('Status', reason.status)
                                                             )))
             else:
                 temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code),
                                                         ('SKU Category', data.sku.sku_category),
+                                                        ('SKU Description', data.sku.sku_desc),
                                                         ('SKU Sub Category', data.sku.sub_category),
                                                         ('SKU Brand', data.sku.sku_brand),
                                                         ('Order ID', order_id),
+                                                        ('Order Date', order_date),
+                                                        ('Credit Note Number', credit_note_number),
+                                                        ('Credit Note Date', return_date),
                                                         ('Customer ID', customer_id),
-                                                        ('Return Date', return_date),
-                                                        ('Market Place', marketplace), ('Quantity', data.quantity),
-                                                        ('Reason', data.reason),
-                                                        ('Status', data.status)
+                                                        ('Customer Name', customer_name),
+                                                        ('Invoice Number', invoice_number),
+                                                        ('Invoice Date', invoice_date),
+                                                        # ('Return Date', return_date),
+                                                        ('City', city),
+                                                        ('Unit Price', unit_price),
+                                                        ('Market Place', marketplace), ('Quantity', reasons.quantity),
+                                                        ('Reason', reasons.reason),
+                                                        ('Status', reasons.status)
                                                         )))
         else:
             if reasons:
                 for reason in reasons:
-                    reasons_data.append({'quantity': reason.quantity, 'reason': reason.reason, 'status': reason.status})
+                    credit_wo_tax_amount = reason.quantity * data.sku.price
+                    reasons_data.append({'quantity': reason.quantity, 'reason': reason.reason, 'status': reason.status, 'credit_wo_tax_amount': credit_wo_tax_amount})
             else:
-                reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
+                credit_wo_tax_amount = data.quantity * data.sku.price
+                reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status, 'credit_wo_tax_amount': credit_wo_tax_amount})
 
-            temp = OrderedDict((('sku_code', data.sku.sku_code),
+            temp = OrderedDict((('sku_code', data.sku.sku_code),('sku_desc', data.sku.sku_desc),
                          ('sku_category', data.sku.sku_category),
                          ('sub_category', data.sku.sub_category),
                          ('sku_brand', data.sku.sku_brand),
-                         ('order_id', order_id), ('id', data.id),
-                         ('customer_id', customer_id), ('return_date', return_date),
-                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                         ('quantity', data.quantity), ('reasons_data', reasons_data),
-                         ('customer_name', customer_name),
-                         ('description', data.sku.sku_desc)))
+                         ('order_id', order_id), ('id', data.id),('order_date', order_date),
+                         ('customer_id', customer_id), ('customer_name', customer_name),
+                         ('status', reasons_data[0]['status']), ('marketplace', marketplace),
+                         ('quantity', reasons_data[0]['quantity']), ('reasons_data', reasons_data),
+                         ('credit_note_number', credit_note_number), ('credit_note_date', return_date),
+                         ('invoice_number', invoice_number),('invoice_date', invoice_date), ('unit_price', unit_price),
+                         ('hsn_code', hsn_code),('credit_wo_tax_amount', reasons_data[0]['credit_wo_tax_amount']),
+                         ('credit_tax_amount',round((reasons_data[0]['credit_wo_tax_amount'] * tax_percent)/100, 2)), ('total_credit_note_amount', round(reasons_data[0]['credit_wo_tax_amount'] + credit_tax_amount, 2)),
+                         ('customer_gst_no', customer_gst_no), ('gst_number', gst_number),
+                         ('city', city),('state',state),('reason', reasons_data[0]['reason']),('tax_percent', tax_percent)))
             if user.userprofile.industry_type == 'FMCG':
                 temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
                 batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))
@@ -749,7 +796,6 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 temp['Searchable'] = searchable
                 temp['Bundle'] = bundle
             temp_data['aaData'].append(temp)
-
     return temp_data
 
 

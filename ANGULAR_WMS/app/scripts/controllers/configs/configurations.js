@@ -47,6 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'auto_generate_receive_qty':false,
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'allow_partial_picklist': false,
@@ -99,7 +100,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
                      113:'discrepency_prefix',
-                     114: 'st_po_prefix',
+                     114: 'auto_generate_receive_qty',
+                     115: 'st_po_prefix',
                      }
 
   vm.check_box_data = [
@@ -683,7 +685,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 112,
    class_name: "fa fa-server",
    display: true
-   }
+   },
+   {
+   name: "Auto Fill Receive Quantity",
+   model_name: "auto_generate_receive_qty",
+    param_no: 114,
+   class_name: "fa fa-server",
+   display: true
+  },
 ]
 
   vm.empty = {};

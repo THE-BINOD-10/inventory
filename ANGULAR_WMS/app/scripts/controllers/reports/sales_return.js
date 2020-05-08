@@ -31,15 +31,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
      .withOption('rowCallback', rowCallback);
 
   vm.dtColumns = [
-      DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
-      DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
-      DTColumnBuilder.newColumn('sub_category').withTitle('SKU Sub Category'),
-      DTColumnBuilder.newColumn('sku_brand').withTitle('SKU Brand'),
       DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
+      DTColumnBuilder.newColumn('order_date').withTitle('Order Date'),
+      DTColumnBuilder.newColumn('credit_note_number').withTitle('Credit Note Number'),
+      DTColumnBuilder.newColumn('credit_note_date').withTitle('Credit Note Date'),
       DTColumnBuilder.newColumn('customer_id').withTitle('Customer ID'),
-      DTColumnBuilder.newColumn('return_date').withTitle('Return Date'),
+      DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
+//      DTColumnBuilder.newColumn('return_date').withTitle('Return Date'),
+      DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
+      DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+      DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
+      DTColumnBuilder.newColumn('sku_desc').withTitle('SKU Description'),
+//      DTColumnBuilder.newColumn('sku_category').withTitle('SKU Category'),
+//      DTColumnBuilder.newColumn('sub_category').withTitle('SKU Sub Category'),
+//      DTColumnBuilder.newColumn('sku_brand').withTitle('SKU Brand'),
+      DTColumnBuilder.newColumn('unit_price').withTitle('Unit Price'),
+      DTColumnBuilder.newColumn('tax_percent').withTitle('Tax Percentage'),
+      DTColumnBuilder.newColumn('hsn_code').withTitle('HSN Code'),
+      DTColumnBuilder.newColumn('marketplace').withTitle('Market Place'),
+      DTColumnBuilder.newColumn('city').withTitle('City'),
       DTColumnBuilder.newColumn('quantity').withTitle('Quantity'),
-      DTColumnBuilder.newColumn('marketplace').withTitle('Market Place')
+      DTColumnBuilder.newColumn('credit_wo_tax_amount').withTitle('Credit Note Amount(w/o tax)'),
+      DTColumnBuilder.newColumn('credit_tax_amount').withTitle('Credit Note Tax Amount'),
+      DTColumnBuilder.newColumn('total_credit_note_amount').withTitle('Total Credit Note Amount'),
+      DTColumnBuilder.newColumn('state').withTitle('State'),
+      DTColumnBuilder.newColumn('customer_gst_no').withTitle('Customer GST Number'),
+      DTColumnBuilder.newColumn('gst_number').withTitle('GST Number'),
+      DTColumnBuilder.newColumn('reason').withTitle('Reason'),
+      DTColumnBuilder.newColumn('status').withTitle('Status')
   ];
   if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
     vm.dtColumns.splice(5, 0, DTColumnBuilder.newColumn('Manufacturer').withTitle('Manufacturer'))
@@ -83,6 +102,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'sku_code': '',
                     'wms_code': '',
+                    'sku_desc': '',
                     'order_id': '',
                     'customer_id': '',
                     'creation_date': '',

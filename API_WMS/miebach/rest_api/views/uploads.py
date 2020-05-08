@@ -1495,14 +1495,15 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         for temp_ean in ean_numbers:
                             if not temp_ean:
                                 continue
-                            if len(str(temp_ean)) > 20:
+                            temp_ean = str(temp_ean)
+                            if len(temp_ean) > 20:
                                 error_msg = 'EAN Number Length should be less than 20'
                                 index_status.setdefault(row_idx, set()).add(error_msg)
-                            if str(temp_ean) in ean_duplicate_check:
+                            if temp_ean in ean_duplicate_check:
                                 error_msg = 'Duplicate EAN Number Found in File'
                                 index_status.setdefault(row_idx, set()).add(error_msg)
                             else:
-                                ean_duplicate_check.append(str(temp_ean))
+                                ean_duplicate_check.append(temp_ean)
                             if temp_ean in exist_ean_list:
                                 if not str(exist_ean_list[temp_ean]) == str(sku_code):
                                     error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])

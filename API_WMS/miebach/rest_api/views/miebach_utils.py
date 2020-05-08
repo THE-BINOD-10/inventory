@@ -593,16 +593,19 @@ SKU_WISE_RTV_DICT = {'filters' : [
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'Purchase Order ID', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label': 'RTV Number', 'name': 'rtv_number', 'type': 'input'}
             ],
-        'dt_headers': [ "RTV Number", "RTV Date", "Order ID", "Supplier ID", "Supplier Name", "SKU Code",
-                           "SKU Description", "HSN Code", "EAN Number", "MRP", "Quantity", "Unit Price", "CGST(%)", "SGST(%)",
-                           "IGST(%)", "UTGST(%)", "CESS(%)", "Total Amount", "Invoice Number",
-                           "Invoice Date"],
-        'mk_dt_headers': [ "RTV Number", "RTV Date", "Order ID", "Supplier ID", "Supplier Name", "SKU Code",
-                           "SKU Description", "HSN Code", "EAN Number", "MRP", "Quantity", "Unit Price", "CGST(%)", "SGST(%)",
-                           "IGST(%)", "UTGST(%)", "CESS(%)", "Total Amount", "Invoice Number",
-                           "Invoice Date"],
+        'dt_headers': [ "RTV Number", "RTV Date", "Supplier ID", "Supplier Name", "Invoice Number", "Invoice Date",
+                        "SKU Code", "SKU Description", "EAN Number", "MRP", "Unit Price", "CGST(%)", "SGST(%)",
+                        "IGST(%)", "UTGST(%)", "CESS(%)", "HSN Code", "City", "RTV Quantity", "RTV Amount (w/o tax)",
+                        "RTV Tax Amount", "RTV Amount", "PO Number", "PO Date", "GRN Number", "GRN Date","State", "Supplier GST Number",
+                        "GST Number", "Remarks" ],
+        'mk_dt_headers': [ "RTV Number", "RTV Date", "Supplier ID", "Supplier Name","Invoice Number", "Invoice Date",
+                           "SKU Code", "SKU Description", "EAN Number", "MRP","Unit Price","CGST(%)", "SGST(%)",
+                           "IGST(%)", "UTGST(%)", "CESS(%)", "HSN Code","City", "RTV Quantity","RTV Amount (w/o tax)",
+                           "RTV Tax Amount", "RTV Amount", "PO Number","PO Date", "GRN Number", "GRN Date","State", "Supplier GST Number",
+                           "GST Number", "Remarks"],
         'dt_url': 'get_sku_wise_rtv_filter', 'excel_name': 'sku_wise_rtv_report', 'print_url': '',
        }
 
@@ -8118,12 +8121,25 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         seller_po_summary = rtv.seller_po_summary
         purchase_order = seller_po_summary.purchase_order
         open_po = purchase_order.open_po
+        po_date = get_local_date(user, purchase_order.creation_date)
         receipt_no = seller_po_summary.receipt_number
+        city =  purchase_order.open_po.supplier.city
+        state = purchase_order.open_po.supplier.state
+        gst_number = user.userprofile.gst_number
+        supplier_gst_number = purchase_order.open_po.supplier.tin_number
+        rtv_date = get_local_date(user, rtv.creation_date)
+        rtv_date_1 = datetime.datetime.strptime(rtv_date, '%d %b, %Y %I:%M %p').date()
+        final_rtv_date = rtv_date_1.strftime('%d-%m-%Y')
+        remarks = seller_po_summary.remarks
+
         if not receipt_no:
             receipt_no = ''
-        po_number = '%s%s_%s/%s' % (purchase_order.prefix,
+        grn_number = '%s%s_%s/%s' % (purchase_order.prefix,
                                  str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
                                  str(purchase_order.order_id), str(receipt_no))
+        po_number = '%s%s_%s' % (purchase_order.prefix,
+                                     str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
+                                     str(purchase_order.order_id))
         price = open_po.price
         mrp = open_po.mrp
         data['total_received'] = rtv.quantity
@@ -8134,6 +8150,10 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         data['utgst_tax'] = open_po.utgst_tax
         data['cess_tax'] = open_po.cess_tax
         data['invoice_number'] = seller_po_summary.invoice_number
+        grn_date = get_local_date(user, seller_po_summary.creation_date)
+        grn_date_1 = datetime.datetime.strptime(rtv_date, '%d %b, %Y %I:%M %p').date()
+        data['final_grn_date'] = grn_date_1.strftime('%d-%m-%Y')
+        # data['supplier_gst_number'] = purchase_order.open_po.supplier.gst_number
         if batch_detail:
             price = batch_detail.buy_price
             mrp = batch_detail.mrp
@@ -8156,6 +8176,9 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         final_price = aft_unit_price
         invoice_total_amount = float(final_price) * float(data['total_received'])
         invoice_total_amount = truncate_float(invoice_total_amount, 2)
+        data['debit_wo_tax_amount'] = rtv.quantity * price
+        data['debit_note_tax_amount'] = (data['debit_wo_tax_amount']) * (data['cgst_tax'] + data['sgst_tax'] + data['igst_tax'])/100
+        data['debit_note_total_amount'] = data['debit_wo_tax_amount'] + data['debit_note_tax_amount']
         hsn_code = ''
         if open_po.sku.hsn_code:
             hsn_code = open_po.sku.hsn_code
@@ -8166,8 +8189,19 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         ean_numbers = get_sku_ean_list(open_po.sku)
         ean_numbers = ','.join(ean_numbers)
         temp_data['aaData'].append(OrderedDict((('RTV Number', rtv.rtv_number),
-                            ('RTV Date', get_local_date(user, rtv.creation_date)),
-                            ('Order ID', po_number),
+                            ('RTV Date', final_rtv_date),
+                            ("Remarks", remarks),
+                            ('PO Number', po_number),
+                            ('PO Date', po_date),
+                            ('GRN Number', grn_number),
+                            ('GST Number', gst_number),
+                            ('City', city),
+                            ('State', state),
+                            ('Supplier GST Number', supplier_gst_number),
+                            ('GRN Date', data['final_grn_date']),
+                            ('RTV Amount (w/o tax)', data['debit_wo_tax_amount']),
+                            ('RTV Tax Amount', data['debit_note_tax_amount']),
+                            ('RTV Amount', data['debit_note_total_amount']),
                             ('Supplier ID', open_po.supplier_id),
                             ('Supplier Name', open_po.supplier.name),
                             ('SKU Code', open_po.sku.sku_code),
@@ -8175,7 +8209,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
                             ('HSN Code', hsn_code),
                             ('EAN Number', ean_numbers),
                             ('MRP', mrp),
-                            ('Quantity', data['total_received']),
+                            ('RTV Quantity', data['total_received']),
                             ('Unit Price', price),
                             ('Pre-Tax Received Value', amount),
                             ('CGST(%)', data['cgst_tax']),

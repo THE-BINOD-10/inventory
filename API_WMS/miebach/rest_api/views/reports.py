@@ -11,7 +11,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-from inbound import generate_grn_pagination
+from inbound_common_operations import generate_grn_pagination
 from dateutil.relativedelta import *
 
 
@@ -531,11 +531,13 @@ def get_supplier_details_data(search_params, user, sub_user):
     for purchase_order in purchase_orders:
         po_data = suppliers.filter(order_id=purchase_order['order_id'])
         total_amt = 0
+        total_ordered= 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity
             taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax
             amt = price * quantity
             total_amt += amt + ((amt / 100) * taxes)
+            total_ordered += quantity
         total_amt = truncate_float(total_amt, 2)
         po_obj = po_data[0]
         design_codes = SKUSupplier.objects.filter(supplier=po_obj.open_po.supplier, sku=po_obj.open_po.sku,
@@ -557,7 +559,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
-                                                    ('Ordered Quantity', purchase_order['total_ordered']),
+                                                    ('Ordered Quantity', total_ordered),
                                                     ('Amount', total_amt),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status_var), ('order_id', po_obj.order_id))))
@@ -700,15 +702,26 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
                 reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
 
             temp = OrderedDict((('sku_code', data.sku.sku_code),
-                                ('sku_category', data.sku.sku_category),
-                                ('sub_category', data.sku.sub_category),
-                                ('sku_brand', data.sku.sku_brand),
-                                ('order_id', order_id), ('id', data.id),
-                                ('customer_id', customer_id), ('return_date', return_date),
-                                ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
-                                ('quantity', data.quantity), ('reasons_data', reasons_data),
-                                ('customer_name', customer_name),
-                                ('description', data.sku.sku_desc)))
+                         ('sku_category', data.sku.sku_category),
+                         ('sub_category', data.sku.sub_category),
+                         ('sku_brand', data.sku.sku_brand),
+                         ('order_id', order_id), ('id', data.id),
+                         ('customer_id', customer_id), ('return_date', return_date),
+                         ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
+                         ('quantity', data.quantity), ('reasons_data', reasons_data),
+                         ('customer_name', customer_name),
+                         ('description', data.sku.sku_desc)))
+            if user.userprofile.industry_type == 'FMCG':
+                temp['manufactured_date'], temp['expiry_date'], temp['batch_no'], temp['mrp'] = '', '', '', ''
+                batch_detail_list = list(ReturnsLocation.objects.filter(returns_id=data.id).values_list('id', flat=True))
+                if batch_detail_list:
+                    batch_data = BatchDetail.objects.filter(transact_id__in=batch_detail_list, transact_type='return_loc')
+                    if batch_data.exists():
+                        batch_data = batch_data[0]
+                        temp['manufactured_date'] = batch_data.manufactured_date
+                        temp['expiry_date'] = batch_data.expiry_date
+                        temp['batch_no'] = batch_data.batch_no
+                        temp['mrp'] = batch_data.mrp
             if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
                 temp['Manufacturer'] = manufacturer
                 temp['Searchable'] = searchable
@@ -825,9 +838,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                  'reason': adjustment.reason,
                                                  'creation_date': creation_date,
                                                  'quantity': 0,
+                                                 'cycle_quantity':0,
                                                  'prices_list': [], 'amount': 0,
                                                  'cycle': adjustment.cycle})
             grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['cycle_quantity'] +=adjustment.cycle.seen_quantity
             grouping_data[group_key]['amount'] += amount
             grouping_data[group_key]['prices_list'].append(price)
         adjustments = grouping_data.values()
@@ -845,7 +860,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
             qty = data['quantity']
             updated_user_name = user.username
             avg_cost = 0
-            version_obj = Version.objects.get_for_object(data['cycle'])
+            version_obj = Version.objects.using('reversion').get_for_object(data['cycle'])
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             if amount and qty:
@@ -860,6 +875,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                         searchable = attribute.attribute_value
                     if attribute.attribute_name == 'Bundle':
                         bundle = attribute.attribute_value
+            if data['quantity'] < 0 :
+                initial_quantity = abs(data['quantity'])
+            else:
+                initial_quantity = data['cycle_quantity'] - data['quantity']
+
             temp_data['aaData'].append(OrderedDict((('SKU Code', sku.sku_code),
                                                     ('Name', sku.sku_desc),
                                                     ('Weight', weight),
@@ -878,10 +898,14 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Quantity', data['quantity']),
                                                     ('Average Cost', avg_cost),
                                                     ('Value', amount),
+                                                    ('changed_qty', data['quantity']),
+                                                    ('post_adjustment_qty', data['cycle_quantity']),
+                                                    ('initial_quantity', initial_quantity),
+                                                    ('changed_unit_value', avg_cost),
+                                                    ('changed_total_value', amount),
                                                     ('Reason', data['reason']),
                                                     ('User', updated_user_name),
                                                     ('Transaction Date', data['creation_date']),
-
                                                     )))
     else:
         temp_data['recordsTotal'] = len(adjustments)
@@ -1119,7 +1143,7 @@ def print_po_reports(request, user=''):
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
                                                            'mrp': mrp})
                     grouped_data[grouping_key]['received_quantity'] += quantity
-                    grouped_data[grouping_key]['amount'] += amount
+                    grouped_data[grouping_key]['amount'] += float("%.2f" % amount)
                     total += amount
                     total_qty += quantity
                     total_tax += gst_tax
@@ -1141,7 +1165,7 @@ def print_po_reports(request, user=''):
                                          'received_quantity': quantity, 'measurement_unit': open_data.measurement_unit,
                                          'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
                                          'sgst_tax': open_data.sgst_tax, 'igst_tax': open_data.igst_tax,
-                                         'utgst_tax': open_data.utgst_tax, 'amount': amount,
+                                         'utgst_tax': open_data.utgst_tax, 'amount': float("%.2f" % amount),
                                          'sku_desc': open_data.sku.sku_desc, 'mrp': mrp})
                 total += amount
                 total_qty += quantity
@@ -1164,7 +1188,7 @@ def print_po_reports(request, user=''):
                                      'price': open_data.price, 'cgst_tax': open_data.cgst_tax,
                                      'sgst_tax': open_data.sgst_tax,
                                      'igst_tax': open_data.igst_tax, 'utgst_tax': open_data.utgst_tax,
-                                     'amount': amount, 'sku_desc': open_data.sku.sku_desc,
+                                     'amount': float("%.2f" % amount), 'sku_desc': open_data.sku.sku_desc,
                                      'mrp': mrp})
             total += amount
             total_qty += po_order.received_quantity
@@ -1223,12 +1247,12 @@ def print_po_reports(request, user=''):
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
+                   'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
-                   'net_amount': net_amount,
+                   'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
                    'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
 
@@ -1315,8 +1339,8 @@ def excel_reports(request, user=''):
         headers = report_data['aaData'][0].keys()
     if temp[1] in ['order_summary_report'] or 'tally_report' in excel_name:
         headers.extend(["Billing Address" ,"Shipping Address"])
-        headers.extend(["Order Taken By", "Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
-        if admin_user.username.lower() == 'gomechanic_admin' and search_params.get('tally_report'):
+        headers.extend(["Payment Cash", "Payment Card","Payment PhonePe","Payment GooglePay","Payment Paytm"])
+        if search_params.get('tally_report'):
             headers = ['Voucher Type', 'Invoice Number','Invoice Date','Party Name','Address1','Address2','Address3','State Name',
                         'GSTIN','Main Location','Stock item','Qty','Rate','Disc%','Discount Amount','Sales Ledger',
                         'Sgst Ledger','SGST Amt','CGST Ledger','CGST Amount','Igst Ledger','IGST Amount','Invoice Amount',
@@ -1326,6 +1350,36 @@ def excel_reports(request, user=''):
             tmp = field.misc_value.split(',')
             for i in tmp:
                 headers.append(str(i))
+    if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
+            squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
+                'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',
+                'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule',
+                'Purchase Order Distribution', 'Receipt', 'Receipt Line', 'Consumption Advice',
+                'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location',
+                'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1',
+                'Project Information', 'Multiperiod Accounting Accrual Account'
+                ]
+            report_data['New_aaData'] = []
+            sortedData = OrderedDict()
+            for row in report_data['aaData']:
+                ordList = []
+                for k, v in row.items():
+                    if k in squareBracketCols:
+                        ordList.append((k+'[..]', v),)
+                    else:
+                        ordList.append((k, v),)
+                sortedData.setdefault(row['*Invoice Header Identifier'], []).append(OrderedDict(ordList))
+                #report_data['New_aaData'].append(OrderedDict(ordList))
+            #report_data['aaData'] = report_data['New_aaData']
+            for k, v in sortedData.items():
+                if len(v) > 1:
+                    for x in v:
+                        report_data['New_aaData'].append(x)
+                else:
+                    report_data['New_aaData'].append(v[0])
+            report_data['aaData'] = report_data['New_aaData']
+            headers = report_data['aaData'][0].keys()
+
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type, tally_report=tally_report)
     return excel_data
 
@@ -2019,6 +2073,66 @@ def print_debit_note(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def print_descrepancy_note(request, user=''):
+    from inbound_descrepancy import generate_discrepancy_data
+    disp_number = request.GET.get('discrepancy_number', '')
+    po_new_data = OrderedDict()
+    updated_discrepancy = False
+    profile = UserProfile.objects.get(user=user.id)
+    report_data_dict ={}
+    if disp_number:
+        discrepancy_objects = Discrepancy.objects.filter(user=user.id, discrepancy_number=disp_number)
+        for obj in discrepancy_objects:
+            if obj.purchase_order:
+                open_po = obj.purchase_order.open_po
+                filter_params = {'purchase_order_id': obj.purchase_order.id}
+                if len(obj.po_number.split('/')) >= 2:
+                    reciept_number = obj.po_number.split('/')[1]
+                seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
+                price = obj.purchase_order.open_po.price
+                mrp = 0
+                if seller_po_summary.exists():
+                    seller_po_obj = seller_po_summary[0]
+                    if seller_po_obj.batch_detail:
+                        price = seller_po_obj.batch_detail.buy_price
+                        mrp = seller_po_obj.batch_detail.mrp
+                if not updated_discrepancy:
+                    updated_discrepancy=True
+                    invoice_number, invoice_date = '', ''
+                    if seller_po_summary.exists():
+                        invoice_number = seller_po_summary[0].invoice_number
+                        invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                    supplier = obj.purchase_order.open_po.supplier
+                    order_date = get_local_date(request.user, obj.purchase_order.creation_date)
+                    order_date = datetime.datetime.strftime(
+                        datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
+                                        'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
+                                        'company_name': profile.company_name, 'company_address': profile.address,
+                                        'po_number': obj.po_number, 'bill_no': invoice_number,'full_discrepancy_number':disp_number,
+                                        'order_date': order_date, 'bill_date': invoice_date,
+                                        }
+
+                cond = ('', open_po.sku.wms_code, '', price, open_po.cgst_tax, open_po.sgst_tax, open_po.igst_tax,
+                        '', open_po.sku.sku_desc, 0, 0, 0, 0, mrp)
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+            else:
+                data_dict =json.loads(obj.new_data)
+                cond = ('', data_dict['wms_code'], '', data_dict['price'], data_dict['cgst_tax'], data_dict['sgst_tax'], data_dict['igst_tax'],
+                        '', data_dict['sku_desc'], 0, 0, 0, 0, data_dict['mrp'])
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+        discrepency_rendered = generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_dict)
+        return HttpResponse(discrepency_rendered)
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_sku_wise_rtv_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_rtv_filter_data(search_params, user, request.user)
@@ -2122,6 +2236,13 @@ def get_basa_report(request, user=''):
     temp_data = get_basa_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_discrepancy_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_discrepancy_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -2166,3 +2287,56 @@ def print_basa_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_form_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_form_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_cancel_invoice_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_cancel_invoice_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def reprint_credit_note_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_credit_note_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@login_required
+@get_admin_user
+def print_credit_note_report(request, user=''):
+    from inbound import get_sales_return_print_json
+    credit_note_number = request.GET.get('credit_note_number')
+    return_ids = list(OrderReturns.objects.filter(order__user=user.id, credit_note_number=credit_note_number)\
+        .values_list('return_id', flat=True))
+    final_data = get_sales_return_print_json(return_ids, user)
+    return_sales_print = []
+    return_sales_print.append(final_data)
+
+    return render(request, 'templates/toggle/sales_return_print.html',
+                  {'show_data_invoice': return_sales_print})

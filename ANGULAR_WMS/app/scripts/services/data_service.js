@@ -74,11 +74,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.create_shipment = {
 
                             alternate_view: true,
-                            view: 'ShipmentPickedAlternative',
+                            view: 'ShipmentPickedInvoice',
                             tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name','Address', 'Marketplace',
                                                                   'Picked Quantity'],
                                          'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace','Address',
-                                                                  'Picked Quantity', 'Total Quantity', 'Order Date']}
+                                                                  'Picked Quantity', 'Total Quantity', 'Order Date'],
+                                          'ShipmentPickedInvoice':['Invoice Number','Order ID', 'Customer ID', 'Customer Name', 'Marketplace','Address',
+                                                                  'Picked Quantity', 'Total Quantity', 'Invoice Date']}
                          }
 
   self.tranfer_shipment = {
@@ -124,7 +126,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'SKUView': 'batch_generate_picklist/',
                                                    'SellerOrderView': 'seller_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status', 'PO Status':'PO Status'},
                                       'CustomerCategoryView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Category': 'Category', 'Total Quantity': 'Total Quantity', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
                                       'SKUView': {'SKU Code': 'SKU Code', 'Title': 'Title', 'Total Quantity': 'Total Quantity'},
                                       'OrderView': {'Order ID': 'Order ID', 'Address': 'Address', 'SKU Code': 'SKU Code', 'Title': 'Title', 'Product Quantity': 'Product Quantity', 'Shipment Date': 'Exp Delivery Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
@@ -156,7 +158,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand','Manufacturer', 'Searchable', 'Bundle', 'Quantity', 'Picked Quantity']}
                            }
@@ -168,7 +170,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Child SKU MRP', 'Child SKU Weight', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                            'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
                            }
@@ -177,9 +179,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                               alternate_view: false,
                               view: 'normalView',
-                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
+                              tb_headers: {'normalView': ['Order ID', 'SKU Code', 'SKU MRP', 'Child SKU', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Location', 'Quantity', 'Picked Quantity','Cancelled Quantity', 'Selling Price', 'Sale Tax Percent', 'Cost Price', 'Cost Tax Percent', 'Date', 'Time'],
                                            'serialView': ['Order ID', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Customer Name', 'Serial Number', 'Date', 'Time'],
-                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity']}
+                                           'customerView': ['Customer ID', 'Customer Name', 'SKU Code', 'Description', 'SKU Category', 'Sub Category', 'SKU Brand', 'Quantity', 'Picked Quantity','Cancelled Quantity']}
                            }
     }
 

@@ -48,9 +48,10 @@ urlpatterns = [
     url(r'^mp/update_orders/$',update_mp_orders),
     url(r'^mp/get_inventory/$',get_mp_inventory),
     url(r'^get_inventory/$',get_inventory),
-    url(r'^rista_update_orders/$', rista_update_orders),
-    url(r'^store_hippo/$', store_hippo),
     url(r'^get_customers/$', get_customers),
     url(r'^get_skufilters/$', get_skufilters),
     url(r'^create_orders/$', create_orders),
+    url(r'^get_shipmentinfo/$', get_shipmentinfo),
+    url(r'^invoice_pdf/$', invoice_pdf),
+    url(r'^update_supplier/$', update_supplier),
 ]

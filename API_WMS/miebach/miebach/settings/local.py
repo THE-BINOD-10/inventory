@@ -8,6 +8,13 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': 'root@123',
         'TEST_MIRROR': 'default'
+    },
+    'reversion': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'stockone_reversion',
+        'USER': 'root',
+        'PASSWORD': 'root@123',
+        'TEST_MIRROR': 'default'
     }
 }
 

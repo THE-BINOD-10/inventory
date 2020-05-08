@@ -5818,8 +5818,13 @@ def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
     sku_ean_objs = SKUMaster.objects.filter(ean_number=ean_number, user=user.id).only('ean_number', 'sku_code')
     ean_objs = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
-    sku_ean_check = list(sku_ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True)[:2])
-    ean_number_check = list(ean_objs.exclude(sku__sku_code=sku_code).values_list('sku__sku_code', flat=True)[:2])
+    sku_ean_check, ean_number_check = [], []
+    sku_ean_check_objs = sku_ean_objs.exclude(sku_code=sku_code).only('sku_code')
+    if sku_ean_check_objs.exists():
+        sku_ean_check = list(sku_ean_check_objs.values_list('sku_code', flat=True)[:2])
+    ean_number_check_objs = ean_objs.exclude(sku__sku_code=sku_code).only('sku__sku_code')
+    if ean_number_check_objs.exists():
+        ean_number_check = list(ean_number_check_objs.values_list('sku__sku_code', flat=True)[:2])
     ean_check = []
     mapped_check = []
     ean_check.extend(sku_ean_check)
@@ -11283,3 +11288,57 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
+
+
+def prepare_ean_bulk_data(sku_master, ean_numbers, exist_ean_list, exist_sku_eans, new_ean_objs=''):
+    update_sku_obj = False
+    try:
+        #ean_numbers = ean_numbers.split(',')
+        exist_eans = list(sku_master.eannumbers_set.exclude(ean_number='').\
+                      values_list('ean_number', flat=True))
+        if sku_master.ean_number:
+            exist_eans.append(str(sku_master.ean_number))
+        rem_eans = set(exist_eans) - set(ean_numbers)
+        create_eans = set(ean_numbers) - set(exist_eans)
+        if rem_eans:
+            rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
+            if rem_ean_objs.exists():
+                rem_ean_objs.delete()
+            for rem_ean in rem_eans:
+                if exist_ean_list.get(rem_ean, ''):
+                    del exist_ean_list[rem_ean]
+                if exist_sku_eans.get(rem_ean, ''):
+                    del exist_sku_eans[rem_ean]
+        if str(sku_master.ean_number) in rem_eans:
+            sku_master.ean_number = ''
+            update_sku_obj = True
+            #sku_master.save()
+        for ean in create_eans:
+            if not ean:
+                continue
+            try:
+                ean = ean
+                new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                ean_found = False
+                if exist_ean_list.get(ean, ''):
+                    exist_ean_list[ean] = sku_master.sku_code
+                    ean_found = True
+                elif exist_sku_eans.get(ean, ''):
+                    exist_sku_eans[ean] = sku_master.sku_code
+                    ean_found = True
+                if not ean_found:
+                    exist_ean_list[ean] = sku_master.sku_code
+            except:
+                pass
+        #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
+    except Exception as e:
+        log.info(e)
+    return sku_master, new_ean_objs, update_sku_obj
+
+
+def bulk_create_in_batches(model_obj, data_objs):
+    last_batch = 0
+    for cur_batch in range(0, len(data_objs)+1000, 1000):
+        batch_data_objs = data_objs[last_batch:cur_batch]
+        last_batch = cur_batch
+        model_obj.objects.bulk_create(batch_data_objs)

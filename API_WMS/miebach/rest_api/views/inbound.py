@@ -3551,7 +3551,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                                 'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
         if po_received.get('put_zone', ''):
-            put_zone = po_received['put_zne']
+            put_zone = po_received['put_zone']
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id

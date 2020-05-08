@@ -9046,7 +9046,7 @@ def order_category_generate_picklist(request, user=''):
             'location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     all_sku_stocks = stock_detail1 | stock_detail2
-    seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
+    seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
         if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
             continue
@@ -10945,10 +10945,12 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     old_list = []
     new_list = []
     summary_params = {}
-    new_data = {}
+    new_data = OrderedDict()
+    order_by_term = lis[col_num]
+    summary_term = st_list[col_num]
     if order_term == 'desc':
-        order_by_term = '-'+lis[col_num]
-        summary_term = '-'+st_list[col_num]
+        order_by_term = '-%s' % order_by_term
+        summary_term = '-%s' % summary_term
     if search_term :
         filter_params['order_id__icontains']=search_term
         summary_params['stock_transfer__order_id__icontains'] = search_term
@@ -11023,7 +11025,7 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
              'Warehouse Name': value['warehouse_name'],})
 
     if order_term == 'desc':
-        temp_data['aaData'] = new_list[::-1]+old_list
+        temp_data['aaData'] = new_list+old_list
     else:
         temp_data['aaData'] = old_list+new_list
     temp_data['recordsTotal'] = get_stock_transfer.count()+len(new_data)
@@ -12522,7 +12524,7 @@ def seller_generate_picklist(request, user=''):
             stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by(
                 'receipt_date')
         all_sku_stocks = stock_detail1 | stock_detail2
-        seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
         for key, value in request.POST.iteritems():
             if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
                 continue

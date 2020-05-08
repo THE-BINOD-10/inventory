@@ -31,9 +31,10 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for record in data.0.data %}
+                {% for page in data %}
+                  {% for record in page.data %}
                   {% if not record.continue %}
-                  <tr ng-repeat="record in page.resp" class="fs14 rm-border">
+                  <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
                       <div>{{record.sku_code}}
                     </td>
@@ -76,7 +77,8 @@
                   </tr>
                   {% endif %} -->
                   {% endfor %}
-                   {% for empty in data.0.empty_data %}
+                {% endfor %}
+                   {% for empty in page.empty_data%}
                       <tr class="rm-border" style="height: 38px;" ng-repeat="empty in data[0].empty_data">
                         {% for i in empty_td %}
                         <td><p style="height:10px"></p></td>

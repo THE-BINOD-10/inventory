@@ -2118,7 +2118,8 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict((('customers', 'customers'), ('custome
                                            ('shipping_address', 'shipping_address'),
                                            ('discount_percentage','discount_percentage'),
                                            ('spoc_name','spoc_name'),
-                                           ('pan_number', 'pan_number')
+                                           ('pan_number', 'pan_number'),
+                                           ('customer_aux_info','customer_aux_info')
                                            ))
 
 SELLER_MASTER_API_MAPPING = OrderedDict((('sellers', 'sellers'), ('seller_id', 'seller_id'), ('name', 'name'),

@@ -1091,6 +1091,7 @@ class CustomerMaster(models.Model):
     lead_time = models.PositiveIntegerField(blank=True, default=0)
     role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
     spoc_name = models.CharField(max_length=256, default='')
+    customer_aux_info = models.TextField(default='', blank=True)
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -2031,6 +2032,7 @@ class PaymentInfo(models.Model):
     payment_mode = models.CharField(max_length=64, default='')
     method_of_payment = models.CharField(max_length=64, default='')
     payment_date = models.DateTimeField(auto_now=True)
+    aux_info = models.TextField(default='', blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

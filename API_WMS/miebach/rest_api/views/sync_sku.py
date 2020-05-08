@@ -78,6 +78,7 @@ def get_all_skus(all_users):
 def create_update_sku(all_skus, all_users):
     """ creating SKU for other linked users """
     from rest_api.views.common import get_misc_value, bulk_create_in_batches, prepare_ean_bulk_data, update_sku_attributes_data
+    from rest_api.views.masters import check_update_size_type
     dump_sku_codes = []
     wh_type = ''
     if all_skus:
@@ -90,6 +91,7 @@ def create_update_sku(all_skus, all_users):
         new_sku_objs = []
         new_sku_eans = OrderedDict()
         new_sku_attrs = OrderedDict()
+        new_sku_size_types = OrderedDict()
         create_sku_attrs, sku_attr_mapping = [], []
         exist_sku_eans = dict(SKUMaster.objects.filter(user=user, status=1).exclude(ean_number='').\
                               only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
@@ -100,6 +102,10 @@ def create_update_sku(all_skus, all_users):
             if not sku or sku.user == user:
                 continue
             print 'Syncing: %s, %s' % (str(user), str(sku.sku_code))
+            size_type = ''
+            sku_size_type = sku.skufields_set.filter(field_type='size_type').only('field_value')
+            if sku_size_type:
+                size_type = sku_size_type[0].field_value
             update_sku_dict = {'sku_desc': sku.sku_desc, 'sku_group': sku.sku_group, 'sku_type': sku.sku_type,
                         'sku_category': sku.sku_category, 'sku_class': sku.sku_class, 'sku_brand': sku.sku_brand,
                         'style_name': sku.style_name, 'sku_size': sku.sku_size,
@@ -122,8 +128,12 @@ def create_update_sku(all_skus, all_users):
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code
                 new_sku_objs.append(SKUMaster(**new_sku_dict))
-                new_sku_eans[sku.sku_code] = ean_numbers
-                new_sku_attrs[sku.sku_code] = attr_dict
+                if ean_numbers:
+                    new_sku_eans[sku.sku_code] = ean_numbers
+                if attr_dict:
+                    new_sku_attrs[sku.sku_code] = attr_dict
+                if size_type:
+                    new_sku_size_types[sku.sku_code] = size_type
                 exist_skus.append(sku.sku_code.upper())
 
             else:
@@ -137,6 +147,8 @@ def create_update_sku(all_skus, all_users):
                     create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
                 sku_obj.save()
+                if size_type:
+                    check_update_size_type(sku_obj, size_type)
                 if sku.sku_code not in dump_sku_codes:
                     dump_sku_codes.append(sku.sku_code)
 
@@ -159,6 +171,13 @@ def create_update_sku(all_skus, all_users):
                 for attr_key, attr_val in new_sku_attr.iteritems():
                     create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+            for new_sku_code, new_sku_size_type in new_sku_size_types.items():
+                if new_sku_code in code_obj_dict.keys():
+                    sku_obj = code_obj_dict[new_sku_code]
+                else:
+                    sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
+                check_update_size_type(sku_obj, new_sku_size_type)
+
         if new_ean_objs:
             bulk_create_in_batches(EANNumbers, new_ean_objs)
 

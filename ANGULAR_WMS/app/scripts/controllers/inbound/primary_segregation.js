@@ -103,7 +103,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.service.apiCall('get_po_segregation_data/', 'GET', {order_id: aData['DT_RowId']}).then(function(data){
+                var data_to_send = {
+                  'order_id': aData['DT_RowId'],
+                  'prefix': aData['prefix']
+                }
+                vm.service.apiCall('get_po_segregation_data/', 'GET', data_to_send).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);

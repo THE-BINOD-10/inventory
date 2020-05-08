@@ -470,6 +470,12 @@ def get_receive_po_datatable_filters(user, filters, request):
 
     return search_params, search_params1, search_params2
 
+def generate_po_qty_dict(purchase_ord_qty):
+    if purchase_ord_qty:
+        temp_dict = {}
+        for record in purchase_ord_qty:
+            temp_dict["%s%s"%(record[1], record[0])] = record[2]
+        return temp_dict
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term):
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
@@ -485,6 +491,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
                         'purchase_order__order_id', 'rwo__vendor__name', 'purchase_order__order_id',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id']
     st_purchase_list_sort = []
+    order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = {}, {}, {}, {}
     for st_purchase_lis in st_purchase_list:
         st_purchase_list_sort.append('stpurchaseorder__%s' % st_purchase_lis)
     rw_purchase_list_sort = []
@@ -502,10 +509,12 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
-    order_qtys_dict = dict(stock_results_objs.values_list('po__order_id'). \
-                           annotate(total_order_qty=Sum('open_st__order_quantity')))
-    receive_qtys_dict = dict(stock_results_objs.values_list('po__order_id'). \
-                             annotate(total_received_qty=Sum('po__received_quantity')))
+    stock_trs_ord_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
+    stock_trs_recv_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
+    if stock_trs_ord_qty.exists():
+        st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty)
+    if stock_trs_recv_qty.exists():
+        st_receive_qtys_dict = generate_po_qty_dict(stock_trs_recv_qty)
 
     st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')). \
         values_list('po__id', flat=True)
@@ -514,40 +523,37 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
                                                                              'stock-transfer']). \
         filter(purchase_order__open_po__isnull=True, rwo__job_order__product_code_id__in=sku_master_ids,
                **search_params2).filter(rw_purchase_query, rwo__vendor__user__in=user)
-    order_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct(). \
-                                annotate(total_order_qty=Sum('rwo__job_order__product_quantity'))))
-    receive_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct(). \
-                                  annotate(total_received_qty=Sum('purchase_order__received_quantity'))))
+    rw_order_qty = rw_results_objs.values_list('purchase_order__order_id', 'purchase_order__prefix').distinct().annotate(total_order_qty=Sum('rwo__job_order__product_quantity'))
+    rw_receive_qty = rw_results_objs.values_list('purchase_order__order_id', 'purchase_order__prefix').distinct().annotate(total_received_qty=Sum('purchase_order__received_quantity'))
+    if rw_order_qty.exists():
+        order_qtys_dict.update(generate_po_qty_dict(rw_order_qty))
+    if rw_receive_qty.exists():
+        receive_qtys_dict.update(generate_po_qty_dict(rw_receive_qty))
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)
 
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
         filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway'])
-
     po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
                                                        order_id__in=results_objs.values_list('order_id', flat=True))
-
-    order_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
-                                annotate(total_order_qty=Sum('open_po__order_quantity'))))
-    receive_qtys_dict.update(dict(po_result_order_ids.values_list('order_id').distinct(). \
-                                  annotate(total_received_qty=Sum('received_quantity'))))
-
+    po_ord_qty = po_result_order_ids.values_list('order_id', 'prefix').distinct().annotate(total_order_qty=Sum('open_po__order_quantity'))
+    po_recv_qty = po_result_order_ids.values_list('order_id', 'prefix').distinct().annotate(total_received_qty=Sum('received_quantity'))
+    if po_ord_qty.exists():
+        order_qtys_dict.update(generate_po_qty_dict(po_ord_qty))
+    if po_recv_qty.exists():
+        receive_qtys_dict.update(generate_po_qty_dict(po_recv_qty))
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned', 'confirmed-putaway']). \
         filter(received_quantity__lt=F('open_po__order_quantity')).values_list('id',
                                                                                flat=True)
     results1 = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
-    sort_col = purchase_order_list[col_num]
-    sort_col1 = st_purchase_list_sort[col_num]
-    sort_col2 = rw_purchase_list_sort[col_num]
+    sort_col = 'creation_date'
     if order_term == 'desc':
-        sort_col = '-%s' % sort_col
-        sort_col1 = '-%s' % sort_col1
-        sort_col2 = '-%s' % sort_col2
-    results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col, sort_col1, sort_col2).\
+        sort_col = '-creation_date'
+    results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col).\
         values('order_id', 'open_po__sku__user', 'rwpurchase__rwo__vendor__user',
-               'stpurchaseorder__open_st__sku__user').distinct()
-    return results, order_qtys_dict, receive_qtys_dict
+               'stpurchaseorder__open_st__sku__user', 'prefix').distinct()
+    return results, order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict
 
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -572,7 +578,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         warehouses = get_sister_warehouse(user)
         wh_details = dict(warehouses.values_list('user_id','user__username'))
         users = wh_details.keys()
-    results, order_qtys_dict, receive_qtys_dict = get_filtered_purchase_order_ids(request, users, search_term, filters, col_num, order_term)
+    results, order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = get_filtered_purchase_order_ids(request, users, search_term, filters, col_num, order_term)
 
     '''for result in results:
         suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user=user.id).exclude(
@@ -597,7 +603,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
         if result['open_po__sku__user']:
-            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=result['open_po__sku__user'])
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=result['open_po__sku__user'], prefix=result['prefix'])
             if supplier.exists():
                 supplier = supplier[0]
                 if supplier.open_po and supplier.open_po.order_type == 'VR':
@@ -606,11 +612,11 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     order_type = 'Sample Order'
         elif result['rwpurchase__rwo__vendor__user']:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
-                                                rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'])[0]
+                                                rwpurchase__rwo__vendor__user=result['rwpurchase__rwo__vendor__user'], prefix=result['prefix'])[0]
             order_type = 'Returnable Work Order'
         else:
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'],
-                                stpurchaseorder__open_st__sku__user=result['stpurchaseorder__open_st__sku__user'])[0]
+                                stpurchaseorder__open_st__sku__user=result['stpurchaseorder__open_st__sku__user'], prefix=result['prefix'])[0]
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
         po_reference = '%s%s_%s' % (
@@ -621,10 +627,15 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
 
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Warehouse','Order Type', 'Receive Status']
-
-        total_order_qty = order_qtys_dict.get(supplier.order_id, 0)
-        total_received_qty = receive_qtys_dict.get(supplier.order_id, 0)
-        total_receivable_qty = total_order_qty - total_received_qty
+        full_po_id="%s%s"%(supplier.prefix, supplier.order_id)
+        if order_type == 'Stock Transfer':
+            total_order_qty = st_order_qtys_dict.get(full_po_id, 0)
+            total_received_qty = st_receive_qtys_dict.get(full_po_id, 0)
+            total_receivable_qty = total_order_qty - total_received_qty
+        else:
+            total_order_qty = order_qtys_dict.get(full_po_id, 0)
+            total_received_qty = receive_qtys_dict.get(full_po_id, 0)
+            total_receivable_qty = total_order_qty - total_received_qty
         if total_received_qty:
             receive_status = 'Partially Receive'
         expected_date = ''
@@ -663,7 +674,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Remarks', supplier.remarks), ('Warehouse', warehouse),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty),
-                                      ('Style Name', ''), ('SR Number', sr_number)
+                                      ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix'])
                                       )))
     temp_data['aaData'] = data_list
     #sort_col = lis[col_num]
@@ -741,22 +752,22 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
 
     for result in results:
         p_data = get_purchase_order_data(result.purchase_order)
-        cond = (result.purchase_order.order_id, p_data['supplier_id'], p_data['supplier_name'])
+        cond = (result.purchase_order.order_id, p_data['supplier_id'], p_data['supplier_name'], result.purchase_order.prefix)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.putaway_quantity
 
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = len(all_data)
     for key, value in all_data.iteritems():
-        order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id,
+        order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id, prefix=key[3],
                                              open_po__sku_id__in=sku_master_ids)
         if not order:
-            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id,
+            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id, po_id__prefix=key[3],
                                                    open_st__sku_id__in=sku_master_ids)
             if order:
                 order = [order[0].po]
             else:
-                order = [RWPurchase.objects.filter(purchase_order__order_id=key[0], rwo__vendor__user=user.id,
+                order = [RWPurchase.objects.filter(purchase_order__order_id=key[0], rwo__vendor__user=user.id, purchase_order__prefix=key[3],
                                                    rwo__job_order__product_code_id__in=sku_master_ids)[
                              0].purchase_order]
         order = order[0]
@@ -768,7 +779,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         po_reference = '%s%s_%s' % (
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         temp_data['aaData'].append({'DT_RowId': key[0], 'Purchase Order ID': po_reference, 'Supplier ID': key[1],
-                                    'Supplier Name': key[2], 'Order Type': order_type, 'Total Quantity': value})
+                                    'Supplier Name': key[2], 'prefix':key[3], 'Order Type': order_type, 'Total Quantity': value})
 
     sort_col = lis[col_num]
     if order_term == 'asc':
@@ -798,31 +809,30 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     purchase_order_query = build_search_term_query(po_lis, search_term)
     st_search_query = build_search_term_query(st_lis, search_term)
     rw_purchase_query = build_search_term_query(rw_lis, search_term)
-
     po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user=user.id,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
-                                    .values('order_id').distinct().order_by(po_col, st_col, rw_col)
+                                    .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
     po_ids = po_dict.values_list('order_id',flat = True)
 
 
     rwo_dict = PurchaseOrder.objects.filter(rw_purchase_query, rwpurchase__rwo__vendor__user=user.id,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).exclude(order_id__in=po_ids)\
-                                    .values('order_id').distinct().order_by(po_col, st_col, rw_col)
+                                    .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
 
     st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user=user.id,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'],order_id__in = po_ids).exclude(order_id__in=po_ids)\
-                                     .values('order_id').distinct().order_by(po_col, st_col, rw_col)
+                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
     results = list(chain(po_dict,rwo_dict,st_dict))
 
     temp_data['recordsTotal'] = po_dict.count()+rwo_dict.count()+st_dict.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     for result in results[start_index:stop_index]:
-        if po_dict.filter(order_id=result['order_id'], open_po__sku__user=user.id).exists():
-            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=user.id)[0]
+        if po_dict.filter(order_id=result['order_id'], open_po__sku__user=user.id, prefix=result['prefix']).exists():
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user=user.id, prefix=result['prefix'])[0]
             order_type = 'Purchase Order'
-        if rwo_dict.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=user.id).exists(): #supplier.rwpurchase_set.filter():
-            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=user.id)[0]
+        if rwo_dict.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=user.id, prefix=result['prefix']).exists(): #supplier.rwpurchase_set.filter():
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user=user.id, prefix=result['prefix'])[0]
             order_type = 'Returnable Work Order'
-        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=user.id).exists():
-            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=user.id)[0]
+        elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=user.id, prefix=result['prefix']).exists():
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user=user.id, prefix=result['prefix'])[0]
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
 
@@ -831,6 +841,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
         temp_data['aaData'].append({'DT_RowId': supplier.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
                                     ' Order ID': supplier.order_id,
+                                    'prefix': supplier.prefix,
                                     'Order Date': get_local_date(request.user, supplier.creation_date),
                                     'DT_RowClass': 'results', 'PO Number': po_reference,
                                     'DT_RowAttr': {'data-id': supplier.order_id}})
@@ -1570,6 +1581,7 @@ def switches(request, user=''):
                        'mrp_discount':'mrp_discount',
                        'enable_pending_approval_pos':'enable_pending_approval_pos',
                        'mandate_invoice_number':'mandate_invoice_number',
+                       'auto_generate_receive_qty':'auto_generate_receive_qty',
                        'mandate_ewaybill_number':'mandate_ewaybill_number',
                        'allow_partial_picklist': 'allow_partial_picklist',
                        'sku_packs_invoice':'sku_packs_invoice',
@@ -1578,6 +1590,7 @@ def switches(request, user=''):
                        'auto_allocate_sale_order':'auto_allocate_sale_order',
                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        'stock_auto_receive':'stock_auto_receive',
+                       'st_po_prefix':'st_po_prefix',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1918,7 +1931,11 @@ def confirm_po(request, user=''):
                                str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-    check_purchase_order_created(user, po_id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    check_prefix = ''
+    if user_profile:
+        check_prefix = user_profile[0].prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 @csrf_exempt
@@ -2902,15 +2919,17 @@ def get_supplier_data(request, user=''):
     use_imei = get_misc_value('use_imei', user.id)
     if use_imei == 'true':
         headers.insert(-2, 'Serial Number')
+    auto_generate_receive_qty = get_misc_value('auto_generate_receive_qty', user.id)
     data = {}
     order_id = request.GET['supplier_id']
+    order_pre = request.GET['prefix']
     sample_order = int(request.GET.get('sample_order', ''))
     remainder_mail = 0
     invoice_value = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
     qc_items = list(qc_items_qs)
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
-                                                   open_po__sku_id__in=sku_master_ids,
+                                                   open_po__sku_id__in=sku_master_ids, prefix=order_pre,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
         status='location-assigned')
     if purchase_orders:
@@ -2923,7 +2942,7 @@ def get_supplier_data(request, user=''):
             advance_payment = OrderMapping.objects.filter(mapping_id__in=po_ids, order__user=user.id).aggregate(Sum('order__payment_received'))
             payment_received = advance_payment['order__payment_received__sum']
     if not purchase_orders:
-        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id,
+        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id, po__prefix=order_pre,
                                                    open_st__sku_id__in=sku_master_ids). \
             exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
         one_assist_check = get_misc_value('dispatch_qc_check', user.id)
@@ -2980,13 +2999,17 @@ def get_supplier_data(request, user=''):
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     temp_json = json.loads(temp_json_obj.model_json)
+                    if use_imei =='false' and auto_generate_receive_qty == 'true':
+                        rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
+                    else:
+                        rec_data = temp_json.get('quantity', 0)
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                                     'sku_desc': order_data['sku_desc'],
                                     'weight': temp_json.get('weight', 0),
                                     'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                     'name': str(order.order_id) + '-' + str(
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                                    'value': temp_json.get('quantity', 0),
+                                    'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price':float("%.2f"% float(order_data.get('price',0))),
@@ -3011,13 +3034,17 @@ def get_supplier_data(request, user=''):
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
             else:
+                if use_imei == 'false' and auto_generate_receive_qty == 'true':
+                    rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
+                else:
+                    rec_data = get_decimal_limit(user.id, order.saved_quantity)
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                  'weight_copy':weight,
                                 'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                                 'name': str(order.order_id) + '-' + str(
                                     re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                                'value': get_decimal_limit(user.id, order.saved_quantity),
+                                'value': rec_data,
                                 'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                 'price': float("%.2f"% float(order_data.get('price',0))),
                                 'grn_price':float("%.2f"% float(order_data.get('price',0))),
@@ -3539,9 +3566,9 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
         batch_obj = get_or_create_batch_detail(batch_dict, temp_dict)
+        if batch_obj and po_received.get('id', ''):
+            SellerPOSummary.objects.filter(id=po_received['id']).update(batch_detail_id=batch_obj.id)
         if sellable_segregation == 'true' and run_segregation:
-            if batch_obj and po_received.get('id', ''):
-                SellerPOSummary.objects.filter(id=po_received['id']).update(batch_detail_id=batch_obj.id)
             create_update_primary_segregation(data, po_received['quantity'], temp_dict, batch_obj=batch_obj,
                                               sps_id=po_received.get('id', ''))
             continue
@@ -3728,7 +3755,7 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
 def get_seller_receipt_id(purchase_order):
     receipt_number = 1
     summary = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=purchase_order.open_po.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id).\
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
                                         order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
@@ -3739,7 +3766,7 @@ def get_st_seller_receipt_id(purchase_order):
     receipt_number = 1
     open_st = purchase_order.stpurchaseorder_set.filter()[0].open_st
     summary = SellerPOSummary.objects.filter(purchase_order__stpurchaseorder__open_st__sku__user=open_st.sku.user,
-                                             purchase_order__order_id = purchase_order.order_id).\
+                                             purchase_order__order_id = purchase_order.order_id, purchase_order__prefix= purchase_order.prefix).\
                                         order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
@@ -4221,7 +4248,6 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         else:
             data.intransit_quantity = 0
         data.saved_quantity = 0
-
         batch_dict = {}
         if 'batch_no' in myDict.keys():
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
@@ -4401,7 +4427,6 @@ def confirm_grn(request, confirm_returns='', user=''):
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
-
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -5325,16 +5350,17 @@ def get_received_orders(request, user=''):
     data = {}
     sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
-    purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user=user.id,
+    prefix = request.GET['prefix']
+    purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user=user.id, prefix=prefix,
                                                    open_po__sku_id__in=sku_master_ids). \
         exclude(status__in=['', 'confirmed-putaway'])
     if not purchase_orders:
-        st_orders = STPurchaseOrder.objects.filter(po__order_id=supplier_id, open_st__sku__user=user.id,
+        st_orders = STPurchaseOrder.objects.filter(po__order_id=supplier_id, open_st__sku__user=user.id, po__prefix=prefix,
                                                    open_st__sku_id__in=sku_master_ids). \
             exclude(po__status__in=['', 'confirmed-putaway', 'stock-transfer']).values_list('po_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
     if not purchase_orders:
-        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=supplier_id, rwo__vendor__user=user.id,
+        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=supplier_id, rwo__vendor__user=user.id, purchase_order__prefix=prefix,
                                               rwo__job_order__product_code_id__in=sku_master_ids).\
                                         exclude(purchase_order__status__in=['', 'confirmed-putaway']).\
             values_list('purchase_order_id', flat=True)
@@ -5727,7 +5753,7 @@ def putaway_data(request, user=''):
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
                                      'sku_id': order_data['sku_id'], 'sku__user': user.id,
-                                      'unit_price': grn_price, 'receipt_type': 'purchase order'}
+                                      'unit_price': grn_price, 'receipt_type': order_data['order_type']}
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
@@ -5764,7 +5790,7 @@ def putaway_data(request, user=''):
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],
                                    'sku_id': order_data['sku_id'],
-                                   'quantity': value, 'status': 1, 'receipt_type': 'purchase order',
+                                   'quantity': value, 'status': 1, 'receipt_type': order_data['order_type'],
                                    'creation_date': datetime.datetime.now(),
                                    'updation_date': datetime.datetime.now(), 'unit_price': grn_price}
                     if batch_obj:
@@ -5826,19 +5852,20 @@ def quality_check_data(request, user=''):
     rw_orders = []
     po_reference = ''
     order_id = request.GET['order_id']
-    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
+    order_prefix = request.GET['prefix']
+    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id, prefix = order_prefix,
                                                    open_po__sku_id__in=sku_master_ids)
     if not purchase_orders:
         purchase_orders = []
         stock_results = STPurchaseOrder.objects.exclude(po__status__in=['confirmed-putaway', 'stock-transfer']). \
-            filter(open_st__sku__user=user.id, open_st__sku_id__in=sku_master_ids). \
+            filter(open_st__sku__user=user.id, open_st__sku_id__in=sku_master_ids, po__prefix=order_prefix). \
             values_list('po_id', flat=True)
         qc_results = QualityCheck.objects.filter(purchase_order_id__in=stock_results, status='qc_pending',
                                                  po_location__location__zone__user=user.id)
         for qc in qc_results:
             purchase_orders.append(qc.purchase_order)
     if not purchase_orders:
-        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id,
+        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id, purchase_order__prefix=order_prefix,
                                               rwo__job_order__product_code_id__in=sku_master_ids). \
             values_list('purchase_order_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
@@ -6087,12 +6114,12 @@ def confirm_quality_check(request, user=''):
             datas = json.loads(myDict['headers'][0])
             po_number_trim = datas['Purchase Order ID']
             po_num = po_number_trim.split("_")
-            is_purchase_order = PurchaseOrder.objects.filter(order_id=po_num[1],
+            is_purchase_order = PurchaseOrder.objects.filter(order_id=po_num[1], prefix=datas['prefix'],
                                                              open_po__sku__user=user.id).exists()
             if not is_purchase_order:
                 return HttpResponse('Updated Successfully')
             if po_num[1]:
-                po_creation_date_full = PurchaseOrder.objects.filter(order_id = po_num[1],
+                po_creation_date_full = PurchaseOrder.objects.filter(order_id = po_num[1], prefix=datas['prefix'],
                                                                      open_po__sku__user = user.id)
                 po_creation_date = po_creation_date_full[0].creation_date.strftime('%d-%m-%Y')
 
@@ -6293,7 +6320,7 @@ def get_po_data(request):
                           values_list('order_id', flat=True)[:limit])
 
     all_pos = PurchaseOrder.objects.exclude(status='').filter(open_po__sku__user=user.id, order_id__in=allowed_orders)
-    purchase_order = all_pos.values('order_id', 'open_po__creation_date', 'updation_date', 'open_po__supplier_id',
+    purchase_order = all_pos.values('order_id', 'prefix', 'open_po__creation_date', 'updation_date', 'open_po__supplier_id',
                                     'open_po__supplier__name').distinct().annotate(total=Sum('open_po__price'))
     for orders in purchase_order:
         po_data = OrderedDict(
@@ -6702,10 +6729,17 @@ def confirm_add_po(request, sales_data='', user=''):
                         order_id = get_order_id(actUserId)
                     createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
-                check_purchase_order_created(user, po_id)
+                check_prefix = ''
+                if user_profile:
+                    check_prefix = user_profile[0].prefix
+                check_purchase_order_created(user, po_id, check_prefix)
                 return HttpResponse(str(order.id) + ',' + str(order.order_id))
         if status and not suggestion:
-            check_purchase_order_created(user, po_id)
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile[0].prefix
+            check_purchase_order_created(user, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
@@ -6804,7 +6838,11 @@ def confirm_add_po(request, sales_data='', user=''):
             if get_misc_value('raise_po', user.id) == 'true' and get_misc_value('allow_secondary_emails', user.id) != 'true':
                 write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-        check_purchase_order_created(user, po_id)
+        user_profile = UserProfile.objects.filter(user_id=user.id)
+        check_prefix = ''
+        if user_profile:
+            check_prefix = user_profile[0].prefix
+        check_purchase_order_created(user, po_id, check_prefix)
 
     except Exception as e:
         import traceback
@@ -7115,7 +7153,11 @@ def confirm_po1(request, user=''):
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-    check_purchase_order_created(user, po_id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    check_prefix = ''
+    if user_profile:
+        check_prefix = user_profile[0].prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -7351,7 +7393,7 @@ def check_imei_exists(request, user=''):
 @get_admin_user
 def create_purchase_order(request, myDict, i, user='', exist_id=0):
     po_order = PurchaseOrder.objects.filter(id=myDict['id'][exist_id], open_po__sku__user=user.id)
-    purchase_order = PurchaseOrder.objects.filter(order_id=po_order[0].order_id,
+    purchase_order = PurchaseOrder.objects.filter(order_id=po_order[0].order_id, prefix=po_order[0].prefix,
                                                   open_po__sku__wms_code=myDict['wms_code'][i],
                                                   open_po__sku__user=user.id)
     if purchase_order:
@@ -8503,7 +8545,7 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
         order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
         temp_data['aaData'].append({'DT_RowId': order.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
-                                    ' Order ID': order.order_id,
+                                    ' Order ID': order.order_id, 'prefix': order.prefix,
                                     'Order Date': get_local_date(request.user, order.creation_date),
                                     'DT_RowClass': 'results', 'PO Number': po_reference,
                                     'DT_RowAttr': {'data-id': order.order_id}})
@@ -8522,9 +8564,10 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 def get_po_segregation_data(request, user=''):
     segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
+    po_prefix = request.GET['prefix']
     offer_check = False
     segregations = segregations.select_related('purchase_order', 'batch_detail').\
-                                filter(purchase_order__order_id=order_id)
+                                filter(purchase_order__order_id=order_id, purchase_order__prefix=po_prefix)
     if not segregations:
         return HttpResponse("No Data found")
 
@@ -8932,7 +8975,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -8982,11 +9025,11 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'])[0]
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
-                                            purchase_order__order_id=data['purchase_order__order_id'],\
+                                            purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
 
         tot_amt, rem_quantity = 0, 0
@@ -9036,7 +9079,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
-    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -9076,11 +9119,11 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'])[0]
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
-                                            purchase_order__order_id=data['purchase_order__order_id'],\
+                                            purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
 
         tot_amt = 0
@@ -10132,11 +10175,11 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         result = PurchaseOrder.objects.filter(Q(order_id__icontains=search_term) |Q(open_po__supplier__id__icontains=search_term) |Q(open_po__supplier__name__icontains=search_term)| Q(creation_date__regex=search_term), open_po__sku__user=user.id, **search_params).\
                                                             values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data).distinct()
+                                                                   'creation_date','open_po__order_type', 'prefix').order_by(order_data).distinct()
     else:
         result = PurchaseOrder.objects.filter(open_po__sku__user=user.id, **search_params).distinct().values('open_po__supplier__id',
                                                                    'order_id', 'open_po__supplier__name',
-                                                                   'creation_date','open_po__order_type').order_by(order_data)
+                                                                   'creation_date','open_po__order_type', 'prefix').order_by(order_data)
 
     temp_data['recordsTotal'] = len(result)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -10146,7 +10189,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
         po_date = get_local_date(request.user, data['creation_date'],send_date=True).strftime("%d %b, %Y")
         temp_data['aaData'].append(OrderedDict((('Supplier ID', data['open_po__supplier__id']),
                                                 ('Supplier Name', data['open_po__supplier__name']),
-                                                ('PO Number', data['order_id']), ('PO Date', po_date),
+                                                ('PO Number', data['order_id']), ('PO Date', po_date),('prefix', data['prefix']),
                                                 ('Total Amount', ''),('id', ''),('Order Type', order_type),
                                                 ('DT_RowClass', 'results'))))
 
@@ -10218,6 +10261,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         grouping_data.setdefault(grouping_key, {'supplier_id': supplier.id,
                                                 'supplier_name': supplier.name,
                                                 'order_id': result.purchase_order.order_id,
+                                                'prefix': result.purchase_order.prefix,
                                                 inv_or_dc_number: getattr(result, inv_or_dc_number),
                                                 'invoice_date': result.invoice_date,
                                                 'challan_date': result.challan_date,
@@ -10263,7 +10307,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                 total_amt += temp_qty * seller_summary.purchase_order.open_po.price
             rem_quantity += temp_qty
         total_amt = total_amt + ((total_amt/100) * tax)
-        temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
+        temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id), ('prefix', result['prefix']),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Supplier Name', result['supplier_name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
@@ -10280,7 +10324,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 @get_admin_user
 def get_po_putaway_summary(request, user=''):
     order_id, invoice_num = request.GET['data_id'].split(':')
-    summary_filter = {'purchase_order__open_po__sku__user': user.id, 'purchase_order__order_id': order_id}
+    po_order_prefix = request.GET['prefix']
+    summary_filter = {'purchase_order__open_po__sku__user': user.id, 'purchase_order__order_id': order_id, 'purchase_order__prefix':po_order_prefix}
     if invoice_num:
         summary_filter['invoice_number'] = invoice_num
     seller_summary_objs = SellerPOSummary.objects.filter(**summary_filter)
@@ -11048,6 +11093,7 @@ def get_grn_level_data(request, user=''):
     po_data = []
     try:
         po_number = request.GET['po_number']
+        po_order_prefix = request.GET['prefix']
         temp = po_number.split('_')[-1]
         temp1 = temp.split('/')
         receipt_no = ''
@@ -11056,7 +11102,7 @@ def get_grn_level_data(request, user=''):
             receipt_no = temp1[1]
         else:
             po_order_id = temp1[0]
-        results = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id)
+        results = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id, prefix=po_order_prefix)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
         total = 0
@@ -11540,7 +11586,10 @@ def confirm_central_po(request, user=''):
             setattr(suggestion, 'status', 0)
             suggestion.save()
         if status and not suggestion:
-            check_purchase_order_created(warehouse, po_id)
+            check_prefix = ''
+            if warehouse.userprofile:
+                check_prefix = warehouse.userprofile.prefix
+            check_purchase_order_created(warehouse, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
         address = '\n'.join(address.split(','))
@@ -11608,7 +11657,10 @@ def confirm_central_po(request, user=''):
         if get_misc_value('raise_po', warehouse.id) == 'true':
 	    data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
             write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
-        check_purchase_order_created(warehouse, po_id)
+        check_prefix = ''
+        if warehouse.userprofile:
+            check_prefix = warehouse.userprofile.prefix
+        check_purchase_order_created(warehouse, po_id, check_prefix)
         return render(request, 'templates/toggle/po_template.html', data_dict)
     except Exception as e:
         import traceback

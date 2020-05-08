@@ -784,6 +784,7 @@ class Picklist(models.Model):
     remarks = models.CharField(max_length=100)
     order_type = models.CharField(max_length=100, default='')
     damage_suggested = models.IntegerField(default=0)
+    cancelled_quantity = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

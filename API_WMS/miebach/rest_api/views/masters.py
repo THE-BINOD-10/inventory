@@ -280,7 +280,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 
         else:
             master_data = SupplierMaster.objects.filter(
-                Q(id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
+                Q(supplier_id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
                     phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
                 **search_params).order_by(order_data)
 
@@ -4223,7 +4223,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
 
         else:
             master_data = SupplierMaster.objects.filter(
-                Q(id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
+                Q(supplier_id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
                     phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
                 **search_params).order_by(order_data)
 

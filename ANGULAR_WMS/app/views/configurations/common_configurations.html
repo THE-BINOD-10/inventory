@@ -449,7 +449,7 @@
           </div>
         </div>
       </div>
-      
+
       <div ng-if="showCase.pr_add_show">
         <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="datum in showCase.model_data.selected_pr_config_data">
           <div class="col-md-5 col-sm-8 col-xs-12">
@@ -498,7 +498,7 @@
           </div>
         </div>
       </div>
-      
+
       <div ng-if="showCase.actual_pr_add_show">
         <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="datum in showCase.model_data.selected_actual_pr_config_data">
           <div class="col-md-5 col-sm-8 col-xs-12">
@@ -611,7 +611,7 @@
           <div class="col-md-1 col-sm-2 col-xs-3">
               <input type="text" class="form-control" id="discrepency_prefix" ng-model="showCase.model_data.discrepency_prefix">
           </div>
-          <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.discrepency_prefix, 105)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+          <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.discrepency_prefix, 113)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
         </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
@@ -666,6 +666,18 @@
           <input type="text" class="form-control" id="order_prefix" ng-model="showCase.model_data.order_prefix">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.order_prefix, 97)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-outdent fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Stock Transfer PO Prefix </strong>
+        </div>
+        <div class="col-md-1 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" id="st_po_prefix" ng-model="showCase.model_data.st_po_prefix">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-1">
+          <i ng-click="showCase.switches(showCase.model_data.st_po_prefix,115)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.prefix_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">

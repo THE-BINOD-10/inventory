@@ -319,11 +319,13 @@ def add_user_type_permissions(user_profile):
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster', 'pendingpr',
+                     'pendingpo']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
-                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
+                    'pendingpr', 'pendingpo']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -1897,7 +1899,7 @@ def auto_po(wms_codes, user):
                                                      received_quantity=0, po_date=datetime.datetime.now(),
                                                      prefix=user_profile.prefix,
                                                      creation_date=datetime.datetime.now())
-                        check_purchase_order_created(User.objects.get(id=user), po_order_id)
+                        check_purchase_order_created(User.objects.get(id=user), po_order_id, user_profile.prefix)
             else:
                 automated_po = automated_po[0]
                 automated_po.order_quantity += order_quantity
@@ -4803,7 +4805,7 @@ def get_customer_sku_prices(request, user=""):
                     skuPack_quantity = skuPack_data[0].pack_quantity
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': float("%.2f" % price), 'discount': discount, 'sku_pack_quantity': skuPack_quantity,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': float("%.2f" % data.mrp), 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': float("%.2f" % data.mrp), 'cost_price':data.cost_price, 'product_type': product_type, 'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'marginal_flag':marginal_flag})
 
     except Exception as e:
         import traceback
@@ -5788,7 +5790,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number, batch, mrp, ean, weight = ['']*5
+        pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -5796,13 +5798,14 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             batch = batch_detail.batch_no
             mrp = batch_detail.mrp
             weight = batch_detail.weight
+            buy_price = batch_detail.buy_price
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
-                               'weight': weight})
+                               'weight': weight, 'buy_price': buy_price})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -5815,8 +5818,13 @@ def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
     sku_ean_objs = SKUMaster.objects.filter(ean_number=ean_number, user=user.id).only('ean_number', 'sku_code')
     ean_objs = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
-    sku_ean_check = list(sku_ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True)[:2])
-    ean_number_check = list(ean_objs.exclude(sku__sku_code=sku_code).values_list('sku__sku_code', flat=True)[:2])
+    sku_ean_check, ean_number_check = [], []
+    sku_ean_check_objs = sku_ean_objs.exclude(sku_code=sku_code).only('sku_code')
+    if sku_ean_check_objs.exists():
+        sku_ean_check = list(sku_ean_check_objs.values_list('sku_code', flat=True)[:2])
+    ean_number_check_objs = ean_objs.exclude(sku__sku_code=sku_code).only('sku__sku_code')
+    if ean_number_check_objs.exists():
+        ean_number_check = list(ean_number_check_objs.values_list('sku__sku_code', flat=True)[:2])
     ean_check = []
     mapped_check = []
     ean_check.extend(sku_ean_check)
@@ -6369,6 +6377,8 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     gstin_number = ''
+    order_type = 'purchase order'
+    supplier_id = ''
     intransit_quantity = 0
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
@@ -6432,7 +6442,7 @@ def get_purchase_order_data(order):
         st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
         open_data = st_order[0].open_st
         user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
-        supplier_id = user_data.user.id
+        supplier_id = st_order[0].open_st.warehouse_id
         address = user_data.location
         email_id = user_data.user.email
         username = user_data.user.username
@@ -6449,6 +6459,7 @@ def get_purchase_order_data(order):
         cess_tax = open_data.cess_tax
         apmc_tax = 0
         tin_number = ''
+        order_type = 'stock transfer'
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'sku_brand':sku.sku_brand,'supplier_id': supplier_id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
@@ -6458,7 +6469,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
-                  'intransit_quantity': intransit_quantity,
+                  'intransit_quantity': intransit_quantity, 'order_type': order_type,
                   'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data
@@ -6558,7 +6569,7 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-def build_invoice(invoice_data, user, css=False, stock_transfer=False):
+def build_invoice(invoice_data, user, css=False, stock_transfer=False, api_invoice=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
     if not stock_transfer:
@@ -6687,6 +6698,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+    if api_invoice:
+        invoice_data['titles'] = ['Original for Receipient']
 
     if css:
         c = {'name': 'invoice'}
@@ -6695,6 +6708,8 @@ def build_invoice(invoice_data, user, css=False, stock_transfer=False):
     if stock_transfer:
         invoice_data['empty_td'] = [0]*10
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/stock_transfer_invoice.html')
+    # elif api_invoice:
+        # html = loader.get_template('../miebach_admin/templates/toggle/invoice/api_invoice.html')
     else:
         html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
@@ -7196,7 +7211,8 @@ def check_create_payment_info(order_id, payment_data, user=''):
     paid_amount = payment_data['payment_info']['paid_amount']
     method_of_payment = payment_data['payment_info']['method_of_payment']
     payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
-                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id,
+                    'aux_info':payment_data['payment_info']['aux_info']}
     payment_info = PaymentInfo.objects.create(**payment_dict)
     PaymentSummary.objects.create(order_id=order_obj[0].id, payment_id=payment_id, payment_info=payment_info)
 
@@ -7399,11 +7415,13 @@ def get_purchase_order_id(user):
     #     po_id = 1
     # else:
     #     po_id = int(order_ids[0]) + 1
-
     po_id = get_incremental(user, 'po', default_val=1)
     po_id = po_id - 1
     return po_id
 
+def get_st_purchase_order_id(user):
+    st_po_id = get_incremental(user, 'stpo', default_val=1)
+    return st_po_id
 
 def get_jo_reference(user):
     ''' It Provides New Jo Reference Number '''
@@ -8904,10 +8922,13 @@ def create_order_pos(user, order_objs, admin_user=None):
         else:
             log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), '' ))
-        check_purchase_order_created(user, po_id)
+        check_po_prefix = ''
+        if user_profile:
+            check_po_prefix = user_profile.prefix
+        check_purchase_order_created(user, po_id, check_po_prefix)
     except Exception as e:
         if po_id:
-            check_purchase_order_created(user, po_id)
+            check_purchase_order_created(user, po_id, check_po_prefix)
         import traceback
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
@@ -9506,10 +9527,10 @@ def check_picklist_number_created(user, picklist_number):
         check_and_update_incremetal_type_val(picklist_number, user, 'picklist')
 
 
-def check_purchase_order_created(user, po_id):
+def check_purchase_order_created(user, po_id, po_prefix):
     po_data = PurchaseOrder.objects.filter(Q(open_po__sku__user=user.id) |
                                            Q(stpurchaseorder__open_st__sku__user=user.id),
-                                           order_id=po_id)
+                                           order_id=po_id, prefix=po_prefix)
     if not po_data.exists():
         check_and_update_incremetal_type_val(po_id, user, 'po')
 
@@ -10345,7 +10366,10 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
-        po_id = get_purchase_order_id(user) + 1
+        st_po_id = get_st_purchase_order_id(user)
+        prefix = get_misc_value('st_po_prefix', user.id)
+        if prefix == 'false':
+            prefix = 'STPO'
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -10356,10 +10380,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             open_st = OpenST.objects.get(id=val[7])
             sku_id = SKUMaster.objects.get(user=warehouse.id, sku_code=val[0]).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+            po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
@@ -10380,7 +10401,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, po_id)
+        check_purchase_order_created(user, st_po_id, prefix)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -10474,11 +10495,12 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
     if request:
         sub_user = request.user
     warehouse = User.objects.get(username__iexact=warehouse_name)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    prefix = get_misc_value('st_po_prefix', user.id)
+    if prefix == 'false':
+        prefix = 'STPO'
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user) + 1
-        if po_sub_user_prefix == 'true':
-            po_id = update_po_order_prefix(sub_user, po_id)
+        st_po_id = get_st_purchase_order_id(user)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:
             order_id = int(stock_transfer_obj[0].order_id) + 1
@@ -10487,12 +10509,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            prefix = ''
-            if user_profile:
-                prefix = user_profile[0].prefix
-
-            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+            po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
@@ -10514,7 +10531,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
-        check_purchase_order_created(user, po_id)
+        check_purchase_order_created(user, st_po_id, prefix)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -10579,6 +10596,22 @@ def cancel_emiza_order(gen_ord_id, cm_id):
     gen_qs.delete()
 
 
+def get_warehouses_list_states(user):
+    user_list = []
+    user_states = {}
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username', 'user__userprofile__state')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if value not in user_list and key not in ['user__userprofile__state']:
+                user_list.append(value)
+                user_states[value] = users['user__userprofile__state']
+    return user_states
+
+
 def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
     try:
         st_po = stock_transfer.st_po
@@ -10621,6 +10654,19 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
                         temp_json['batch_no'] = batch_detail.batch_no
                         temp_json['buy_price'] = batch_detail.buy_price
                         temp_json['tax_percent'] = batch_detail.tax_percent
+                        datum = get_warehouses_list_states(user)
+                        compare_user = User.objects.get(id=st_po.open_st.sku.user).username
+                        current_user = user.username
+                        if datum[compare_user] == datum[current_user]:
+                            temp_total_tax = temp_json['tax_percent'] / 2
+                            open_st.cgst_tax = truncate_float(temp_total_tax, 1)
+                            open_st.sgst_tax = truncate_float(temp_total_tax, 1)
+                            open_st.igst_tax = 0
+                        else:
+                            open_st.cgst_tax = 0
+                            open_st.sgst_tax = 0
+                            open_st.igst_tax = truncate_float(temp_json['tax_percent'], 1)
+                        open_st.save()
                         if batch_detail.manufactured_date:
                             temp_json['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                         if batch_detail.expiry_date:
@@ -11244,3 +11290,57 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'
     po_data.save()
+
+
+def prepare_ean_bulk_data(sku_master, ean_numbers, exist_ean_list, exist_sku_eans, new_ean_objs=''):
+    update_sku_obj = False
+    try:
+        #ean_numbers = ean_numbers.split(',')
+        exist_eans = list(sku_master.eannumbers_set.exclude(ean_number='').\
+                      values_list('ean_number', flat=True))
+        if sku_master.ean_number:
+            exist_eans.append(str(sku_master.ean_number))
+        rem_eans = set(exist_eans) - set(ean_numbers)
+        create_eans = set(ean_numbers) - set(exist_eans)
+        if rem_eans:
+            rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
+            if rem_ean_objs.exists():
+                rem_ean_objs.delete()
+            for rem_ean in rem_eans:
+                if exist_ean_list.get(rem_ean, ''):
+                    del exist_ean_list[rem_ean]
+                if exist_sku_eans.get(rem_ean, ''):
+                    del exist_sku_eans[rem_ean]
+        if str(sku_master.ean_number) in rem_eans:
+            sku_master.ean_number = ''
+            update_sku_obj = True
+            #sku_master.save()
+        for ean in create_eans:
+            if not ean:
+                continue
+            try:
+                ean = ean
+                new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                ean_found = False
+                if exist_ean_list.get(ean, ''):
+                    exist_ean_list[ean] = sku_master.sku_code
+                    ean_found = True
+                elif exist_sku_eans.get(ean, ''):
+                    exist_sku_eans[ean] = sku_master.sku_code
+                    ean_found = True
+                if not ean_found:
+                    exist_ean_list[ean] = sku_master.sku_code
+            except:
+                pass
+        #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
+    except Exception as e:
+        log.info(e)
+    return sku_master, new_ean_objs, update_sku_obj
+
+
+def bulk_create_in_batches(model_obj, data_objs):
+    last_batch = 0
+    for cur_batch in range(0, len(data_objs)+1000, 1000):
+        batch_data_objs = data_objs[last_batch:cur_batch]
+        last_batch = cur_batch
+        model_obj.objects.bulk_create(batch_data_objs)

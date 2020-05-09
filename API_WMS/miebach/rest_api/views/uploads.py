@@ -1424,10 +1424,18 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
     wms_data = []
     index_status = {}
     upload_file_skus = []
+    ean_duplicate_check = []
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
+    zones_dict = dict(ZoneMaster.objects.filter(user=user.id).values_list('zone', 'id'))
+    zones_list = map(lambda x:x.upper(),zones_dict)
     if not sku_file_mapping:
         return 'Invalid File'
+
+    exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
+                          only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
+    exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
+                          only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
     for row_idx in range(1, no_of_rows):
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
@@ -1461,8 +1469,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                    data = ZoneMaster.objects.filter(zone=cell_data.upper(), user=user.id)
-                    if not data:
+                    #data = ZoneMaster.objects.filter(zone=cell_data.upper(), user=user.id)
+                    if not str(cell_data).upper() in zones_list:
                         index_status.setdefault(row_idx, set()).add('Invalid Zone')
                         # else:
                         #    index_status.setdefault(row_idx, set()).add('Zone should not be empty')
@@ -1476,13 +1484,33 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                                 cell_data = int(cell_data)
                             ean_numbers = [cell_data]
                         error_eans = []
-                        for ean in ean_numbers:
+                        '''for ean in ean_numbers:
                             ean_status, mapping_check = check_ean_number(sku_code, ean, user)
                             if ean_status:
                                 error_eans.append(str(ean))
                         if error_eans:
                             ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
-                            index_status.setdefault(row_idx, set()).add(ean_error_msg)
+                            index_status.setdefault(row_idx, set()).add(ean_error_msg)'''
+                        for temp_ean in ean_numbers:
+                            if not temp_ean:
+                                continue
+                            temp_ean = str(temp_ean)
+                            if len(temp_ean) > 20:
+                                error_msg = 'EAN Number Length should be less than 20'
+                                index_status.setdefault(row_idx, set()).add(error_msg)
+                            if temp_ean in ean_duplicate_check:
+                                error_msg = 'Duplicate EAN Number Found in File'
+                                index_status.setdefault(row_idx, set()).add(error_msg)
+                            else:
+                                ean_duplicate_check.append(temp_ean)
+                            if temp_ean in exist_ean_list:
+                                if not str(exist_ean_list[temp_ean]) == str(sku_code):
+                                    error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_ean_list[temp_ean])
+                                    index_status.setdefault(row_idx, set()).add(error_message)
+                            elif temp_ean in exist_sku_eans:
+                                if not str(exist_sku_eans[temp_ean]) == str(sku_code):
+                                    error_message = str(temp_ean) + ' EAN Number already mapped to SKU ' + str(exist_sku_eans[temp_ean])
+                                    index_status.setdefault(row_idx, set()).add(error_msg)
                     except Exception as e:
                         import traceback
                         log.debug(traceback.format_exc())
@@ -1601,7 +1629,12 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     zone_ids = map(lambda d: d['id'], zone_master)
     create_sku_attrs = []
     sku_attr_mapping = []
+    new_skus = OrderedDict()
     sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
+                          only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
+    exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
+                          only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
             continue
@@ -1762,6 +1795,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         cell_data = ''
                     setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
+            elif key == 'hsn_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
+                if sku_data:
+                    setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
+
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1770,24 +1812,61 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if sku_data:
             sku_data.save()
             all_sku_masters.append(sku_data)
+	    if _size_type:
+		check_update_size_type(sku_data, _size_type)
+	    if hot_release:
+		hot_release = 1 if (hot_release == 'enable') else 0
+		check_update_hot_release(sku_data, hot_release)
+            for attr_key, attr_val in attr_dict.iteritems():
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                                        create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+
+            if ean_numbers:
+                update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
+
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
-            sku_master.save()
-            all_sku_masters.append(sku_master)
-            sku_data = sku_master
+            #new_skus.append(sku_master)
+            new_skus[data_dict['sku_code']] = {'sku_obj': sku_master}
+            if _size_type:
+                new_skus[data_dict['sku_code']]['size_type'] = _size_type
+            if hot_release:
+                new_skus[data_dict['sku_code']]['hot_release'] = hot_release
+            if attr_dict:
+                new_skus[data_dict['sku_code']]['attr_dict'] = attr_dict
+            if ean_numbers:
+                new_skus[data_dict['sku_code']]['ean_numbers'] = ean_numbers
+            #sku_master.save()
+            #all_sku_masters.append(sku_master)
+            #sku_data = sku_master
 
-        if _size_type:
-            check_update_size_type(sku_data, _size_type)
-        if hot_release:
-            hot_release = 1 if (hot_release == 'enable') else 0
-            check_update_hot_release(sku_data, hot_release)
-        for attr_key, attr_val in attr_dict.iteritems():
-            create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
-                                       create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+    if new_skus:
+        new_ean_objs = []
+        new_sku_objs = map(lambda d: d['sku_obj'], new_skus.values())
+        bulk_create_in_batches(SKUMaster, new_sku_objs)
+        #SKUMaster.objects.bulk_create(new_sku_objs)
+        new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
+        all_sku_masters = list(chain(all_sku_masters, new_sku_master))
+        sku_key_map = OrderedDict(new_sku_master.values_list('sku_code', 'id'))
+        for sku_code, sku_id in sku_key_map.items():
+            sku_data = SKUMaster.objects.get(id=sku_id)
+            if new_skus[sku_code].get('size_type', ''):
+                check_update_size_type(sku_data, new_skus[sku_code].get('size_type', ''))
+            if new_skus[sku_code].get('hot_release', '') != '':
+                hot_release = new_skus[sku_code].get('size_type', '')
+                hot_release = 1 if (hot_release == 'enable') else 0
+                check_update_hot_release(sku_data, hot_release)
+            for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
+                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_val, is_bulk_create=True,
+                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
 
-        if ean_numbers:
-            update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
+            if new_skus[sku_code].get('ean_numbers', ''):
+                ean_numbers = new_skus[sku_code].get('ean_numbers', '')
+                sku_data, new_ean_objs, update_sku_obj = prepare_ean_bulk_data(sku_data, ean_numbers, exist_ean_list,
+                                                                                exist_sku_eans, new_ean_objs=new_ean_objs)
+        if new_ean_objs:
+            EANNumbers.objects.bulk_create(new_ean_objs)
     # get_user_sku_data(user)
     insert_update_brands(user)
 
@@ -2004,19 +2083,19 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-        if user.username in MILKBASKET_USERS and unique_mrp == 'true':
-            data_dict['sku_code'] = sku_master.sku_code
-            data_dict['location'] = location_obj[0].location
-            status = validate_mrp_weight(data_dict,user)
-            if status:
-                index_status.setdefault(row_idx, set()).add(status)
         if not index_status:
-            if user.userprofile.industry_type == 'FMCG' :
-                if not data_dict.get('manufactured_date', ''):
-                    data_dict['manufactured_date'] = datetime.datetime.now()
-                if not data_dict.get('expiry_date', ''):
-                    data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
+            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and sku_master:
+                data_dict['sku_code'] = sku_master.sku_code
+                data_dict['location'] = location_obj[0].location
+                status = validate_mrp_weight(data_dict,user)
+                if status:
+                    index_status.setdefault(row_idx, set()).add(status)
+                if user.userprofile.industry_type == 'FMCG' :
+                    if not data_dict.get('manufactured_date', ''):
+                        data_dict['manufactured_date'] = datetime.datetime.now()
+                    if not data_dict.get('expiry_date', ''):
+                        data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -3269,7 +3348,10 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
         if value:
-            check_purchase_order_created(user, value)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile.prefix
+            check_purchase_order_created(user, value, check_prefix)
     return 'success'
 
 
@@ -5673,7 +5755,10 @@ def create_po_serial_mapping(final_data_dict, user):
 
     for key, value in order_id_dict.iteritems():
         if value:
-            check_purchase_order_created(user, value)
+            check_prefix = ''
+            if user_profile:
+                check_prefix = user_profile.prefix
+            check_purchase_order_created(user, value, check_prefix)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 

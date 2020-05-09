@@ -2245,7 +2245,7 @@ def validate_supplier_form(open_sheet, user_id):
                     cell_data = str(int(cell_data))
                 if cell_data:
                     supplier_master = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
-                    if supplier_master and not str(supplier_master[0].user) == str(user_id):
+                    if supplier_master:
                         index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')

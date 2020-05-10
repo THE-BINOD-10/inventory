@@ -192,50 +192,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
       self.other_view.view = 'CustomerOrderView'
     }
-////ALlocation Report
-//    if (self.industry_type == "FMCG" && self.user_type == "marketplace_user") {
-//
-//      self.dispatch_summary_report = {
-//
-//                              alternate_view: false,
-//                              view: 'normalView',
-//                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
-//                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory  Type','Make', 'Model', 'Make-Model', 'Quantity'],
-//                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'InventoryType','Make', 'Model', 'Make-Model', 'Quantity']}
-//                           }
-//
-//
-//    }
-//    else if (self.industry_type == 'FMCG') {
-//      self.dispatch_summary_report = {
-//
-//                              alternate_view: false,
-//                              view: 'normalView',
-//                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item','Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
-//                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
-//                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity']}
-//                           }
-//    } else {
-//      self.dispatch_summary_report = {
-//
-//                              alternate_view: false,
-//                              view: 'normalView',
-//                              tb_headers: {'normalView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item','Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
-//                                           'serialView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model',  'Quantity'],
-//                                           'customerView': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category','Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity']}
-//                           }
-//    }
-//
-//    self.allocation_report_view_types = [{ 'name' : 'Order View', 'value' : 'normalView'}, { 'name' : 'Serial Number View', 'value' : 'serialView'}, { 'name' : 'Customer View', 'value' : 'customerView'}]
-//
-//    if(Session.roles.permissions['batch_switch']) {
-//
-//      self.other_view.view = 'SKUView'
-//    } else {
-//
-//      self.other_view.view = 'CustomerOrderView'
-//    }
-//
+
     /** customer login **/
     self.marginSKUData = {data: []};
     self.enquiry_orders = [];

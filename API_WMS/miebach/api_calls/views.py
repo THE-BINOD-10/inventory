@@ -2016,50 +2016,58 @@ def get_mp_inventory(request):
 def get_inventory(request,user=''):
     user = request.user
     data = []
+    limit = 10
     search_params = {}
     search_params1 = {}
     error_status = []
+    skus = []
     request_data = request.body
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    user_id = list(User.objects.filter(username__in=sister_whs).values_list('id', flat=True))
+    user_id.append(user.id)
     try:
-        try:
-            request_data = json.loads(request_data)
-            limit = request_data.get('limit', 10)
-            skus = request_data.get('sku', [])
-            if type(skus) != list:
-                skus = [skus]
-            skus = map(lambda sku: str(sku), skus)
-            warehouse = request_data.get('warehouse', '')
-            if skus:
-                search_params['sku__sku_code__in'] = skus
-                search_params1['product_code__sku_code__in'] = skus
-                limit = len(skus)
-        except:
-            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
-        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-        sister_whs = []
-        for sister_wh1 in sister_whs1:
-            sister_whs.append(str(sister_wh1).lower())
-        if warehouse.lower() in sister_whs:
-            user = User.objects.get(username=warehouse)
-        else:
-            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
-        sku_records = SKUMaster.objects.filter(user=user.id, sku_code__in=skus).values('sku_code', 'id')
+        if request_data:
+            try:
+                request_data = json.loads(request_data)
+                limit = request_data.get('limit', 10)
+                skus = request_data.get('sku', [])
+                if type(skus) != list:
+                    skus = [skus]
+                skus = map(lambda sku: str(sku), skus)
+                if skus:
+                    search_params['sku__sku_code__in'] = skus
+                    search_params1['product_code__sku_code__in'] = skus
+                    limit = len(skus)
+            except:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
+            
+            if request_data.has_key('warehouse'):
+                warehouse = request_data.get('warehouse', '')
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                    user_id = [user.id]
+                else:
+                    return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        sku_records = SKUMaster.objects.filter(user__in=user_id, sku_code__in=skus).values('sku_code', 'id')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
             error_status.append({'sku': error_sku, 'message': 'SKU not found', 'status': 5030})
-        job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
+        job_order = JobOrder.objects.filter(product_code__user__in=user_id, status__in=['grn-generated', 'pick_confirm'])
         job_ids = job_order.values_list('id', flat=True)
 
-        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values_list(
+        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_id).values_list(
             'stock__sku__wms_code'). \
                                  distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_id). \
                             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
                             annotate(rm_reserved=Sum('reserved')))
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand').distinct(). \
-                                                                    annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user=user.id,**search_params)
+                                                                    annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user__in=user_id,**search_params)
         wms_codes = map(lambda d: d[0], master_data)
         # quantity_master_data = master_data.aggregate(Sum('total'))
         if 'stock_value__icontains' in search_params1.keys():
@@ -2068,11 +2076,11 @@ def get_inventory(request,user=''):
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
-        sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list(
+        sku_type_qty = dict(OrderDetail.objects.filter(user__in=user_id, quantity__gt=0, status=1).values_list(
         'sku__sku_code').distinct().annotate(Sum('quantity')))
         page_info = scroll_data(request, master_data, limit=limit, request_type='body')
         data_lis = []
-        sku_master = SKUMaster.objects.filter(user=user.id)
+        # sku_master = SKUMaster.objects.filter(user=user.id)
         master_data = page_info['data']
         for ind, data in enumerate(master_data):
             total_stock_value = 0
@@ -2084,7 +2092,7 @@ def get_inventory(request,user=''):
                     if len(data) > 4:
                         total = data[4]
 
-            sku = sku_master.get(user=user.id, sku_code=data[0])
+            # sku = sku_master.get(user=user.id, sku_code=data[0])
             if data[0] in picklist_reserved.keys():
                 reserved += float(picklist_reserved[data[0]])
             if data[0] in raw_reserved.keys():
@@ -2226,9 +2234,8 @@ def get_shipmentinfo(request, user=''):
             if request_data.get('limit'):
                 limit = request_data['limit']
             if request_data.has_key('invoice_number'):
-                search_params['invoice_number'] = request_data['invoice_number']
                 if type(request_data['invoice_number']) == list:
-                    search_params['invoice_number'] = request_data['invoice_number']
+                    search_params['invoice_number__in'] = request_data['invoice_number']
                 else:
                     search_params['invoice_number'] = request_data['invoice_number']
             if request_data.has_key('order_id'):
@@ -2237,7 +2244,11 @@ def get_shipmentinfo(request, user=''):
                 else:
                     search_params['order__original_order_id'] = request_data['order_id']
             if request_data.has_key('shipment_number'):
-                search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+                if type(request_data['shipment_number']) == list:
+                    search_params['order_shipment__shipment_number__in'] = request_data['shipment_number']
+                else:
+                    search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+
         search_params['order__user'] = user.id
     master_data = ShipmentInfo.objects.filter(**search_params).values_list('order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')

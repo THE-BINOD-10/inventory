@@ -891,6 +891,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
+      } else if (!toBeUpdateData[0].product_category) {
+        Service.showNoty('Enter Product Category');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
@@ -954,6 +956,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   });
 
+  vm.getProdMaxValue = function(configData){
+    var maxAmtsList = [];
+    var maxVal = 0; 
+    angular.forEach(vm.model_data['total_actual_pr_config_ranges'], function(record, index){
+      if(record.product_category == configData.product_category){
+        maxAmtsList.push(record.max_Amt);
+      }
+    });
+    if (maxAmtsList.length > 0){
+      maxVal = Math.max(maxAmtsList);
+    } else{
+      maxVal = 0
+    }
+    if (maxVal){
+      configData.min_Amt = maxVal + 1;
+    } else {
+      configData.min_Amt = 0;
+    }
+
+  }
   vm.add_empty_index = function(data, operation, pr_type) {
     var prConfigData = vm.model_data['selected_pr_config_data'];
     var totalData = vm.model_data['total_pr_config_ranges'];
@@ -988,7 +1010,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
+      var empty_dict = {'name': '', 'product_category': '', 'min_Amt': 0, 'max_Amt': '', 
+                        'mail_id': {'level0': ""}, 'remove': 0};
       if (prConfigData.length != 0) {
         var check_last_record = prConfigData[prConfigData.length -1]
         if (check_last_record['name'] == '') {
@@ -996,8 +1019,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         }
       } else {
         if (totalData[totalData.length -1]) {
-          var min_amt = totalData[totalData.length -1]['max_Amt']+1;
-          empty_dict['min_Amt'] = min_amt;
+          // var min_amt = totalData[totalData.length -1]['max_Amt']+1;
+          // vm.getProdMaxValue(product_category)
+          // empty_dict['min_Amt'] = min_amt;
           prConfigData.push(empty_dict);
           if(pr_type == 'actual_pr_save'){
             vm.actual_pr_add_show = true;
@@ -1129,6 +1153,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.model_data['actual_pr_approvals_conf_data'] = [];
         vm.model_data['selected_pr_config_data'] = [];
         vm.model_data['selected_actual_pr_config_data'] = [];
+        vm.model_data['product_categories'] = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
         vm.model_data['total_pr_config_ranges'] = [];
         vm.model_data['total_actual_pr_config_ranges'] = [];
         angular.forEach(data.data.prefix_data, function(data){
@@ -1143,6 +1168,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           angular.forEach(data.data.pr_approvals_conf_data, function(data, index){
             var data_dict = {}
             data_dict['name'] = data.name;
+            data_dict['product_category'] = data.product_category;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
@@ -1156,6 +1182,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           angular.forEach(data.data.actual_pr_approvals_conf_data, function(data, index){
             var data_dict = {}
             data_dict['name'] = data.name;
+            data_dict['product_category'] = data.product_category;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;

@@ -1031,6 +1031,7 @@ def add_update_pr_config(request,user=''):
             PRApprovalMap = {
                     'user': user,
                     'name': data['name'],
+                    'product_category': data['product_category'],
                     'min_Amt': data['min_Amt'],
                     'max_Amt': data['max_Amt'],
                     'level': level,
@@ -1113,7 +1114,7 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     elif purchase_type == 'PR':
         master_type = 'actual_pr_approvals_conf_data'
     pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).order_by('creation_date')
-    pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
+    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:

@@ -2215,6 +2215,7 @@ def get_shipmentinfo(request, user=''):
     request_data = request.body
     limit = 10
     sister_whs = []
+    record = []
     search_query = Q()
     total_data = []
     search_params = {}
@@ -2250,57 +2251,66 @@ def get_shipmentinfo(request, user=''):
                     search_params['order_shipment__shipment_number'] = request_data['shipment_number']
 
         search_params['order__user'] = user.id
-    master_data = ShipmentInfo.objects.filter(**search_params).values_list('order_id',flat= True).distinct().order_by('-creation_date')
+    master_data = ShipmentInfo.objects.filter(**search_params).values_list('order__original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     count = 1
     for order in master_data:
-        shiment_dict = ShipmentInfo.objects.filter(order_id=order)
-        for data in shiment_dict:
-            shipping_address,address = '',''
-            charge_amount = 0
-            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
-                                            values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
-            status = 'Dispatched'
-            original_order_id = data.order.original_order_id
-            address = customer_details[0]['address']
-            shipping_address = customer_details[0]['shipping_address']
-            other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
-            if other_charges:
-                charge_amount = other_charges[0].charge_amount
-            if not shipping_address:
-                shipping_address = address
-            grouping_key = original_order_id
-            tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
-                                                order_by('-creation_date'). \
-                                                values_list('ship_status', flat=True)
-            if tracking:
-                status = tracking[0]
-            if data.order_shipment:
-                order_shipment = data.order_shipment
-                shipment_number = str(order_shipment.shipment_number)
-                awb_number = order_shipment.shipment_reference
-                ewaybill_number = order_shipment.ewaybill_number
-                estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
-                # manifest_number = str(order_shipment.manifest_number)
-            if grouping_key in data_dict.keys():
-                count += 1
-            data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
-                               'awb_number': awb_number,
-                               'shipment_number': shipment_number,
-                               'estimated_shipment_date':estimated_shipment_date,
-                               'invoice_number': data.invoice_number,
-                               'delivery_status':status,
-                               'package_dispatch_date': get_local_date(user, data.creation_date),
-                               'delivery_charges':charge_amount,
-                               'shipping_address':shipping_address,
-                               })
-        data_dict[grouping_key]['no_of_items_in_package'] = count
-    order_data_loop = data_dict.values()
-    for data1 in order_data_loop:
-        total_data.append(data1)
-    page_info['data'] = total_data
-    return HttpResponse(json.dumps(page_info))
+        shipment_dicts = ShipmentInfo.objects.filter(order__original_order_id=order, order__user=user.id).\
+                                              values('order_shipment__shipment_number', 
+                                                    'order_shipment__manifest_number',
+                                                    'order__customer_id', 'order__customer_name', 
+                                                    'order_shipment__shipment_reference', 
+                                                    'order_shipment__ewaybill_number', 
+                                                    'order_shipment__shipment_date','id',
+                                                    'order__sku_code','shipping_quantity', 
+                                                    'creation_date','invoice_number')
+        shipment_dict = shipment_dicts[0]
+        items = []
+        shipping_address,address = '',''
+        charge_amount = 0
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=shipment_dict['order__customer_id']).
+                                        values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
+        original_order_id = str(order)
+        address = customer_details[0]['address']
+        shipping_address = customer_details[0]['shipping_address']
+        other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
+        package_dispatch_date = get_local_date(user, shipment_dict["creation_date"])
+        if other_charges:
+            charge_amount = other_charges[0].charge_amount
+        if not shipping_address:
+            shipping_address = address
+        if shipment_dict["order_shipment__shipment_date"]:
+            shipment_number = str(shipment_dict['order_shipment__shipment_number'])
+            awb_number = shipment_dict['order_shipment__shipment_reference']
+            ewaybill_number = shipment_dict['order_shipment__ewaybill_number']
+            estimated_shipment_date = get_local_date(user, shipment_dict["order_shipment__shipment_date"])
+        status = 'Dispatched'
+        tracking = ShipmentTracking.objects.filter(shipment_id=shipment_dict['id'], shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+        if tracking:
+            status = tracking[0]
+        for data in shipment_dicts:
+            items_dict = {"sku_code":data['order__sku_code'], "shipping_quantity":data['shipping_quantity']}
+            items.append(items_dict)
+
+        count = len(items)
+        record.append(OrderedDict((('order_id', original_order_id), ('ewaybill_number', ewaybill_number),
+                               ('awb_number', awb_number),
+                               ('shipment_number', shipment_number),
+                               ('no_of_items_in_package', count),
+                               ('estimated_shipment_date', estimated_shipment_date),
+                               ('invoice_number', shipment_dict['invoice_number']),
+                               ('delivery_status', status),
+                               ('package_dispatch_date', package_dispatch_date),
+                               ('delivery_charges', charge_amount),
+                               ('shipping_address',shipping_address),
+                               ('items',items)
+                               )))
+    page_info['data'] = record
+    page_info['message'] = 'success'
+    return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @login_required
 @get_admin_user

@@ -32,7 +32,6 @@ def generate_grn_pagination(sku_list):
 
 def check_margin_percentage(sku_id, supplier_id):
     status = ''
-    import pdb;pdb.set_trace()
     if not SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id,
                                       costing_type='Margin Based').exists():
         status = "No Margin Cost Found"

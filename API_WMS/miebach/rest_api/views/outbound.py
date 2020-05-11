@@ -334,11 +334,12 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         data_dict = {'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
-                                    'Seller ID': '', 'Seller Name': '',
+                                    'Seller ID': '', 'Seller Name': '', 'MRP':'',
                                     'DT_RowAttr': {'id': data.id}, 'id': count}
         if user.userprofile.user_type == 'marketplace_user' and data.st_seller:
             data_dict['Seller ID'] = data.st_seller.seller_id
             data_dict['Seller Name'] = data.st_seller.name
+            data_dict['MRP'] = data.st_po.open_st.mrp
         temp_data['aaData'].append(data_dict)
         count = count + 1
 
@@ -2185,6 +2186,20 @@ def picklist_confirmation(request, user=''):
                         st_order = picklist.storder_set.filter()
                         if st_order:
                             stock_transfer = st_order[0].stock_transfer
+                            if user_profile.industry_type == 'FMCG' and stock.batch_detail:
+                                open_st_obj = OpenST.objects.filter(id=stock_transfer.st_po.open_st.id)
+                                if open_st_obj.exists():
+                                    open_st_obj = open_st_obj[0]
+                                    if stock_transfer.status == 2:
+                                        prev_price = picklist.picked_quantity * open_st_obj.price
+                                        new_price = update_picked * stock.batch_detail.buy_price
+                                        if picklist.picked_quantity and update_picked:
+                                            open_st_price = (prev_price+new_price)/(picklist.picked_quantity+update_picked)
+                                            open_st_obj.price = open_st_price
+                                            open_st_obj.save()
+                                    else:
+                                        open_st_obj.price = stock.batch_detail.buy_price
+                                        open_st_obj.save()
                             stock_transfer.status = 2
                             if stock_transfer.st_seller:
                                 change_seller_stock(stock_transfer.st_seller_id, stock, user, update_picked, 'dec')

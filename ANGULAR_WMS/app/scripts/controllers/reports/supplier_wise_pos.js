@@ -56,7 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 vm.update = true;
                 vm.title = "Purchase Order";
 
-                $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id'], {withCredential: true})
+                $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id']+'&prefix='+aData['prefix'], {withCredential: true})
                 .success(function(data, status, headers, config) {
 //                  vm.html = $(data)[0];
 //                  $(html).find(".modal-dialog").removeClass('modal-lg');

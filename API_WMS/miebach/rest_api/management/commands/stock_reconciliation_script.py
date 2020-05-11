@@ -15,6 +15,7 @@ django.setup()
 from itertools import chain
 from miebach_admin.models import *
 from rest_api.views.common import get_sku_weight, get_utc_start_date
+from rest_api.views.mail_server import send_mail
 from rest_api.views.miebach_utils import MILKBASKET_USERS
 from django.db.models import Count
 from datetime import datetime, date, timedelta
@@ -97,7 +98,7 @@ class Command(BaseCommand):
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict)
                 extra_data_key = (field_type, sku_detail.stock_detail.batch_detail.tax_percent)
-            elif not use_cost_price:
+            elif sku_detail.stock_detail and sku_detail.stock_detail.batch_detail and not use_cost_price:
                 prices, taxes = get_extra_data_info(sku_detail.stock_detail.batch_detail, sku_detail.sku, sku_detail.quantity,
                                     tax_type_dict, unit_price=unit_price, tax_percent=tax,
                                     use_cost_price=use_cost_price, tax_type=tax_type, cess_tax=cess_tax)
@@ -164,7 +165,10 @@ class Command(BaseCommand):
                         unit_price = picklist_obj.order.unit_price
                         cod = picklist_obj.order.customerordersummary_set.filter()
                         if picklist_obj.order_type == 'combo' and cod:
-                            discount_percentage = (cod[0].discount/cod[0].order.quantity)/(cod[0].mrp/100)
+                            try:
+                                discount_percentage = (cod[0].discount/cod[0].order.quantity)/(cod[0].mrp/100)
+                            except:
+                                discount_percentage = 0
                             unit_price = picklist_obj.stock.sku.mrp - (float(picklist_obj.stock.sku.mrp/100) * discount_percentage)
                         so = picklist_obj.order.sellerorder_set.filter()
                         if so.exists():
@@ -186,6 +190,20 @@ class Command(BaseCommand):
                             unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                             if order_type == 'internal_sales':
                                 discount = cod.discount
+                    elif picklist_obj.exists() and picklist_obj[0].storder_set.filter():
+                        picklist_obj = picklist_obj[0]
+                        stock_transfer = picklist_obj.storder_set.filter()[0].stock_transfer
+                        if stock_transfer and stock_transfer.st_po and stock_transfer.st_po.open_st:
+                            open_st = stock_transfer.st_po.open_st
+                            unit_price = open_st.price
+                            tax = 0
+                            if picklist_obj.stock and picklist_obj.stock.batch_detail:
+                                unit_price = picklist_obj.stock.batch_detail.buy_price
+                                tax = picklist_obj.stock.batch_detail.tax_percent
+                            order_type = 'stock_transfer'
+                            tax_type = 'intra_state'
+                            cess_tax = stock_transfer.st_po.open_st.cess_tax
+                            #unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                     else:
                         unit_price = 0
                 group_val = (sku_detail.sku_id, mrp, weight)
@@ -389,6 +407,7 @@ class Command(BaseCommand):
         today_start = get_utc_start_date(today)
         today_end = today_start + timedelta(1)
         print today
+        mail_ids = ['sreekanth@mieone.com', 'avadhani@mieone.com']
         #stock_rec_field_objs = []
         stock_rec_obj_ids = []
         for user in users:
@@ -554,9 +573,19 @@ class Command(BaseCommand):
                     except Exception as e:
                         import traceback
                         log.debug(traceback.format_exc())
-                        log.info('Stock Reconciliation Fields creation failed for user %s' % (str(user.username)))
-                log.info("Stock Reconciliation Report Creation Ended for user %s" % (user.username))
+                        failure_message = 'Stock Reconciliation Fields creation failed for user %s' % (str(user.username))
+                        log.info(failure_message)
+                        mail_message = '%s for Date: %s' % (failure_message, str(today.date()))
+                        send_mail(mail_ids, mail_message, traceback.format_exc())
+                success_massage = "Stock Reconciliation Report Creation Ended for user %s" % (user.username)
+                log.info(success_massage)
+                mail_message = 'Stock Reconciliation Report Created Successfully for user %s for Date: %s' %\
+                               (str(user.username), str(today.date()))
+                send_mail(mail_ids, mail_message, mail_message)
             except Exception as e:
                 import traceback
                 log.debug(traceback.format_exc())
-                log.info('Stock Reconciliation report creation failed for user %s' % (str(user.username)))
+                failure_message = 'Stock Reconciliation report creation failed for user %s' % (str(user.username))
+                log.info(failure_message)
+                mail_message = '%s for Date: %s' % (failure_message, str(today.date()))
+                send_mail(mail_ids, mail_message, traceback.format_exc())

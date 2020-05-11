@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+//        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('SKU Group').withTitle('SKU Group'),
         DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'sku_category': '',
                     'sku_type': '',
                     'sku_class': '',
-                    'wms_code': '',
+//                    'wms_code': '',
                     'sub_category':'',
                     'sku_brand':'',
                     'manufacturer':'',

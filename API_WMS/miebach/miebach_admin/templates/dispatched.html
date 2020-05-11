@@ -1,0 +1,23 @@
+<html><head></head><body style="font-family:arial; font-size:100%;">
+Dear {{ customer_name }},<br>
+
+
+{% if admin_user == 'gomechanic_admin' or admin_user == 'gm_admin' %}
+    <p>
+        Thank you very much for shopping with {{company_name}}. It was a pleasure serving you. We are very happy to inform that your shopping order for spare parts has been processed. We have successfully dispatched it from our warehouse through couriers.
+
+    </p>
+    <p>
+        You will receive it within {{eta}} working days. You can track your order by docket number {{shipment_reference}}.You can visit our website or call our sales executive for any further details.
+    </p>
+    {% else %}
+    <p>
+       Order ID {{ order_id }} of Invoice number {{invoice_number}} has been dispatched with Shipment ID {{shipment_id}} .
+    </p>
+    {% endif %}
+
+<br>
+Regards,<br>
+Support, {{company_name}}
+
+</body></html>

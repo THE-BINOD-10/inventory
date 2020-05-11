@@ -11,27 +11,24 @@
         self.tax_inclusive = true;
         self.mrp_discount = true;
         self.send_email = false;
-      self.simulateQuery = false;
-      self.isDisabled    = false;
-      $scope.onlyNumbers = /^\d+$/;
-
-      self.repos;
-      self.querySearch   = querySearch;
-      self.selectedItemChange = selectedItemChange;
-      self.searchTextChange   = searchTextChange;
-      self.searchText
-
-      self.table_headers = false;
-
-      self.submit_enable = false;
-      self.qty_switch;
-
-      self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
-      self.nw_status = "";
-      self.sku_data_filtered = [];
-      self.style_based_sku_data = [];
-      self.selected_skus = [];
-
+        self.simulateQuery = false;
+        self.isDisabled    = false;
+        $scope.onlyNumbers = /^\d+$/;
+        self.repos;
+        self.querySearch   = querySearch;
+        self.selectedItemChange = selectedItemChange;
+        self.searchTextChange   = searchTextChange;
+        self.searchText
+        self.table_headers = false;
+        self.submit_enable = false;
+        self.qty_switch;
+        self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
+        self.nw_status = "";
+        self.sku_data_filtered = [];
+        self.style_based_sku_data = [];
+        self.selected_skus = [];
+        self.urlService = urlService;
+        self.change_config;
       // $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
       //      .then( function(data) {
       //         self.sku_data_filtered = data.data.file_content.slice(0,500);
@@ -45,7 +42,35 @@
       //       });
 
       //get offline sku conntent
-
+      self.on_data_change = function(data){
+        if (data == 'remove') {
+          self.skus = [];
+          urlService.returns_load = false;
+          self.table_headers = false;
+        } else {
+          angular.forEach(urlService.current_returns_data, function(value, index) {
+            var temp_dict = {
+              'ProductDescription': value.name,
+              'igst': value.igst_percent,
+              'SKUCode': value.sku_code,
+              'price': value.unit_price,
+              'discount': value.discount,
+              'selling_price': parseFloat((Math.abs(value.selling_price)).toFixed(2)/value.quantity),
+              'search': value.name,
+              'url': '',
+              'sgst': value.sgst_percent,
+              'utgst': value.utgst_percent,
+              'style_name': value.style,
+              'stock_quantity': value.stock_qty,
+              'cgst': value.cgst_percent,
+              'quantity': value.quantity
+            }
+            update_search_results([temp_dict], temp_dict.SKUCode);
+            cal_total();
+          });
+          urlService.data_loader = false;
+        }
+      }
       function getOflfineSkuContent(){
         getData("").then(function(data){
                 if(data.length==0){
@@ -75,6 +100,9 @@
 
     self.change_config = change_config;
     function change_config(switch_value, switch_name) {
+      if (switch_name == 'tax_inclusive'){
+        urlService.discount_en = switch_value;
+      }
       var temp_url=urlService.mainUrl+"rest_api/switches/?"+switch_name+"="+String(switch_value);
       $http({
         method: 'GET',
@@ -96,6 +124,7 @@
           console.log("no network");
         });
     }
+    self.change_config(true, 'tax_inclusive');
     var temp_url=urlService.mainUrl+"rest_api/pos_tax_inclusive/";
     $http({
       method: 'GET',
@@ -301,103 +330,123 @@
     })
 
       //calculate total items
-      self.cal_total = cal_total;
-      function cal_total(){
-        urlService.current_order.summary.total_amount = 0;
-        urlService.current_order.summary.total_quantity = 0;
-        urlService.current_order.summary.total_returned = 0;
-        urlService.current_order.summary.subtotal = 0;
-        urlService.current_order.summary.unit_price = 0;
-        urlService.current_order.summary.sgst = 0;
-        urlService.current_order.summary.cgst = 0;
-        urlService.current_order.summary.igst = 0;
-        urlService.current_order.summary.utgst = 0;
-        urlService.current_order.summary.gst_based = {};
-        for (var i = 0; i < self.skus.length; i++){
+    self.cal_total = cal_total;
+    function cal_total(){
+      if (urlService.returnsView) {
+        self.tax_inclusive = true;
+        self.mrp_discount = true;
+        // urlService.returns_total_paid = true;
+        // urlService.current_order.summary.total_paid = 0;
+        urlService.current_order.summary.pay = 0;
+        urlService.current_order.summary.return = 0;
+      }
+      urlService.current_order.summary.total_amount = 0;
+      urlService.current_order.summary.total_quantity = 0;
+      urlService.current_order.summary.total_returned = 0;
+      urlService.current_order.summary.subtotal = 0;
+      urlService.current_order.summary.unit_price = 0;
+      urlService.current_order.summary.sgst = 0;
+      urlService.current_order.summary.cgst = 0;
+      urlService.current_order.summary.igst = 0;
+      urlService.current_order.summary.utgst = 0;
+      urlService.current_order.summary.gst_based = {};
+      for (var i = 0; i < self.skus.length; i++) {
         if(self.skus[i].return_status === "true") {
           self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
           self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
         }
-          if (!self.tax_inclusive) {
-            self.skus[i].price = parseFloat((self.skus[i].quantity * Math.abs(self.skus[i].unit_price)).toFixed(2));
-            urlService.current_order.summary.total_amount += self.skus[i].price;
-            urlService.current_order.summary.subtotal += self.skus[i].price;
-            urlService.current_order.summary.unit_price += self.skus[i].price;
-            var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
-            var unit_price = self.skus[i].price;
-            self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
-            self.skus[i].cgst = (unit_price * self.skus[i].cgst_percent)/100
-            self.skus[i].igst = (unit_price * self.skus[i].igst_percent)/100
-            self.skus[i].utgst = (unit_price * self.skus[i].utgst_percent)/100
-            urlService.current_order.summary.sgst += self.skus[i].sgst;
-            urlService.current_order.summary.cgst += self.skus[i].cgst;
-            urlService.current_order.summary.igst += self.skus[i].igst;
-            urlService.current_order.summary.utgst += self.skus[i].utgst;
-          } else {
-            var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
-            var unit_price = (self.skus[i].selling_price / ((total_tax_percent + 100)/100)) * self.skus[i].quantity;
-            self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
-            self.skus[i].cgst = (unit_price * self.skus[i].cgst_percent)/100
-            self.skus[i].igst = (unit_price * self.skus[i].igst_percent)/100
-            self.skus[i].utgst = (unit_price * self.skus[i].utgst_percent)/100
-            urlService.current_order.summary.sgst += self.skus[i].sgst;
-            urlService.current_order.summary.cgst += self.skus[i].cgst;
-            urlService.current_order.summary.igst += self.skus[i].igst;
-            urlService.current_order.summary.utgst += self.skus[i].utgst;
-            self.skus[i].price = parseFloat((unit_price).toFixed(2));
-            urlService.current_order.summary.total_amount += self.skus[i].price;
-            urlService.current_order.summary.subtotal += self.skus[i].price;
-            urlService.current_order.summary.unit_price += self.skus[i].price;
-          }
-          urlService.current_order.summary.total_quantity += self.skus[i].quantity;
-          var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
-          discount = (urlService.current_order.summary.total_discount/self.skus.length);
-          var agg = (self.skus[i].price);
-          var tax_amt = agg - discount;
-          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
-              if (self.tax_inclusive) {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * (agg/100));
-              }
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += tax_amt;
-          } else {
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
-                            {"taxable_amt": tax_amt,
-                             "cgst_percent" : self.skus[i].cgst_percent,
-                             "sgst_percent" : self.skus[i].sgst_percent,
-                             "cgst": (self.skus[i].cgst_percent *(agg/100)),
-                             "sgst": (self.skus[i].sgst_percent *(agg/100))
-                            }
-          }
-          urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
-          urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
-      if (self.skus[i].return_status === "true" ) {
+        if (!self.tax_inclusive) {
+          self.skus[i].price = parseFloat((self.skus[i].quantity * Math.abs(self.skus[i].unit_price)).toFixed(2));
+          urlService.current_order.summary.total_amount += self.skus[i].price;
+          urlService.current_order.summary.subtotal += self.skus[i].price;
+          urlService.current_order.summary.unit_price += self.skus[i].price;
+          var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
+          var unit_price = self.skus[i].price;
+          self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
+          self.skus[i].cgst = (unit_price * self.skus[i].cgst_percent)/100
+          self.skus[i].igst = (unit_price * self.skus[i].igst_percent)/100
+          self.skus[i].utgst = (unit_price * self.skus[i].utgst_percent)/100
+          urlService.current_order.summary.sgst += self.skus[i].sgst;
+          urlService.current_order.summary.cgst += self.skus[i].cgst;
+          urlService.current_order.summary.igst += self.skus[i].igst;
+          urlService.current_order.summary.utgst += self.skus[i].utgst;
+        } else {
+          var total_tax_percent =  self.skus[i].sgst_percent + self.skus[i].cgst_percent + self.skus[i].igst_percent + self.skus[i].utgst_percent
+          var unit_price = (self.skus[i].selling_price / ((total_tax_percent + 100)/100)) * self.skus[i].quantity;
+          self.skus[i].sgst = (unit_price * self.skus[i].sgst_percent)/100
+          self.skus[i].cgst = (unit_price * self.skus[i].cgst_percent)/100
+          self.skus[i].igst = (unit_price * self.skus[i].igst_percent)/100
+          self.skus[i].utgst = (unit_price * self.skus[i].utgst_percent)/100
+          urlService.current_order.summary.sgst += self.skus[i].sgst;
+          urlService.current_order.summary.cgst += self.skus[i].cgst;
+          urlService.current_order.summary.igst += self.skus[i].igst;
+          urlService.current_order.summary.utgst += self.skus[i].utgst;
+          self.skus[i].price = parseFloat((unit_price).toFixed(2));
+          urlService.current_order.summary.total_amount += self.skus[i].price;
+          urlService.current_order.summary.subtotal += self.skus[i].price;
+          urlService.current_order.summary.unit_price += self.skus[i].price;
+        }
+        urlService.current_order.summary.total_quantity += self.skus[i].quantity;
+        var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
+        discount = (urlService.current_order.summary.total_discount/self.skus.length);
+        var agg = (self.skus[i].price);
+        var tax_amt = agg - discount;
+        if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
+            if (self.tax_inclusive) {
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * (agg/100));
+            }
+            urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += agg;
+        } else {
+            urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
+                          {"taxable_amt": agg,
+                           "cgst_percent" : self.skus[i].cgst_percent,
+                           "sgst_percent" : self.skus[i].sgst_percent,
+                           "cgst": (self.skus[i].cgst_percent *(agg/100)),
+                           "sgst": (self.skus[i].sgst_percent *(agg/100))
+                          }
+        }
+        urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
+        urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
+        if (self.skus[i].return_status === "true" ) {
           urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;
-          }
-      else
-
+        } else {
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
-
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
-        if(self.mrp_discount){
-            urlService.current_order.summary.subtotal = urlService.current_order.summary.total_amount
+        if (urlService.returnsView && (!urlService.returns_total_paid)) {
+          if (urlService.current_order.summary.total_paid > 0 ) {
+            if (urlService.current_order.summary.total_amount > urlService.current_order.summary.total_paid) {
+              urlService.current_order.summary.pay = urlService.current_order.summary.total_amount - urlService.current_order.summary.total_paid;
+              urlService.current_order.summary.return = 0;
+            } else {
+              urlService.current_order.summary.return = urlService.current_order.summary.total_paid - urlService.current_order.summary.total_amount;
+              urlService.current_order.summary.pay = 0;
+            }
           }
-        urlService.current_order.summary.issue_type = self.issue_selected;
-        var date=new Date();
-        urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
-        self.table_headers = (self.skus.length > 0) ? true : false;
+        }
       }
+      if (urlService.returnsView && urlService.returns_total_paid) {
+        urlService.current_order.summary.total_paid = urlService.current_order.summary.total_amount - urlService.current_order.summary.total_discount;
+      }
+      if(self.mrp_discount){
+        urlService.current_order.summary.subtotal = urlService.current_order.summary.total_amount
+      }
+      urlService.current_order.summary.issue_type = self.issue_selected;
+      var date=new Date();
+      urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
+      self.table_headers = (self.skus.length > 0) ? true : false;
+    }
 
     //select customer first
     self.isCustomer = isCustomer;
     function isCustomer() {
-    if(Object.keys(urlService.current_order.customer_data).length===0 && self.issue_selected === "Pre Order") {
-      alert("Please select a customer");
-    }
+      if(Object.keys(urlService.current_order.customer_data).length===0 && self.issue_selected === "Pre Order") {
+        alert("Please select a customer");
+      }
     }
       //customer order
       self.submit_data = submit_data;
@@ -409,39 +458,42 @@
         if (urlService.current_order.customer_data.Number  && urlService.current_order.customer_data.FirstName) {
           if(isNaN(urlService.current_order.customer_data.Number)){
             alert("Please Enter Valid Phone Number")
-          }
-          else{
-          delete(urlService.current_order.summary.paymenttype_values);
-          $rootScope.$broadcast('empty_payment_values');
-          urlService.current_order.summary.payment = self.payment;
-        if(self.issue_selected !== "Pre Order") {
-            if (urlService.current_order.sku_data.length > 0) {
+          } else {
+            delete(urlService.current_order.summary.paymenttype_values);
+            $rootScope.$broadcast('empty_payment_values');
+            urlService.current_order.summary.payment = self.payment;
+            if(self.issue_selected !== "Pre Order") {
+              if (urlService.current_order.sku_data.length > 0) {
                 if (urlService.current_order.customer_data.Number == null) {
-                    urlService.current_order.customer_data.Number = "";
+                  urlService.current_order.customer_data.Number = "";
                 }
                 if (urlService.current_order.customer_data.value == null) {
-                    urlService.current_order.customer_data.value = "";
+                  urlService.current_order.customer_data.value = "";
                 }
                 urlService.current_order["user"] = urlService.userData
                 urlService.current_order.summary.issue_type = self.issue_selected;
                 urlService.current_order.summary.order_id = 0;
                 getCurrentOrderID().then(function(data){
-                     urlService.current_order.summary.order_id = data;
+                  urlService.current_order.summary.order_id = data;
                 }).catch(function(error){
-                    return 0;
+                  return 0;
                 });
-                if (self.tax_inclusive) {
-                  for (var z=0; z<self.skus.length; z++) {
-                    self.skus[z].unit_price = self.skus[z].price/self.skus[z].quantity;
-                    self.skus[z].price = self.skus[z].sgst + self.skus[z].cgst + self.skus[z].igst + self.skus[z].price + self.skus[z].utgst - self.skus[z].discount
+                  if (self.tax_inclusive) {
+                    for (var z=0; z<self.skus.length; z++) {
+                      self.skus[z].unit_price = self.skus[z].price/self.skus[z].quantity;
+                      self.skus[z].price = self.skus[z].sgst + self.skus[z].cgst + self.skus[z].igst + self.skus[z].price + self.skus[z].utgst - self.skus[z].discount
+                    }
                   }
+                  if (self.urlService.returnsView) {
+                    self.update_customer_order(urlService.current_order);
+                  } else {
+                    self.customer_order(urlService.current_order);
+                  }
+              } else {
+                  self.submit_enable = false;
                 }
-                self.customer_order(urlService.current_order);
             } else {
-                self.submit_enable = false;
-            }
-        } else {
-            if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
+              if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
                 if (urlService.current_order.customer_data.Number == null) {
                     urlService.current_order.customer_data.Number = "";
                 }
@@ -462,16 +514,19 @@
                     self.skus[z].price = self.skus[z].sgst + self.skus[z].cgst + self.skus[z].igst + self.skus[z].price + self.skus[z].utgst - self.skus[z].discount
                   }
                 }
-                self.customer_order(urlService.current_order);
-            } else {
-                self.submit_enable = false;
+                if (self.urlService.returnsView) {
+                  self.update_customer_order(urlService.current_order);
+                } else {
+                  self.customer_order(urlService.current_order);
+                }
+              } else {
+                  self.submit_enable = false;
+              }
             }
-        }
-      }
-    }
-      else{
+          }
+        } else{
           alert("Please Fill the Customer Number and Customer Name");
-      }
+        }
       }
 
       //print order
@@ -479,7 +534,6 @@
       function print_order(data,user) {
 
         var date = new Date().toDateString();
-
         if (data.summary.issue_type == 'Delivery Challan') {
           if(self.send_email)
           {
@@ -520,7 +574,6 @@
       //clear all fields
       self.clear_fields = clear_fields;
       function clear_fields() {
-
         self.searchText = '';
         self.table_headers = false;
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
@@ -561,18 +614,60 @@
 
       // unhold holded customer order
       $scope.$on('change_current_order', function(){
-
         self.skus = urlService.current_order.sku_data;
         self.table_headers = ( self.skus.length>0 )? true : false;
       })
 
+      self.update_customer_order = update_customer_order;
+      function update_customer_order(data) {
+        console.log('confirm');
+        data["summary"]["nw_status"] = 'online';
+        data["summary"]["staff_member"]= urlService.default_staff_member;
+        self.submit_enable = true;
+        var date_order=new Date();
+        var temp_date=date_order.getDate() +"-"+(date_order.getMonth()+1)+"-"+date_order.getFullYear().toString();
+        urlService.current_order.summary.order_date=temp_date;
+        if(data.summary.issue_type=="Pre Order"){
+          data.status="1";
+        } else{
+          data.status="0";
+        }
+        data.summary.nw_status = ONLINE;
+        var order_data=Object.assign({},data);
+        var data = $.param({
+          order : JSON.stringify(data)
+        });
+        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+          $http.post( urlService.mainUrl+'rest_api/update_customer_orders/', data).
+          then(function(data) {
+            if(data.status == 200) {
+              data=data.data;
+              urlService.current_order.order_id = data.order_ids[0];
+              var state = 1
+              print_order(urlService.current_order, urlService.userData)
+              self.submit_enable = false;
+              clear_fields();
+            }
+          },function(error){
+            self.submit_enable = false;
+            alert("Something went wrong");
+          });  
+      }
+
+
+
+
+
+
+
+
+
+
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
-
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
-
         //adding order date
         var date_order=new Date();
         var temp_date=date_order.getDate() +"-"+(date_order.getMonth()+1)+"-"+date_order.getFullYear().toString();
@@ -674,7 +769,6 @@
                                       "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
                                       "order_date":'', 'staff_member': urlService.default_staff_member},
                                       "money_data": {}};
-          console.log(urlService.hold_data);
           self.skus = urlService.current_order.sku_data;
           self.table_headers = false;
           manageData.prepForBroadcast("clear");
@@ -724,11 +818,13 @@
                   } else {
                     $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
                   }
-
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
                           var igst = filter_data[i].price * filter_data[i].igst / 100;
                         var utgst= filter_data[i].price * filter_data[i].utgst / 100;
+                  if (urlService.returnsView) {
+                    quantity = Object.keys(filter_data[i]).includes('quantity') ? filter_data[i].quantity : 1;
+                  }
                   self.skus.push({'name': filter_data[i].ProductDescription, 'unit_price': filter_data[i].price, 'quantity': quantity,
                                   'sku_code': filter_data[i].SKUCode, 'price': filter_data[i].price ,'discount':filter_data[i].discount,
                                   'selling_price':filter_data[i].selling_price, 'stock_quantity': filter_data[i].stock_quantity,
@@ -737,7 +833,6 @@
                                   'utgst_percent': filter_data[i].utgst, 'return_status': self.return_switch.toString()});
                   urlService.current_order.sku_data = self.skus;
                   break;
-
                 }
               }
             }
@@ -871,19 +966,16 @@
       self.update_quantity = 0;
       self.changeQuantity = changeQuantity;
       function changeQuantity(item) {
-        console.log(item);
-
         if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
-        item.quantity = item.stock_quantity;
+          item.quantity = item.stock_quantity;
         }
-
+        if (item.quantity == "") {
+          item.quantity = 0;
+        }
         for (var i = 0; i < self.skus.length ; i ++) {
-
           if (self.skus[i].sku_code == item.sku_code){
-
-            if( (item.quantity == 0) || (item.quantity == "0")) {
-
+            if( (item.quantity == 0 || item.quantity == "0") && (!self.urlService.returnsView)) {
               self.skus.splice(i, 1);
               cal_total();
               var indx = self.selected_skus.indexOf(item.sku_code);
@@ -895,7 +987,6 @@
               }
 
             } else {
-
               self.skus[i].quantity = parseFloat(item.quantity);
               self.skus[i].discount = (item.discount) ? parseFloat(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
@@ -903,12 +994,14 @@
             break;
           }
         }
+        if (urlService.returnsView) {
+          urlService.returns_total_paid = false;
+        }
         cal_total();
       }
 
       self.changePrice = changePrice;
       function changePrice(item, prev) {
-        console.log(item);
         if(item.price !== prev) {
 
             for (var i = 0; i < self.skus.length ; i ++) {
@@ -972,6 +1065,7 @@
         if (!(typeof(item) == "undefined")) {
           update_search_results([item], item.SKUCode);
           cal_total();
+          urlService.load_summary_data = true;
           self.searchText = "";
         }
       }

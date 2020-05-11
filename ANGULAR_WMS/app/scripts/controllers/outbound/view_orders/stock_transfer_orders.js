@@ -124,6 +124,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
            })
        .withDataProp('data')
        .withOption('order', [1, 'desc'])
+       .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('drawCallback', function(settings) {
           vm.service.make_selected(settings, vm.selected);
         })
@@ -151,10 +152,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 }).notSortable(),
             DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
-            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
-            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
+//            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+//            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+//            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         ];
+                if(vm.user_type=='marketplace_user') {
+          vm.dtColumns.push(DTColumnBuilder.newColumn('Seller ID').withTitle('Seller ID'))
+          vm.dtColumns.push(DTColumnBuilder.newColumn('Seller Name').withTitle('Seller Name'))
+        }
+        vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
       }
     }
 
@@ -384,7 +392,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
           data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
         }
-
+        data["enable_damaged_stock"] = vm.enable_damaged_stock;
         var url = 'st_generate_picklist/';
         if (vm.alt_view) {
           url = 'stock_transfer_generate_picklist/';
@@ -403,6 +411,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
             reloadData();
+            pop_msg(data.data.stock_status);
           }
         });
         vm.generate_data = [];
@@ -568,7 +577,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.message = msg;
       $timeout(function () {
           vm.message = "";
-      }, 2000);
+      }, 10000);
       reloadData();
     }
 

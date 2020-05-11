@@ -368,6 +368,27 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "show_vehiclemaster"
                  },
+                 {
+                   title: "SKU Substitutes Download/ Upload",
+                   download: "Download SKU Substitute Form",
+                   upload: "Upload SKU Substitute Form",
+                   durl: "sku_substitutes_form/",
+                   uurl: "sku_substitutes_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: true,
+                   perm: "add_skumaster"
+                 },
+                 {
+                   title: "Brand Level Barcode Configuration Download/ Upload",
+                   download: "Brand Level Barcode Configuration Download Form",
+                   upload: "Brand Level Barcode Configuration Upload Form",
+                   durl: "brand_level_barcode_configuration_form/",
+                   uurl: "brand_level_barcode_configuration_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_barcodebrandmappingmaster",
+                 },
                 ]
 
   $scope.download = function(data) {
@@ -477,8 +498,9 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
       vm.service.showNotyNotHide("Please Download The Error Form");
-    } else {
-      vm.service.showNoty(msg);
+    }
+    else {
+      vm.service.showNotyNotHide(msg);
     }
     $scope.disable = false;
     $(".preloader").removeClass("ng-show").addClass("ng-hide");

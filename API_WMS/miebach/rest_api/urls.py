@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
+from rest_api.views.cancel_invoice import *
 #urlpatterns = patterns('rest_api.views',
 tally_api = TallyAPI()
 
@@ -122,6 +123,10 @@ urlpatterns = [
     url(r'^push_message_notification/$', push_message_notification),
     url(r'^get_zones/$', get_zones),
     url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
+    url(r'^add_update_pr_config/$', add_update_pr_config),
+    url(r'^delete_pr_config/$', delete_pr_config),
+    url(r'^pending_pr_request/$', pr_request),
+    url(r'^pending_po_request/$', pr_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -204,6 +209,14 @@ urlpatterns = [
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
     url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
+    url(r'^add_pr/$', add_pr),
+    url(r'^generated_pr_data/$', generated_pr_data),
+    url(r'^approve_pr/$', approve_pr),
+    url(r'^print_pending_po_form/$', print_pending_po_form),
+    url(r'^cancel_pr/$', cancel_pr),
+    url(r'^save_pr/$', save_pr),
+    url(r'^generated_actual_pr_data/$', generated_actual_pr_data),
+    url(r'^convert_pr_to_po/$', convert_pr_to_po),
 
 
 
@@ -276,6 +289,8 @@ urlpatterns = [
     url(r'^cal_ba_to_sa/$',cal_ba_to_sa),
     url(r'^ba_to_sa_calculate_now/$',ba_to_sa_calculate_now),
     url(r'^get_move_inventory_reasons/$',get_move_inventory_reasons),
+    url(r'^invoice_payment_tracker/$', invoice_payment_tracker),
+    url(r'^payment_supplier_invoice_data/$', payment_supplier_invoice_data),
     url(r'^stock_detail_update/$',stock_detail_update),
 
     # OutBound
@@ -431,6 +446,8 @@ urlpatterns = [
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
     url(r'^get_previous_order_data/$', get_previous_order_data),
+    url(r'^get_discrepancy_report/$', get_discrepancy_report),
+    url(r'^print_descrepancy_note/$', print_descrepancy_note),
 
 
 
@@ -450,6 +467,7 @@ urlpatterns = [
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
+    url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
@@ -545,6 +563,12 @@ urlpatterns = [
     url(r'^print_financial_report_report/$', print_financial_report_report),
     url(r'^get_bulk_stock_update/$', get_bulk_stock_update),
     url(r'^print_bulk_stock_update/$', print_bulk_stock_update),
+    url(r'^get_credit_note_form_report/$', get_credit_note_form_report),
+    url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
+    url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
+    url(r'^get_credit_note_report/$', get_credit_note_report),
+    url(r'print_credit_note_report/$', print_credit_note_report),
+    url(r'^get_st_po_filter/$', get_st_po_filter),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -624,6 +648,10 @@ urlpatterns += [
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
     url(r'^vehiclemaster_form/$', vehiclemaster_form),
     url(r'^vehiclemaster_upload/$', vehiclemaster_upload),
+    url(r'^sku_substitutes_form/$', sku_substitutes_form),
+    url(r'^sku_substitutes_upload/$', sku_substitutes_upload),
+    url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
+    url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -649,7 +677,8 @@ urlpatterns += [
     url(r'^save_update_classification/$',save_update_classification),
     url(r'^delete_classification/$',delete_classification),
 
-
+    #cancel_invoice
+    url(r'^cancel_invoice/$', cancel_invoice),
 
 
 
@@ -711,6 +740,7 @@ urlpatterns += [
     url('^validate_sales_person', validate_sales_person),
     url('^add_customer/$', add_customer),
     url('^search_pos_customer_data/$', search_pos_customer_data),
+    url('^search_pos_order_ids/$', search_pos_order_ids),
     url('^search_product_data/$', search_product_data),
     url('^get_current_order_id/$', get_current_order_id),
     url('^get_pos_user_data/$', get_pos_user_data),
@@ -724,8 +754,7 @@ urlpatterns += [
     url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
-
-
+    url(r'^update_customer_orders/$', update_customer_orders),
 
 ]
 

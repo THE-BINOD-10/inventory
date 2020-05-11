@@ -48,7 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                 vm.selectedRows[meta.row] = full;
                 return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
             }).notSortable(),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),
@@ -65,7 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                 vm.selectedRows[meta.row] = full;
                 return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
             }).notSortable(),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),

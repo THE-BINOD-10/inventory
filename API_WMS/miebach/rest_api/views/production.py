@@ -1030,7 +1030,9 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': w_address,
                  'company_name': profile.company_name, 'company_address': company_address,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-    check_purchase_order_created(user, po_id)
+    check_prefix = ''
+    check_prefix = UserProfile.objects.get(user_id=rw_order.vendor.user).prefix
+    check_purchase_order_created(user, po_id, check_prefix)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -2641,7 +2643,7 @@ def generate_rm_po_data(request, user=''):
 
 
 def get_grn_json_data(order, user, request):
-    purchase_order_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=order.order_id)
+    purchase_order_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=order.order_id, prefix=order.prefix)
     total = 0
     total_qty = 0
     po_data = []
@@ -2690,7 +2692,7 @@ def get_grn_json_data(order, user, request):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
     table_headers = (
-        'WMS Code', 'Supplier Code', 'Description', 'Brand', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
+        'SKU Code', 'Supplier Code', 'Description', 'Brand', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
         'Remarks')
     profile = UserProfile.objects.get(user=user.id)
     w_address, company_address = get_purchase_company_address(profile)
@@ -2863,7 +2865,7 @@ def confirm_back_order(request, user=''):
             # rendered = [rendered, rendered1] if rendered1 else rendered
             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user,
                                data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'],
-                               str(data_dictionary['order_date']).split(' ')[0])
+                               str(data_dictionary['order_date']).split(' ')[0], ean_flag=True)
         if not status:
             status = "Created PO Numbers are " + str(order_id)
         else:

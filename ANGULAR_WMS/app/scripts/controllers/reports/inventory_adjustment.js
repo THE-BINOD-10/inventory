@@ -45,6 +45,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('Average Cost').withTitle('Average Cost'),
       DTColumnBuilder.newColumn('Value').withTitle('Value'),
       DTColumnBuilder.newColumn('Reason').withTitle('Reason'),
+      DTColumnBuilder.newColumn('initial_quantity').withTitle('Initial Qty'),
+      DTColumnBuilder.newColumn('post_adjustment_qty').withTitle('Post Adjustment Qty'),
+      DTColumnBuilder.newColumn('changed_qty').withTitle('Changed Qty'),
+      DTColumnBuilder.newColumn('changed_total_value').withTitle('Changed Total Value'),
+      DTColumnBuilder.newColumn('changed_unit_value').withTitle('Changed Unit Value'),
       DTColumnBuilder.newColumn('User').withTitle('User'),
       DTColumnBuilder.newColumn('Transaction Date').withTitle('Transaction Date'),
     ];

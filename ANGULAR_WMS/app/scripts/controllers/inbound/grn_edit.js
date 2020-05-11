@@ -12,7 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.empty_data = {}
   vm.model_data = {};
   vm.filters_dt_data = {};
-  vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01'];
+  vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
   vm.toggle_sku_wise = false;
   vm.parent_username = Session.parent.userName;
 
@@ -28,7 +28,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // $http.get(Session.url+'get_grn_level_data/', {withCredential: true, 'po_number': aData['PO Number']}).success(function(data, status, headers, config) {
     //   console.log(data)
     // });
-    vm.service.apiCall('get_grn_level_data/', 'GET', {po_number: aData['PO Number']}).then(function(data){
+    var data_to_send = {
+      'po_number': aData['PO Number'],
+      'prefix': aData['prefix']
+    }
+    vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
       vm.model_data = data.data;
       if (vm.industry_type == 'FMCG') {
         vm.extra_width = {

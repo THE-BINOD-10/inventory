@@ -169,7 +169,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.close = function() {
-      $state.go("app.outbound.CustomerInvoicesMain")
+    if(vm.permissions.customer_dc){
+       $state.go("app.outbound.CustomerInvoices")
+    } else{
+        $state.go("app.outbound.CustomerInvoicesMain")
+    }
     }
 
     vm.edit_invoice = function() {
@@ -255,38 +259,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var status = false;
       var field_name = "";
       var checkbox_valid = []
+      var inv_check = []
+      var data_dict = {}
   	  var key = 0
       var flag = 1
   	  angular.forEach(vm.selected, function(obj, idx) {
     		if (obj) {
-    		  checkbox_valid.push(obj)
-    		  key = parseInt(idx);
-    		  if (checkbox_valid.length	> 1) {
-    			vm.service.showNoty("Please select only one row");
-          flag = 0
-    			return false;
+    		  var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Stock Transfer ID'];
+    		  var invoice = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Invoice Number'];
+    		  var pick_number = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['pick_number'];
+    		  if(checkbox_valid.length < 1){
+    		      checkbox_valid.push(temp)
+    		      inv_check.push(invoice)
+    		      data_dict['order_id'] =temp
+                  data_dict['pick_number'] = [pick_number]
+    		  } else {
+    		      if(checkbox_valid.indexOf(temp) == -1 || inv_check.indexOf(invoice) == -1){
+    		          vm.service.showNoty("Please select only one Order or Invoice ");
+                      flag = 0
+    			     return false;
+    		      } else {
+                      data_dict['pick_number'].push(pick_number)
+    		      }
     		  }
     		}
   	  });
       if (!flag) {
         return false;
       }
-  	  var selected_row = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-  	  var send = {};
-  	  send['order_id'] = selected_row['Stock Transfer ID'];
-  	  send['warehouse_name'] = selected_row['Warehouse Name'];
-  	  send['picklist_number'] = selected_row['Picklist Number'];
-  	  send['picked_qty'] = selected_row['Picklist Quantity'];
-  	  send['stock_transfer_datetime'] = selected_row['Stock Transfer Date&Time'];
-  	  send['total_amount'] = selected_row['Total Amount'];
-  	  send['invoice_date'] = selected_row['Invoice Date'];
-  	  send['order_date'] = selected_row['Order Date'];
-
-  	  vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data) {
+//  	  var selected_row = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+//  	  var send = {};
+//  	  send['order_id'] = selected_row['Stock Transfer ID'];
+//  	  send['warehouse_name'] = selected_row['Warehouse Name'];
+//  	  send['picklist_number'] = selected_row['Picklist Number'];
+//  	  send['picked_qty'] = selected_row['Picklist Quantity'];
+//  	  send['stock_transfer_datetime'] = selected_row['Stock Transfer Date&Time'];
+//  	  send['total_amount'] = selected_row['Total Amount'];
+//  	  send['invoice_date'] = selected_row['Invoice Date'];
+//  	  send['order_date'] = selected_row['Order Date'];
+  	  vm.service.apiCall("generate_stock_transfer_invoice/", "POST",{'data': JSON.stringify(data_dict)}).then(function(data) {
             if(data.message) {
               if(click_type == 'generate') {
-                vm.pdf_data = data.data.resp;
-                $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
+                vm.pdf_data = data.data
+//                $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
+                $state.go("app.outbound.CustomerInvoices.StockTransferInvoiceE");
+                $timeout(function () {
+                  $(".modal-body:visible").html(vm.pdf_data)
+                }, 3000);
               }
             }
             vm.bt_disable = false;

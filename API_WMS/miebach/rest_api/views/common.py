@@ -11380,11 +11380,10 @@ def get_related_users(user_id):
     log.info("all users %s" % all_users)
     return all_users
 
-def sync_masters_data(user, model_obj, data_dict, filter_dict):
-    print user, model_obj, data_dict
+def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
     bulk_objs = []
-    sync_sku_switch = get_misc_value('sku_sync', user.id)
-    if sync_sku_switch == 'true':
+    sync_switch = get_misc_value(sync_key, user.id)
+    if sync_switch == 'true':
         all_user_ids = get_related_users(user.id)
     else:
         all_user_ids = [user.id]

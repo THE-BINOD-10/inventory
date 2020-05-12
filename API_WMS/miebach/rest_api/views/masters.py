@@ -3959,7 +3959,7 @@ def add_or_update_tax(request, user=''):
                     data_dict[key] = data_key
                     #setattr(tax_master, key, data_key)
                 filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
-                sync_masters_data(user, TaxMaster, data_dict, filter_dict)
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
                 #tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:
@@ -3971,8 +3971,9 @@ def add_or_update_tax(request, user=''):
                 if data['tax_type'] == 'inter_state':
                     data_dict['inter_state'] = 1
                 data_dict['product_type'] = product_type
-                sync_masters_data(user, TaxMaster, data_dict, filter_dict={'product_type': product_type, 'user_id': user.id,
-                                                                            'inter_state': data_dict['inter_state']})
+                filter_dict = {'product_type': product_type, 'user_id': user.id,
+                                'inter_state': data_dict['inter_state']}
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
                 #tax_master = TaxMaster(**data_dict)
                 #tax_master.save()
     except Exception as e:
@@ -4291,7 +4292,7 @@ def save_update_attribute(request, user=''):
         #if data_dict['id'][ind]:
         update_dict = {'attribute_type': data_dict['attribute_type'][ind], 'status': 1}
         filter_dict = {'attribute_name': data_dict['attribute_name'][ind], 'attribute_model': attr_model}
-        sync_masters_data(user, UserAttributes, update_dict, filter_dict)
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync')
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
 
 

@@ -57,6 +57,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {
                     'from_date': '',
                     'to_date': '',
+                    'sku_code': '',
+                    'sister_warehouse' :''
                     };
+vm.warehouse_groups = [];
+  vm.service.apiCall('sku_category_list/').then(function(data){
+    if(data.message) {
+      vm.warehouse_groups = data.data.sister_warehouses;
+    }
+  })
+  vm.model_data = {};
+  angular.copy(vm.empty_data, vm.model_data);
 
 }

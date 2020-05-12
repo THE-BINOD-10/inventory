@@ -742,7 +742,7 @@ OPEN_PO_APPROVAL_REPORT_DICT = {
          {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
          {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
-         {'label': 'Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+         {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
      ],
      'dt_url': 'get_po_approval_report', 'excel_name': 'get_po_approval_report',
      'print_url': 'get_po_approval_report',
@@ -10062,12 +10062,16 @@ def get_po_approval_report_data(search_params, user, sub_user):
     from common import get_misc_value, get_admin
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['pending_po__supplier_id','sku__sku_code',
-           'pending_po__wh_user', 'pending_po__wh_user']
+    lis = ['pending_po__po_number','pending_po__po_number','pending_po__supplier_id', 'pending_po__supplier__name',
+            'total_qty', 'total_amt', 'creation_date',
+            'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
+            'pending_po__final_status', 'pending_po__pending_level',
+            'pending_po__po_number', 'pending_po__po_number', 'pending_po__po_number',
+            'pending_po__remarks']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     order_data = lis[col_num]
-    if order_term == 'desc':
+    if order_term== 'desc':
         order_data = '-%s' % order_data
     start_index = search_params.get('start', 0)
     if search_params.get('length', 0):
@@ -10087,12 +10091,14 @@ def get_po_approval_report_data(search_params, user, sub_user):
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['pending_po__supplier_id'] = supp_search[0]
-    if 'sister_warehouse' in search_params:
+    if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
         sister_warehouse_name = search_params['sister_warehouse']
         user = User.objects.get(username=sister_warehouse_name)
-        warehouses = UserGroups.objects.filter(user_id=user.id)
+        user = user
+        sub_user = user
     else:
-        warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+        pass
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',

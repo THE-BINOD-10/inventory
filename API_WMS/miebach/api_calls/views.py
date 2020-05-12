@@ -2263,8 +2263,8 @@ def get_shipmentinfo(request, user=''):
                                                     'order_shipment__shipment_reference', 
                                                     'order_shipment__ewaybill_number', 
                                                     'order_shipment__shipment_date','id',
-                                                    'order__sku_code','shipping_quantity', 
-                                                    'creation_date','invoice_number')
+                                                    'order__sku__sku_code','shipping_quantity', 
+                                                    'creation_date','invoice_number','order__sku__sku_desc')
         shipment_dict = shipment_dicts[0]
         items = []
         shipping_address,address = '',''
@@ -2292,8 +2292,16 @@ def get_shipmentinfo(request, user=''):
         if tracking:
             status = tracking[0]
         for data in shipment_dicts:
-            items_dict = {"sku_code":data['order__sku_code'], "shipping_quantity":data['shipping_quantity']}
-            items.append(items_dict)
+            sku_status = 'Dispatched'
+            sku_tracking = ShipmentTracking.objects.filter(shipment_id=data['id'], shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+            if sku_tracking:
+                sku_status = tracking[0]
+            items.append(OrderedDict((("sku_code",data['order__sku__sku_code']), 
+                                     ('sku_desc', data['order__sku__sku_desc']),
+                                     ("shipping_quantity", data['shipping_quantity']),
+                                     ('status', sku_status))))
 
         count = len(items)
         record.append(OrderedDict((('order_id', original_order_id), ('ewaybill_number', ewaybill_number),

@@ -78,6 +78,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         instanceName = AssetMaster
     elif request.POST.get('datatable') == 'ServiceMaster':
         instanceName = ServiceMaster
+    elif request.POST.get('datatable') == 'OtherItemsMaster':
+        instanceName = OtherItemsMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
@@ -812,6 +814,8 @@ def get_sku_data(request, user=''):
         instanceName = AssetMaster
     if request.GET.get('is_service') == 'true':
         instanceName = ServiceMaster
+    if request.GET.get('is_otheritem') == 'true':
+        instanceName = OtherItemsMaster
     
     data = get_or_none(instanceName, filter_params)
 
@@ -1101,6 +1105,9 @@ def update_sku(request, user=''):
             instanceName = AssetMaster
         if request.POST.get('is_service') == 'true':
             instanceName = ServiceMaster
+        if request.POST.get('is_otheritem') == 'true':
+            instanceName = OtherItemsMaster
+        import pdb; pdb.set_trace()
         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
@@ -2681,6 +2688,9 @@ def insert_sku(request, user=''):
         elif request.POST.get('is_service') == 'true':
             instanceName = ServiceMaster
             status_msg = 'Service Item exists'
+        elif request.POST.get('is_otheritem') == 'true':
+            instanceName = OtherItemsMaster
+            status_msg = 'Other Item exists'
         data = filter_or_none(instanceName, filter_params)
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
@@ -2692,6 +2702,8 @@ def insert_sku(request, user=''):
             data_dict = copy.deepcopy(SKU_DATA)
             if instanceName == ServiceMaster:
                 data_dict.update(SERVICE_SKU_DATA)
+            if instanceName == OtherItemsMaster:
+                data_dict.update(OTHERITEMS_SKU_DATA)
             data_dict['user'] = user.id
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
@@ -2734,7 +2746,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:

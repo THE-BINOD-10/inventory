@@ -351,6 +351,25 @@ var app = angular.module('urbanApp')
             url: '/Service',
             templateUrl: 'views/masters/toggles/service_update.html'
           })
+          
+        .state('app.masters.OtherItemsMaster', {
+          url: '/OtherItemsMaster',
+          permission: 'add_otheritemsmaster',
+          templateUrl: 'views/masters/otheritems_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/otheritems_master_table.js'
+                ])
+             }]
+          },
+          data: {
+            title: 'OtherItems Master',
+          }
+        })
+          .state('app.masters.OtherItemsMaster.update', {
+            url: '/Service',
+            templateUrl: 'views/masters/toggles/otheritems_update.html'
+          })
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',
           permission: 'add_locationmaster',

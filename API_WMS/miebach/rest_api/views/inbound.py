@@ -570,7 +570,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     users = [user.id]
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
-        request.user.id = supplier.user
+        request.user = User.objects.get(id=supplier.user)
         # user.id = supplier.user
         filters['search_9'] = supplier.supplier_id
         users = [supplier.user]

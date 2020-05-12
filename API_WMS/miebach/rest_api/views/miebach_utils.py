@@ -6229,7 +6229,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     stop_index = start_index + search_params.get('length', 0)
 
     model_data = ReturnToVendor.objects.filter(**search_parameters).\
-                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
+                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
            'seller_po_summary__invoice_number').distinct().\
             annotate(return_date=Cast('creation_date', DateField()))
@@ -6259,7 +6259,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
         order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
         temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
-                                    ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier_id']),
+                                    ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                     ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),
                                     ('Order ID', order_id),
                                     ('Invoice Number', data['seller_po_summary__invoice_number']),

@@ -7023,7 +7023,7 @@ def confirm_po1(request, user=''):
                 data_id = purchase_order.id
                 supplier = purchase_order.supplier_id
                 if supplier not in ids_dict:
-                    po_id = get_purchase_order_id(user)
+                    po_id = get_purchase_order_id(user) + 1
                     po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
                     if po_sub_user_prefix == 'true':
                         po_id = update_po_order_prefix(request.user, po_id)

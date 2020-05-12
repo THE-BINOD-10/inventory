@@ -1249,8 +1249,11 @@ def update_supplier_values(request, user=''):
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
+        update_dict = {}
         if secondary_email_id[0]:
             for mail in secondary_email_id:
+                if not mail:
+                    continue
                 if validate_supplier_email(mail):
                     return HttpResponse('Enter correct Secondary Email ID')
         for key, value in request.POST.iteritems():
@@ -1266,10 +1269,14 @@ def update_supplier_values(request, user=''):
                     value = 1
                 else:
                     value = 0
-            setattr(data, key, value)
-        data.save()
+            update_dict[key] = value
+            #setattr(data, key, value)
+        filter_dict = {'supplier_id': data.supplier_id }
+        del update_dict['supplier_id']
+        master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
+        #data.save()
 
-        master_data_dict = {}
+        '''master_data_dict = {}
         master_data_dict['user_id'] = user.id
         master_data_dict['master_type'] = 'supplier'
         master_data_dict['master_id'] = data_id
@@ -1283,7 +1290,7 @@ def update_supplier_values(request, user=''):
             master_data_dict['email_id'] = mail
             master_data_dict['master_id'] = data_id
             master_data_dict['master_type'] = 'supplier'
-            MasterEmailMapping.objects.create(**master_data_dict)
+            MasterEmailMapping.objects.create(**master_data_dict)'''
 
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
@@ -1362,13 +1369,16 @@ def insert_supplier(request, user=''):
             #data_dict['user'] = user.id
             supplier_id = data_dict['supplier_id']
             del data_dict['supplier_id']
-            supplier_master = create_new_supplier(user, supplier_id, data_dict)
-            #supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
-            supplier_master.save()
+            filter_dict = {'supplier_id': supplier_id}
+            #supplier_master = create_new_supplier(user, supplier_id, data_dict)
+
+            master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+            supplier_master = master_objs[user.id]
+            #upload_master_file(request, user, supplier_master.id, "SupplierMaster")
+            #supplier_master.save()
             status_msg = 'New Supplier Added'
 
-            for mail in secondary_email_id:
+            '''for mail in secondary_email_id:
                 master_email_map = {}
                 master_email_map['user'] = user
                 master_email_map['master_id'] = supplier_master.id
@@ -1376,7 +1386,7 @@ def insert_supplier(request, user=''):
                 master_email_map['email_id'] = mail
                 master_email_map['creation_date'] = datetime.datetime.now()
                 master_email_map['updation_date'] = datetime.datetime.now()
-                master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+                master_email_map = MasterEmailMapping.objects.create(**master_email_map)'''
 
             if create_login == 'true':
                 data = supplier_master
@@ -1394,22 +1404,6 @@ def insert_supplier(request, user=''):
         status_msg = 'Add Supplier Failed'
     return HttpResponse(status_msg)
 
-
-@csrf_exempt
-def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
-    master_id = master_id
-    master_type = master_type
-    if not master_file:
-        master_file = request.FILES.get('master_file', '')
-    if not master_file and master_id and master_type:
-        return 'Fields are missing.'
-    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
-    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
-    if not master_doc:
-        master_doc = MasterDocs(**upload_doc_dict)
-        master_doc.save()
-    return 'Uploaded Successfully'
 
 @csrf_exempt
 @get_admin_user

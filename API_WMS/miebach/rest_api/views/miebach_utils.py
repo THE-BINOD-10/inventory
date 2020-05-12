@@ -2513,6 +2513,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_allocate_sale_order':'auto_allocate_sale_order',
                         'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                         'stock_auto_receive':'stock_auto_receive',
+                        'supplier_sync': 'supplier_sync',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

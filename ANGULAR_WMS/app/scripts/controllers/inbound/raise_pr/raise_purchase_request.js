@@ -368,7 +368,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
                             "sku": {"wms_code": "", "price":""}
                           }
-      if (product_category == 'Kits&Category'){
+      if (product_category == 'Kits&Consumables'){
         vm.model_data.data.push({"fields": emptylineItems});
       } else if (product_category == 'Assets'){
         vm.model_data.data.push({"fields": emptylineItems});

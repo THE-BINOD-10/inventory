@@ -149,29 +149,6 @@
         </div>
         <div class="modal-body">
           <div class="row">
-            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">PR Delivery Date *</label>
-                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div> -->
-            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">Address *</label><br>
-                <div class="btn-group mr15" dropdown="">
-                  <button type="button" ng-init = "showCase.model_data.shipment_address_select = 'Select Shipment Address'" ng-model="showCase.model_data.shipment_address_select" class="btn btn-default dropdown-toggle" dropdown-toggle="" aria-haspopup="true" aria-expanded="false" style="width: 300px;">{{showCase.model_data.shipment_address_select}} <span class="caret"></span> </button>
-                  <ul class="dropdown-menu" role="menu">
-                    <li ng-repeat="data in showCase.model_data.ship_addr_names" ng-click= "showCase.ship_addr_change(data)"> <a href="javascript:;">{{data}}</a> </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Ship To *</label>
-                <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
-            </div>
-          </div> -->
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Product Category</label>
@@ -179,9 +156,9 @@
               ng-init="showCase.model_data.product_category='Kits&Consumables'"
               ng-model="showCase.model_data.product_category"
               ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
-                <!-- <option value="" style="display:None;"></option> -->
                 <option ng-repeat="prod_catg in showCase.model_data.product_categories" 
-                        value="{{prod_catg}}">{{prod_catg}}</option>
+                        value="{{prod_catg}}">{{prod_catg}}
+                </option>
               </select>
             </div>
           </div>
@@ -207,68 +184,6 @@
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>
-<!--           <div class="row">
-            <div class="col-md-12">
-              <table class="table" class="pull-left" style="margin-left: 10px;">
-                <thead>
-                  <tr>
-                    <th>SKU Code*</th>
-                    <th>Title</th>
-                    <th class="w10_">Quantity*</th>
-                    <th>No.Of Tests</th>
-                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
-                    <th>OpenPR Qty</th>
-                    <th>Last 3M Avg Consumption</th>
-                    <th>Available Stock</th>
-                    <th>OpenPO Qty</th>
-                    <th>Suggested PR Qty</th>
-                    <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
-                    <th class="plus"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
-                    <td>
-                      <input type="text" autocomplete="off" name="wms_code"
-                             class="form-control detectTab" placeholder="Search WMS Code/Description"
-                             required
-                             typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?', showCase.model_data.product_category)"
-                             typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
-                      <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
-                      <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
-                    </td>
-                    <td>
-                      <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
-                    </td>
-                    <td>
-                      <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
-                             ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
-                             ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
-                             ng-keyup="showCase.getTotals()" size="12">
-                    </td>
-                    <td>
-                      <input ng-model="product.fields.no_of_tests" type="text" name="no_of_tests" 
-                             class="form-control detectTab"
-                             ng-class="service.get_decimal_perm()" ng-readonly="true"
-                             size="12">
-                    </td>
-                    <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-                      <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
-                    </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td>
-                    <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
-                    <td>
-                      <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div> -->
           <div class="row" ng-if="showCase.model_data.product_category=='Kits&Consumables'" >
             <div ng-include="'views/inbound/toggle/pendinglineItems/kits_consumables.html'"></div>
           </div>
@@ -278,24 +193,6 @@
           <div class="row" ng-if="showCase.model_data.product_category=='Services'" >
             <div ng-include="'views/inbound/toggle/pendinglineItems/services.html'"></div>
           </div>
-
-
-        <!-- <div class="row" style="padding-bottom:0px;">
-          <div class="col-md-6 col-sm-6">
-          </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
-          </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
-          </div> -->
-		  <!-- <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
-		  <div class="col-md-12 col-sm-12 col-xs-12">
-              <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
-		  </div>
-		  </div>
-        <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
-      </div> -->
       <div class="col-md-12 col-sm-12 col-xs-12">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Remarks :</strong>

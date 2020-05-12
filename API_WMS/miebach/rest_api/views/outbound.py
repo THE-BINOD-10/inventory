@@ -312,6 +312,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
     if user.userprofile.user_type == 'marketplace_user':
         lis.insert(3, 'st_seller__seller_id')
         lis.insert(4, 'st_seller__name')
+        lis.insert(5, 'st_po__open_st__mrp')
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':

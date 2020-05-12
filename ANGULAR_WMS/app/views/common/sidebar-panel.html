@@ -55,7 +55,7 @@
         <span>Masters</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active" ng-show="show_tab('view_skumaster') || show_tab('add_skumaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_skumaster')">
           <a ui-sref="app.masters.SKUMaster">
             <span>SKU Master</span>
           </a>
@@ -65,13 +65,13 @@
             <span>Location Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('view_suppliermaster') || show_tab('add_suppliermaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_suppliermaster')">
           <a ui-sref="app.masters.SupplierMaster">
             <span>Supplier Master</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('view_skusupplier') || show_tab('add_skusupplier')">
+          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('view_skusupplier')">
             <span>Source-SKU Mapping</span>
           </a>
         </li>
@@ -140,7 +140,7 @@
             <span>Size Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('view_pricemaster') || show_tab('add_pricemaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_pricemaster')">
           <a ui-sref="app.masters.PricingMaster">
             <span>Pricing Master</span>
           </a>

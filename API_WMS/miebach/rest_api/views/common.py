@@ -11366,7 +11366,11 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
 
 
 def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
-    user_ids = get_related_users(user.id)
+    supplier_sync = get_misc_value('supplier_sync', user.id)
+    if supplier_sync == 'true':
+        user_ids = get_related_users(user.id)
+    else:
+        user_ids = [user.id]
     master_objs = {}
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)

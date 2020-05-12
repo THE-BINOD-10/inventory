@@ -8338,6 +8338,7 @@ def get_user_profile_data(request, user=''):
     data['wh_phone_number'] = main_user.wh_phone_number
     data['pan_number'] = main_user.pan_number
     data['phone_number'] = main_user.phone_number
+    data['state'] = main_user.state
     data['sign_signature'] = None
     master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
     if master_docs_obj.exists():
@@ -8413,7 +8414,6 @@ def change_user_password(request, user=''):
 @login_required
 @get_admin_user
 def update_profile_data(request, user=''):
-    from masters import upload_master_file
     ''' will update profile data '''
     address = request.POST.get('address', '')
     gst_number = request.POST.get('gst_number', '')
@@ -8424,6 +8424,7 @@ def update_profile_data(request, user=''):
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
     phone_number = request.POST.get('phone_number', '')
+    state = request.POST.get('state', '')
     sign_file = request.FILES.get('signature_logo', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
@@ -8434,6 +8435,7 @@ def update_profile_data(request, user=''):
     main_user.wh_phone_number = wh_phone_number
     main_user.phone_number = phone_number
     main_user.pan_number = pan_number
+    main_user.state = state
     main_user.save()
     user.email = email
     user.save()
@@ -11344,3 +11346,63 @@ def bulk_create_in_batches(model_obj, data_objs):
         batch_data_objs = data_objs[last_batch:cur_batch]
         last_batch = cur_batch
         model_obj.objects.bulk_create(batch_data_objs)
+
+
+@csrf_exempt
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
+    master_id = master_id
+    master_type = master_type
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
+    if not master_file and master_id and master_type:
+        return 'Fields are missing.'
+    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
+    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
+    if not master_doc:
+        master_doc = MasterDocs(**upload_doc_dict)
+        master_doc.save()
+    return 'Uploaded Successfully'
+
+
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
+    user_ids = get_related_users(user.id)
+    master_objs = {}
+    for user_id in user_ids:
+        user_obj = User.objects.get(id=user_id)
+        user_filter_dict = copy.deepcopy(filter_dict)
+        user_data_dict = copy.deepcopy(data_dict)
+        user_filter_dict['user'] = user_id
+        if user.id != user_id:
+            if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
+                user_data_dict['tax_type'] = 'intra_state'
+            else:
+                user_data_dict['tax_type'] = 'inter_state'
+        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+        if not exist_supplier.exists():
+            supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)
+        else:
+            exist_supplier.update(**user_data_dict)
+            supplier_master = exist_supplier[0]
+        master_objs[user_id] = supplier_master
+        upload_master_file(request, user, supplier_master.id, "SupplierMaster")
+        supplier_master.save()
+        master_email_map = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
+                                                                master_type='supplier')
+        if master_email_map:
+            master_email_map.delete()
+        for mail in secondary_email_id:
+            if not mail:
+                continue
+            exist_mail_mapping = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
+                                                                   master_type='supplier', email_id=mail)
+            if not exist_mail_mapping.exists():
+                master_email_map = {}
+                master_email_map['user'] = user_obj
+                master_email_map['master_id'] = supplier_master.id
+                master_email_map['master_type'] = 'supplier'
+                master_email_map['email_id'] = mail
+                master_email_map['creation_date'] = datetime.datetime.now()
+                master_email_map['updation_date'] = datetime.datetime.now()
+                master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+    return master_objs

@@ -2435,26 +2435,30 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 #supplier_data['user'] = user.id
                 supplier_id = supplier_data['supplier_id']
                 del supplier_data['supplier_id']
-                supplier_master = create_new_supplier(user, supplier_id, supplier_data)
+                filter_dict = {'supplier_id': supplier_id}
+                master_objs = sync_supplier_master(request, user, supplier_data, filter_dict,
+                                                   secondary_email_id=secondary_email_ids)
+                #supplier_master = create_new_supplier(user, supplier_id, supplier_data)
                 # supplier = SupplierMaster(**supplier_data)
                 # supplier.save()
         else:
-            supplier_master.save()
-        if secondary_email_ids:
-            master_data_dict = {}
-            master_data_dict['user_id'] = user.id
-            master_data_dict['master_type'] = 'supplier'
-            master_data_dict['master_id'] = supplier_master.id
-            master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
-            if master_email_map:
-                master_email_map.delete()
-            for mail in secondary_email_ids:
-                master_data_dict = {}
-                master_data_dict['user_id'] = user.id
-                master_data_dict['email_id'] = mail
-                master_data_dict['master_id'] = supplier_master.id
-                master_data_dict['master_type'] = 'supplier'
-                MasterEmailMapping.objects.create(**master_data_dict)
+            master_objs = sync_supplier_master(request, user, supplier_data, filter_dict,
+                                               secondary_email_id=secondary_email_ids)
+        # if secondary_email_ids:
+        #     master_data_dict = {}
+        #     master_data_dict['user_id'] = user.id
+        #     master_data_dict['master_type'] = 'supplier'
+        #     master_data_dict['master_id'] = supplier_master.id
+        #     master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+        #     if master_email_map:
+        #         master_email_map.delete()
+        #     for mail in secondary_email_ids:
+        #         master_data_dict = {}
+        #         master_data_dict['user_id'] = user.id
+        #         master_data_dict['email_id'] = mail
+        #         master_data_dict['master_id'] = supplier_master.id
+        #         master_data_dict['master_type'] = 'supplier'
+        #         MasterEmailMapping.objects.create(**master_data_dict)
     return 'success'
 
 

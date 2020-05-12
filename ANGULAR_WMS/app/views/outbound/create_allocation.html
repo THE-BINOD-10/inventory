@@ -1,0 +1,16 @@
+<div class="page-layout" ng-controller="CreateAllocations as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Create Allocation">
+        <div ng-include="'views/outbound/create_allocations/order_allocation_page.html'"></div>
+      </tab>
+      <tab heading="Create Deallocation">
+        <div ng-include="'views/outbound/create_allocations/order_deallocation_page.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>
+

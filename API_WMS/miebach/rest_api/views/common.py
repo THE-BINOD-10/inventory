@@ -222,6 +222,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    parent_data['user_first_name'] = user.first_name
     admin_user = get_admin(user)
     parent_data['parent_username'] = admin_user.get_username().lower()
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
@@ -489,9 +490,12 @@ def get_search_params(request, user=''):
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status','discrepancy_number':'discrepancy_number',
                     'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
                     'destination_sku_code': 'destination_sku_code',
+                    'make': 'make', 'model': 'model', 'chassis_number': 'chassis_number',
                     'grn_from_date':'grn_from_date','grn_to_date':'grn_to_date',
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
-                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name', 'customer':'customer'}
+                    'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
+                    'customer':'customer',
+                    }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -545,6 +549,7 @@ data_datatable = {  # masters
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
+    'VehicleMaster': 'get_customer_master',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -598,6 +603,7 @@ data_datatable = {  # masters
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
+    'OrderAllocations': 'get_order_allocation_data',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -4633,7 +4639,42 @@ def search_wms_data(request, user=''):
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp})
+                           'mrp': master_data.mrp,
+                           'enable_serial_based': master_data.enable_serial_based})
+
+    master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
+                                       user=user.id)
+    total_data = build_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_search_data(total_data, query_objects, limit)
+    return HttpResponse(json.dumps(total_data))
+
+
+@get_admin_user
+def search_makemodel_wms_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_key = request.GET.get('q', '')
+    type = request.GET.get('type', '')
+    total_data = []
+    limit = 10
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+        values_list('sku_id', flat=True))
+    query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
+                                      status = 1,user=user.id, id__in=sku_ids)
+
+    master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
+    if master_data:
+        master_data = master_data[0]
+
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
+                           'measurement_unit': master_data.measurement_type,
+                           'load_unit_handle': master_data.load_unit_handle,
+                           'mrp': master_data.mrp,
+                           'enable_serial_based': master_data.enable_serial_based})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -4833,7 +4874,8 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name})
+                                    'style_name': data.style_name,
+                                    'enable_serial_based': data.enable_serial_based})
         return to_data
 
 
@@ -9026,7 +9068,7 @@ def get_user_attributes(user, attr_model):
 @get_admin_user
 def get_user_attributes_list(request, user=''):
     attr_model = request.GET.get('attr_model')
-    attributes = get_user_attributes(user, 'sku')
+    attributes = get_user_attributes(user, attr_model)
     return HttpResponse(json.dumps({'data': list(attributes), 'status': 1}))
 
 
@@ -9178,15 +9220,22 @@ def allocate_order_returns(user, sku_data, request):
     return data
 
 
-def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None, sku_attr_mapping=None):
+def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None,
+                               sku_attr_mapping=None, allow_multiple=False):
     if not value == '':
-        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+        sku_attr_filter = {'sku_id': data.id, 'attribute_name': key}
+        if allow_multiple:
+            sku_attr_filter['attribute_value'] = value
+        sku_attr_obj = SKUAttributes.objects.filter(**sku_attr_filter)
         if not sku_attr_obj and value:
             if not is_bulk_create:
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
                                              creation_date=datetime.datetime.now())
             else:
-                grp_key = '%s:%s' % (str(data.id), str(key))
+                if allow_multiple:
+                    grp_key = '%s:%s:%s' % (str(data.id), str(key), str(value))
+                else:
+                    grp_key = '%s:%s' % (str(data.id), str(key))
                 if grp_key not in sku_attr_mapping:
                     create_sku_attrs.append(SKUAttributes(**{'sku_id': data.id, 'attribute_name': key, 'attribute_value': value,
                                                  'creation_date': datetime.datetime.now()}))
@@ -9201,7 +9250,30 @@ def update_sku_attributes(data, request):
         if 'attr_' not in key:
             continue
         key = key.replace('attr_', '')
-        update_sku_attributes_data(data, key, value)
+        for val in value.split(','):
+            update_sku_attributes_data(data, key, val, allow_multiple=True)
+
+
+def update_master_attributes_data(user, data, key, value, attribute_model):
+    if not value == '':
+        master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
+                                                          attribute_model=attribute_model,
+                                                       attribute_name=key)
+        if not master_attr_obj and value:
+                MasterAttributes.objects.create(user_id=user.id, attribute_id=data.id, attribute_model=attribute_model,
+                                                attribute_name=key, attribute_value=value,
+                                                creation_date=datetime.datetime.now())
+        elif master_attr_obj and master_attr_obj[0].attribute_value != value:
+            master_attr_obj.update(attribute_value=value)
+    return 'Success'
+
+
+def update_master_attributes(data, request, user, attribute_model):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        update_master_attributes_data(user, data, key, value, attribute_model)
 
 
 def get_invoice_sequence_obj(user, marketplace):
@@ -11148,6 +11220,92 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     inv_num_lis.append(str(user_type_sequence.value).zfill(3))
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
+
+
+def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
+    switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                   'fifo_switch': get_misc_value('fifo_switch', user.id),
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                   'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id)}
+    sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+    stock_filter_dict = {'sku__user': user.id, 'quantity__gt': 0}
+    if locations:
+        stock_filter_dict['location__location__in'] = locations
+    if enable_damaged_stock == 'true':
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE'], **stock_filter_dict)
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(**stock_filter_dict)
+    if switch_vals['fifo_switch'] == 'true':
+        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
+            'receipt_date')
+        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+    else:
+        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
+            'location_id__pick_sequence')
+        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+    all_sku_stocks = stock_detail1 | stock_detail2
+    return sku_combos, all_sku_stocks, switch_vals
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_customer_master_id(request, user=''):
+    customer_id = 1
+    reseller_price_type = ''
+    customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
+        '-customer_id')
+    if customer_master:
+        customer_id = customer_master[0] + 1
+
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    level_2_price_type = ''
+    admin_user = user
+    if price_band_flag == 'true':
+        admin_user = get_admin(user)
+        level_2_price_type = 'D1-R'
+    if user.userprofile.warehouse_type == 'DIST':
+        reseller_price_type = 'D-R'
+
+    price_types = get_distinct_price_types(admin_user)
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
+                                    'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
+
+
+@get_admin_user
+def search_location_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    type = request.GET.get('type' ,'')
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    filter_params  = {'zone__user':user.id,'status':1}
+    if type:
+        filter_params['zone__zone'] = type
+    master_data = LocationMaster.objects.filter(location__icontains=search_key, **filter_params)
+
+    for data in master_data[:30]:
+        total_data.append({'location': data.location})
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@get_admin_user
+def get_location_data(request, user=''):
+    data_id = request.GET['id']
+    try:
+        data_id = int(data_id)
+    except:
+        return HttpResponse('')
+    location = LocationMaster.objects.filter(location=data_id, user=user.id)
+    if location:
+        data = location[0]
+        return HttpResponse(json.dumps({'name': data.location}))
+    else:
+        return HttpResponse('')
+
 
 def validate_st_seller(user, seller_id, error_name=''):
     status = ''

@@ -53,6 +53,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_allocate_sale_order':false,
                     'po_or_pr_edit_permission_approver': false,
                     'stock_auto_receive': false,
+                    'attributes_sync': false,
+                    'tax_master_sync': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -95,6 +97,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
+                     118: 'attributes_sync',
+                     119: 'tax_master_sync',
                      }
 
   vm.check_box_data = [
@@ -678,7 +682,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 112,
    class_name: "fa fa-server",
    display: true
-   }
+   },
+   {
+   name: "Sync User Attributes b/n Users",
+   model_name: "attributes_sync",
+   param_no: 118,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Sync Tax Master b/n Users",
+   model_name: "tax_master_sync",
+   param_no: 119,
+   class_name: "fa fa-server",
+   display: true
+   },
 ]
 
   vm.empty = {};

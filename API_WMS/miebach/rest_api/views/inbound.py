@@ -1621,6 +1621,8 @@ def switches(request, user=''):
                        'auto_allocate_sale_order':'auto_allocate_sale_order',
                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        'stock_auto_receive':'stock_auto_receive',
+                       'attributes_sync': 'attributes_sync',
+                       'tax_master_sync': 'tax_master_sync',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

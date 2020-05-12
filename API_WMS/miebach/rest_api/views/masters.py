@@ -3948,14 +3948,19 @@ def add_or_update_tax(request, user=''):
 
             data_dict = {'user_id': user.id}
             if data.get('id', ''):
+                data_dict = {}
                 tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
                 for key in columns:
                     try:
                         data_key = float(data[key])
                     except:
                         data_key = 0
-                    setattr(tax_master, key, data_key)
-                tax_master.save()
+                    print data_key
+                    data_dict[key] = data_key
+                    #setattr(tax_master, key, data_key)
+                filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+                #tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:
                     continue
@@ -3966,8 +3971,11 @@ def add_or_update_tax(request, user=''):
                 if data['tax_type'] == 'inter_state':
                     data_dict['inter_state'] = 1
                 data_dict['product_type'] = product_type
-                tax_master = TaxMaster(**data_dict)
-                tax_master.save()
+                filter_dict = {'product_type': product_type, 'user_id': user.id,
+                                'inter_state': data_dict['inter_state']}
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+                #tax_master = TaxMaster(**data_dict)
+                #tax_master.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4265,7 +4273,7 @@ def save_update_attribute(request, user=''):
         return HttpResponse('Attribute model is mandatory')
     data_dict = dict(request.POST.lists())
     for ind in range(0, len(data_dict['id'])):
-        if(data_dict['id'][ind]):
+        '''if(data_dict['id'][ind]):
             user_attr = UserAttributes.objects.filter(id=data_dict['id'][ind])
             if user_attr:
                 user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
@@ -4280,7 +4288,11 @@ def save_update_attribute(request, user=''):
                                               attribute_name=data_dict['attribute_name'][ind],
                                               attribute_type=data_dict['attribute_type'][ind], status=1,
                                               creation_date=datetime.datetime.now(),
-                                              user_id=user.id)
+                                              user_id=user.id)'''
+        #if data_dict['id'][ind]:
+        update_dict = {'attribute_type': data_dict['attribute_type'][ind], 'status': 1}
+        filter_dict = {'attribute_name': data_dict['attribute_name'][ind], 'attribute_model': attr_model}
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync')
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
 
 

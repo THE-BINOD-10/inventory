@@ -14,6 +14,7 @@ log = init_logger('logs/sync_sku.log')
 
 def insert_skus(user_id):
     """ This function syncs all sku among the connected Users for the first time"""
+    from rest_api.views.common import get_related_users
     st_time = datetime.datetime.now()
     log.info("first time sync process starting now")
 
@@ -33,40 +34,12 @@ def insert_skus(user_id):
 
 def update_skus(user_id, sku_codes):
     """ Whenever new SKU is added it needed to update in all related warehouses """
+    from rest_api.views.common import get_related_users
 
     all_users = get_related_users(user_id)
     new_skus = SKUMaster.objects.filter(user=user_id, sku_code__in=sku_codes)
     create_update_sku(new_skus, all_users)
     return "Success"
-
-
-def get_related_users(user_id):
-    """ this function generates all users related to a user """
-    from common import get_company_id
-    #all_users = []
-    user = User.objects.get(id=user_id)
-    company_id = get_company_id(user)
-    user_groups = UserGroups.objects.filter(company_id=company_id)
-
-    user_list1 = list(user_groups.values_list('user_id', flat=True))
-    user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
-    all_users = list(set(user_list1 + user_list2))
-    # if not admin_user:
-    #     admin_user_obj = UserGroups.objects.filter(user_id=user_id)
-    #     if admin_user_obj:
-    #         admin_user = admin_user_obj[0].admin_user_id
-    #     else:
-    #         admin_user = ''
-    # else:
-    #     admin_user = user_id
-    #
-    # if admin_user:
-    #     all_users.append(admin_user)
-    #     all_normal_user = UserGroups.objects.filter(admin_user_id=admin_user).values_list('user_id', flat=True)
-    #     all_users.extend(all_normal_user)
-
-    log.info("all users %s" % all_users)
-    return all_users
 
 
 def get_all_skus(all_users):

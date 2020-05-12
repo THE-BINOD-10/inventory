@@ -4959,7 +4959,9 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster):
         sku_master = instanceName.objects.filter(user__in=user)
 
     if instanceName.__name__ == 'SKUMaster':
-        sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all())
+        sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
+                        exclude(id__in=ServiceMaster.objects.all()). \
+                        exclude(id__in=OtherItemsMaster.objects.all())
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         if is_list:

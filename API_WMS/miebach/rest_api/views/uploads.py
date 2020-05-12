@@ -998,10 +998,8 @@ def asset_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
         return error_file_download(sku_file)
-    user_profile = UserProfile.objects.get(user_id=user.id)
     headers = copy.deepcopy(ASSET_HEADERS)
     wb, ws = get_work_sheet('assets', headers)
-
     return xls_to_response(wb, '%s.asset_form.xls' % str(user.username))
 
 
@@ -1011,10 +1009,21 @@ def service_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
         return error_file_download(sku_file)
-    user_profile = UserProfile.objects.get(user_id=user.id)
     headers = copy.deepcopy(SERVICE_HEADERS)
     wb, ws = get_work_sheet('service', headers)
     return xls_to_response(wb, '%s.service_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@get_admin_user
+def otheritems_form(request, user=''):
+    asset_file = request.GET['download-sku-file']
+    if asset_file:
+        return error_file_download(sku_file)
+    headers = copy.deepcopy(OTHER_ITEM_HEADERS)
+    wb, ws = get_work_sheet('other_items', headers)
+    return xls_to_response(wb, '%s.otheritems_form.xls' % str(user.username))
+
 
 @csrf_exempt
 @get_admin_user
@@ -1623,30 +1632,27 @@ def get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
 
 def get_asset_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
     sku_mapping = copy.deepcopy(ASSET_COMMON_MAPPING)
-    # user_attributes = get_user_attributes(user, 'sku')
-    # attributes = user_attributes.values_list('attribute_name', flat=True)
-    # sku_mapping.update(dict(zip(attributes, attributes)))
     sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  sku_mapping)
-    # if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
-    #     sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
     return sku_file_mapping
 
 
 def get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
     sku_mapping = copy.deepcopy(SERVICEMASTER_COMMON_MAPPING)
-    # user_attributes = get_user_attributes(user, 'sku')
-    # attributes = user_attributes.values_list('attribute_name', flat=True)
-    # sku_mapping.update(dict(zip(attributes, attributes)))
     sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  sku_mapping)
-    # if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
-    #     sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
+    return sku_file_mapping
+
+
+def get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
+    sku_mapping = copy.deepcopy(OTHERITEMS_COMMON_MAPPING)
+    sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 sku_mapping)
     return sku_file_mapping
 
 
 def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
-                        is_asset=False, is_service=False):
+                        is_asset=False, is_service=False, is_item=False):
     from masters import check_update_size_type
     from masters import check_update_hot_release
     all_sku_masters = []
@@ -1663,6 +1669,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     if is_service:
         instanceName = ServiceMaster
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if is_item:
+        instanceName = OtherItemsMaster
+        sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
             continue
@@ -1672,6 +1681,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             data_dict.update(SERVICE_SKU_DATA)
         if is_asset:
             data_dict.update(ASSET_SKU_DATA)
+        if is_item:
+            data_dict.update(OTHERITEMS_SKU_DATA)
 
         temp_dict = data_dict.keys()
         temp_dict += ['size_type', 'hot_release']
@@ -1966,6 +1977,33 @@ def service_upload(request, user=''):
         return HttpResponse("Service Master Upload Failed")
 
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def otheritems_upload(request, user=''):
+    try:
+        reversion.set_user(request.user)
+        reversion.set_comment("upload_item")
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_item=True)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('OtherItems Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("OtherItems Master Upload Failed")
+
+    return HttpResponse('Success')
+
 
 @csrf_exempt
 @login_required

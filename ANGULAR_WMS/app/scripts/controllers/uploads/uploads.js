@@ -46,6 +46,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_servicemaster"
                  }, {
+                   title: "OtherItemsMaster Download/ Upload",
+                   download: "Download OtherItems Form",
+                   upload: "Upload OtherItems Form",
+                   durl: "otheritems_form/",
+                   uurl: "otheritems_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_otheritemsmaster"
+                 }, {
                    title: "Inventory Download/ Upload",
                    download: "Download Inventory Form",
                    upload: "Upload Inventory Form",

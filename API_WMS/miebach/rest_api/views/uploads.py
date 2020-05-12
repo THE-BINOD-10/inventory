@@ -1854,7 +1854,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-            import pdb; pdb.set_trace()
             sku_master = instanceName(**data_dict)
             sku_master.save()
             all_sku_masters.append(sku_master)

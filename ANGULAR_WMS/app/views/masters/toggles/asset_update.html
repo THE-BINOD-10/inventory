@@ -39,9 +39,9 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Asset Type </label>
-                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
+                <input type="text" name="asset_type" class="form-control" 
+                ng-model="showCase.model_data.sku_data.asset_type" 
+                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -88,17 +88,6 @@
                 <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Size Type </label>
-                <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-                  <option value="" ng-selected="showCase.model_data.sku_data.size_type == ''">None</option>
-                  <option ng-repeat = "type in showCase.model_data.sizes_list" value="{{type.size_name}}" ng-selected="type.size_name == showCase.model_data.sku_data.size_type">{{type.size_name}}</option>
-                </select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="size_type" class="form-control" value="{{showCase.model_data.sku_data.size_type}}" readonly>
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Size </label>
@@ -110,12 +99,6 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_size" class="form-control" value="{{showCase.model_data.sku_data.sku_size}}" readonly>
               </div>
             </div>
-            <!-- <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Style Name</label>
-                <input type="text" name="style_name" class="form-control" ng-model="showCase.model_data.sku_data.style_name" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Tax Type</label>
@@ -144,17 +127,6 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sub_category" class="form-control" value="{{showCase.model_data.sku_data.sub_category}}" readonly>
               </div>
             </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Mix SKU </label>
-                <select class="form-control" name="mix_sku" ng-model="showCase.model_data.sku_data.mix_sku" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-                  <option ng-selected="showCase.model_data.sku_data.mix_sku == ''" value="">Default</option>
-                  <option ng-repeat="(k,v) in showCase.mix_sku_list" ng-selected="showCase.model_data.sku_data.mix_sku == v" value="{{v}}">{{k}}</option>
-                </select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="mix_sku" class="form-control" value="{{showCase.model_data.sku_data.mix_sku}}" readonly>
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Status </label>
@@ -164,27 +136,6 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="status" class="form-control" value="{{showCase.model_data.sku_data.status}}" readonly>
               </div>
             </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.add_qualitycheck">
-              <div class="form-group">
-                <label class="control-label"> Quality Check </label>
-                <select class="form-control qc_check" name="qc_check" ng-model="showCase.model_data.sku_data.qc_check" ng-options="qc for qc in showCase.qc_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-                </select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="qc_check" class="form-control" value="{{showCase.model_data.sku_data.qc_check}}" readonly>
-              </div>
-            </div> -->
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Threshold Quantity * </label>
-                <input type="text" name="threshold_quantity" class="form-control" ng-model="showCase.model_data.sku_data.threshold_quantity" ng-class="service.get_decimal_perm()" required>
-              </div>
-            </div> -->
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Max Norm Quantity </label>
-                <input type="text" name="max_norm_quantity" class="form-control" ng-model="showCase.model_data.sku_data.max_norm_quantity" ng-class="service.get_decimal_perm()">
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Cost Price </label>
@@ -204,56 +155,10 @@
                 <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Color </label>
-                <input type="text" name="color" class="form-control" ng-model="showCase.model_data.sku_data.color" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-              </div>
-            </div> -->
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Load Unit Handling </label>
-                <select class="form-control" name="load_unit_handle" ng-model="showCase.model_data.sku_data.load_unit_handle">
-                  <option ng-selected="showCase.model_data.sku_data.load_unit_handle == '1'" value="Enable">Enable</option>
-                  <option ng-selected="showCase.model_data.sku_data.load_unit_handle == '0'" value="Disable">Disable</option>
-                </select>
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> HSN Code </label>
                 <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-              </div>
-            </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Batch Based </label>
-                <input type="text" name="batch_based" class="form-control" ng-model="showCase.model_data.sku_data.batch_based">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Hot Release </label>
-                <select class="form-control" name="hot_release" ng-model="showCase.model_data.sku_data.hot_release" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
-                  <option ng-selected="showCase.model_data.sku_data.hot_release == 1" value="Enable">Enable</option>
-                  <option ng-selected="showCase.model_data.sku_data.hot_release == 0" value="Disable">Disable</option>
-                </select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="hot_release" class="form-control" value="{{showCase.model_data.sku_data.hot_release}}" readonly>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.user_profile.industry_type=='FMCG'">
-              <div class="form-group">
-                <label class="control-label"> Shelf life (Days) </label>
-                <input type="text" name="shelf_life" class="form-control" ng-model="showCase.model_data.sku_data.shelf_life" ng-class="service.get_decimal_perm()">
-              </div>
-            </div> -->
-
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
-              <div class="form-group">
-                <label class="control-label"> {{ attr.attribute_name }} </label>
-                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -264,94 +169,43 @@
                 </select>
               </div>
             </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> YouTube URL </label>
-                <input type="text" name="youtube_url" class="form-control" ng-model="showCase.model_data.sku_data.youtube_url">
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> EAN Number </label>
-                <!-- <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> -->
                 <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
                   <input id="ean_numbers" class="ean_numbers" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
                 </div>
               </div>
             </div>
-<!--             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.is_staff">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Block For PO </label>
-                <select class="form-control" name="block_options" ng-model="showCase.model_data.sku_data.block_options" ng-options="qc for qc in showCase.block_for_po_list" ng-selected="qc == showCase.model_data.sku_data.block_options">
-                </select>
+                <label class="control-label"> Parent Asset Code </label>
+                <input type="text" name="parent_asset_code" class="form-control" ng-model="showCase.model_data.sku_data.parent_asset_code" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
-            </div> -->
-            <!-- <div class="col-md-4 col-sm-6 col-xs-6">
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Substitutes </label>
-                <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
-                  <input id="substitutes" class="substitutes" type="text" value="{{showCase.model_data.sku_data.substitutes}}" ui-jq="tagsInput"/>
-                </div>
+                <label class="control-label"> Asset Number </label>
+                <input type="text" name="asset_number" class="form-control" ng-model="showCase.model_data.sku_data.asset_number" decimal-number 
+                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
-            </div> -->
-
-
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Vendor </label>
+                <input type="text" name="vendor" class="form-control" ng-model="showCase.model_data.sku_data.vendor" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Store ID </label>
+                <input type="text" name="store_id" class="form-control" ng-model="showCase.model_data.sku_data.store_id" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>
-          <!-- <div class="row over-x" ng-hide="showCase.isEmptyMarket">
-            <table class="table mw40">
-              <thead>
-                <tr>
-                  <th><b> Market Place </b></th>
-                  <th><b> SKU </b></th>
-                  <th><b> Description </b></th>
-                  <th class="plus"></td>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat= "market in showCase.model_data.market_data">
-                  <td>
-                    <input type="hidden" name="market_id" value="{{market.market_id}}">
-                    <input type="hidden" name="market_sku_type" value="{{market.market_sku_type}}">
-                    <select class="form-control" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list" ng-disabled="market.disable">
-                    </select>
-                  </td>
-                  <td><input type="text" name="marketplace_code" class="form-control" ng-model="market.marketplace_code" ng-readonly="market.disable"></td>
-                  <td><input type="text" name="description" class="form-control" ng-model="market.description" ng-readonly="market.disable"></td>
-                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_market($index, market.market_id)" ng-readonly="market.disable"></i></td>
-                </tr>
-              </tbody>
-            </table>
-          </div> -->
-          <!-- <div class="row">
-            <center>
-              <button type="button" class="btn btn-default add-market" ng-click="showCase.add_market()">Add New Market place</button>
-            </center>
-          </div>
-          <div class="row" ng-if="showCase.combo && showCase.update">
-            <div class="col-md-12"><hr></div>
-          </div>
-          <div class="row" ng-if="showCase.combo && showCase.update">
-            <div class="col-md-4">
-              <center><b> Combo SKU </b></center>
-            </div>
-            <div class="col-md-5">
-              <center><b> Combo Description </b></center>
-            </div>
-            <div class="col-md-3">
-              <center><b> Combo Quantity </b></center>
-            </div>
-          </div>
-          <div ng-if="showCase.combo && showCase.update" class="row field" ng-repeat= "combo in showCase.model_data.combo_data">
-            <div class="col-md-4"><input type="text" name="combo_sku" class="form-control" ng-model="combo.combo_sku" disabled></div>
-            <div class="col-md-5"><input type="text" name="combo_desc" class="form-control" ng-model="combo.combo_desc" disabled></div>
-            <div class="col-md-3"><input type="text" name="combo_quantity" class="form-control" ng-model="combo.combo_quantity" disabled></div>
-          </div>
-          <div class="row">
-            <div class="col-md-12"><hr></div>
-          </div> -->
           <div class="row">
             <div class="col-md-9 col-sm-9 col-xs-8">
               <div class="form-group">

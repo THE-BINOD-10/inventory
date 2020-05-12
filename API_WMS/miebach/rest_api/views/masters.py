@@ -233,9 +233,17 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                             values_list('str_eans', flat=True)
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
+        if instanceName == AssetMaster:
+            sku_type = data.asset_type
+        elif instanceName == ServiceMaster:
+            sku_type = data.service_type
+        elif instanceName == OtherItemsMaster:
+            sku_type = data.item_type
+        else:
+            sku_type = data.sku_type
         temp_data['aaData'].append(OrderedDict(
             (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
-             ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
+             ('SKU Type', sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
              ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
@@ -902,6 +910,15 @@ def get_sku_data(request, user=''):
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
         sku_data['asset_code'] = data.asset_code
+        sku_data['service_type'] = data.service_type
+    elif instanceName == AssetMaster:
+        sku_data['asset_type'] = data.asset_type
+        sku_data['parent_asset_code'] = data.parent_asset_code
+        sku_data['asset_number'] = data.asset_number
+        sku_data['store_id'] = data.store_id
+        sku_data['vendor'] = data.vendor
+    elif instanceName == OtherItemsMaster:
+        sku_data['item_type'] = data.item_type
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1107,7 +1124,6 @@ def update_sku(request, user=''):
             instanceName = ServiceMaster
         if request.POST.get('is_otheritem') == 'true':
             instanceName = OtherItemsMaster
-        import pdb; pdb.set_trace()
         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')

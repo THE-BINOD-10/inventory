@@ -157,10 +157,11 @@ class SKUMaster(models.Model):
 
 
 class AssetMaster(SKUMaster):
-    parrent_asset_code = models.CharField(max_length=128, default='')
+    parent_asset_code = models.CharField(max_length=128, default='')
     asset_type = models.CharField(max_length=64, default='')
     asset_number = models.PositiveIntegerField(default=0)
-    store_id = models.PositiveIntegerField(default=0)
+    vendor = models.CharField(max_length=128, default='')
+    store_id = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'ASSET_MASTER'

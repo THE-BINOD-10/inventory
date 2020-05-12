@@ -96,7 +96,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
 
 SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': '', 'service_type': ''}
 
-ASSET_SKU_DATA = {'parrent_asset_code': '', 'asset_number': '', 'store_id': '', 'asset_type': ''}
+ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': '', 'store_id': '', 'asset_type': '', 'vendor': ''}
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 

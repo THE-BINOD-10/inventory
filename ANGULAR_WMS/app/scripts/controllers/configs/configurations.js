@@ -58,6 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
                     'st_po_prefix': false,
+                    'supplier_sync': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -104,6 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      114: 'auto_generate_receive_qty',
                      115: 'st_po_prefix',
                      116: 'display_parts_allocation',
+                     117: 'supplier_sync',
                      }
 
   vm.check_box_data = [
@@ -702,6 +704,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Sync Supplier b/n Users",
+   model_name: "supplier_sync",
+   param_no: 117,
+   class_name: "fa fa-server",
+   display: true
+   },
 ]
 
   vm.empty = {};

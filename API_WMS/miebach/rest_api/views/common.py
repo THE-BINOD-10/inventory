@@ -889,7 +889,7 @@ def pr_request(request):
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
-                        'pending_po__delivery_date', 'pending_po__supplier_id', 'pending_po__supplier__name']
+                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -981,7 +981,7 @@ def pr_request(request):
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', purchase_number),
                                                 ('PO Number', po_reference),
-                                                ('Supplier ID', result.get('pending_po__supplier_id', '')),
+                                                ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -6435,7 +6435,7 @@ def get_purchase_order_data(order):
         rw_purchase = rw_purchase[0]
         open_data = rw_purchase.rwo
         user_data = UserProfile.objects.get(user_id=open_data.vendor.user)
-        supplier_id = user_data.id
+        supplier_id = user_data.user.id
         address = open_data.vendor.address
         email_id = open_data.vendor.email_id
         username = open_data.vendor.name
@@ -6455,7 +6455,7 @@ def get_purchase_order_data(order):
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
-        supplier_id = user_data.id
+        supplier_id = order.open_po.supplier.supplier_id
         address = user_data.address
         email_id = user_data.email_id
         username = user_data.name
@@ -8380,6 +8380,7 @@ def get_user_profile_data(request, user=''):
     data['wh_phone_number'] = main_user.wh_phone_number
     data['pan_number'] = main_user.pan_number
     data['phone_number'] = main_user.phone_number
+    data['state'] = main_user.state
     data['sign_signature'] = None
     master_docs_obj = MasterDocs.objects.filter(master_type='auth_sign_copy', user_id=user.id).order_by('-creation_date')
     if master_docs_obj.exists():
@@ -8455,7 +8456,6 @@ def change_user_password(request, user=''):
 @login_required
 @get_admin_user
 def update_profile_data(request, user=''):
-    from masters import upload_master_file
     ''' will update profile data '''
     address = request.POST.get('address', '')
     gst_number = request.POST.get('gst_number', '')
@@ -8466,6 +8466,7 @@ def update_profile_data(request, user=''):
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
     phone_number = request.POST.get('phone_number', '')
+    state = request.POST.get('state', '')
     sign_file = request.FILES.get('signature_logo', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
@@ -8476,6 +8477,7 @@ def update_profile_data(request, user=''):
     main_user.wh_phone_number = wh_phone_number
     main_user.phone_number = phone_number
     main_user.pan_number = pan_number
+    main_user.state = state
     main_user.save()
     user.email = email
     user.save()
@@ -8866,26 +8868,28 @@ def get_supplier_info(request):
         return True, supplier_data, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
-def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, supp_tin):
+def create_new_supplier(user, supp_id, supplier_dict=None):
     ''' Create New Supplier with dynamic supplier id'''
     max_sup_id = SupplierMaster.objects.count()
     run_iterator = 1
-    supplier_id = ''
+    supplier_master = None
     while run_iterator:
         supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
         if not supplier_obj:
-            supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                            name=supp_name,
-                                                                            email_id=supp_email,
-                                                                            phone_number=supp_phone,
-                                                                            address=supp_address,
-                                                                            tin_number=supp_tin,
-                                                                            status=1)
+            if supp_id:
+                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                                supplier_id=supp_id, **supplier_dict)
+            else:
+                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                                **supplier_dict)
+                if created:
+                    supplier_master.supplier_id = supplier_master.id
+                    supplier_master.save()
             run_iterator = 0
-            supplier_id = supplier_master.id
+            #supplier_id = supplier_master.id
         else:
             max_sup_id += 1
-    return supplier_id
+    return supplier_master
 
 
 def create_order_pos(user, order_objs, admin_user=None):
@@ -9961,7 +9965,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
                                                    invoice_number=invoice_num,
-                                                   purchase_order__open_po__supplier_id=supplier_id)
+                                                   purchase_order__open_po__supplier__supplier_id=supplier_id)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
                                                              str(exist_inv_obj[0].receipt_number))
@@ -11500,3 +11504,67 @@ def bulk_create_in_batches(model_obj, data_objs):
         batch_data_objs = data_objs[last_batch:cur_batch]
         last_batch = cur_batch
         model_obj.objects.bulk_create(batch_data_objs)
+
+
+@csrf_exempt
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
+    master_id = master_id
+    master_type = master_type
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
+    if not master_file and master_id and master_type:
+        return 'Fields are missing.'
+    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
+    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
+    if not master_doc:
+        master_doc = MasterDocs(**upload_doc_dict)
+        master_doc.save()
+    return 'Uploaded Successfully'
+
+
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
+    supplier_sync = get_misc_value('supplier_sync', user.id)
+    if supplier_sync == 'true':
+        user_ids = get_related_users(user.id)
+    else:
+        user_ids = [user.id]
+    master_objs = {}
+    for user_id in user_ids:
+        user_obj = User.objects.get(id=user_id)
+        user_filter_dict = copy.deepcopy(filter_dict)
+        user_data_dict = copy.deepcopy(data_dict)
+        user_filter_dict['user'] = user_id
+        if user.id != user_id:
+            if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
+                user_data_dict['tax_type'] = 'intra_state'
+            else:
+                user_data_dict['tax_type'] = 'inter_state'
+        exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
+        if not exist_supplier.exists():
+            supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)
+        else:
+            exist_supplier.update(**user_data_dict)
+            supplier_master = exist_supplier[0]
+        master_objs[user_id] = supplier_master
+        upload_master_file(request, user, supplier_master.id, "SupplierMaster")
+        supplier_master.save()
+        master_email_map = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
+                                                                master_type='supplier')
+        if master_email_map:
+            master_email_map.delete()
+        for mail in secondary_email_id:
+            if not mail:
+                continue
+            exist_mail_mapping = MasterEmailMapping.objects.filter(user=user_id, master_id=supplier_master.id,
+                                                                   master_type='supplier', email_id=mail)
+            if not exist_mail_mapping.exists():
+                master_email_map = {}
+                master_email_map['user'] = user_obj
+                master_email_map['master_id'] = supplier_master.id
+                master_email_map['master_type'] = 'supplier'
+                master_email_map['email_id'] = mail
+                master_email_map['creation_date'] = datetime.datetime.now()
+                master_email_map['updation_date'] = datetime.datetime.now()
+                master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+    return master_objs

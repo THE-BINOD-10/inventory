@@ -2332,12 +2332,12 @@ def validate_supplier_form(open_sheet, user_id):
                     return 'Invalid File'
                 break
 
-            if key == 'id':
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data:
-                    supplier_master = SupplierMaster.objects.filter(id=cell_data)
-                    if supplier_master and not str(supplier_master[0].user) == str(user_id):
+                    supplier_master = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
+                    if supplier_master:
                         index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
@@ -2396,11 +2396,11 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
         supplier_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
-            if key == 'id':
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
-                supplier_data['id'] = cell_data
-                supplier_obj = SupplierMaster.objects.filter(id=cell_data)
+                supplier_data['supplier_id'] = cell_data
+                supplier_obj = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
                 if supplier_obj:
                     supplier_master = supplier_obj[0]
                 if demo_data:
@@ -2442,29 +2442,36 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                     if supplier_master and cell_data:
                         setattr(supplier_master, key, cell_data)
         if not supplier_master:
-            supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
+            supplier = SupplierMaster.objects.filter(supplier_id=supplier_data['supplier_id'], user=user.id)
             if not supplier:
                 supplier_data['creation_date'] = datetime.datetime.now()
-                supplier_data['user'] = user.id
-                supplier = SupplierMaster(**supplier_data)
-                supplier.save()
+                #supplier_data['user'] = user.id
+                supplier_id = supplier_data['supplier_id']
+                del supplier_data['supplier_id']
+                filter_dict = {'supplier_id': supplier_id}
+                master_objs = sync_supplier_master(request, user, supplier_data, filter_dict,
+                                                   secondary_email_id=secondary_email_ids)
+                #supplier_master = create_new_supplier(user, supplier_id, supplier_data)
+                # supplier = SupplierMaster(**supplier_data)
+                # supplier.save()
         else:
-            supplier_master.save()
-        if secondary_email_ids:
-            master_data_dict = {}
-            master_data_dict['user_id'] = user.id
-            master_data_dict['master_type'] = 'supplier'
-            master_data_dict['master_id'] = supplier_data['id']
-            master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
-            if master_email_map:
-                master_email_map.delete()
-            for mail in secondary_email_ids:
-                master_data_dict = {}
-                master_data_dict['user_id'] = user.id
-                master_data_dict['email_id'] = mail
-                master_data_dict['master_id'] = supplier_data['id']
-                master_data_dict['master_type'] = 'supplier'
-                MasterEmailMapping.objects.create(**master_data_dict)
+            master_objs = sync_supplier_master(request, user, supplier_data, filter_dict,
+                                               secondary_email_id=secondary_email_ids)
+        # if secondary_email_ids:
+        #     master_data_dict = {}
+        #     master_data_dict['user_id'] = user.id
+        #     master_data_dict['master_type'] = 'supplier'
+        #     master_data_dict['master_id'] = supplier_master.id
+        #     master_email_map = MasterEmailMapping.objects.filter(**master_data_dict)
+        #     if master_email_map:
+        #         master_email_map.delete()
+        #     for mail in secondary_email_ids:
+        #         master_data_dict = {}
+        #         master_data_dict['user_id'] = user.id
+        #         master_data_dict['email_id'] = mail
+        #         master_data_dict['master_id'] = supplier_master.id
+        #         master_data_dict['master_type'] = 'supplier'
+        #         MasterEmailMapping.objects.create(**master_data_dict)
     return 'success'
 
 
@@ -2586,7 +2593,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     temp1 = ''
-    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('supplier_id', flat=True)
     auto_po_switch = get_misc_value('auto_po_switch', user_id)
     if supplier_list:
         for i in supplier_list:
@@ -2708,7 +2715,7 @@ def supplier_sku_upload(request, user=''):
                     if col_idx == 0:
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
-                        supplier_data['supplier_id'] = cell_data
+                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
                     elif col_idx == 1:
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)
@@ -2919,7 +2926,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     cell_data = user_profile.prefix + '_' + cell_data
                 ep_supplier = 0
                 if cell_data:
-                    supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
+                    supplier = SupplierMaster.objects.filter(user=user.id, supplier_id=cell_data.upper())
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
                     else:
@@ -5597,7 +5604,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
                 else:
                     if isinstance(supplier_id, float):
                         supplier_id = int(supplier_id)
-                    supplier_master = SupplierMaster.objects.filter(user=user.id, id=supplier_id)
+                    supplier_master = SupplierMaster.objects.filter(user=user.id, supplier_id=supplier_id)
                     if not supplier_master:
                         index_status.setdefault(count, set()).add('Invalid Supplier ID')
                 if supplier_master:
@@ -8454,7 +8461,7 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
     supplier_ids = []
     final_data = []
     attr_mapping = copy.deepcopy(SKU_NAME_FIELDS_MAPPING)
-    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('id', flat=True)
+    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('supplier_id', flat=True)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
@@ -8472,7 +8479,7 @@ def validate_supplier_sku_attributes_form(open_sheet, user_id):
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data and cell_data in supplier_ids:
-                    row_data['supplier_id'] = cell_data
+                    row_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user_id).id
                 else:
                     index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
 

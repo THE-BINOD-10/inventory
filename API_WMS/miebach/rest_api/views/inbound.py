@@ -178,7 +178,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['-pending_po__po_number','pending_po__supplier_id', 'pending_po__supplier__name',
+    lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
             'pending_po__final_status', 'pending_po__pending_level',
@@ -191,7 +191,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                     'pending_po__requested_user__username', 'pending_po__po_number',
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
-                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
+                    'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
@@ -259,7 +259,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
                                                 # ('Approved PRs', approvedPRs),
-                                                ('Supplier ID', result['pending_po__supplier_id']),
+                                                ('Supplier ID', result['pending_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -282,7 +282,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
 @csrf_exempt
 def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['supplier__id', 'supplier__id', 'supplier__name', 'total', 'order_type']
+    lis = ['supplier__supplier_id', 'supplier__supplier_id', 'supplier__name', 'total', 'order_type']
     search_params = get_filtered_params(filters, lis[1:])
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -290,19 +290,19 @@ def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_te
 
     search_params['sku_id__in'] = sku_master_ids
     if search_term:
-        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier__supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
-            filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
+            filter(Q(supplier__supplier_id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
                    Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier__supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params).order_by(order_data)
     else:
-        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+        results = OpenPO.objects.filter(status__in=['', 'Manual', 'Automated']).values('supplier__supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params)
@@ -316,8 +316,8 @@ def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_te
         order_type = status_dict[result['order_type']]
         # if order_type in PO_RECEIPT_TYPES.keys():
         #    order_type = PO_RECEIPT_TYPES.get(order_type, '')
-        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (result['supplier_id'], result['supplier__name'])
-        temp_data['aaData'].append(OrderedDict((('', checkbox), ('Supplier ID', result['supplier_id']),
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (result['supplier__supplier_id'], result['supplier__name'])
+        temp_data['aaData'].append(OrderedDict((('', checkbox), ('Supplier ID', result['supplier__supplier_id']),
                                                 ('Supplier Name', result['supplier__name']),
                                                 ('Tax Type', result['supplier__tax_type']),
                                                 ('Total Quantity', result['total']),
@@ -450,7 +450,7 @@ def get_receive_po_datatable_filters(user, filters, request):
     if filters['search_9']:
         supplier_search = 'search_9'
     if filters[supplier_search]:
-        search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
+        search_params['open_po__supplier__supplier_id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
         search_params2['rwo__vendor__id__icontains'] = filters[supplier_search]
     if filters['search_3']:
@@ -570,9 +570,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     users = [user.id]
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
-        request.user.id = supplier.user
+        request.user = User.objects.get(id=supplier.user)
         # user.id = supplier.user
-        filters['search_9'] = supplier.id
+        filters['search_9'] = supplier.supplier_id
         users = [supplier.user]
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         warehouses = get_sister_warehouse(user)
@@ -995,7 +995,8 @@ def generated_po_data(request, user=''):
     receipt_type = ''
     if request.GET.get('po_number', ''):
         po_number = request.GET['po_number']
-    generated_id = request.GET['supplier_id']
+    supplier = SupplierMaster.objects.get(user=user.id, supplier_id=request.GET['supplier_id'])
+    generated_id = supplier.id
     order_type_val = request.GET['order_type']
     rev_order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
     # if order_type_val in PO_RECEIPT_TYPES.values():
@@ -1044,7 +1045,7 @@ def generated_po_data(request, user=''):
             vendor_id = record[0].vendor.vendor_id
         if record[0].delivery_date:
             po_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
-    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier.supplier_id, 'supplier_name': record[0].supplier.name,
                                     'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,
                                     'ship_to': record[0].ship_to, 'po_delivery_date': po_delivery_date,
@@ -1091,7 +1092,7 @@ def generated_pr_data(request, user=''):
                                     'igst_tax': igst_tax,
                                     'measurement_unit': uom,
                                     }, 'pk': apprId})
-    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier.supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
@@ -1296,7 +1297,7 @@ def validate_wms(request, user=''):
     if is_central_po == 'true':
         warehouse = User.objects.get(username=request.POST['warehouse_name'])
     if is_purchase_request != 'true' and is_actual_pr != 'true':
-        supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
+        supplier_master = SupplierMaster.objects.filter(supplier_id=myDict['supplier_id'][0], user=user.id)
     else:
         supplier_master = None
     if not supplier_master and not receipt_type == 'Hosted Warehouse' and wh_purchase_order != 'true' and is_purchase_request != 'true' and is_actual_pr != 'true':
@@ -1405,14 +1406,15 @@ def modify_po_update(request, user=''):
             continue
 
         sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
+        supplier = SupplierMaster.objects.filter(user=user.id, supplier_id=myDict['supplier_id'][0])
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
         if not sku_id:
             sku_id = sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
             po_suggestions['wms_code'] = wms_code.upper()
         if not sku_id[0].wms_code == 'TEMP':
-            supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=myDict['supplier_id'][0],
+            supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier.id,
                                                           sku__user=user.id)
-            sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+            sku_mapping = {'supplier_id': supplier.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
                            'supplier_code': value['supplier_code'], 'price': value['price'],
                            'creation_date': datetime.datetime.now(),
                            'updation_date': datetime.datetime.now()}
@@ -1425,7 +1427,7 @@ def modify_po_update(request, user=''):
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
         po_suggestions['sku_id'] = sku_id[0].id
-        po_suggestions['supplier_id'] = value['supplier_id']
+        po_suggestions['supplier_id'] = supplier.id
         po_suggestions['order_quantity'] = value['order_quantity']
         if not value['price']:
             value['price'] = 0
@@ -1592,6 +1594,7 @@ def switches(request, user=''):
                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        'stock_auto_receive':'stock_auto_receive',
                        'st_po_prefix':'st_po_prefix',
+                       'supplier_sync': 'supplier_sync',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1752,9 +1755,10 @@ def confirm_po(request, user=''):
                 po_suggestions['supplier_code'] = value['supplier_code']
                 mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
                 if not sku_id[0].wms_code == 'TEMP' and not mandate_supplier == 'true':
-                    supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+                    supplier = SupplierMaster.obects.get(user=user.id, supplier_id=value['supplier_id'])
+                    supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier.id,
                                                                   sku__user=user.id)
-                    sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+                    sku_mapping = {'supplier_id': supplier.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
                                    'supplier_code': value['supplier_code'], 'price': price,
                                    'creation_date': datetime.datetime.now(),
                                    'updation_date': datetime.datetime.now()}
@@ -1768,7 +1772,7 @@ def confirm_po(request, user=''):
                         new_mapping = SKUSupplier(**sku_mapping)
                         new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
-            po_suggestions['supplier_id'] = value['supplier_id']
+            po_suggestions['supplier_id'] = supplier.id
             po_suggestions['order_quantity'] = float(value['order_quantity'])
             po_suggestions['price'] = float(price)
             po_suggestions['status'] = 'Manual'
@@ -1926,9 +1930,9 @@ def confirm_po(request, user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
-	data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
+        data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
         if get_misc_value('allow_secondary_emails', user.id) == 'true':
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, phone_no, po_data,
+            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, telephone, po_data,
                                str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
@@ -1956,11 +1960,11 @@ def raise_po_toggle(request, user=''):
 @get_admin_user
 def search_supplier(request, user=''):
     data_id = request.GET['q']
-    data = SupplierMaster.objects.filter(Q(id__icontains=data_id) | Q(name__icontains=data_id), user=user.id)
+    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) | Q(name__icontains=data_id), user=user.id)
     suppliers = []
     if data:
         for supplier in data:
-            suppliers.append(str(supplier.id) + ":" + str(supplier.name))
+            suppliers.append(str(supplier.supplier_id) + ":" + str(supplier.name))
     return HttpResponse(json.dumps(suppliers))
 
 
@@ -2017,13 +2021,16 @@ def get_ep_supplier_value(request, user=''):
 def check_and_create_supplier(seller_id, user):
     seller_master = SellerMaster.objects.get(user=user.id, seller_id=seller_id)
     if seller_master.supplier_id:
-        supplier_id = seller_master.supplier_id
+        supplier_id = seller_master.supplier.supplier_id
     else:
-        supplier_id = create_new_supplier(user, seller_master.name, seller_master.email_id, seller_master.phone_number,
-                            seller_master.address, seller_master.tin_number)
-        if supplier_id:
-            seller_master.supplier_id = supplier_id
+        supplier_dict = {'name': seller_master.name, 'email_id': seller_master.email_id,
+                         'phone_number': seller_master.phone_number, 'address': seller_master.address,
+                         'tin_number': seller_master.tin_number}
+        supplier_master = create_new_supplier(user, '', supplier_dict)
+        if supplier_master:
+            seller_master.supplier_id = supplier_master.id
             seller_master.save()
+            supplier_id = supplier_master.supplier_id
     return supplier_id
 
 
@@ -2118,10 +2125,11 @@ def get_raisepo_group_data(user, myDict):
         if not supplierId and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict.get('wh_purchase_order', '') != 'true':
                 seller_id = myDict['dedicated_seller'][0].split(':')[0]
                 myDict['supplier_id'][0] = check_and_create_supplier(seller_id, user)
+                supplierId = myDict['supplier_id'][0]
         if myDict.get('wh_purchase_order', []):
             if myDict['wh_purchase_order'][0] == 'true':
                 myDict['supplier_id'][0] = check_and_create_wh_supplier(user, myDict['supplier_id'][0])
-
+                supplierId = myDict['supplier_id'][0]
 
         if not myDict['wms_code'][i]:
             continue
@@ -2172,15 +2180,15 @@ def add_po(request, user=''):
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
-        supplier_master = SupplierMaster.objects.filter(id=value['supplier_id'], user=user.id)
-        if sku_id[0].block_options == 'PO' and not int(supplier_master[0].ep_supplier):
+        supplier_master = SupplierMaster.objects.filter(supplier_id=value['supplier_id'], user=user.id)[0]
+        if sku_id[0].block_options == 'PO' and not int(supplier_master.ep_supplier):
             status = 'WMS Code - Blocked for PO'
             return HttpResponse(status)
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
 
-        supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+        supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier_master.id,
                                                       sku__user=user.id)
-        sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+        sku_mapping = {'supplier_id': supplier_master.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
                        'supplier_code': value['supplier_code'], 'price': value['price'],
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now()}
@@ -2196,12 +2204,12 @@ def add_po(request, user=''):
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
         suggestions_data = OpenPO.objects.exclude(status__exact='0').filter(sku_id=sku_id,
-                                                                            supplier_id=value['supplier_id'],
+                                                                            supplier_id=supplier_master.id,
                                                                             order_quantity=value['order_quantity'],
                                                                             sku__user=user.id)
         if not suggestions_data:
             po_suggestions['sku_id'] = sku_id[0].id
-            po_suggestions['supplier_id'] = value['supplier_id']
+            po_suggestions['supplier_id'] = supplier_master.id
             try:
                 po_suggestions['order_quantity'] = float(value['order_quantity'])
             except:
@@ -2475,7 +2483,7 @@ def approve_pr(request, user=''):
                     orderStatus=orderStatus)
         else:
             createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
+                    orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
@@ -2525,9 +2533,9 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         model_name = PendingPO
         purchaseMap['po_number'] = purchase_number
         if supplier:
-            purchaseMap['supplier_id'] = supplier
+            purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=supplier).id#supplier
         else:
-            purchaseMap['supplier_id'] = firstEntryValues.get('supplier_id', '')
+            purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=firstEntryValues.get('supplier_id', '')).id#firstEntryValues.get('supplier_id', '')
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
@@ -2780,7 +2788,7 @@ def save_pr(request, user=''):
                 # purchase_number = get_incremental(user, 'PurchaseRequest')
         supplier = myDict.get('supplier_id', '')
         if supplier:
-            supplier = supplier[0]
+            supplier = supplier[0]#SupplierMaster.objects.get(user=user.id, supplier_id=supplier[0]).id
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
@@ -3658,6 +3666,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if received_quantity == 0:
                     break
     return created_qc_ids
+
 
 @csrf_exempt
 @get_admin_user
@@ -6328,7 +6337,7 @@ def get_po_data(request):
     for orders in purchase_order:
         po_data = OrderedDict(
             (('order_id', orders['order_id']), ('order_date', str(orders['open_po__creation_date'].date())),
-             ('received_date', str(orders['updation_date'].date())), ('supplier_id', orders['open_po__supplier_id']),
+             ('received_date', str(orders['updation_date'].date())), ('supplier_id', orders['open_po__supplier__supplier_id']),
              ('supplier', orders['open_po__supplier__name']), ('total_invoice_amount', orders['total'])))
 
         del orders['total']
@@ -6582,16 +6591,17 @@ def confirm_add_po(request, sales_data='', user=''):
             if not mrp:
                 mrp = 0
 
+            supplier = SupplierMaster.objects.get(user=user.id, supplier_id=value['supplier_id'])
             if supplier_mapping == 'false':
                 if not 'supplier_code' in myDict.keys() and value['supplier_id']:
-                    supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
-                    if supplier:
-                        supplier_code = supplier[0].supplier_code
+                    sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier.id, sku__user=user.id)
+                    if sku_supplier:
+                        supplier_code = sku_supplier[0].supplier_code
                 elif value['supplier_code']:
                     supplier_code = value['supplier_code']
-                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=value['supplier_id'],
+                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier.id,
                                                               sku__user=user.id)
-                sku_mapping = {'supplier_id': value['supplier_id'], 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+                sku_mapping = {'supplier_id': supplier.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
                                'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
                                'updation_date': datetime.datetime.now()}
 
@@ -6604,7 +6614,7 @@ def confirm_add_po(request, sales_data='', user=''):
                     new_mapping = SKUSupplier(**sku_mapping)
                     new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
-            po_suggestions['supplier_id'] = value['supplier_id']
+            po_suggestions['supplier_id'] = supplier.id
             po_suggestions['order_quantity'] = value['order_quantity']
             po_suggestions['po_name'] = value['po_name']
             po_suggestions['supplier_code'] = value['supplier_code']
@@ -6954,10 +6964,6 @@ def confirm_po1(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("raise_po")
     data = copy.deepcopy(PO_DATA)
-    po_id = get_purchase_order_id(user)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
-    if po_sub_user_prefix == 'true':
-        po_id = update_po_order_prefix(request.user, po_id)
     ids_dict = {}
     po_data = []
     total = 0
@@ -6971,7 +6977,7 @@ def confirm_po1(request, user=''):
     show_apmc_tax = False
     for key, value in myDict.iteritems():
         for val in value:
-            open_pos = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
+            open_pos = OpenPO.objects.filter(supplier__supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
             po_sku_ids = open_pos.values_list('sku_id', flat=True)
@@ -7008,7 +7014,7 @@ def confirm_po1(request, user=''):
             supplier_email = ''
             gstin_no = ''
             telephone = ''
-            purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
+            purchase_orders = OpenPO.objects.filter(supplier__supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
             # po_sku_ids = purchase_orders.values_list('sku_id', flat=True)
@@ -7019,9 +7025,12 @@ def confirm_po1(request, user=''):
             #     ean_flag = True
             for purchase_order in purchase_orders:
                 data_id = purchase_order.id
-                supplier = val
+                supplier = purchase_order.supplier_id
                 if supplier not in ids_dict:
-                    po_id = po_id + 1
+                    po_id = get_purchase_order_id(user) + 1
+                    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+                    if po_sub_user_prefix == 'true':
+                        po_id = update_po_order_prefix(request.user, po_id)
                     ids_dict[supplier] = po_id
                 data['open_po_id'] = data_id
                 data['order_id'] = ids_dict[supplier]
@@ -7151,7 +7160,7 @@ def confirm_po1(request, user=''):
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
-		data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
+                data_dict_po = {'contact_no': profile.wh_phone_number, 'contact_email': user.email, 'gst_no': profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': profile.address, 'shipping_address': profile.wh_address}
                 if get_misc_value('allow_secondary_emails', user.id) == 'true':
                     write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
@@ -7173,7 +7182,7 @@ def delete_po_group(request, user=''):
     myDict = dict(request.GET.iterlists())
     for key, value in myDict.iteritems():
         for val in value:
-            purchase_order = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
+            purchase_order = OpenPO.objects.filter(supplier__supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                    order_type=status_dict[key],
                                                    sku__user=user.id).delete()
 
@@ -7509,7 +7518,7 @@ def create_purchase_order(request, myDict, i, user='', exist_id=0):
         if po_order:
             po_order_id = po_order[0].order_id
         sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i], user=user.id)
-        supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][i], user=user.id)
+        supplier_master = SupplierMaster.objects.filter(supplier_id=myDict['supplier_id'][i], user=user.id)
         price = myDict['price'][i]
         if not price:
             price = 0
@@ -10304,7 +10313,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_params = {}
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
-    lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
             'purchase_order__order_id', 'purchase_order__order_id', 'invoice_number', 'invoice_date',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id']
@@ -10323,7 +10332,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier_id' in filters:
-        search_params['purchase_order__open_po__supplier_id'] = filters['supplier_id']
+        search_params['purchase_order__open_po__supplier__supplier_id'] = filters['supplier_id']
     if 'open_po' in filters and filters['open_po']:
         temp = re.findall('\d+', filters['open_po'])
         if temp:
@@ -10365,7 +10374,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         grouping_key = (result.purchase_order.open_po.supplier_id, result.purchase_order.order_id,
                         getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date)
         supplier = result.purchase_order.open_po.supplier
-        grouping_data.setdefault(grouping_key, {'supplier_id': supplier.id,
+        grouping_data.setdefault(grouping_key, {'supplier_id': supplier.supplier_id,
                                                 'supplier_name': supplier.name,
                                                 'order_id': result.purchase_order.order_id,
                                                 'prefix': result.purchase_order.prefix,
@@ -10826,8 +10835,8 @@ def create_rtv(request, user=''):
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_params = {'status': 1, 'seller_po_summary__purchase_order__open_po__sku_id__in': sku_master_ids}
-    lis = ['seller_po_summary__purchase_order__open_po__supplier_id',
-           'seller_po_summary__purchase_order__open_po__supplier_id',
+    lis = ['seller_po_summary__purchase_order__open_po__supplier__supplier_id',
+           'seller_po_summary__purchase_order__open_po__supplier__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name',
            'seller_po_summary__invoice_number', 'seller_po_summary__challan_number',
            'seller_po_summary__purchase_order__order_id', 'purchase_order_date',
@@ -10846,7 +10855,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
         order_data = '-%s' % order_data
 
     if search_term:
-        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
+        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier__supplier_id',
                    'seller_po_summary__purchase_order__open_po__supplier__name',
                    'seller_po_summary__purchase_order__order_id',
                    'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
@@ -10855,7 +10864,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
             filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     else:
-        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
+        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier__supplier_id',
                    'seller_po_summary__purchase_order__open_po__supplier__name',
                    'seller_po_summary__purchase_order__order_id',
                    'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
@@ -10903,7 +10912,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                 total_amt += rtv.quantity * rtv.seller_po_summary.purchase_order.open_po.price
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
-                                                ('Supplier ID', result['seller_po_summary__purchase_order__open_po__supplier_id']),
+                                                ('Supplier ID', result['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['seller_po_summary__purchase_order__open_po__supplier__name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
@@ -11296,7 +11305,7 @@ def get_grn_level_data(request, user=''):
             address = '\n'.join(address.split(','))
             telephone = purchase_order.open_po.supplier.phone_number
             name = purchase_order.open_po.supplier.name
-            supplier_id = purchase_order.open_po.supplier.id
+            supplier_id = purchase_order.open_po.supplier.supplier_id
             supplier_name = purchase_order.open_po.supplier.name
             order_id = purchase_order.order_id
             po_reference = '%s%s_%s' % (
@@ -11824,7 +11833,7 @@ def download_grn_invoice_mapping(request, user=''):
     if request.GET.get('invoice_number', ''):
         search_parameters['invoice_number'] = request.GET['invoice_number']
     if 'supplier' in request.GET and ':' in request.GET['supplier']:
-        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+        search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',

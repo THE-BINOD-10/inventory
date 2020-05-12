@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
     ];
 
-    /*if(true || !vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+    if(true || !vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'))
     }
     vm.dtColumns.push(
@@ -62,8 +62,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
       vm.dtColumns.push( DTColumnBuilder.newColumn('Color').withTitle('Color'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),)
-    }*/
-    /*vm.dtColumns.push(
+    }
+    vm.dtColumns.push(
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
         )
@@ -77,12 +77,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
            DTColumnBuilder.newColumn('Tax Type').withTitle('Tax Type')
             )
         }}
-    */
+
     vm.dtColumns.push( DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
                         }).withOption('width', '80px'))
 
     var sku_attr_list = [];
+    if (vm.permissions.show_vehiclemaster){
+
     vm.attribute_options = {}
     vm.attribute_options['Category-Self Drive/OFT']= ['Self Drive', 'OFT', 'Executive']
     vm.attribute_options['City'] = ['Hyderabad', 'Pune', 'Mumbai', 'Chennai', 'Bangalore', 'Nagpur', 'New Delhi', 'Mysore', 'Vijayawada', 'Patna', 'Agra', 'Lucknow', 'Dehradun', 'Bhubaneswar', 'Mangalore', 'Ludhiana', 'Chandigarh', 'Surat', 'Tiruchirappally', 'Ahmedabad', 'Kanpur', 'Vadodara', 'Visakhapatnam', 'Indore', 'Coimbatore', 'Bhopal']
@@ -93,6 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.attribute_options['Colour'] = ['White', 'Yellow', 'Blue', 'Red', 'Green', 'Black', 'Brown', 'Silver', 'Purple', 'Navy blue', 'Gray', 'Orange', 'Maroon']
     vm.attribute_options['Unit'] = ['Number', 'Litres', 'millilitres', 'Metres', 'Feet', 'Kg', 'grams', 'Volts', 'Amperes', 'Watts']
     vm.attribute_options['Old/newitem'] = ['Old','New']
+    }
 
     var empty_data = {
                       sku_data:{

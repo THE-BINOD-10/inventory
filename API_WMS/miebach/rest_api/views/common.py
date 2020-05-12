@@ -883,7 +883,7 @@ def pr_request(request):
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
-                        'pending_po__delivery_date', 'pending_po__supplier_id', 'pending_po__supplier__name']
+                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -975,7 +975,7 @@ def pr_request(request):
         temp_data['aaData'].append(OrderedDict((
                                                 ('PR Number', purchase_number),
                                                 ('PO Number', po_reference),
-                                                ('Supplier ID', result.get('pending_po__supplier_id', '')),
+                                                ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),

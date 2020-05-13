@@ -76,7 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
           vm.title = "Stock transfer Note";
         }
-        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no, {withCredential: true}).success(function(data, status, headers, config) {
+        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix, {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
             vm.print_page = $(html).clone();
             //html = $(html).find(".modal-body > .form-group");

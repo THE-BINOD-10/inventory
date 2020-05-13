@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.milkbasket_file_check = ['GGN01'];
     vm.display_approval_button = false;
+    vm.send_admin_mail = false;
     vm.supplier_id = '';
     vm.order_id = 0;
     vm.invoice_readonly ='';
@@ -387,6 +388,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
+      vm.send_admin_mail = false;
       if (vm.discrepancy_data) {
          vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
          vm.discrepancy_data = ''
@@ -601,6 +603,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = elem[0];
       elem = $(elem).serializeArray();
       elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
+      elem.push({'name': 'send_admin_mail', value: vm.send_admin_mail})
       var form_data = new FormData();
       console.log(form_data);
       var files = $(".grn-form").find('[name="files"]')[0].files;
@@ -2468,10 +2471,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return
     }
 
-    if(vm.permissions.change_purchaseorder) {
+    if(vm.permissions.change_purchaseorder && vm.permissions.is_staff) {
       return
     }
     vm.display_approval_button = false;
+    vm.send_admin_mail = false;
     if (outerindex != undefined) {
       vm.model_data.data[outerindex][innerindex].wrong_sku = 0
     }
@@ -2492,7 +2496,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var price = Number(sku_row_data[i].price);
         if(price && (buy_price > price))  {
           price_tolerence = ((buy_price-price)/price)*100;
-          if(price_tolerence > 2){
+          if(price_tolerence > 2 && !vm.permissions.change_purchaseorder){
             vm.display_approval_button = true;
             if (outerindex != undefined){
                vm.model_data.data[outerindex][innerindex].wrong_sku = 1
@@ -2507,14 +2511,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(sku_row_data[i].tax_percent == '') {
           sku_row_data[i].tax_percent = 0;
         }
-        if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy){
+        if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy && !vm.permissions.change_purchaseorder){
           vm.display_approval_button = true;
           if (outerindex != undefined){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }
           break;
         }
-        if(sku_row_data[i].weight != sku_row_data[i].weight_copy){
+        if(sku_row_data[i].weight != sku_row_data[i].weight_copy && !vm.permissions.change_purchaseorder){
           vm.display_approval_button = true;
           if (outerindex != undefined){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
@@ -2528,6 +2532,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       if(po_quantity && po_quantity < tot_qty) {
           vm.display_approval_button = true;
+          vm.send_admin_mail=true;
           if (outerindex != undefined ){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }

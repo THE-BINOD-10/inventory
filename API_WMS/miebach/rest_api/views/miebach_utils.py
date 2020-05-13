@@ -10874,18 +10874,27 @@ def get_po_approval_report_data(search_params, user, sub_user):
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['pending_po__supplier_id'] = supp_search[0]
-    if 'sister_warehouse' in search_params and search_params['sister_warehouse']:
-        sister_warehouse_name = search_params['sister_warehouse']
-        user = User.objects.get(username=sister_warehouse_name)
-        user = user
-        sub_user = user
+    if user.userprofile.warehouse_type == 'admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouse_users[user.id] = user.username
+        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master_ids = sku_master.values_list('id', flat=True)
+        search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
+
     else:
-        pass
+        search_parameters['pending_po__wh_user__username'] = user.username
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
-                   'pending_po__requested_user__username', 'pending_po__po_number',
+                   'pending_po__requested_user__username', 'pending_po__po_number','pending_po__wh_user__username',
                    'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
@@ -10906,7 +10915,6 @@ def get_po_approval_report_data(search_params, user, sub_user):
         POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
     for result in results:
-        warehouse = user.first_name
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
@@ -10953,7 +10961,7 @@ def get_po_approval_report_data(search_params, user, sub_user):
             ('Total Amount', result['total_amt']),
             ('PO Created Date', po_date),
             ('PO Delivery Date', po_delivery_date),
-            ('Warehouse', warehouse),
+            ('Warehouse', result['pending_po__wh_user__username']),
             ('PO Raise By', result['pending_po__requested_user__first_name']),
             ('Requested User', result['pending_po__requested_user__username']),
             ('Validation Status', result['pending_po__final_status'].title()),

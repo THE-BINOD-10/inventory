@@ -613,7 +613,6 @@ class PurchaseOrder(models.Model):
     discrepancy_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=256, default='')
-    priority = models.IntegerField(default=0)
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
@@ -621,7 +620,6 @@ class PurchaseOrder(models.Model):
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
     payment_received = models.FloatField(default=0)
-    priority = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

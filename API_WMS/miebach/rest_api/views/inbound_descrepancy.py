@@ -120,4 +120,4 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
         import traceback
         log.debug(traceback.format_exc())
         log.info("Discrepancy creation failed for params " + str(report_data_dict) + " and error statement is " + str(e))
-        return HttpResponse("Discrepancy creation Failed")
+        return '', ''

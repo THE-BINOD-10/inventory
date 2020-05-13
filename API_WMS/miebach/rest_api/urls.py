@@ -572,6 +572,8 @@ urlpatterns += [
     url(r'^asset_upload/$', asset_upload),
     url(r'^service_form/$', service_form),
     url(r'^service_upload/$', service_upload),
+    url(r'^otheritems_form/$', otheritems_form),
+    url(r'^otheritems_upload/$', otheritems_upload),
     url(r'^inventory_form/$', inventory_form),
     url(r'^inventory_upload/$', inventory_upload),
     url(r'^supplier_form/$', supplier_form),

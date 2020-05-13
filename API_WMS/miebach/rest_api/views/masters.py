@@ -78,6 +78,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         instanceName = AssetMaster
     elif request.POST.get('datatable') == 'ServiceMaster':
         instanceName = ServiceMaster
+    elif request.POST.get('datatable') == 'OtherItemsMaster':
+        instanceName = OtherItemsMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
@@ -231,9 +233,17 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                             values_list('str_eans', flat=True)
             if ean_numbers_list :
                 ean_number = ean_numbers_list[0]
+        if instanceName == AssetMaster:
+            sku_type = data.asset_type
+        elif instanceName == ServiceMaster:
+            sku_type = data.service_type
+        elif instanceName == OtherItemsMaster:
+            sku_type = data.item_type
+        else:
+            sku_type = data.sku_type
         temp_data['aaData'].append(OrderedDict(
             (('SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
-             ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
+             ('SKU Type', sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
              ('Color', data.color), ('EAN Number',ean_number ), ('Combo Flag', combo_flag),('MRP', data.mrp),
              ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
@@ -812,6 +822,8 @@ def get_sku_data(request, user=''):
         instanceName = AssetMaster
     if request.GET.get('is_service') == 'true':
         instanceName = ServiceMaster
+    if request.GET.get('is_otheritem') == 'true':
+        instanceName = OtherItemsMaster
     
     data = get_or_none(instanceName, filter_params)
 
@@ -898,6 +910,15 @@ def get_sku_data(request, user=''):
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
         sku_data['asset_code'] = data.asset_code
+        sku_data['service_type'] = data.service_type
+    elif instanceName == AssetMaster:
+        sku_data['asset_type'] = data.asset_type
+        sku_data['parent_asset_code'] = data.parent_asset_code
+        sku_data['asset_number'] = data.asset_number
+        sku_data['store_id'] = data.store_id
+        sku_data['vendor'] = data.vendor
+    elif instanceName == OtherItemsMaster:
+        sku_data['item_type'] = data.item_type
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1101,6 +1122,8 @@ def update_sku(request, user=''):
             instanceName = AssetMaster
         if request.POST.get('is_service') == 'true':
             instanceName = ServiceMaster
+        if request.POST.get('is_otheritem') == 'true':
+            instanceName = OtherItemsMaster
         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
@@ -2681,6 +2704,9 @@ def insert_sku(request, user=''):
         elif request.POST.get('is_service') == 'true':
             instanceName = ServiceMaster
             status_msg = 'Service Item exists'
+        elif request.POST.get('is_otheritem') == 'true':
+            instanceName = OtherItemsMaster
+            status_msg = 'Other Item exists'
         data = filter_or_none(instanceName, filter_params)
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
@@ -2692,6 +2718,8 @@ def insert_sku(request, user=''):
             data_dict = copy.deepcopy(SKU_DATA)
             if instanceName == ServiceMaster:
                 data_dict.update(SERVICE_SKU_DATA)
+            if instanceName == OtherItemsMaster:
+                data_dict.update(OTHERITEMS_SKU_DATA)
             data_dict['user'] = user.id
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
@@ -2734,7 +2762,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
@@ -3948,14 +3976,19 @@ def add_or_update_tax(request, user=''):
 
             data_dict = {'user_id': user.id}
             if data.get('id', ''):
+                data_dict = {}
                 tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
                 for key in columns:
                     try:
                         data_key = float(data[key])
                     except:
                         data_key = 0
-                    setattr(tax_master, key, data_key)
-                tax_master.save()
+                    print data_key
+                    data_dict[key] = data_key
+                    #setattr(tax_master, key, data_key)
+                filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+                #tax_master.save()
             else:
                 if not data['min_amt'] or not data['max_amt']:
                     continue
@@ -3966,8 +3999,11 @@ def add_or_update_tax(request, user=''):
                 if data['tax_type'] == 'inter_state':
                     data_dict['inter_state'] = 1
                 data_dict['product_type'] = product_type
-                tax_master = TaxMaster(**data_dict)
-                tax_master.save()
+                filter_dict = {'product_type': product_type, 'user_id': user.id,
+                                'inter_state': data_dict['inter_state']}
+                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+                #tax_master = TaxMaster(**data_dict)
+                #tax_master.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4265,7 +4301,7 @@ def save_update_attribute(request, user=''):
         return HttpResponse('Attribute model is mandatory')
     data_dict = dict(request.POST.lists())
     for ind in range(0, len(data_dict['id'])):
-        if(data_dict['id'][ind]):
+        '''if(data_dict['id'][ind]):
             user_attr = UserAttributes.objects.filter(id=data_dict['id'][ind])
             if user_attr:
                 user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
@@ -4280,7 +4316,11 @@ def save_update_attribute(request, user=''):
                                               attribute_name=data_dict['attribute_name'][ind],
                                               attribute_type=data_dict['attribute_type'][ind], status=1,
                                               creation_date=datetime.datetime.now(),
-                                              user_id=user.id)
+                                              user_id=user.id)'''
+        #if data_dict['id'][ind]:
+        update_dict = {'attribute_type': data_dict['attribute_type'][ind], 'status': 1}
+        filter_dict = {'attribute_name': data_dict['attribute_name'][ind], 'attribute_model': attr_model}
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync')
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
 
 

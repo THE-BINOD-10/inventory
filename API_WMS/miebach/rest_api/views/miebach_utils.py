@@ -94,9 +94,11 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
-SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': ''}
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': '', 'service_type': ''}
 
-ASSET_SKU_DATA = {'parrent_asset_code': '', 'asset_number': '', 'store_id': ''}
+ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': '', 'store_id': '', 'asset_type': '', 'vendor': ''}
+
+OTHERITEMS_SKU_DATA = {'item_type': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -1297,14 +1299,20 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
-ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Asset Type', 
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Tax Type', 
                'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone', 
-               'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status']
+               'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
+               'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']
 
-SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Service Type', 
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type', 
                'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone', 
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                'Asset Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
+
+OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type', 
+               'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone', 
+               'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
+               ]               
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Manufacture Date(YYYY-MM-DD)', 'Expiry date(YYYY-MM-DD)', 'Batch Number', 'MRP', 'Weight', 'Buy Price', 'Reason']
@@ -1639,18 +1647,20 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                 ))
 
 ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Description', 'sku_desc'),
-                                  ('Asset Type', 'product_type'), ('Asset Group', 'sku_group'),
-                                  ('SKU Type(Options: FG, RM)', 'sku_type'), ('Asset Category', 'sku_category'),
+                                  ('Asset Type', 'asset_type'), ('Asset Group', 'sku_group'),
+                                  ('Tax Type', 'product_type'), ('Asset Category', 'sku_category'),
                                   ('Primary Category', 'primary_category'), ('Sub Category', 'sub_category'),
                                   ('Asset Class', 'sku_class'), ('Asset Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
                                   ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
                                   ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
-                                  ('HSN Code', 'hsn_code'), ('Status', 'status')
+                                  ('HSN Code', 'hsn_code'), ('Status', 'status'),
+                                  ('Parent Asset Code', 'parent_asset_code'), ('Asset Number', 'asset_number'),
+                                  ('Vendor', 'vendor'), ('Store ID', 'store_id')
                                 ))
 
 SERVICEMASTER_COMMON_MAPPING = OrderedDict((('Service Code', 'wms_code'), ('Service Description', 'sku_desc'),
-                                  ('Service Type', 'product_type'), ('Service Group', 'sku_group'),
-                                  ('Service Category', 'sku_category'),
+                                  ('Service Type', 'service_type'), ('Service Group', 'sku_group'),
+                                  ('Service Category', 'sku_category'), ('Tax Type', 'product_type'),
                                   ('Primary Category', 'primary_category'), ('Sub Category', 'sub_category'),
                                   ('Service Class', 'sku_class'), ('Service Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
                                   ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
@@ -1658,6 +1668,16 @@ SERVICEMASTER_COMMON_MAPPING = OrderedDict((('Service Code', 'wms_code'), ('Serv
                                   ('HSN Code', 'hsn_code'), ('Status', 'status'), ('Asset Code', 'asset_code'),
                                   ('Service Start Date(YYYY-MM-DD)', 'service_start_date'),
                                   ('Service End Date(YYYY-MM-DD)', 'service_end_date')
+                                ))
+
+OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Description', 'sku_desc'),
+                                  ('Item Type', 'item_type'), ('Item Group', 'sku_group'),
+                                  ('Tax Type', 'product_type'), ('Item Category', 'sku_category'),
+                                  ('Primary Category', 'primary_category'), ('Sub Category', 'sub_category'),
+                                  ('Item Class', 'sku_class'), ('Item Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
+                                  ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
+                                  ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
+                                  ('HSN Code', 'hsn_code'), ('Status', 'status')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -2490,6 +2510,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_allocate_sale_order':'auto_allocate_sale_order',
                         'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                         'stock_auto_receive':'stock_auto_receive',
+                        'attributes_sync': 'attributes_sync',
+                        'tax_master_sync': 'tax_master_sync',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

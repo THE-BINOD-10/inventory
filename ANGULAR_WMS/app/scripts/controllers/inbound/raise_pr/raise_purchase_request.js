@@ -168,6 +168,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "data": data.data.data,
           };
           vm.model_data = {};
+          vm.resubmitCheckObj = {};
+          vm.is_resubmitted = false;
           angular.copy(empty_data, vm.model_data);
 
           vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
@@ -183,7 +185,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
+            vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
+          console.log(vm.resubmitCheckObj);
 
           vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -222,6 +226,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
+          vm.checkResubmit = function(sku_data){
+            var oldQty = vm.resubmitCheckObj[sku_data.sku.wms_code];
+            if (oldQty != sku_data.order_quantity){
+              vm.is_resubmitted = true;
+            } else {
+              vm.is_resubmitted = false;
+            }
+
+          }
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
@@ -355,7 +368,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
                             "sku": {"wms_code": "", "price":""}
                           }
-      if (product_category == 'Kits&Category'){
+      if (product_category == 'Kits&Consumables'){
         vm.model_data.data.push({"fields": emptylineItems});
       } else if (product_category == 'Assets'){
         vm.model_data.data.push({"fields": emptylineItems});
@@ -382,37 +395,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.model_data.data.push({"fields": emptylineItems});
 
           } 
-          // else {
-
-          //   $scope.$apply(function() {
-
-          //     vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-          //                              "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-          //                              "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "","utgst_tax": "", "tax": "", "is_new":true
-          //                              }});
-
-          //   });
-          // }
         } else {
           Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
         vm.model_data.data.splice(index,1);
         vm.getTotals();
-        // if (flag) {
-        //   if(vm.model_data.data[index].seller_po_id){
-        //       vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-        //   } else {
-        //       vm.delete_data('id', vm.model_data.data[index].pk, index);
-        //   }
-        //   if(vm.permissions.show_purchase_history) {
-        //       $timeout( function() {
-        //           vm.populate_last_transaction('delete')
-        //       }, 2000 );
-        //   }
-        //   vm.model_data.data.splice(index,1);
-        //   vm.getTotals();
-        // }
       }
     }
 
@@ -444,22 +432,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-    vm.save_raise_pr = function(data, type) {
+    vm.save_raise_pr = function(data, type, is_resubmitted=false) {
       if (data.$valid) {
         // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
+          if (is_resubmitted == 'true'){
+            elem.push({name:'is_resubmitted', value:true})
+          }
+          if (vm.pr_number){
+            elem.push({name:'pr_number', value:vm.pr_number})
+          }
           var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
           if (type == 'save'){
             confirm_api ? vm.update_raise_pr() : '';
           } else {
             confirm_api ? vm.add_raise_pr(elem) : '';
           }
-        // } else {
-        //   typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-        //   vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
-        // }
       }
     }
 

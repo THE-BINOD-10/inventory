@@ -157,9 +157,11 @@ class SKUMaster(models.Model):
 
 
 class AssetMaster(SKUMaster):
-    parrent_asset_code = models.CharField(max_length=128, default='')
+    parent_asset_code = models.CharField(max_length=128, default='')
+    asset_type = models.CharField(max_length=64, default='')
     asset_number = models.PositiveIntegerField(default=0)
-    store_id = models.PositiveIntegerField(default=0)
+    vendor = models.CharField(max_length=128, default='')
+    store_id = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'ASSET_MASTER'
@@ -167,11 +169,19 @@ class AssetMaster(SKUMaster):
 
 class ServiceMaster(SKUMaster):
     asset_code = models.CharField(max_length=64, default='')
+    service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'SERVICE_MASTER'
+
+
+class OtherItemsMaster(SKUMaster):
+    item_type = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'OTHERITEMS_MASTER'
 
 
 class EANNumbers(models.Model):
@@ -584,6 +594,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO')
     configName = models.CharField(max_length=64, default='')
+    product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
     validated_by = models.TextField(default='')
@@ -605,6 +616,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
+    product_category = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

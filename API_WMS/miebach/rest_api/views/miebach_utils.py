@@ -10849,7 +10849,6 @@ def get_po_approval_report_data(search_params, user, sub_user):
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    import pdb;pdb.set_trace()
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['pending_po__po_number','pending_po__supplier__id', 'pending_po__supplier__name',
             'total_qty', 'total_amt', 'creation_date',
@@ -10889,173 +10888,91 @@ def get_po_approval_report_data(search_params, user, sub_user):
         # sku_master_ids = sku_master.values_list('id', flat=True)
         search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
 
-
-        for warehouse in warehouse_users.keys():
-            search_parameters['pending_po__wh_user__in'] = warehouse
-            start_index = search_params.get('start', 0)
-            stop_index = start_index + search_params.get('length', 0)
-            values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
-                           'pending_po__requested_user__username', 'pending_po__po_number','pending_po__wh_user__username',
-                           'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
-                           'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
-                           'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
-
-            pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
-                annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
-            resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
-            temp_data['recordsTotal'] = pending_data.count()
-            temp_data['recordsFiltered'] = temp_data['recordsTotal']
-            count = 0
-            if stop_index:
-                results = pending_data[start_index:stop_index]
-            approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
-            POtoPRsMap = {}
-            for eachPO, pr_number in approvedPRQs:
-                POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
-
-            for result in results:
-                po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-                approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
-                po_date = po_created_date.strftime('%d-%m-%Y')
-                po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
-                dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-                po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
-                mailsList = []
-                reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
-                                                                  result['total_amt'], purchase_type='PO')
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
-                                                            level=result['pending_po__pending_level'])
-
-                last_updated_by = ''
-                last_updated_time = ''
-                last_updated_remarks = ''
-                validated_by = ''
-                last_updated_remarks = result['pending_po__remarks']
-                if prApprQs.exists():
-                    validated_by = prApprQs[0].validated_by
-                    if result['pending_po__final_status'] not in ['pending', 'saved']:
-                        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                    pr_user=user, level=result['pending_po__pending_level'])
-                        last_updated_by = prApprQs[0].validated_by
-                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                        last_updated_remarks = prApprQs[0].remarks
-                    else:
-                        if result['pending_po__pending_level'] != 'level0':
-                            prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                            prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                        pr_user=user, level=prev_level)
-                            last_updated_by = prApprQs[0].validated_by
-                            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                            last_updated_remarks = prApprQs[0].remarks
-                        else:
-                            prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                        pr_user=user,
-                                                                        level=result['pending_po__pending_level'])
-                            last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                ord_dict = OrderedDict((
-                    ('PO Number', po_reference),
-                    ('Supplier ID', result['pending_po__supplier_id']),
-                    ('Supplier Name', result['pending_po__supplier__name']),
-                    ('Total Quantity', result['total_qty']),
-                    ('Total Amount', result['total_amt']),
-                    ('PO Created Date', po_date),
-                    ('PO Delivery Date', po_delivery_date),
-                    ('Warehouse', result['pending_po__wh_user__username']),
-                    ('PO Raise By', result['pending_po__requested_user__first_name']),
-                    ('Requested User', result['pending_po__requested_user__username']),
-                    ('Validation Status', result['pending_po__final_status'].title()),
-                    ('Pending Level', '%s Of %s' % (result['pending_po__pending_level'], lastLevel)),
-                    ('LevelToBeApproved', result['pending_po__pending_level']),
-                    ('To Be Approved By', validated_by),
-                    ('Last Updated By', last_updated_by),
-                    ('Last Updated At', last_updated_time),
-                    ('Remarks', last_updated_remarks),
-                    ('DT_RowClass', 'results')))
-                count =+1
-                temp_data['aaData'].append(ord_dict)
     else:
         search_parameters['pending_po__wh_user__username'] = user.username
-        start_index = search_params.get('start', 0)
-        stop_index = start_index + search_params.get('length', 0)
-        values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
-                       'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username',
-                       'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
-                       'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
-                       'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
-        pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
-            annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
-        resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
-        temp_data['recordsTotal'] = pending_data.count()
-        temp_data['recordsFiltered'] = temp_data['recordsTotal']
-        count = 0
-        if stop_index:
-            results = pending_data[start_index:stop_index]
-        approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
-        POtoPRsMap = {}
-        for eachPO, pr_number in approvedPRQs:
-            POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
+                   'pending_po__requested_user__username', 'pending_po__po_number','pending_po__wh_user__username',
+                   'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
+                   'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
+                   'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
-        for result in results:
-            po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-            approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
-            po_date = po_created_date.strftime('%d-%m-%Y')
-            po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
-            dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-            po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
-            mailsList = []
-            reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
-                                                              result['total_amt'], purchase_type='PO')
-            prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
-                                                        level=result['pending_po__pending_level'])
+    pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
+        annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
+    resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
+    temp_data['recordsTotal'] = pending_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    if stop_index:
+        results = pending_data[start_index:stop_index]
+    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
+    POtoPRsMap = {}
+    for eachPO, pr_number in approvedPRQs:
+        POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
-            last_updated_by = ''
-            last_updated_time = ''
-            last_updated_remarks = ''
-            validated_by = ''
-            last_updated_remarks = result['pending_po__remarks']
-            if prApprQs.exists():
-                validated_by = prApprQs[0].validated_by
-                if result['pending_po__final_status'] not in ['pending', 'saved']:
+    for result in results:
+        po_created_date = resultsWithDate.get(result['pending_po__po_number'])
+        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
+        po_date = po_created_date.strftime('%d-%m-%Y')
+        po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
+        mailsList = []
+        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
+                                                          result['total_amt'], purchase_type='PO')
+        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
+                                                    level=result['pending_po__pending_level'])
+
+        last_updated_by = ''
+        last_updated_time = ''
+        last_updated_remarks = ''
+        validated_by = ''
+        last_updated_remarks = result['pending_po__remarks']
+        if prApprQs.exists():
+            validated_by = prApprQs[0].validated_by
+            if result['pending_po__final_status'] not in ['pending', 'saved']:
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                                                            pr_user=user, level=result['pending_po__pending_level'])
+                last_updated_by = prApprQs[0].validated_by
+                last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                last_updated_remarks = prApprQs[0].remarks
+            else:
+                if result['pending_po__pending_level'] != 'level0':
+                    prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                pr_user=user, level=result['pending_po__pending_level'])
+                                                                pr_user=user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    if result['pending_po__pending_level'] != 'level0':
-                        prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                    pr_user=user, level=prev_level)
-                        last_updated_by = prApprQs[0].validated_by
-                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                        last_updated_remarks = prApprQs[0].remarks
-                    else:
-                        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                    pr_user=user,
-                                                                    level=result['pending_po__pending_level'])
-                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-            ord_dict = OrderedDict((
-                ('PO Number', po_reference),
-                ('Supplier ID', result['pending_po__supplier_id']),
-                ('Supplier Name', result['pending_po__supplier__name']),
-                ('Total Quantity', result['total_qty']),
-                ('Total Amount', result['total_amt']),
-                ('PO Created Date', po_date),
-                ('PO Delivery Date', po_delivery_date),
-                ('Warehouse', result['pending_po__wh_user__username']),
-                ('PO Raise By', result['pending_po__requested_user__first_name']),
-                ('Requested User', result['pending_po__requested_user__username']),
-                ('Validation Status', result['pending_po__final_status'].title()),
-                ('Pending Level', '%s Of %s' % (result['pending_po__pending_level'], lastLevel)),
-                ('LevelToBeApproved', result['pending_po__pending_level']),
-                ('To Be Approved By', validated_by),
-                ('Last Updated By', last_updated_by),
-                ('Last Updated At', last_updated_time),
-                ('Remarks', last_updated_remarks),
-                ('DT_RowClass', 'results')))
-            count = +1
-            temp_data['aaData'].append(ord_dict)
+                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                                                                pr_user=user,
+                                                                level=result['pending_po__pending_level'])
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+        ord_dict = OrderedDict((
+            ('PO Number', po_reference),
+            ('Supplier ID', result['pending_po__supplier_id']),
+            ('Supplier Name', result['pending_po__supplier__name']),
+            ('Total Quantity', result['total_qty']),
+            ('Total Amount', result['total_amt']),
+            ('PO Created Date', po_date),
+            ('PO Delivery Date', po_delivery_date),
+            ('Warehouse', result['pending_po__wh_user__username']),
+            ('PO Raise By', result['pending_po__requested_user__first_name']),
+            ('Requested User', result['pending_po__requested_user__username']),
+            ('Validation Status', result['pending_po__final_status'].title()),
+            ('Pending Level', '%s Of %s' % (result['pending_po__pending_level'], lastLevel)),
+            ('LevelToBeApproved', result['pending_po__pending_level']),
+            ('To Be Approved By', validated_by),
+            ('Last Updated By', last_updated_by),
+            ('Last Updated At', last_updated_time),
+            ('Remarks', last_updated_remarks),
+            ('DT_RowClass', 'results')))
+        count =+1
+        temp_data['aaData'].append(ord_dict)
+
     return temp_data
 
 

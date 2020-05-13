@@ -551,7 +551,7 @@ data_datatable = {  # masters
     'WarehouseSKUMappingMaster': 'get_wh_sku_mapping', 'ClusterMaster': 'get_cluster_sku_results',
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
-    'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results',
+    'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -827,9 +827,12 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR'):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type)
+    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type, 
+                                    product_category=product_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -1031,6 +1034,7 @@ def add_update_pr_config(request,user=''):
             PRApprovalMap = {
                     'user': user,
                     'name': data['name'],
+                    'product_category': data['product_category'],
                     'min_Amt': data['min_Amt'],
                     'max_Amt': data['max_Amt'],
                     'level': level,
@@ -1100,9 +1104,13 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR'):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     confMap = OrderedDict()
-    for rec in PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
+    for rec in PurchaseApprovalConfig.objects.filter(user=user, 
+                                    purchase_type=purchase_type,
+                                    product_category=product_category).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap
@@ -1113,11 +1121,12 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     elif purchase_type == 'PR':
         master_type = 'actual_pr_approvals_conf_data'
     pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).order_by('creation_date')
-    pr_conf_data = pr_conf_obj.values('id', 'name', 'min_Amt', 'max_Amt', 'level')
+    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
+        prod_catg = eachConfData['product_category']
         sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'],
                                     master_type=master_type, user=user).values_list('email_id', flat=True)
         commaSepMailIds = ','.join(sameLevelMailIds)
@@ -1186,7 +1195,8 @@ def configurations(request, user=''):
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
     config_dict['pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending po')
 
-    config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
+    # config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
+    config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', 'product_category'))
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     config_dict['actual_pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending pr')
 
@@ -4958,7 +4968,9 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster):
         sku_master = instanceName.objects.filter(user__in=user)
 
     if instanceName.__name__ == 'SKUMaster':
-        sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()).exclude(id__in=ServiceMaster.objects.all())
+        sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
+                        exclude(id__in=ServiceMaster.objects.all()). \
+                        exclude(id__in=OtherItemsMaster.objects.all())
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         if is_list:
@@ -5770,7 +5782,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
             storeUser = storeUserQs[0].admin_user
             store_stock_data = StockDetail.objects.exclude(
                             Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
-                            filter(sku__user=storeUser.id)
+                            filter(sku__user=storeUser.id, sku__sku_code=sku_code)
             st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
             st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
             

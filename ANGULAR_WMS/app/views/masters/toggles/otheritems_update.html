@@ -26,32 +26,24 @@
             <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="" ng-if="showCase.update">
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label">Service Code *</label>
+                <label class="control-label">Item Code *</label>
                 <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Description * </label>
+                <label class="control-label"> Item Description * </label>
                 <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Type</label>
-                <input type="text" name="service_type" class="form-control" 
-                ng-model="showCase.model_data.sku_data.service_type" 
+                <label class="control-label"> Item Type </label>
+                <input type="text" name="item_type" class="form-control" 
+                ng-model="showCase.model_data.sku_data.item_type" 
                 ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-            <!-- <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Service Type </label>
-                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
-
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Put Zone </label>
@@ -63,13 +55,13 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Class </label>
+                <label class="control-label"> Item Class </label>
                 <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Group </label>
+                <label class="control-label"> Item Group </label>
                 <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.sku_group == ''" value="">Default</option>
                   <option ng-repeat="group in showCase.model_data.groups" ng-selected="showCase.model_data.sku_data.sku_group == group" value="{{group}}">{{group}}</option>
@@ -80,19 +72,19 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Category </label>
+                <label class="control-label"> Item Category </label>
                 <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName != 'sagar_fab'">
               <div class="form-group">
-                <label class="control-label"> Service Sub Category </label>
+                <label class="control-label"> Item Sub Category </label>
                 <input type="text" name="sub_category" class="form-control" ng-model="showCase.model_data.sku_data.sub_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Service Brand </label>
+                <label class="control-label"> Item Brand </label>
                 <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
@@ -169,12 +161,6 @@
                 <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-            <!-- <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
-              <div class="form-group">
-                <label class="control-label"> {{ attr.attribute_name }} </label>
-                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value">
-              </div>
-            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Measurement Type </label>
@@ -191,32 +177,13 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Asset Code </label>
-                <input type="text" name="asset_code" class="form-control" ng-model="showCase.model_data.sku_data.asset_code">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">Start Date</label>
-                <input name="service_start_date" ui-jq="datepicker" ng-model="showCase.model_data.sku_data.service_start_date" class="form-control stk-readonly" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">End Date</label>
-                <input name="service_end_date" ui-jq="datepicker" ng-model="showCase.model_data.sku_data.service_end_date" class="form-control stk-readonly" type="text" id="service_end_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div>
-          </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
           </div>
-          <!-- <div class="row">
+          <div class="row">
             <div class="col-md-9 col-sm-9 col-xs-8">
               <div class="form-group">
-                <div>SKU Default Image Upload</div>
+                <div>Item Default Image Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
                   <input style="position: absolute;
                                 top: 0;
@@ -239,7 +206,7 @@
                 <img ng-src="{{showCase.model_data.sku_data.image_url}}" alt="SKU image" style="width: 100%"/>
               </div>
             </div>
-          </div> -->
+          </div>
           <div class="row insert-status">
             <h4 style="text-align: center;">{{showCase.service.message}}</h4>
           </div>

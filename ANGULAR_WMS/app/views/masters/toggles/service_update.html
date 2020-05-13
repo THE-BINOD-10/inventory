@@ -38,12 +38,20 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Service Type</label>
+                <input type="text" name="service_type" class="form-control" 
+                ng-model="showCase.model_data.sku_data.service_type" 
+                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+              </div>
+            </div>
+            <!-- <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Service Type </label>
                 <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
 
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
               </div>
-            </div>
+            </div> -->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Put Zone </label>

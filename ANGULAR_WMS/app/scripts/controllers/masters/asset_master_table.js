@@ -169,7 +169,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 console.log(aData);
                 vm.model_data = {};
                 angular.copy(empty_data, vm.model_data);
-                vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
+                vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"], 'is_asset':true}).then(function(data) {
                  if (data.message) {
                   data = data.data;
                   vm.update=true;

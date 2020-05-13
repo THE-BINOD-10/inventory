@@ -26,9 +26,9 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_skumaster"
                  }, {
-                   title: "ASSET Download/ Upload",
-                   download: "Download ASSET Form",
-                   upload: "Upload ASSET Form",
+                   title: "Asset Master Download/ Upload",
+                   download: "Download Asset Form",
+                   upload: "Upload Asset Form",
                    durl: "asset_form/",
                    uurl: "asset_upload/",
                    dparam: "download-sku-file",
@@ -36,7 +36,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_assetmaster"
                  }, {
-                   title: "ServiceMaster Download/ Upload",
+                   title: "Service Master Download/ Upload",
                    download: "Download Service Form",
                    upload: "Upload Service Form",
                    durl: "service_form/",
@@ -45,6 +45,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_servicemaster"
+                 }, {
+                   title: "OtherItems Master Download/ Upload",
+                   download: "Download OtherItems Form",
+                   upload: "Upload OtherItems Form",
+                   durl: "otheritems_form/",
+                   uurl: "otheritems_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_otheritemsmaster"
                  }, {
                    title: "Inventory Download/ Upload",
                    download: "Download Inventory Form",
@@ -368,6 +378,27 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_pricemaster",
                  },
                  {
+                   title: "Order Allocation Download/ Upload",
+                   download: "Order Allocation Download Form",
+                   upload: "Order Allocation Upload Form",
+                   durl: "order_allocation_form/",
+                   uurl: "order_allocation_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "display_parts_allocation",
+                 },
+                 {
+                   title: "Vehicle Master Download/ Upload",
+                   download: "Download Vehicle Master Form",
+                   upload: "Upload Vehicle Master Form",
+                   durl: "vehiclemaster_form/",
+                   uurl: "vehiclemaster_upload/",
+                   dparam: "download-vehiclemaster-file",
+                   value: "",
+                   show: true,
+                   perm: "show_vehiclemaster"
+                 },
+                 {
                    title: "SKU Substitutes Download/ Upload",
                    download: "Download SKU Substitute Form",
                    upload: "Upload SKU Substitute Form",
@@ -497,8 +528,9 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
       vm.service.showNotyNotHide("Please Download The Error Form");
-    } else {
-      vm.service.showNoty(msg);
+    }
+    else {
+      vm.service.showNotyNotHide(msg);
     }
     $scope.disable = false;
     $(".preloader").removeClass("ng-show").addClass("ng-hide");

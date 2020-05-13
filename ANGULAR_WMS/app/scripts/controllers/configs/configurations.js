@@ -44,8 +44,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'display_parts_allocation':false,
+                    'auto_generate_receive_qty':false,
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'allow_partial_picklist': false,
@@ -53,6 +56,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'auto_allocate_sale_order':false,
                     'po_or_pr_edit_permission_approver': false,
                     'stock_auto_receive': false,
+                    'attributes_sync': false,
+                    'tax_master_sync': false,
+                    'discrepency_prefix':'',
+                    'st_po_prefix': false,
+                    'supplier_sync': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -95,6 +103,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
+                     118: 'attributes_sync',
+                     119: 'tax_master_sync',
+                     113:'discrepency_prefix',
+                     114: 'auto_generate_receive_qty',
+                     115: 'st_po_prefix',
+                     116: 'display_parts_allocation',
+                     117: 'supplier_sync',
                      }
 
   vm.check_box_data = [
@@ -623,7 +638,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
+   name: "Display Allocation/Deallocation Page",
+   model_name: "display_parts_allocation",
+   param_no: 116,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Enable Pending For Approval POs",
    model_name: "enable_pending_approval_pos",
    param_no: 105,
@@ -678,7 +700,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    param_no: 112,
    class_name: "fa fa-server",
    display: true
-   }
+   },
+   {
+   name: "Sync User Attributes b/n Users",
+   model_name: "attributes_sync",
+   param_no: 118,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Sync Tax Master b/n Users",
+   model_name: "tax_master_sync",
+   param_no: 119,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Auto Fill Receive Quantity",
+   model_name: "auto_generate_receive_qty",
+   param_no: 114,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Sync Supplier b/n Users",
+   model_name: "supplier_sync",
+   param_no: 117,
+   class_name: "fa fa-server",
+   display: true
+   },
 ]
 
   vm.empty = {};
@@ -787,6 +837,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
     }
+    if (vm.switch_names[switch_num] === "st_po_prefix" || vm.switch_names[switch_num] === "invoice_prefix") {
+      if (vm.model_data.st_po_prefix && vm.model_data.prefix && vm.model_data.st_po_prefix.toLocaleLowerCase() == vm.model_data.prefix.toLocaleLowerCase()) {
+        Service.showNoty("po prefix , stock Transfer Prefix cannot be same !!! ", 'warning');
+        return
+      }
+    }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {
         Service.showNoty(data.data);
@@ -891,6 +947,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
+      } else if (!toBeUpdateData[0].product_category) {
+        Service.showNoty('Enter Product Category');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
@@ -954,6 +1012,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   });
 
+  vm.getProdMaxValue = function(configData, pr_type){
+    var maxAmtsList = [];
+    var maxVal = 0;
+    var prConfigData = vm.model_data['total_actual_pr_config_ranges'];
+    if(pr_type == 'pr_save'){
+      prConfigData = vm.model_data['total_pr_config_ranges'];
+    }
+    angular.forEach(prConfigData, function(record, index){
+      if(record.product_category == configData.product_category){
+        maxAmtsList.push(record.max_Amt);
+      }
+    });
+    if (maxAmtsList.length > 0){
+      maxVal = Math.max(maxAmtsList);
+    } else{
+      maxVal = 0
+    }
+    if (maxVal){
+      configData.min_Amt = maxVal + 1;
+    } else {
+      configData.min_Amt = 0;
+    }
+
+  }
   vm.add_empty_index = function(data, operation, pr_type) {
     var prConfigData = vm.model_data['selected_pr_config_data'];
     var totalData = vm.model_data['total_pr_config_ranges'];
@@ -988,7 +1070,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
+      var empty_dict = {'name': '', 'product_category': '', 'min_Amt': 0, 'max_Amt': '', 
+                        'mail_id': {'level0': ""}, 'remove': 0};
       if (prConfigData.length != 0) {
         var check_last_record = prConfigData[prConfigData.length -1]
         if (check_last_record['name'] == '') {
@@ -996,8 +1079,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         }
       } else {
         if (totalData[totalData.length -1]) {
-          var min_amt = totalData[totalData.length -1]['max_Amt']+1;
-          empty_dict['min_Amt'] = min_amt;
+          // var min_amt = totalData[totalData.length -1]['max_Amt']+1;
+          // vm.getProdMaxValue(product_category)
+          // empty_dict['min_Amt'] = min_amt;
           prConfigData.push(empty_dict);
           if(pr_type == 'actual_pr_save'){
             vm.actual_pr_add_show = true;
@@ -1129,6 +1213,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.model_data['actual_pr_approvals_conf_data'] = [];
         vm.model_data['selected_pr_config_data'] = [];
         vm.model_data['selected_actual_pr_config_data'] = [];
+        vm.model_data['product_categories'] = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
         vm.model_data['total_pr_config_ranges'] = [];
         vm.model_data['total_actual_pr_config_ranges'] = [];
         angular.forEach(data.data.prefix_data, function(data){
@@ -1143,6 +1228,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           angular.forEach(data.data.pr_approvals_conf_data, function(data, index){
             var data_dict = {}
             data_dict['name'] = data.name;
+            data_dict['product_category'] = data.product_category;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
@@ -1156,6 +1242,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           angular.forEach(data.data.actual_pr_approvals_conf_data, function(data, index){
             var data_dict = {}
             data_dict['name'] = data.name;
+            data_dict['product_category'] = data.product_category;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
@@ -1226,6 +1313,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
         $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
         $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
         $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
         $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
         if (vm.model_data.invoice_titles) {

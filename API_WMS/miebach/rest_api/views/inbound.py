@@ -1163,10 +1163,17 @@ def generated_actual_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id']
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id', 
+        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date', 
+        'sku__servicemaster__service_end_date',
+    ]
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
-        sku_id, sku_code, sku_desc, qty, price, uom, apprId = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
+        if service_stdate:
+            service_sdate = service_stdate.strftime('%d-%m-%Y')
+        if service_edate:
+            service_edate = service_edate.strftime('%d-%m-%Y')
         search_params = {'sku__user': user.id}
         noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id, 
                                                 attribute_name='No.OfTests')
@@ -1177,13 +1184,19 @@ def generated_actual_pr_data(request, user=''):
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
                                                     search_params, includeStoreStock=True)
-        ser_data.append({'fields': {'sku': {'wms_code': sku_code}, 'description': sku_desc,
-                                    'order_quantity': qty, 'price': price,
+        ser_data.append({'fields': {'sku': {'wms_code': sku_code,
+                                            'openpr_qty': openpr_qty,
+                                            'capacity': st_avail_qty + avail_qty,
+                                            'intransit_quantity': intransitQty,
+                                            }, 
+                                    'description': sku_desc,
+                                    'order_quantity': qty, 
+                                    'price': price,
                                     'measurement_unit': uom,
-                                    'openpr_qty': openpr_qty,
-                                    'available_qty': st_avail_qty + avail_qty,
-                                    'openpo_qty': intransitQty,
                                     'no_of_tests': noOfTests,
+                                    'asset_code': asset_code,
+                                    'service_start_date': service_stdate,
+                                    'service_end_date': service_edate,
                                     }, 'pk': apprId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
@@ -2714,7 +2727,7 @@ def splitPRtoPO(all_data, user):
     for key, value in all_data.iteritems():
         supplierMapping = SKUSupplier.objects.filter(sku__sku_code=key, sku__user=user.id)
         if supplierMapping.exists():
-            supplierId = supplierMapping[0].supplier_id
+            supplierId = supplierMapping[0].supplier.supplier_id
             value['supplier_id'] = supplierId
             poSuppliers.setdefault(supplierId, []).append(key)
     return poSuppliers

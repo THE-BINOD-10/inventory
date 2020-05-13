@@ -395,37 +395,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.model_data.data.push({"fields": emptylineItems});
 
           } 
-          // else {
-
-          //   $scope.$apply(function() {
-
-          //     vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-          //                              "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-          //                              "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "","utgst_tax": "", "tax": "", "is_new":true
-          //                              }});
-
-          //   });
-          // }
         } else {
           Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
         vm.model_data.data.splice(index,1);
         vm.getTotals();
-        // if (flag) {
-        //   if(vm.model_data.data[index].seller_po_id){
-        //       vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-        //   } else {
-        //       vm.delete_data('id', vm.model_data.data[index].pk, index);
-        //   }
-        //   if(vm.permissions.show_purchase_history) {
-        //       $timeout( function() {
-        //           vm.populate_last_transaction('delete')
-        //       }, 2000 );
-        //   }
-        //   vm.model_data.data.splice(index,1);
-        //   vm.getTotals();
-        // }
       }
     }
 
@@ -475,10 +450,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             confirm_api ? vm.add_raise_pr(elem) : '';
           }
-        // } else {
-        //   typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-        //   vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
-        // }
       }
     }
 

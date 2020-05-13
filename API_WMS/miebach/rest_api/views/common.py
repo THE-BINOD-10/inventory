@@ -5773,7 +5773,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
             storeUser = storeUserQs[0].admin_user
             store_stock_data = StockDetail.objects.exclude(
                             Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
-                            filter(sku__user=storeUser.id)
+                            filter(sku__user=storeUser.id, sku__sku_code=sku_code)
             st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
             st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
             

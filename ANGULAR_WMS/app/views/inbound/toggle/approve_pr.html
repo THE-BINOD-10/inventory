@@ -111,8 +111,17 @@
                 </tbody>
               </table>
             </div>
+          </div> 
+          <!-- <div class="row" ng-if="showCase.model_data.product_category=='Kits&Consumables'" >
+            <div ng-include="'views/inbound/toggle/pendinglineItems/kits_consumables.html'"></div>
           </div>
-        <div class="row">
+          <div class="row" ng-if="showCase.model_data.product_category=='Assets'" >
+            <div ng-include="'views/inbound/toggle/pendinglineItems/assets.html'"></div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.product_category=='Services'" >
+            <div ng-include="'views/inbound/toggle/pendinglineItems/services.html'"></div>
+          </div> -->
+    <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Remarks :</strong>
@@ -121,7 +130,6 @@
           <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
         </div>
       </div>
-
       <div class="row">
         <div class="col-md-10">
           <strong class="pull-left" style="margin-left: 20px;">
@@ -151,10 +159,9 @@
           </table>
         </div>
       </div>
-
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
       </div>
-		</div>
+	 </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpr) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PR</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PR</button>

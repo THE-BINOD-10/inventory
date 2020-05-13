@@ -53,4 +53,7 @@ urlpatterns = [
     url(r'^get_skufilters/$', get_skufilters),
     url(r'^create_orders/$', create_orders),
     url(r'^netsuite/update_supplier/$', netsuite_update_supplier),
+    url(r'^get_shipmentinfo/$', get_shipmentinfo),
+    url(r'^invoice_pdf/$', invoice_pdf),
+    url(r'^update_supplier/$', update_supplier),
 ]

@@ -497,6 +497,32 @@ var app = angular.module('urbanApp')
              templateUrl: 'views/masters/toggles/customer_update.html'
            })
 
+           .state('app.masters.VehicleMaster', {
+          url: '/VehicleMaster',
+          permission: 'show_vehiclemaster',
+          templateUrl: 'views/masters/vehicle_datatable.html',
+          resolve: {
+//            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+//                return $ocLazyLoad.load('scripts/controllers/masters/vehicleMaster.js');
+//                    }]
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/vehicleMaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+              }]
+          },
+          data: {
+            title: 'Vehicle Master',
+          }
+        })
+          .state('app.masters.VehicleMaster.vehicle', {
+             url: '/vehicle',
+             templateUrl: 'views/masters/toggles/vehicle_update.html'
+           })
+
            .state('app.masters.SkuPackMaster', {
              url: '/SkuPackMaster',
              // permission: 'sku_pack_config',
@@ -1807,6 +1833,25 @@ var app = angular.module('urbanApp')
             title: 'Back Orders',
           }
         })
+        .state('app.outbound.CreateAllocation', {
+          url: '/CreateAllocation',
+          permission: 'add_orderdetail',
+          templateUrl: 'views/outbound/create_allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/create_allocations/create_allocation.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_allocations/create_deallocation.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Create Allocation / Deallocation',
+          }
+        })
         .state('app.outbound.CreateStockTransfer', {
           url: '/CreateStockTransfer',
           permission: 'multi_warehouse',
@@ -2168,6 +2213,22 @@ var app = angular.module('urbanApp')
             url: '/GoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',
           })
+         .state('app.reports.STGoodsReceiptNote', {
+          url: '/STGoodsReceiptNote',
+          templateUrl: 'views/reports/st_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/st_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
+            url: '/STGoodsReceiptNote',
+            templateUrl: 'views/reports/toggles/purchase_order.html',
+          })
         .state('app.reports.ReceiptSummary', {
           url: '/ReceiptSummary',
           templateUrl: 'views/reports/receipt_summary.html',
@@ -2190,6 +2251,30 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Dispatch Summary',
+          }
+        })
+        .state('app.reports.AllocationReport', {
+          url: '/AllocationReport',
+          templateUrl: 'views/reports/allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/allocation.js');
+              }]
+          },
+          data: {
+            title: 'Allocation Report',
+          }
+        })
+        .state('app.reports.DeAllocationReport', {
+          url: '/DeAllocationReport',
+          templateUrl: 'views/reports/deallocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/deallocation.js');
+              }]
+          },
+          data: {
+            title: 'DeAllocation Report',
           }
         })
         .state('app.reports.SKUWiseStock', {
@@ -2630,6 +2715,10 @@ var app = angular.module('urbanApp')
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
+        .state('app.reports.DiscrepancyReport.print', {
+           url: '/DescrepancyNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
         .state('app.reports.CurrentStockReport', {
           url: '/CurrentStockReport',
           templateUrl: 'views/reports/current_stock_report.html',
@@ -2712,6 +2801,19 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Cancelled Invoices Report',
+          }
+        })
+        
+        .state('app.reports.DiscrepancyReport', {
+          url: '/DiscrepancyReport',
+          templateUrl: 'views/reports/discrepancy_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/discrepancy_report.js');
+              }]
+          },
+          data: {
+            title: 'Discrepancy Report',
           }
         })
         .state('app.reports.BulkStockUpdate', {

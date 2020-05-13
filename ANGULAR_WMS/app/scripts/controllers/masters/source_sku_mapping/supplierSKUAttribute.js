@@ -138,7 +138,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         data = data.data;
         var list = [];
         angular.forEach(data.suppliers, function(d){
-          list.push(d.id)
+          list.push(d.supplier_id)
         });
         vm.supplier_list = list;
         vm.model_data.supplier_id = vm.supplier_list[0];

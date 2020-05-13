@@ -47,6 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'display_parts_allocation':false,
                     'auto_generate_receive_qty':false,
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
@@ -57,6 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
                     'st_po_prefix': false,
+                    'supplier_sync': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -102,6 +104,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      113:'discrepency_prefix',
                      114: 'auto_generate_receive_qty',
                      115: 'st_po_prefix',
+                     116: 'display_parts_allocation',
+                     117: 'supplier_sync',
                      }
 
   vm.check_box_data = [
@@ -630,7 +634,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
+   name: "Display Allocation/Deallocation Page",
+   model_name: "display_parts_allocation",
+   param_no: 116,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Enable Pending For Approval POs",
    model_name: "enable_pending_approval_pos",
    param_no: 105,
@@ -693,6 +704,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
+  {
+   name: "Sync Supplier b/n Users",
+   model_name: "supplier_sync",
+   param_no: 117,
+   class_name: "fa fa-server",
+   display: true
+   },
 ]
 
   vm.empty = {};

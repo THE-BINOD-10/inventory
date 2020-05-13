@@ -218,6 +218,7 @@ class LocationMaster(models.Model):
 
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
+    supplier_id = models.CharField(max_length=64, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
     address = models.CharField(max_length=256)
@@ -605,6 +606,7 @@ class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
+    priority = models.IntegerField(default=0)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)
@@ -619,6 +621,7 @@ class PurchaseOrder(models.Model):
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
     payment_received = models.FloatField(default=0)
+    priority = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1091,6 +1094,8 @@ class CustomerMaster(models.Model):
     lead_time = models.PositiveIntegerField(blank=True, default=0)
     role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
     spoc_name = models.CharField(max_length=256, default='')
+    chassis_number = models.CharField(max_length=256, default='')
+    customer_reference = models.CharField(max_length=256, default='')
     customer_aux_info = models.TextField(default='', blank=True)
 
     class Meta:
@@ -2598,7 +2603,7 @@ class SKUAttributes(models.Model):
 
     class Meta:
         db_table = 'SKU_ATTRIBUTES'
-        unique_together = ('sku', 'attribute_name')
+        #unique_together = ('sku', 'attribute_name')
         index_together = ('sku', 'attribute_name')
 
     def __unicode__(self):
@@ -3618,6 +3623,23 @@ class ProccessRunning(models.Model):
     class Meta:
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
+
+
+class MasterAttributes(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_id = models.CharField(max_length=32, default='')
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
+        index_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
+
+
 
 #Signals
 @receiver(post_save, sender=OrderDetail)

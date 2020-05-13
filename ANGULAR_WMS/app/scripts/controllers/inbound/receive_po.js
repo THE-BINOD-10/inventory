@@ -199,7 +199,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 var dataDict = {
                   'supplier_id': aData['DT_RowId'],
                   'warehouse': aData['Warehouse'] ,
-                  'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0
+                  'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
+                  'prefix': aData['prefix']
                 }
                 vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {

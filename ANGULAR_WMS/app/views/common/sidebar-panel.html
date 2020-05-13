@@ -18,12 +18,12 @@
     <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
   </div>
   <!-- /logo -->
-
+  <p style="display: inline-flex;width: auto;text-transform: uppercase;padding-left: 10%;font-size: 12px;color: #fff;line-height:12;">{{(session.parent.user_first_name == "")? session.parent.userName:session.parent.user_first_name;}}</p>
 
 </div>
 
 <!-- main navigation -->
-<nav role="navigation" side-navigation style="margin-bottom: 100px;top: 60px;">
+<nav role="navigation" side-navigation style="margin-bottom: 100px;top: 100px;">
 
   <ul class="nav">
 
@@ -101,8 +101,13 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster')">
+          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster') && !show_tab('show_vehiclemaster')">
             <span>Customer Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.VehicleMaster" ng-show="show_tab('add_customermaster') && show_tab('show_vehiclemaster')">
+            <span>Vehicle Master</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('add_customersku')">
@@ -392,6 +397,11 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
+        <li ng-show="show_tab('add_orderdetail')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CreateAllocation">
+            <span>Allocation / Deallocation</span>
+          </a>
+        </li>
         <!--<li ui-sref-active="active">-->
         <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
@@ -503,12 +513,27 @@
             <span>Goods Receipt Note</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.STGoodsReceiptNote">
+            <span>Stock Transfer Goods Receipt Note</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_polocation')">
           <a ui-sref="app.reports.ReceiptSummary">
             <span>Receipt Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('view_picklist')">
+        <li ui-sref-active="active" ng-show="show_tab('show_vehiclemaster')">
+          <a ui-sref="app.reports.AllocationReport">
+            <span>Allocation Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('show_vehiclemaster')">
+          <a ui-sref="app.reports.DeAllocationReport">
+            <span>DeAllocation Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_picklist') && !show_tab('show_vehiclemaster')">
           <a ui-sref="app.reports.DispatchSummaryReport">
             <span>Dispatch Summary</span>
           </a>
@@ -528,7 +553,7 @@
             <span>Supplier Wise PO's</span>
           </a>
         </li>
-        <li ng-show="show_tab('view_orderreturns')" ui-sref-active="active">
+        <li ng-show="show_tab('view_orderreturns') && !show_tab('show_vehiclemaster')" ui-sref-active="active" >
           <a ui-sref="app.reports.SalesReturnReport">
             <span>Sales Return</span>
           </a>

@@ -264,6 +264,7 @@ urlpatterns = [
 
 
 
+
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
     url(r'^confirm_cycle_count/$', confirm_cycle_count),
@@ -307,7 +308,10 @@ urlpatterns = [
     url(r'^print_pdf_shipment_info/$',print_pdf_shipment_info),
     url('^marketplace_segregation/$', marketplace_segregation),
     url('^get_customer_data/$', get_customer_data),
+    url('^get_location_data/$', get_location_data),
     url('^insert_order_data/$', insert_order_data),
+    url('^insert_allocation_data/$', insert_allocation_data),
+    url('^insert_deallocation_data/$', insert_deallocation_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
     url('^stock_transfer_delete/$', stock_transfer_delete),
@@ -331,6 +335,7 @@ urlpatterns = [
     url(r'^create_custom_sku/$', create_custom_sku),
     url(r'^generate_order_jo_data/$', generate_order_jo_data),
     url(r'^search_customer_data/$', search_customer_data),
+    url(r'^search_location_data/$', search_location_data),
     url(r'^generate_order_po_data/$', generate_order_po_data),
     url(r'^get_view_order_details/$', get_view_order_details),
     url(r'^get_stock_location_quantity/$', get_stock_location_quantity),
@@ -340,6 +345,7 @@ urlpatterns = [
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
+    url(r'^search_makemodel_wms_data/$', search_makemodel_wms_data),
     url(r'^search_style_data/$', search_style_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
@@ -430,6 +436,8 @@ urlpatterns = [
     url(r'^get_order_extra_options/$', get_order_extra_options),
     url(r'^get_picklist_delivery_challan/$', get_picklist_delivery_challan),
     url(r'^generate_dc/$', generate_dc),
+    url(r'^get_customer_types/$', get_customer_types),
+
 
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
@@ -437,9 +445,9 @@ urlpatterns = [
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+    url(r'^get_previous_order_data/$', get_previous_order_data),
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
     url(r'^print_descrepancy_note/$', print_descrepancy_note),
-
 
 
 
@@ -459,9 +467,12 @@ urlpatterns = [
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
+    url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
+    url(r'^get_allocation_filter/$', get_allocation_filter),
+    url(r'^get_deallocation_report/$', get_deallocation_report),
     url(r'^get_order_summary_filter/$', get_order_summary_filter),
     url(r'^get_sku_stock_filter/$', get_sku_stock_filter),
     url(r'^get_sales_return_filter/$', get_sales_return_filter),
@@ -557,6 +568,7 @@ urlpatterns = [
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     url(r'^get_credit_note_report/$', get_credit_note_report),
     url(r'print_credit_note_report/$', print_credit_note_report),
+    url(r'^get_st_po_filter/$', get_st_po_filter),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -634,6 +646,8 @@ urlpatterns += [
     url(r'^combo_allocate_upload/$', combo_allocate_upload),
     url(r'^brand_level_pricing_form/$', brand_level_pricing_form),
     url(r'^brand_level_pricing_upload/$', brand_level_pricing_upload),
+    url(r'^vehiclemaster_form/$', vehiclemaster_form),
+    url(r'^vehiclemaster_upload/$', vehiclemaster_upload),
     url(r'^sku_substitutes_form/$', sku_substitutes_form),
     url(r'^sku_substitutes_upload/$', sku_substitutes_upload),
     url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
@@ -701,6 +715,8 @@ urlpatterns += [
     url(r'^get_decimal_data/$', get_decimal_data),
     url(r'^update_barcode_configuration/$', update_barcode_configuration),
     url(r'^get_barcode_configurations/$', get_barcode_configurations),
+    url(r'^get_sku_attributes_data/$', get_sku_attributes_data),
+
 
 
     # Retailone

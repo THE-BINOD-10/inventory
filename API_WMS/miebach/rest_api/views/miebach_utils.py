@@ -10900,10 +10900,8 @@ def get_po_approval_report_data(search_params, user, sub_user):
                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number']
 
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
-        annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
-    if order_term:
-        results = pending_data.order_by(order_data)
-    resultsWithDate = dict(results.values_list('pending_po__po_number', 'creation_date'))
+        annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
+    resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
     temp_data['recordsTotal'] = pending_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0

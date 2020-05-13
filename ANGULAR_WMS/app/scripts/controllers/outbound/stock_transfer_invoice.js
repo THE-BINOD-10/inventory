@@ -170,8 +170,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = function() {
     if(vm.permissions.customer_dc){
+       vm.service.refresh(vm.dtInstance);
        $state.go("app.outbound.CustomerInvoices")
+
     } else{
+        vm.service.refresh(vm.dtInstance);
         $state.go("app.outbound.CustomerInvoicesMain")
     }
     }

@@ -3570,10 +3570,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if pallet_number:
                     if temp_dict['pallet_data'] == 'true':
                         insert_pallet_data(temp_dict, po_loc)
-                if float(purchase_data['order_quantity']) <= data.received_quantity+ float(temp_dict.get('discrepency_quantity',0)):
-                    data.status = 'location-assigned'
-                    data.save()
-                    break
                 if received_quantity == 0:
                     if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
                         data.status = 'location-assigned'

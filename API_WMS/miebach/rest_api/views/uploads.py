@@ -2977,11 +2977,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not ep_supplier:
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
-                        if not index_status:
-                            if  margin_check :
-                                status = check_margin_percentage(sku_master[0].id, supplier[0].id)
-                                if status:
-                                    index_status.setdefault(row_idx, set()).add(status)
+                        if  margin_check and sku_master and supplier :
+                            status = check_margin_percentage(sku_master[0].id, supplier[0].id)
+                            if status:
+                                index_status.setdefault(row_idx, set()).add(status)
                         data_dict['sku_id'] = sku_master[0].id
                         data_dict['wms_code'] = sku_master[0].wms_code
                         data_dict['sku_product_type'] = sku_master[0].product_type

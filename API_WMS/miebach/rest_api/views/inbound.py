@@ -3108,7 +3108,7 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack',
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount']
         for i in range(0, len(data_dict['id'])):
             po_data = {}

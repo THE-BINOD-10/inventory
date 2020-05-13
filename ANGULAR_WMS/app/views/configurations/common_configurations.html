@@ -458,6 +458,16 @@
             <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name" ng-readonly="showCase.pr_selected">
           </div>
           <div class="col-md-1 col-sm-1 col-xs-2">
+            <select class="form-control" ng-model="datum.product_category" 
+            ng-disabled="showCase.pr_selected"
+            ng-change="showCase.getProdMaxValue(datum, 'pr_save')">
+              <option value="">Select</option>
+              <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
+                ng-selected="datum.product_category == product_catg"
+                > {{product_catg}}</option>
+            </select>
+          </div>
+          <div class="col-md-1 col-sm-1 col-xs-2">
             <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt" readonly>
           </div>
           <div class="col-md-1 col-sm-1 col-xs-2">
@@ -509,7 +519,7 @@
           <div class="col-md-1 col-sm-1 col-xs-2">
             <select class="form-control" ng-model="datum.product_category" 
             ng-disabled="showCase.actual_pr_selected"
-            ng-change="showCase.getProdMaxValue(datum)">
+            ng-change="showCase.getProdMaxValue(datum, 'actual_pr_save')">
               <option value="">Select</option>
               <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
                 ng-selected="datum.product_category == product_catg"

@@ -2779,13 +2779,17 @@ def add_pr(request, user=''):
         else:
             master_type = 'pr_approvals_conf_data'
             mailSub = 'po_created'
+        product_category = 'Kits&Consumables'
+        if myDict.get('product_category'):
+            product_category = myDict.get('product_category')[0]
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         mailsList = []
         if is_actual_pr == 'true':
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
-            reqConfigName = findReqConfigName(user, totalAmt)
+            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR', 
+                                                product_category=product_category)
             if is_resubmitted == 'true':
                 pendingPRObj.pending_prApprovals.filter().delete()
                 pendingPRObj.pending_level = baseLevel
@@ -2807,12 +2811,13 @@ def add_pr(request, user=''):
                     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
                     admin_user = admin_userQs[0].user
             if admin_user:
-                reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO')
+                reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO', 
+                                                product_category=product_category)
                 prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, forPO=True, 
                                         admin_user=admin_user)
             else:
-                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO')
+                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
                 prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, forPO=True)
             if mailsList:

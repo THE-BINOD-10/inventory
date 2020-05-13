@@ -956,10 +956,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   });
 
-  vm.getProdMaxValue = function(configData){
+  vm.getProdMaxValue = function(configData, pr_type){
     var maxAmtsList = [];
-    var maxVal = 0; 
-    angular.forEach(vm.model_data['total_actual_pr_config_ranges'], function(record, index){
+    var maxVal = 0;
+    var prConfigData = vm.model_data['total_actual_pr_config_ranges'];
+    if(pr_type == 'pr_save'){
+      prConfigData = vm.model_data['total_pr_config_ranges'];
+    }
+    angular.forEach(prConfigData, function(record, index){
       if(record.product_category == configData.product_category){
         maxAmtsList.push(record.max_Amt);
       }

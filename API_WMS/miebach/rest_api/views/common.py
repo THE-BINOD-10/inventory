@@ -827,9 +827,12 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR'):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type)
+    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type, 
+                                    product_category=product_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -1101,9 +1104,13 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR'):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     confMap = OrderedDict()
-    for rec in PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
+    for rec in PurchaseApprovalConfig.objects.filter(user=user, 
+                                    purchase_type=purchase_type,
+                                    product_category=product_category).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap
@@ -1119,6 +1126,7 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
         name = eachConfData['name']
+        prod_catg = eachConfData['product_category']
         sameLevelMailIds = MasterEmailMapping.objects.filter(master_id=eachConfData['id'],
                                     master_type=master_type, user=user).values_list('email_id', flat=True)
         commaSepMailIds = ','.join(sameLevelMailIds)
@@ -1187,7 +1195,8 @@ def configurations(request, user=''):
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
     config_dict['pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending po')
 
-    config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
+    # config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', flat=True))
+    config_dict['actual_pr_conf_names'] = list(PurchaseApprovalConfig.objects.filter(user=user, purchase_type='PR').values_list('name', 'product_category'))
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     config_dict['actual_pr_permissive_emails'] = get_permission_based_sub_users_emails(user, permission_name='pending pr')
 

@@ -15,6 +15,7 @@ from django.core import serializers
 import os
 from sync_sku import *
 import simplejson
+from api_calls.netsuite import netsuite_update_create_sku
 
 log = init_logger('logs/masters.log')
 
@@ -1088,6 +1089,7 @@ def update_sku(request, user=''):
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
+    admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1185,6 +1187,8 @@ def update_sku(request, user=''):
         #    print "already running"
 
         insert_update_brands(user)
+        # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
+        netsuite_sku(data, user)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1216,6 +1220,15 @@ def update_sku(request, user=''):
         return HttpResponse('Update SKU Failed')
 
     return HttpResponse('Updated Successfully')
+
+def netsuite_sku(data, user):
+    sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+    response = netsuite_update_create_sku(data, sku_attr_dict, user)
+    if response.has_key('__values__'):
+        external_id = response['__values__']['externalId']
+        internal_id = response['__values__']['internalId']
+        NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
+                                         type_name='sku_master', master_id=data.id)
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -2682,6 +2695,7 @@ def insert_sku(request, user=''):
             instanceName = ServiceMaster
             status_msg = 'Service Item exists'
         data = filter_or_none(instanceName, filter_params)
+
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
         notified_users = []
@@ -2761,6 +2775,8 @@ def insert_sku(request, user=''):
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
+            # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
+            netsuite_sku(sku_master, user)
 
         insert_update_brands(user)
         # update master sku txt file

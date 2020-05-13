@@ -10,7 +10,6 @@ from collections import OrderedDict
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
-from itertools import chain
 from django.db.models import Sum, Count
 from rest_api.views.common import get_local_date, folder_check
 from rest_api.views.integrations import *
@@ -21,10 +20,58 @@ from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_api.views.utils import *
 import reversion
+import itertools
+from netsuitesdk import NetSuiteConnection
+from netsuitesdk.internal.utils import PaginatedSearch
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/netsuite_integrations_' + today + '.log')
 log_err = init_logger('logs/netsuite_integration_errors.log')
+
+NS_ACCOUNT='4120343_SB1'
+NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea'
+NS_CONSUMER_SECRET='a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35'
+NS_TOKEN_KEY='e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f'
+NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
+
+def connect_tba():
+    nc = NetSuiteConnection(
+      account=NS_ACCOUNT, 
+      consumer_key=NS_CONSUMER_KEY, 
+      consumer_secret=NS_CONSUMER_SECRET,                   
+      token_key=NS_TOKEN_KEY, 
+      token_secret=NS_TOKEN_SECRET)
+    return nc
+def netsuite_update_create_sku(data, sku_attr_dict, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        external_id = get_incremental(user, 'netsuite_external_id')
+        invitem = ns.InventoryItem()
+        invitem.taxSchedule = ns.RecordRef(internalId=1)
+        invitem.itemId = data.sku_code
+        invitem.externalId = external_id
+        invitem.displayName = data.sku_desc
+        invitem.itemType = data.sku_type
+        invitem.vendorname = data.sku_brand
+        invitem.upc = data.ean_number
+        invitem.isinactive = data.status
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category))
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category))
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class))
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
+        # invitem.purchaseunit = sku_attr_dict['Purchase UOM']
+        data_response = ns.upsert(invitem)
+        data_response = json.dumps(data_response.__dict__)
+        data_response = json.loads(data_response)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create sku data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
 
 @login_required
 @get_admin_user

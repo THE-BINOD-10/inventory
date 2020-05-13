@@ -302,10 +302,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               if(click_type == 'generate') {
                 vm.pdf_data = data.data
 //                $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
+                if(vm.permissions.customer_dc){
                 $state.go("app.outbound.CustomerInvoices.StockTransferInvoiceE");
+                } else {
+                $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceE");
+                }
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
-                }, 3000);
+                }, 1000);
               }
             }
             vm.bt_disable = false;

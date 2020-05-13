@@ -10849,6 +10849,7 @@ def get_po_approval_report_data(search_params, user, sub_user):
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
+    import pdb;pdb.set_trace()
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['pending_po__po_number','pending_po__supplier__id', 'pending_po__supplier__name',
             'total_qty', 'total_amt', 'creation_date',
@@ -10886,8 +10887,10 @@ def get_po_approval_report_data(search_params, user, sub_user):
             warehouse_users[user.id] = user.username
         # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
+        search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
 
-        for warehouse in warehouses.keys():
+
+        for warehouse in warehouse_users.keys():
             search_parameters['pending_po__wh_user__in'] = warehouse
             start_index = search_params.get('start', 0)
             stop_index = start_index + search_params.get('length', 0)
@@ -11053,7 +11056,6 @@ def get_po_approval_report_data(search_params, user, sub_user):
                 ('DT_RowClass', 'results')))
             count = +1
             temp_data['aaData'].append(ord_dict)
-
     return temp_data
 
 

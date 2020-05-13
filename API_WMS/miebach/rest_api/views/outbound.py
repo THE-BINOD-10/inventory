@@ -2191,7 +2191,7 @@ def picklist_confirmation(request, user=''):
                                 open_st_obj = OpenST.objects.filter(id=stock_transfer.st_po.open_st.id)
                                 if open_st_obj.exists():
                                     open_st_obj = open_st_obj[0]
-                                    if stock_transfer.status == 2:
+                                    if stock_transfer.status == 2 or picklist.picked_quantity:
                                         prev_price = picklist.picked_quantity * open_st_obj.price
                                         new_price = update_picked * stock.batch_detail.buy_price
                                         if picklist.picked_quantity and update_picked:
@@ -11039,7 +11039,7 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     for key,value in  new_data.iteritems():
         new_list.append(
             {'Stock Transfer ID': value['order_id'], 'Order Quantity': value['total_quantity'], 'Picked Quantity': value['picked_quantity'],
-             'Total Amount': value['price'], 'Stock Transfer Date&Time': value['shipment_date'],'pick_number':value['pick_number'],
+             'Total Amount': "%.2f"% float(value['price']), 'Stock Transfer Date&Time': value['shipment_date'],'pick_number':value['pick_number'],
              'Invoice Number':value['full_invoice_number'],
              'Warehouse Name': value['warehouse_name'],})
 

@@ -3175,7 +3175,7 @@ def update_putaway(request, user=''):
             po_reference = get_po_reference(po)
             mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
             subject = 'GRN Approval request for PO: %s' % po_reference
-            if send_admin_mail:
+            if send_admin_mail == 'true':
                 email_ids=list(MasterEmailMapping.objects.filter(master_type="po_admin_approval",
                                                   user_id=user.id).values_list('email_id',flat=True))
                 if email_ids:

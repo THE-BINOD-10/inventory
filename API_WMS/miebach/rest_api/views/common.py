@@ -10,6 +10,7 @@ from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
 from miebach_utils import *
+from inbound_common_operations import *
 import pytz
 from send_message import send_sms
 from operator import itemgetter
@@ -10654,6 +10655,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
+    margin_check = get_misc_value('enable_margin_price_check', user.id, number=False, boolean=True)
     try:
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
@@ -10722,6 +10724,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         if sku_master.block_options == "PO":
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
+        if margin_check:
+            status = check_margin_percentage(sku_master.id, sup_markdown.id)
+            if status:
+                data = {'error_msg': status}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

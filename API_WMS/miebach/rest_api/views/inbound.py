@@ -1578,6 +1578,7 @@ def switches(request, user=''):
                        'auto_allocate_sale_order':'auto_allocate_sale_order',
                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        'stock_auto_receive':'stock_auto_receive',
+                       'enable_margin_price_check':'enable_margin_price_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5416,6 +5417,9 @@ def validate_putaway(all_data, user):
             for pol in po_location:
                 if pol.purchase_order.open_po:
                     validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+                elif pol.purchase_order.stpurchaseorder_set.filter():
+                     validate_seller_id = pol.purchase_order.stpurchaseorder_set.filter()[0].open_st.po_seller_id
+
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
 
@@ -10428,6 +10432,7 @@ def get_debit_note_data(rtv_number, user):
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:
             data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax
+        data_dict_item['return_reason'] = obj.return_reason
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
@@ -10481,8 +10486,8 @@ def prepare_rtv_json_data(request_data, user):
         data_dict = {}
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
-        if 'rtv_reasons' in request_data:
-            data_dict['rtv_reasons'] = request_data['rtv_reasons'][0]
+        if 'rtv_reason' in request_data:
+            data_dict['rtv_reasons'] = request_data['rtv_reason'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])

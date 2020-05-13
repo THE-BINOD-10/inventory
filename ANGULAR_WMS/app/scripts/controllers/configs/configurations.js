@@ -55,6 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'po_or_pr_edit_permission_approver': false,
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
+                    'enable_margin_price_check':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -98,6 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
                      113:'discrepency_prefix',
+                     114:'enable_margin_price_check',
                      }
 
   vm.check_box_data = [
@@ -679,6 +681,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    name: "Stock Transfer Auto Receive",
    model_name: "stock_auto_receive",
    param_no: 112,
+   class_name: "fa fa-server",
+   display: true
+   },
+  {
+   name: "Enable Margin Check for PO",
+   model_name: "enable_margin_price_check",
+   param_no: 114,
    class_name: "fa fa-server",
    display: true
    }

@@ -36,7 +36,7 @@ def update_skus(user_id, sku_codes):
     """ Whenever new SKU is added it needed to update in all related warehouses """
 
     all_users = get_related_users(user_id)
-    new_skus = SKUMaster.objects.filter(sku_code__in=sku_codes)
+    new_skus = SKUMaster.objects.filter(user=user_id, sku_code__in=sku_codes)
     create_update_sku(new_skus, all_users)
     return "Success"
 
@@ -136,7 +136,11 @@ def create_update_sku(all_skus, all_users):
                 exist_skus.append(sku.sku_code.upper())
 
             else:
-                sku_obj = SKUMaster.objects.get(user=user, sku_code=sku.sku_code)
+                sku_obj = SKUMaster.objects.filter(user=user, sku_code=sku.sku_code)
+                if not sku_obj:
+                    continue
+                else:
+                    sku_obj = sku_obj[0]
                 #price_band_flag = get_misc_value('priceband_sync', sku.user)
                 #if (price_band_flag == 'true' or wh_type == 'CENTRAL_ADMIN') and not created:
                 sku_obj.__dict__.update(**update_sku_dict)

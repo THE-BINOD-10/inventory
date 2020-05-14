@@ -2392,9 +2392,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
-      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
-      vm.singleDecimalVal(sku_row_data.apmc_percent, 'apmc_percent', index, parent_index);
-
       if (vm.industry_type == 'FMCG') {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
         if (Number(sku_row_data.discrepency_quantity)) {
@@ -2534,6 +2531,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(po_quantity && po_quantity < tot_qty) {
           vm.display_approval_button = true;
           vm.send_admin_mail=true;
+          Service.showNoty("Received Quantity Greater Than PO Quantity")
           if (outerindex != undefined ){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }

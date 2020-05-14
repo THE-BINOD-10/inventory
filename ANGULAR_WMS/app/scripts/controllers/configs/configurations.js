@@ -925,6 +925,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       });
     }
   }
+  vm.checkExistingConfigName = function(datum, type){
+    var records = []
+    if(type == 'PR'){
+      records = vm.model_data.actual_pr_approvals_conf_data;
+    } else if(type == 'PO'){
+      records = vm.model_data.pr_approvals_conf_data;
+    }
+    if(datum.name && records.length > 0){
+      angular.forEach(records, function(record){
+        if (record.pr_name == datum.name){
+          datum.name = '';
+          Service.showNoty('Same Config Name cant be provided');
+        }
+      });
+    }
+  }
   vm.actual_pr_save = function (data, type) {
     if(type =='save') {
       vm.add_empty_index('', 'save', 'actual_pr_save');

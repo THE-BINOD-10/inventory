@@ -338,7 +338,13 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'SKU Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage','Lead Time']
+SUPPLIER_SKU_HEADERS = OrderedDict(( ('Warehouse', 'warehouse'), ('Supplier Id', 'supplier_id'),
+                                     ('SKU Code', 'sku_code'), ('Supplier Code', 'supplier_code'),
+                                     ('Preference', 'preference'), ('MOQ', 'moq'), ('Price', 'price'),
+                                     ('Costing Type (Price Based/Margin Based/Markup Based)', 'costing_type'),
+                                     ('MarkDown Percentage', 'margin_percentage'),
+                                     ('Markup Percentage', 'markup_percentage'),('Lead Time', 'lead_time')
+                                ))
 
 SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 

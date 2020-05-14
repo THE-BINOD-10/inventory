@@ -16588,7 +16588,7 @@ def insert_allocation_data(request, user=''):
                 try:
                     val = myDict[key][ind]
                 except:
-                    import pdb;pdb.set_trace()
+                    pass
             if key in number_fields:
                 try:
                     val = float(val)

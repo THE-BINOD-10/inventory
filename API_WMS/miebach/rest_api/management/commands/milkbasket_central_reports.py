@@ -342,7 +342,7 @@ class Command(BaseCommand):
                        'anubhav.gupta@milkbasket.com', 'Ashok.kumar@milkbasket.com', 'Balaji.srinivasan@milkbasket.com',
                        'ritesh.shah@milkbasket.com', 'tapasya.tibrewal@milkbasket.com', 'prijil.d@milkbasket.com',
                        'sahil.madan@milkbasket.com', 'anurag@milkbasket.com', 'rajiv.joshi@milkbasket.com',
-                       'Category-team@milkbasket.com', 'Procurement-team@milkbasket.com',
+                       'Category-team@milkbasket.com', 'Procurement-team@milkbasket.com','milind.gupta@milkbasket.com',
                        'saurabh.kumar@milkbasket.com', 'naveen.panwar@milkbasket.com', 'jatin.khurana@milkbasket.com']
             subject = '%s Reports dated %s' % ('Milkbasket', datetime.now().date())
             text = 'Please find the scheduled reports in the attachment dated: %s' % str(

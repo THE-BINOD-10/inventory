@@ -227,13 +227,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
           });
           vm.checkResubmit = function(sku_data){
-            var oldQty = vm.resubmitCheckObj[sku_data.sku.wms_code];
-            if (oldQty != sku_data.order_quantity){
-              vm.is_resubmitted = true;
-            } else {
-              vm.is_resubmitted = false;
+            vm.is_resubmitted = false;
+            if (sku_data.order_quantity){
+              angular.forEach(vm.model_data.data, function(eachField){
+                var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                if (oldQty != parseInt(eachField.fields.order_quantity)){
+                  vm.is_resubmitted = true
+                }
+              })
             }
-
           }
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];

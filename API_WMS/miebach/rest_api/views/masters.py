@@ -1642,7 +1642,7 @@ def update_customer_values(request, user=''):
                 setattr(data, key, value)
 
         data.save()
-        update_master_attributes(data, request, user, 'customer_master')
+        update_master_attributes(data, request, user, 'customer')
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='customer')

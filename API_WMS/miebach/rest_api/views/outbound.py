@@ -313,6 +313,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
     if user.userprofile.user_type == 'marketplace_user':
         lis.insert(3, 'st_seller__seller_id')
         lis.insert(4, 'st_seller__name')
+        lis.insert(5, 'st_po__open_st__mrp')
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -335,11 +336,12 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         data_dict = {'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
-                                    'Seller ID': '', 'Seller Name': '',
+                                    'Seller ID': '', 'Seller Name': '', 'MRP':'',
                                     'DT_RowAttr': {'id': data.id}, 'id': count}
         if user.userprofile.user_type == 'marketplace_user' and data.st_seller:
             data_dict['Seller ID'] = data.st_seller.seller_id
             data_dict['Seller Name'] = data.st_seller.name
+            data_dict['MRP'] = data.st_po.open_st.mrp
         temp_data['aaData'].append(data_dict)
         count = count + 1
 
@@ -10980,15 +10982,22 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     if search_term :
         filter_params['order_id__icontains']=search_term
         summary_params['stock_transfer__order_id__icontains'] = search_term
-    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id,**summary_params).order_by(summary_term)
+    stock_transfer_summary = StockTransferSummary.objects.filter(stock_transfer__sku__user=user.id,**summary_params).select_related('stock_transfer__st_po__open_st').order_by(summary_term)
     stock_transfer_ids = stock_transfer_summary.values_list('stock_transfer__id', flat=True).distinct()
+    stock_transfer_summary_values = stock_transfer_summary.values('stock_transfer__st_po__open_st__price','stock_transfer__order_id',
+                                                                  'quantity','pick_number','stock_transfer__st_po__open_st__sku__user',
+                                                                  'stock_transfer__st_po__open_st__cgst_tax',
+                                                                  'stock_transfer__st_po__open_st__igst_tax',
+                                                                  'invoice_number','stock_transfer__quantity',
+                                                                  'full_invoice_number','stock_transfer__creation_date',
+                                                                  'stock_transfer__st_po__open_st__sgst_tax')
     get_stock_transfer = StockTransfer.objects.filter(**filter_params)\
         .exclude(id__in=stock_transfer_ids)\
         .filter(storder__picklist__stock__sku__user = user.id ,storder__picklist__status__in=['picked','batch_picked']).values('order_id','st_po__open_st__sku__user','quantity').distinct().annotate(pic_qty=Sum('storder__picklist__picked_quantity')).order_by(order_by_term)
 
     for obj in get_stock_transfer :
         shipment_date = ''
-        stock_transfer_obj = StockTransfer.objects.filter(order_id = obj['order_id'],sku__user = user.id)
+        stock_transfer_obj = StockTransfer.objects.filter(sku__user = user.id,order_id = obj['order_id'])
         if stock_transfer_obj.exists():
             shipment_date = get_local_date(user, stock_transfer_obj[0].creation_date)
         total_price = 0
@@ -11014,39 +11023,38 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
 
         old_list.append({'Stock Transfer ID' :  obj['order_id'],'Order Quantity':obj['quantity'],'Picked Quantity' : obj['pic_qty'],'Invoice Number':'',
             'Total Amount' :total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse_name,'pick_number':'','id':''})
-    for obj in stock_transfer_summary:
+    users_list = list(stock_transfer_summary_values.values_list('stock_transfer__st_po__open_st__sku__user',flat=True).distinct())
+    warehouse_dict=dict(User.objects.filter(id__in=users_list).values_list('id','username'))
+    for obj in stock_transfer_summary_values:
         tax_value = 0
         sku_price = 0
-        open_st = obj.stock_transfer.st_po.open_st
-        price = open_st.price
-        pick_number = obj.pick_number
-        cgst = open_st.cgst_tax
-        sgst = open_st.sgst_tax
-        igst = open_st.igst_tax
+        price = obj['stock_transfer__st_po__open_st__price']
+        pick_number = obj['pick_number']
+        cgst = obj['stock_transfer__st_po__open_st__cgst_tax']
+        sgst = obj['stock_transfer__st_po__open_st__sgst_tax']
+        igst = obj['stock_transfer__st_po__open_st__igst_tax']
         if price:
             if cgst:
                 tax_value = (cgst / price) * 100 + (sgst / price) * 100
             else:
                 tax_value = (igst / price) * 100
-        sku_price = obj.quantity * (price + tax_value)
+        sku_price = obj['quantity'] * (price + tax_value)
         warehouse_name, shipment_date = '',''
-        warehouse = User.objects.filter(id=open_st.sku.user)
-        shipment_date = get_local_date(user, obj.stock_transfer.creation_date)
-        if warehouse.exists():
-            warehouse_name = warehouse[0].username
-        group_key = '%s:%s:%s' % (obj.stock_transfer.order_id,obj.pick_number,obj.invoice_number)
-        new_data.setdefault(group_key,{'order_id':obj.stock_transfer.order_id,'total_quantity':0,'full_invoice_number':'',
+        warehouse_name = warehouse_dict.get(obj['stock_transfer__st_po__open_st__sku__user'],'')
+        shipment_date = get_local_date(user, obj['stock_transfer__creation_date'])
+        group_key = '%s:%s:%s' % (obj['stock_transfer__order_id'],obj['pick_number'],obj['invoice_number'])
+        new_data.setdefault(group_key,{'order_id':obj['stock_transfer__order_id'],'total_quantity':0,'full_invoice_number':'',
                                        'picked_quantity':0,'price':0,'pick_number':'','warehouse_name':warehouse_name,'shipment_date':shipment_date})
 
-        new_data[group_key]['picked_quantity']+=obj.quantity
-        new_data[group_key]['total_quantity']+=obj.stock_transfer.quantity
+        new_data[group_key]['picked_quantity']+=obj['quantity']
+        new_data[group_key]['total_quantity']+=obj['stock_transfer__quantity']
         new_data[group_key]['pick_number'] = pick_number
         new_data[group_key]['price']+=sku_price
-        new_data[group_key]['full_invoice_number'] = obj.full_invoice_number
+        new_data[group_key]['full_invoice_number'] = obj['full_invoice_number']
     for key,value in  new_data.iteritems():
         new_list.append(
             {'Stock Transfer ID': value['order_id'], 'Order Quantity': value['total_quantity'], 'Picked Quantity': value['picked_quantity'],
-             'Total Amount': value['price'], 'Stock Transfer Date&Time': value['shipment_date'],'pick_number':value['pick_number'],
+             'Total Amount': "%.2f"% float(value['price']), 'Stock Transfer Date&Time': value['shipment_date'],'pick_number':value['pick_number'],
              'Invoice Number':value['full_invoice_number'],
              'Warehouse Name': value['warehouse_name'],})
 
@@ -16588,7 +16596,7 @@ def insert_allocation_data(request, user=''):
                 try:
                     val = myDict[key][ind]
                 except:
-                    import pdb;pdb.set_trace()
+                    pass
             if key in number_fields:
                 try:
                     val = float(val)

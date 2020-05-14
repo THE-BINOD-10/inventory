@@ -20,6 +20,8 @@ import csv
 from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
+from inbound_common_operations import *
+
 
 
 log = init_logger('logs/uploads.log')
@@ -2163,6 +2165,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     mapping_dict = {}
     index_status = {}
     location = {}
+    location_obj = None
     inv_mapping = get_inventory_excel_upload_headers(user)
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
@@ -2242,7 +2245,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 except:
                     index_status.setdefault(row_idx, set()).add('Seller ID Should be number')
             elif key == 'weight':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
                 if user.username in MILKBASKET_USERS:
+                    cell_data = str(cell_data)
                     cell_data = mb_weight_correction(cell_data)
                     if not cell_data:
                         index_status.setdefault(row_idx, set()).add('Weight is Mandatory')
@@ -2270,9 +2276,10 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        if not index_status:
-            sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and sku_master:
+        if data_dict.has_key('weight') and data_dict.has_key('mrp'):
+            sku_master = SKUMaster.objects.filter(id=data_dict['sku_id'])
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and sku_master and location_obj:
+                sku_master = sku_master[0]
                 data_dict['sku_code'] = sku_master.sku_code
                 data_dict['location'] = location_obj[0].location
                 status = validate_mrp_weight(data_dict,user)
@@ -2399,6 +2406,10 @@ def inventory_excel_upload(request, user, data_list):
                 inventory_data['creation_date'] = str(datetime.datetime.now())
                 inventory_data['receipt_date'] = receipt_date
                 inventory_data['receipt_number'] = receipt_number
+                if inventory_data.has_key('sku_code'):
+                    del inventory_data['sku_code']
+                if inventory_data.has_key('location'):
+                    del inventory_data['location']
                 if not sku_master.zone:
                     location_master = LocationMaster.objects.get(id=inventory_data['location_id'])
                     sku_master.zone_id = location_master.zone_id
@@ -3079,6 +3090,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
     purchase_mapping = get_purchase_order_excel_headers(user)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='po_fields')
     fields = []
+    margin_check = get_misc_value('enable_margin_price_check', user.id, number=False, boolean=True)
     if misc_detail.exists():
         fields = misc_detail[0].misc_value.lower().split(',')
     purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
@@ -3146,6 +3158,10 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         if not ep_supplier:
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
+                        if  margin_check and sku_master and supplier :
+                            status = check_margin_percentage(sku_master[0].id, supplier[0].id)
+                            if status:
+                                index_status.setdefault(row_idx, set()).add(status)
                         data_dict['sku_id'] = sku_master[0].id
                         data_dict['wms_code'] = sku_master[0].wms_code
                         data_dict['sku_product_type'] = sku_master[0].product_type
@@ -3808,6 +3824,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
     index_status = {}
     location = {}
     data_list = []
+    dest_location = None
     try:
         inv_mapping = get_move_inventory_excel_upload_headers(user)
         unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
@@ -3920,8 +3937,8 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
                     else:
                         data_dict[key] = cell_data
-            if not index_status:
-                if user.username in MILKBASKET_USERS and unique_mrp == 'true':
+            if data_dict.has_key('weight') and data_dict.has_key('mrp'):
+                if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.has_key('wms_code') and dest_location:
                     data_dict['sku_code'] = data_dict['wms_code']
                     data_dict['location'] = dest_location[0].location
                     status = validate_mrp_weight(data_dict,user)
@@ -4384,6 +4401,8 @@ def combo_sku_upload(request, user=''):
 def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
     data_list = []
+    location_master = None
+    sku_master = None
     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
     inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
@@ -4464,8 +4483,8 @@ def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols
                 #if isinstance(cell_data, (int, float)):
                 #    data_dict[key] = cell_data
                 data_dict[key] = cell_data
-        if not index_status:
-            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and data_dict.get('sku_master') and data_dict.get('location_master'):
+        if data_dict.has_key('weight') and data_dict.has_key('mrp'):
+            if user.username in MILKBASKET_USERS and unique_mrp == 'true' and sku_master and location_master:
                 data_dict['sku_code'] = sku_master[0].sku_code
                 data_dict['location'] = location_master[0].location
                 status = validate_mrp_weight(data_dict,user)

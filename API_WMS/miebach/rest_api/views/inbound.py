@@ -547,9 +547,9 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         filter(received_quantity__lt=F('open_po__order_quantity')).values_list('id',
                                                                                flat=True)
     results1 = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
-    sort_col = 'creation_date'
+    sort_col = 'order_id'
     if order_term == 'desc':
-        sort_col = '-creation_date'
+        sort_col = '-order_id'
     results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col).\
         values('order_id', 'open_po__sku__user', 'rwpurchase__rwo__vendor__user',
                'stpurchaseorder__open_st__sku__user', 'prefix').distinct()

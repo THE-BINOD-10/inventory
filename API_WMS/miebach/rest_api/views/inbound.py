@@ -1134,7 +1134,6 @@ def generated_actual_pr_data(request, user=''):
     requested_user = request.POST.get('requested_user', '')
     requestedUserId = User.objects.get(username=requested_user).id
     pr_user = get_warehouse_user_from_sub_user(requestedUserId)
-    # record = PendingPurchase.objects.filter(requested_user__username=requested_user, pr_number=pr_number)
     record = PendingPR.objects.filter(requested_user__username=requested_user, pr_number=pr_number)
     total_data = []
     ser_data = []
@@ -1147,7 +1146,6 @@ def generated_actual_pr_data(request, user=''):
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
-    # prApprQs = PurchaseApprovals.objects.filter(pr_user=pr_user.id, purchase_number=pr_number, purchase_type='PR')
     convertPoFlag = False
     if record[0].final_status == 'approved':
         db_wh_level = int(record[0].wh_user.userprofile.warehouse_level)
@@ -2490,7 +2488,7 @@ def approve_pr(request, user=''):
     validation_type = request.POST.get('validation_type', '')
     validated_by = request.POST.get('validated_by', '')
     levelToBeValidatedFor = request.POST.get('pending_level', '')
-    remarks = request.POST.get('remarks', '')
+    remarks = request.POST.get('approval_remarks', '')
     is_actual_pr = request.POST.get('is_actual_pr', '')
     requested_userName = request.POST.get('requested_user', '')
     requestedUserId = User.objects.get(username=requested_userName).id
@@ -2568,7 +2566,7 @@ def approve_pr(request, user=''):
     requestedUserEmail = PRQs[0].requested_user.email
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
-        PRQs.update(remarks=remarks)
+        # PRQs.update(remarks=remarks)
         updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                             remarks, purchase_type=purchase_type)
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
@@ -2577,14 +2575,14 @@ def approve_pr(request, user=''):
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
             PRQs.update(final_status=validation_type)
-            PRQs.update(remarks=remarks)
+            # PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
             sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor)
         else:
             PRQs.update(pending_level=nextLevel)
-            PRQs.update(remarks=remarks)
+            # PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
             prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,

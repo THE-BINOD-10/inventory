@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01','GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.milkbasket_file_check = ['GGN01'];
     vm.display_approval_button = false;
+    vm.send_admin_mail = false;
     vm.supplier_id = '';
     vm.order_id = 0;
     vm.invoice_readonly ='';
@@ -388,6 +389,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
+      vm.send_admin_mail = false;
       if (vm.discrepancy_data) {
          vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
          vm.discrepancy_data = ''
@@ -434,17 +436,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (flag) {
 
           vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
-                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "","value":0,
                                   "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_percent": "",
-                                  "total_amt": "", "discount_percentage": 0,
+                                  "total_amt": "", "discount_percentage": 0,'sku_desc_flag':true,
                                   "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
         } else {
 
           $scope.$apply(function() {
             vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
-                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "","value":0,
                                     "buy_price": "", "cess_percent": "", "tax_percent": "", "apmc_tax": "",
-                                    "total_amt": "", "discount_percentage": 0,
+                                    "total_amt": "", "discount_percentage": 0,'sku_desc_flag':true,
                                     "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
           });
         }
@@ -602,6 +604,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = elem[0];
       elem = $(elem).serializeArray();
       elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
+      elem.push({'name': 'send_admin_mail', value: vm.send_admin_mail})
       var form_data = new FormData();
       console.log(form_data);
       var files = $(".grn-form").find('[name="files"]')[0].files;
@@ -2370,7 +2373,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.discrepency_quantity == ''){
         sku_row_data.discrepency_quantity = 0;
       } else{
-            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value))
+            if(sku_row_data.po_quantity < Number(sku_row_data.discrepency_quantity)+Number(sku_row_data.value) && !sku_row_data.sku_desc_flag)
                 {
                     Service.showNoty('Returning Quantity is Greater than PO Quantity ');
                 }
@@ -2469,10 +2472,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return
     }
 
-    if(vm.permissions.change_purchaseorder) {
+    if(vm.permissions.change_purchaseorder && vm.permissions.is_staff) {
       return
     }
     vm.display_approval_button = false;
+    vm.send_admin_mail = false;
     if (outerindex != undefined) {
       vm.model_data.data[outerindex][innerindex].wrong_sku = 0
     }
@@ -2493,7 +2497,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var price = Number(sku_row_data[i].price);
         if(price && (buy_price > price))  {
           price_tolerence = ((buy_price-price)/price)*100;
-          if(price_tolerence > 2){
+          if(price_tolerence > 2 && !vm.permissions.change_purchaseorder){
             vm.display_approval_button = true;
             if (outerindex != undefined){
                vm.model_data.data[outerindex][innerindex].wrong_sku = 1
@@ -2508,14 +2512,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(sku_row_data[i].tax_percent == '') {
           sku_row_data[i].tax_percent = 0;
         }
-        if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy){
+        if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy && !vm.permissions.change_purchaseorder){
           vm.display_approval_button = true;
           if (outerindex != undefined){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }
           break;
         }
-        if(sku_row_data[i].weight != sku_row_data[i].weight_copy){
+        if(sku_row_data[i].weight != sku_row_data[i].weight_copy && !vm.permissions.change_purchaseorder){
           vm.display_approval_button = true;
           if (outerindex != undefined){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
@@ -2528,14 +2532,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         po_quantity = sku_row_data[0].po_quantity;
       }
       if(po_quantity && po_quantity < tot_qty) {
-        var abs_qty_value = vm.absOfQtyTolerence(po_quantity, tot_qty);
-        console.log(abs_qty_value);
-        if(tot_qty > abs_qty_value) {
           vm.display_approval_button = true;
+          vm.send_admin_mail=true;
           if (outerindex != undefined ){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }
-        }
       }
     })
   }

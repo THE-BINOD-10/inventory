@@ -2845,16 +2845,20 @@ def add_pr(request, user=''):
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR', 
                                                 product_category=product_category)
-            if is_resubmitted == 'true':
-                pendingPRObj.pending_prApprovals.filter().delete()
-                pendingPRObj.pending_level = baseLevel
+            if not reqConfigName:
+                pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
-            prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
-                                    pendingPRObj, master_type=master_type, product_category=product_category)
-            if mailsList:
-                for eachMail in mailsList:
-                    hash_code = generateHashCodeForMail(prObj, eachMail)
-                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+            else:
+                if is_resubmitted == 'true':
+                    pendingPRObj.pending_prApprovals.filter().delete()
+                    pendingPRObj.pending_level = baseLevel
+                    pendingPRObj.save()
+                prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
+                                        pendingPRObj, master_type=master_type, product_category=product_category)
+                if mailsList:
+                    for eachMail in mailsList:
+                        hash_code = generateHashCodeForMail(prObj, eachMail)
+                        sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, is_po_creation=True)
@@ -2868,14 +2872,21 @@ def add_pr(request, user=''):
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO', 
                                                 product_category=product_category)
-                prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
-                                        pendingPRObj, master_type=master_type, forPO=True, 
-                                        admin_user=admin_user, product_category=product_category)
+                if not reqConfigName:
+                    pendingPRObj.final_status = 'approved'
+                    pendingPRObj.save()
+                else:
+                    prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
+                                            pendingPRObj, master_type=master_type, forPO=True, 
+                                            admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
-                prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
-                                        pendingPRObj, master_type=master_type, forPO=True, 
-                                        product_category=product_category)
+                if not reqConfigName:
+                    pendingPRObj.final_status = 'approved'
+                else:
+                    prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
+                                            pendingPRObj, master_type=master_type, forPO=True, 
+                                            product_category=product_category)
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail)

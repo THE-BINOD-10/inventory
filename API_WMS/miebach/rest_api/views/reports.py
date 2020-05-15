@@ -246,6 +246,23 @@ def get_dispatch_filter(request, user=''):
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_allocation_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_allocation_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_deallocation_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_deallocation_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -529,7 +546,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         order_id = search_params.get('order_id')
         search_parameters['order_id'] = order_id
     if supplier_name:
-        search_parameters['open_po__supplier__id'] = supplier_name
+        search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user=user.id, **search_parameters)
     else:
@@ -1294,7 +1311,7 @@ def print_po_reports(request, user=''):
             address = '\n'.join(address.split(','))
             telephone = purchase_order.open_po.supplier.phone_number
             name = purchase_order.open_po.supplier.name
-            supplier_id = purchase_order.open_po.supplier.id
+            supplier_id = purchase_order.open_po.supplier.supplier_id
             tin_number = purchase_order.open_po.supplier.tin_number
         remarks = purchase_order.remarks
         order_id = purchase_order.order_id
@@ -2178,8 +2195,8 @@ def print_descrepancy_note(request, user=''):
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
                 filter_params = {'purchase_order_id': obj.purchase_order.id}
-                if len(obj.po_number.split('/')) >= 2:
-                    reciept_number = obj.po_number.split('/')[1]
+                if obj.receipt_number:
+                    filter_params['receipt_number'] = obj.receipt_number
                 seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
                 price = obj.purchase_order.open_po.price
                 mrp = 0

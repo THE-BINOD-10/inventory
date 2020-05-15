@@ -168,7 +168,7 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
                   <tr>
@@ -238,7 +238,12 @@
                       <!-- out of elements end -->
                     </td>
                     <td>
-                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="!data.sku_desc_flag"
+                             class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="data.sku_desc_flag"
+                             class="form-control detectTab">
                     </td>
                     <td ng-if="showCase.industry_type!='FMCG'">
                       <input type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>
@@ -317,13 +322,9 @@
                                ng-keyup= "showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-<!--                      <input type="text" ng-model="data.discrepency_reason"-->
-<!--                             size="15" title="{{ data.discrepency_reason }}"-->
-<!--                             name="discrepency_reason" class="form-control detectTab"-->
-<!--                             value="{{data.discrepency_reason}}"-->
                        <select class="show-menu-arrow form-control pull-left" ng-model="data.discrepency_reason" name="discrepency_reason">
                       <option value="">Select</option>
-                      <option ng-repeat="reason in showCase.model_data.discrepancy_reasons" value="{{ reason }}"> {{ reason }}</option>
+                      <option  ng-repeat="reason in showCase.model_data.discrepancy_reasons" ng-selected="data.discrepency_reason == reason"  value="{{ reason }}"> {{ reason }}</option>
                       </select>
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>

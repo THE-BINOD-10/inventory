@@ -10,7 +10,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
-
+    if (vm.permissions.show_vehiclemaster){
+    vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'sku'}).then(function(data){
+      vm.attributes = data.data.data;
+      angular.forEach(vm.attributes,function(attr_dat){
+      vm.dtColumns.push(DTColumnBuilder.newColumn(attr_dat.attribute_name).withTitle(attr_dat.attribute_name).notSortable())
+    });
+    });
+    }
     vm.filters = {'datatable': 'SKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -46,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
     ];
 
-    if(!vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
+    if(true || !vm.permissions.add_networkmaster && !vm.permissions.priceband_sync || Session.parent.userName == 'isprava_admin'){
       vm.dtColumns.push(DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'))
     }
     vm.dtColumns.push(
@@ -71,11 +78,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
            DTColumnBuilder.newColumn('Tax Type').withTitle('Tax Type')
             )
         }}
+
     vm.dtColumns.push( DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
                         }).withOption('width', '80px'))
 
     var sku_attr_list = [];
+    if (vm.permissions.show_vehiclemaster){
+
+    vm.attribute_options = {}
+    vm.attribute_options['Category-Self Drive/OFT']= ['Self Drive', 'OFT', 'Executive']
+    vm.attribute_options['City'] = ['Hyderabad', 'Pune', 'Mumbai', 'Chennai', 'Bangalore', 'Nagpur', 'New Delhi', 'Mysore', 'Vijayawada', 'Patna', 'Agra', 'Lucknow', 'Dehradun', 'Bhubaneswar', 'Mangalore', 'Ludhiana', 'Chandigarh', 'Surat', 'Tiruchirappally', 'Ahmedabad', 'Kanpur', 'Vadodara', 'Visakhapatnam', 'Indore', 'Coimbatore', 'Bhopal']
+    vm.attribute_options['InventoryType'] = ['Fire-Extinguisher', 'Tool kits', 'Jack & Rod', 'First aid kit', 'Jump-Cable', 'Floor Mat', 'Seat Cover', 'Quarter Panel Stickers', 'Paint', 'Stencils to paint quarter panels', 'Paint spray cans', 'Paint Brush', 'Petrol Reqmnt in litres', 'Diesel Reqmnt in litres', 'CNG Reqmnt', 'Reflector stickers', 'Battery Terminal Spray', 'Hydrometer', 'Multimeter', 'Tyre Pressure', 'AC Pressure Gauge', 'Drill Bits for number plates', 'Chinese Screw Half Inch', 'Chinese Screw 1 inch', 'Nuts', 'Bolts', 'Rims', 'Allen Key Set to open interior parts', 'Socket Combination set', 'Roof Bulbs', 'Headlight Bulbs', 'Parking Bulbs', 'Engine Oil', 'Brake Oil', 'Coolant', 'Power steering Oil','Tyres', 'Battery chargers', 'Battery connector', 'Crocodile clips', 'CNG cylinders', 'Headlight', 'Taillight']
+    vm.attribute_options['ModelYear'] = ['2013', '2014', '2015', '2016', '2017','2018', '2019', '2020']
+    vm.attribute_options['CarModel'] = ['Indica', 'Ritz', 'Dzire', 'Xcent', 'Go', 'WagonR', 'Micra', 'Sunny', 'Beat', 'Eon', 'i10', 'Amaze', 'City', 'XUV', 'Corolla Altis', 'Cruze', 'Jetta', 'Bolt', 'Grand i10', 'Reva', 'Zest', 'Neo']
+    vm.attribute_options['ForCarvariant'] = ['EV2 GLS', 'V2 LS NA BS III', 'LDI', 'Tour LDI-YB', 'Base CRDI', 'Prime T CRDi', 'A EPS', 'LXI (P)', 'VTVT Base(CNG Compatible)', 'LXI (CNG)', 'VTVT Prime T', 'XLD', 'XED', 'PS Petrol', 'D-Lite Plus', 'Era', 'LXI', 'LS Petrol', 'Petrol EMT', 'Petrol', 'SV-MT', '500 W4', 'DJ(YP)', 'LT', '2.0 TDI Comfortline', 'CRDI ABS', 'Bolt', 'V2 LS NA BS IV', 'PS Diesel', 'Prime T CRDi i10', 'Reva', 'XE QJT 75PS', 'Neo']
+    vm.attribute_options['Colour'] = ['White', 'Yellow', 'Blue', 'Red', 'Green', 'Black', 'Brown', 'Silver', 'Purple', 'Navy blue', 'Gray', 'Orange', 'Maroon']
+    vm.attribute_options['Unit'] = ['Number', 'Litres', 'millilitres', 'Metres', 'Feet', 'Kg', 'grams', 'Volts', 'Amperes', 'Watts']
+    vm.attribute_options['Old/newitem'] = ['Old','New']
+    }
+
     var empty_data = {
                       sku_data:{
                         sku_code:"",
@@ -216,12 +238,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.attributes = data.attributes;
                   vm.model_data.measurement_type = data.sku_data.measurement_type;
                   //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
+                  if (vm.permissions.show_vehiclemaster) {
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
                     {
                       attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
                     }
                   });
+                  }
                   for (var j=0; j<vm.model_data.market_data.length; j++) {
                     var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
                     vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];

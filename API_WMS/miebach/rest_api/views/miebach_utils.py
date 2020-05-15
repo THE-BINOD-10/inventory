@@ -105,7 +105,7 @@ VENDOR_DATA = {'vendor_id': '', 'name': '', 'address': '', 'phone_number': '', '
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
-SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
+SUPPLIER_DATA = {'supplier_id': '', 'name': '', 'address': '', 'phone_number': '', 'email_id': '',
                  'status': 1, 'tax_type': '', 'po_exp_duration': 0,
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
                  'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
@@ -304,6 +304,11 @@ VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Customer Code', 'Credit Period', 'CST Number', 'GSTIN Number', 'PAN Number', 'Email',
                     'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name', 'Customer Type']
+
+VEHICLE_EXCEL_MAPPING = OrderedDict(( ('Type', 'customer_type'), ('Current City of Operations', 'city'),
+                                      ('Perm Registration No.', 'name'), ('Chassis Number', 'chassis_number'),
+                                      ('Reference', 'customer_reference')
+                                   ))
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('customer_code', 2), ('credit_period', 3), ('cst_number', 4), ('tin_number', 5),
@@ -1015,6 +1020,35 @@ RETURN_TO_VENDOR_REPORT = {
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
+DEALLOCATION_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'De-Allocation ID', 'name': 'return_id', 'type': 'input'},
+        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'vehicle_search'},
+
+    ],
+    'dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item', 'Item Category', 'Vehicle Registration Number','Chassis Number','For Carvariant','Inventory Type','Make','Model','Make-Model','Quantity'],
+    'mk_dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item','Item Category',  'Vehicle Registration Number','Chassis Number','ForCarvariant','InventoryType','Make','Model','Make-Model','Quantity'],
+    'dt_url': 'get_deallocation_report', 'excel_name': 'get_deallocation_report',
+    'print_url': 'get_deallocation_report',
+}
+ALLOCATION_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Allocation ID', 'name': 'return_id', 'type': 'input'},
+        {'label': 'Vehicle ID', 'name': 'customer_id', 'type': 'vehicle_search'},
+
+    ],
+    'dt_headers': ['Allocation Date', 'Allocation ID', 'Issued From', 'Issued To', 'Item', 'Item Category', 'Vehicle Registration Number', 'Chassis Number', 'For Carvariant', 'Inventory Type','Make', 'Model', 'Make-Model', 'Quantity'],
+    'mk_dt_headers': ['De-Allocation Date', 'De-Allocation ID', 'Deallocated by', 'Deallocated to', 'Item','Item Category',  'Vehicle Registration Number','Chassis Number','ForCarvariant','InventoryType','Make','Model','Make-Model','Quantity'],
+    'dt_url': 'get_allocation_filter', 'excel_name': 'get_allocation_filter',
+    'print_url': 'get_allocation_filter',
+}
+
 
 STOCK_TRANSFER_REPORT_DICT = {
     'filters': [
@@ -1175,9 +1209,12 @@ INVENTORY_VALUE_REPORT_DICT = {
 
 DISCREPANCY_REPORT_DICT = {
     'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'PO Number', 'name': 'order_id', 'type': 'input'},
         {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
-        {'label': 'Supplier ID/Name', 'name': 'supplier_id', 'type': 'supplier_search'},
+        {'label': 'Supplier ID/Name', 'name': 'supplier', 'type': 'supplier_search'},
     ],
     'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
     'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
@@ -1289,6 +1326,8 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'po_report':PO_REPORT_DICT,
+                     'allocation_report':ALLOCATION_REPORT_DICT,
+                     'deallocation_report':DEALLOCATION_REPORT_DICT,
                      'open_order_report':OPEN_ORDER_REPORT_DICT,
                     'credit_note_report':CREDIT_NOTE_REPORT_DICT,
                      'order_flow_report':ORDER_FLOW_REPORT_DICT,
@@ -1390,7 +1429,7 @@ PRINT_PICKLIST_HEADERS = (
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
 SKU_SUPPLIER_MAPPING = OrderedDict(
-    [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
+    [('Supplier ID', 'supplier__supplier_id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
      ('Priority', 'preference'), ('MOQ', 'moq'), ('Costing Type', 'costing_type'), ('Margin Percentage', 'margin_percentage'), ('MRP', 'mrp')])
 
 SKU_WH_MAPPING = OrderedDict(
@@ -1398,7 +1437,7 @@ SKU_WH_MAPPING = OrderedDict(
      ('MOQ', 'moq'), ('Price', 'price')])
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
-    [('Supplier ID', 'id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
+    [('Supplier ID', 'supplier_id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
      ('Email', 'email_id'), ('Status', 'status')])
 
 STOCK_DET = ([('0', 'receipt_number'), ('1', 'receipt_date'), ('2', 'sku_id__sku_code'), ('3', 'sku_id__wms_code'),
@@ -1704,6 +1743,8 @@ MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
 ITEM_MASTER_EXCEL = OrderedDict(
     (('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14)))
 
+PART_MASTER_EXCEL = OrderedDict((('Part Number', 'sku_code'),))
+
 SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
     (('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8)))
 
@@ -1894,6 +1935,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_move_inventory_report':'get_move_inventory_report_data',
                         'get_financial_report':'get_financial_report_data',
                         'get_bulk_stock_update':'get_bulk_stock_update_data',
+                        'get_allocation_filter':'get_allocation_data',
+                        'get_deallocation_report':'get_deallocation_report_data',
                         'get_stock_transfer_report':'get_stock_transfer_report_data',
                         'get_credit_note_form_report': 'get_credit_note_form_report_data',
                         'get_credit_note_report':'get_credit_note_report_data',
@@ -2354,7 +2397,7 @@ DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quant
 # End of Supplier Invoices page headers based on user type
 
 
-SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
+SUPPLIER_EXCEL_FIELDS = OrderedDict((('supplier_id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
                                      ('credibility', 13), ('tax_type', 14), ('po_exp_duration', 15),
@@ -2426,6 +2469,8 @@ JOB_ORDER_EXCEL_MAPPING = OrderedDict((('product_code', 0), ('product_quantity',
 ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketplace']
 
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
+
+ORDER_ALLOCATION_EXCEL_MAPPING = OrderedDict((('product_code', 0), ('product_quantity', 1)))
 
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
@@ -2506,6 +2551,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'enable_pending_approval_pos':'enable_pending_approval_pos',
                         'enable_pending_approval_prs': 'enable_pending_approval_prs',
                         'mandate_invoice_number':'mandate_invoice_number',
+                        'display_parts_allocation': 'display_parts_allocation',
                         'auto_generate_receive_qty': 'auto_generate_receive_qty',
                         'sku_packs_invoice':'sku_packs_invoice',
                         'mandate_ewaybill_number':'mandate_ewaybill_number',
@@ -2513,6 +2559,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_allocate_sale_order':'auto_allocate_sale_order',
                         'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                         'stock_auto_receive':'stock_auto_receive',
+                        'supplier_sync': 'supplier_sync',
+                        'enable_margin_price_check':'enable_margin_price_check',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2962,7 +3010,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     if 'supplier' in search_params:
-        search_parameters[query_prefix + 'open_po__supplier__id__iexact'] = search_params['supplier']
+        search_parameters[query_prefix + 'open_po__supplier__supplier_id'] = search_params['supplier']
     if 'wms_code' in search_params:
         search_parameters[query_prefix + 'open_po__sku__wms_code__iexact'] = search_params['wms_code']
     if 'sku_code' in search_params:
@@ -3037,7 +3085,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                                                 ('Sku Brand', data.open_po.sku.sku_brand),
                                                 ('Description', data.open_po.sku.sku_desc),
                                                 ('Supplier',
-                                                 '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
+                                                 '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier.supplier_id)),
                                                 ('Receipt Number', data.open_po_id),
                                                 ('Received Quantity', data.received_quantity),
                                                 ('Serial Number', serial_number), ('Received Date', received_date),
@@ -3362,6 +3410,203 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                 temp_data['aaData'].append(ord_dict)
     return temp_data
 
+def get_allocation_data(search_params, user, sub_user, serial_view=False, customer_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['order__sku__sku_code', 'order__customer_id', 'order__customer_name', 'order__order_id']
+    model_obj = Picklist
+    temp_data = copy.deepcopy(AJAX_DATA)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['updation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['updation_date__gte'] = date.today() + relativedelta(months=-1)
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['updation_date__lt'] = search_params['to_date']
+    if 'wms_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['wms_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        if order_detail:
+            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
+
+        order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1,
+                                                    order_reference=search_params['order_id']). \
+            values_list('order_id', flat=True)
+        search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    attributes_list = ['ForCarvariant', 'InventoryType']
+    model_data = model_obj.objects.filter(**search_parameters)
+
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+    count = 0
+    for data in model_data:
+        customer_name = data.order.customer_name if data.order.customer_name else ''
+        customer_id = data.order.customer_id if data.order.customer_id else ''
+        order_id = data.order.original_order_id
+        order_date = data.order.creation_date
+        if not order_id:
+            order_id = str(data.order.order_code) + str(data.order.order_id)
+        customer_data = CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id)
+        chassis_number = ''
+        make, model = '', ''
+        issued_from, issued_to = '', ''
+        carvariant, inventory_type = '', ''
+        make_model = ''
+        if customer_data:
+            chassis_number = customer_data[0].chassis_number
+            attr_data = dict(
+                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
+                                                attribute_name__in=['make', 'model']).values_list(
+                    'attribute_name', 'attribute_value'))
+            make = attr_data.get('Make')
+            model = attr_data.get('Model')
+            make_model = str(make) + '-' + str(model)
+            sku_attr_data = SKUAttributes.objects.filter(sku__sku_code=data.order.sku.sku_code,
+                                                         attribute_name__in=attributes_list)
+            if sku_attr_data.exists():
+                for attribute in sku_attr_data:
+                    if attribute.attribute_name == 'ForCarvariant':
+                        carvariant = attribute.attribute_value
+                    if attribute.attribute_name == 'InventoryType':
+                        inventory_type = attribute.attribute_value
+            issued_to = data.order.customer_id
+            if data.stock:
+                issued_from = data.stock.location.location
+            order_date = get_local_date(user, order_date)
+            ord_dict = OrderedDict((('Allocation ID', order_id), ('Item', data.order.sku.sku_code),
+                                    ('Allocation Date', order_date),
+                                    ('Chassis Number', chassis_number),
+                                    ('Item Category', data.order.sku.sku_category),
+                                    ('Vehicle Registration Number', data.order.customer_name),
+                                    ('Issued From', issued_from),
+                                    ('Issued To', issued_to),
+                                    ('For Carvariant', carvariant),
+                                    ('Inventory Type', inventory_type),
+                                    ('Make', make),
+                                    ('Model', model),
+                                    ('Make-Model', make_model),
+                                    ('Quantity', data.picked_quantity)
+                                    ))
+        count =+1
+        temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+def get_deallocation_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_utc_start_date
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['order__sku__sku_code', 'order__sku__sku_code','order__customer_id', 'order__customer_name', 'order__order_id']
+    model_obj = OrderReturns
+    temp_data = copy.deepcopy(AJAX_DATA)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_params['from_date'] = get_utc_start_date(search_params['from_date'])
+        search_parameters['updation_date__gte'] = search_params['from_date']
+    else:
+        search_parameters['updation_date__gte'] = date.today() + relativedelta(months=-1)
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['to_date'] = get_utc_start_date(search_params['to_date'])
+        search_parameters['updation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    if 'return_id' in search_params:
+        search_parameters['return_id'] = search_params['return_id']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    attributes_list = ['ForCarvariant', 'InventoryType']
+    model_data = model_obj.objects.filter(**search_parameters)
+
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+    for data in model_data:
+        return_id = data.return_id
+        customer_name = data.order.customer_name if data.order.customer_name else ''
+        customer_id = data.order.customer_id if data.order.customer_id else ''
+        order_id = data.order.original_order_id
+        order_date = data.creation_date
+        if not order_id:
+            order_id = str(data.order.order_code) + str(data.order.order_id)
+        customer_data = CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id)
+        chassis_number = ''
+        make, model = '', ''
+        issued_from, issued_to = '', ''
+        carvariant, inventory_type = '', ''
+        make_model = ''
+        if customer_data:
+            chassis_number = customer_data[0].chassis_number
+            attr_data = dict(
+                MasterAttributes.objects.filter(attribute_id=customer_data[0].id, attribute_model='customer',
+                                                attribute_name__in=['make', 'model']).values_list(
+                    'attribute_name', 'attribute_value'))
+            make = attr_data.get('Make')
+            model = attr_data.get('Model')
+            make_model = str(make) + '-' + str(model)
+            sku_attr_data = SKUAttributes.objects.filter(sku__sku_code=data.order.sku.sku_code,
+                                                         attribute_name__in=attributes_list)
+            if sku_attr_data.exists():
+                for attribute in sku_attr_data:
+                    if attribute.attribute_name == 'ForCarvariant':
+                        carvariant = attribute.attribute_value
+                    if attribute.attribute_name == 'InventoryType':
+                        inventory_type = attribute.attribute_value
+            location_data = ReturnsLocation.objects.filter(returns__return_id=return_id)
+            if location_data:
+                des_loc = str(location_data[0].location)
+            order_date = get_local_date(user, order_date)
+            ord_dict = OrderedDict((('De-Allocation ID', return_id), ('Item', data.order.sku.sku_code),
+                                    ('Item Category', data.order.sku.sku_category),
+                                    ('De-Allocation Date', order_date), ('Deallocated by', data.order.customer_id),
+                                    ('Chassis Number', chassis_number),
+                                    ('Vehicle Registration Number', customer_name),
+                                    ('For Carvariant', carvariant),
+                                    ('Inventory Type', inventory_type),
+                                    ('Make', make),
+                                    ('Model', model),
+                                    ('Make-Model', make_model),
+                                    ('Quantity', data.quantity),
+                                    ('Deallocated to', des_loc),
+                                    ))
+            temp_data['aaData'].append(ord_dict)
+    return temp_data
 
 def sku_wise_purchase_data(search_params, user, sub_user):
     from miebach_admin.models import *
@@ -3377,7 +3622,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         fmcg_marketplace = True
     search_parameters = {}
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
+    lis = ['po_date', 'order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name',
            'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
            'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
            'open_po__sku__sub_category',
@@ -3397,7 +3642,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
-        search_parameters['open_po__supplier_id'] = supp_search[0]
+        search_parameters['open_po__supplier__supplier_id'] = supp_search[0]
     if 'from_date' in search_params:
         search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
@@ -3529,7 +3774,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          34: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
                'purchase_order__open_po__po_name',
-               'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
+               'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code',
                'purchase_order__open_po__sku__sku_class',
@@ -3557,10 +3802,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                          'user': 'purchase_order__open_po__sku__user',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
-                         'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
+                         'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
                          'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
-        result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
+        result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc','purchase_order__open_po__sku_id',
                          'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name','purchase_order__open_po__sku__sub_category',
@@ -3582,7 +3827,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         model_name = SellerPOSummary
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
                'purchase_order__open_po__po_name',
-               'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
+               'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__sku__sku_class',
                'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
@@ -3605,10 +3850,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
                          'user': 'purchase_order__open_po__sku__user',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
-                         'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
+                         'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
                          'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number', 'gst_num': 'purchase_order__open_po__supplier__tin_number'}
-        result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
+        result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id',
                          'purchase_order__open_po__supplier__name','purchase_order__open_po__sku_id',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                          'purchase_order__open_po__sku__hsn_code', 'purchase_order__open_po__po_name',
@@ -3873,7 +4118,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
            'purchase_order__stpurchaseorder__open_st__warehouse_id', 'purchase_order__stpurchaseorder__open_st__warehouse__username', 'id',
            'purchase_order__stpurchaseorder__open_st__sku__sku_code', 'purchase_order__stpurchaseorder__open_st__sku__sku_desc',
            'purchase_order__stpurchaseorder__open_st__sku__sku_category', 'purchase_order__stpurchaseorder__open_st__sku__sub_category',
-           'purchase_order__stpurchaseorder__open_st__sku__sku_brand', 'purchase_order__stpurchaseorder__open_st__sku__hsn_code', 
+           'purchase_order__stpurchaseorder__open_st__sku__sku_brand', 'purchase_order__stpurchaseorder__open_st__sku__hsn_code',
            'purchase_order__stpurchaseorder__open_st__sku__sku_class', 'purchase_order__stpurchaseorder__open_st__sku__style_name',
            'total_received','purchase_order__stpurchaseorder__open_st__price', 'id',
            'purchase_order__stpurchaseorder__open_st__cgst_tax', 'purchase_order__stpurchaseorder__open_st__sgst_tax',
@@ -4100,11 +4345,11 @@ def get_po_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__po_name','open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity','received_quantity']
+    lis = ['order_id', 'open_po__po_name','open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'received_quantity','received_quantity']
     unsorted_dict = {}
     model_name = PurchaseOrder
-    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
-    result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'prefix',
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
+    result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
                      'sellerposummary__receipt_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'
@@ -4144,7 +4389,7 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'invoice_number' in search_params:
         search_parameters['sellerposummary__invoice_number'] = search_params['invoice_number']
     if 'supplier' in search_params and ':' in search_params['supplier']:
-        search_parameters['sellerposummary__purchase_order__open_po__supplier__id__iexact'] = \
+        search_parameters['sellerposummary__purchase_order__open_po__supplier__supplier_id__iexact'] = \
             search_params['supplier'].split(':')[0]
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
@@ -6228,7 +6473,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     stop_index = start_index + search_params.get('length', 0)
 
     model_data = ReturnToVendor.objects.filter(**search_parameters).\
-                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
+                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
            'seller_po_summary__invoice_number').distinct().\
             annotate(return_date=Cast('creation_date', DateField()))
@@ -6258,7 +6503,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
         order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
         temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
-                                    ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier_id']),
+                                    ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                     ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),
                                     ('Order ID', order_id),
                                     ('Invoice Number', data['seller_po_summary__invoice_number']),
@@ -8621,11 +8866,14 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty']
+    lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty']
     unsorted_dict = {}
     model_name = PurchaseOrder
-    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
-    result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'prefix',
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id',
+                     'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user',
+                     'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix',
+                     'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
+    result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
            'sellerposummary__receipt_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'
@@ -10614,10 +10862,11 @@ def get_discrepancy_report_data(search_params, user, sub_user):
         search_parameters['purchase_order__order_id'] = search_params['order_id']
     if 'discrepancy_number' in search_params:
         search_parameters['discrepancy_number'] = search_params['discrepancy_number']
-    if 'supplier_id' in search_params and ':' in search_params['supplier_id']:
-            search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
-                search_params['supplier_id'].split(':')[0]
-
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+                search_params['supplier'].split(':')[0]
+    if 'sku_code' in search_params:
+        search_parameters['purchase_order__open_po__sku__wms_code'] = search_params['sku_code']
 
     search_parameters['user'] = user.id
     master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\

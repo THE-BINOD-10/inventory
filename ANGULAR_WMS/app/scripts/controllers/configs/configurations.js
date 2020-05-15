@@ -107,10 +107,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      115: 'st_po_prefix',
                      116: 'display_parts_allocation',
                      117: 'supplier_sync',
-                     118:'enable_margin_price_check',
+                     118: 'enable_margin_price_check',
                      }
 
-  
+
   vm.masters_check_box_data = [
     {
       name: "Use Serial Numbers for SKUs",
@@ -432,7 +432,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     },
   ]
   vm.general_check_box_data = [
-    
+
     {
       name: "Sync Supplier b/n Users",
       model_name: "supplier_sync",
@@ -530,7 +530,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-   
+
     {
       name: "Stop Default Tax Type in Create Order",
       model_name: "stop_default_tax",
@@ -545,7 +545,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
      },
-     
+
   ]
 
   vm.production_check_box_data = [

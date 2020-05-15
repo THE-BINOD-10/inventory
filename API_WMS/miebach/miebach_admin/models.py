@@ -553,6 +553,7 @@ class PendingPO(models.Model):
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPOs')
+    product_category = models.CharField(max_length=64, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)

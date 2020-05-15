@@ -11210,7 +11210,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('Tax Percentage', total_tax)
             ('MRP', result['sku__mrp']),
             ('Pre-Tax PO Amount',result['total_qty']*result['sku__price']),
-            ('Tax', ((result['total_qty']*result['sku__price'])*total_tax)/100)
+            ('Tax', ((result['total_qty']*result['sku__price'])*total_tax)/100),
             ('After Tax PO Amount',((result['total_qty']*result['sku__price'])*total_tax)/100 + result['total_qty']*result['sku__price']),
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),

@@ -1704,7 +1704,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         instanceName = OtherItemsMaster
         sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     new_skus = OrderedDict()
-    sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
                           only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
@@ -1883,7 +1882,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 elif '-' in cell_data:
                     reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
                 else:
-                    reqDate = ''
+                    reqDate = None
                 data_dict[key] = reqDate
             elif key == 'hsn_code':
                 if cell_data:
@@ -1893,6 +1892,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
+            # elif key == 'asset_number':
+            #     if isinstance(cell_data, float):
+            #         if sku_data:
+            #             setattr(sku_data, key, cell_data)
+            #         data_dict[key] = cell_data
 
             elif cell_data:
                 data_dict[key] = cell_data
@@ -1900,6 +1904,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
 
+        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and not sku_data:
+            data_dict['sku_code'] = data_dict['wms_code']
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+                respFields = [f.name for f in instanceName._meta.get_fields()]
+                for k, v in data_dict.items():
+                    if k not in respFields:
+                        data_dict.pop(k)
+            sku_data = instanceName(**data_dict)
+            sku_data.save()
         if sku_data:
             sku_data.save()
             all_sku_masters.append(sku_data)
@@ -1947,7 +1960,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     if new_skus:
         new_ean_objs = []
         new_sku_objs = map(lambda d: d['sku_obj'], new_skus.values())
-        bulk_create_in_batches(SKUMaster, new_sku_objs)
+        bulk_create_in_batches(instanceName, new_sku_objs)
         #SKUMaster.objects.bulk_create(new_sku_objs)
         new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))

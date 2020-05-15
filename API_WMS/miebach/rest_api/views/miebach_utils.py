@@ -94,9 +94,9 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
-SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': '', 'service_type': ''}
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': None, 'service_end_date': None, 'service_type': ''}
 
-ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': '', 'store_id': '', 'asset_type': '', 'vendor': ''}
+ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'asset_type': '', 'vendor': ''}
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 

@@ -1227,7 +1227,10 @@ def update_sku(request, user=''):
                     value = ''
             if instanceName == ServiceMaster:
                 if key in ['service_start_date', 'service_end_date']:
-                    value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                    try:
+                        value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                    except:
+                        value = None
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -2808,9 +2811,9 @@ def insert_sku(request, user=''):
                             try:
                                 value = datetime.datetime.strptime(value, '%d-%m-%Y')
                             except:
-                                value = ''
+                                value = None
                         else:
-                            value = ''
+                            value = None
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']

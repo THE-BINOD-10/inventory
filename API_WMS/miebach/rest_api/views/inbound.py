@@ -202,7 +202,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number',
-                    'pending_po__pending_prs__wh_user__first_name', 'pending_po__wh_user']
+                    'pending_po__pending_prs__wh_user__first_name', 'pending_po__wh_user',
+                    'pending_po__product_category']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -230,6 +231,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
         warehouse = user.first_name
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         wh_user = result['pending_po__wh_user']
+        product_category = result['pending_po__product_category']
         approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
@@ -270,6 +272,7 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
                                                 ('PR No', approvedPRs),
+                                                ('Product Category', product_category),
                                                 ('Supplier ID', result['pending_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
@@ -2632,6 +2635,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
+        purchaseMap['product_category'] = firstEntryValues['product_category']
     else:
         model_name = PendingPR
         purchaseMap['pr_number'] = purchase_number

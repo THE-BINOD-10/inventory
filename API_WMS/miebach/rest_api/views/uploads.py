@@ -1073,7 +1073,10 @@ def supplier_sku_form(request, user=''):
     supplier_file = request.GET['download-supplier-sku-file']
     if supplier_file:
         return error_file_download(supplier_file)
-    wb, ws = get_work_sheet('supplier', SUPPLIER_SKU_HEADERS)
+    headers = copy.deepcopy(SUPPLIER_SKU_HEADERS)
+    if user.userprofile.warehouse_level != 0:
+        del headers['Warehouse']
+    wb, ws = get_work_sheet('supplier', headers)
     return xls_to_response(wb, '%s.supplier_sku_form.xls' % str(user.username))
 
 
@@ -1703,7 +1706,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         instanceName = OtherItemsMaster
         sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     new_skus = OrderedDict()
-    sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     exist_sku_eans = dict(SKUMaster.objects.filter(user=user.id, status=1).exclude(ean_number='').\
                           only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
@@ -1882,7 +1884,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 elif '-' in cell_data:
                     reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
                 else:
-                    reqDate = ''
+                    reqDate = None
                 data_dict[key] = reqDate
             elif key == 'hsn_code':
                 if cell_data:
@@ -1892,6 +1894,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
+            # elif key == 'asset_number':
+            #     if isinstance(cell_data, float):
+            #         if sku_data:
+            #             setattr(sku_data, key, cell_data)
+            #         data_dict[key] = cell_data
 
             elif cell_data:
                 data_dict[key] = cell_data
@@ -1899,6 +1906,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
 
+        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and not sku_data:
+            data_dict['sku_code'] = data_dict['wms_code']
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+                respFields = [f.name for f in instanceName._meta.get_fields()]
+                for k, v in data_dict.items():
+                    if k not in respFields:
+                        data_dict.pop(k)
+            sku_data = instanceName(**data_dict)
+            sku_data.save()
         if sku_data:
             sku_data.save()
             all_sku_masters.append(sku_data)
@@ -1946,7 +1962,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     if new_skus:
         new_ean_objs = []
         new_sku_objs = map(lambda d: d['sku_obj'], new_skus.values())
-        bulk_create_in_batches(SKUMaster, new_sku_objs)
+        bulk_create_in_batches(instanceName, new_sku_objs)
         #SKUMaster.objects.bulk_create(new_sku_objs)
         new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))
@@ -2774,26 +2790,33 @@ def vendor_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_supplier_sku_form(open_sheet, user_id):
+def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
     index_status = {}
     supplier_ids = []
     temp1 = ''
-    supplier_list = SupplierMaster.objects.filter(user=user_id).values_list('supplier_id', flat=True)
-    auto_po_switch = get_misc_value('auto_po_switch', user_id)
+    supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id', flat=True)
+    auto_po_switch = get_misc_value('auto_po_switch', user.id)
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
-    for row_idx in range(0, open_sheet.nrows):
+    for row_idx in range(1, open_sheet.nrows):
         wms_code1 = ''
         preference1 = ''
         supplier_id = ''
-        for col_idx in range(0, len(SUPPLIER_SKU_HEADERS)):
+        for key, col_idx in file_mapping.items():
             cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'Supplier Id':
-                    return 'Invalid File'
-                break
-            if col_idx == 0:
+            if key == 'warehouse':
+                warehouse = cell_data
+                if warehouse:
+                    all_users = get_related_user_objs(user.id)
+                    user_obj = all_users.filter(username=warehouse)
+                    if not user_obj:
+                        index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                    else:
+                        user = user_obj[0]
+                        supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
+                                                                                                flat=True)
+            elif key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 supplier_id = cell_data
@@ -2804,23 +2827,23 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(index + 1, set()).add('Supplier ID Not Found')
                 supplier_ids.append(cell_data)
 
-            if col_idx == 1:
+            elif key == 'sku_code':
                 if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Missing WMS Code')
+                    index_status.setdefault(row_idx, set()).add('Missing SKU Code')
                 else:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                    wms_check = SKUMaster.objects.filter(wms_code=cell_data, user=user_id)
+                    wms_check = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
                     if not wms_check:
-                        index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     wms_code1 = cell_data
-            if col_idx == 3:
+            elif key == 'preference':
                 if auto_po_switch == 'true':
                     if not cell_data:
                         index_status.setdefault(row_idx, set()).add('Missing Preference')
                     else:
                         preference1 = int(cell_data)
-            if col_idx == 6:
+            if key == 'costing_type':
                 if cell_data :
                     if not cell_data in ['Price Based', 'Margin Based','Markup Based']:
                         index_status.setdefault(row_idx, set()).add('Costing Type should be "Price Based/Margin Based/Markup Based"')
@@ -2851,16 +2874,21 @@ def validate_supplier_sku_form(open_sheet, user_id):
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in integer or float')
                         elif  float(cell_data_markup) < 0 or float(cell_data_markup) > 100:
                             index_status.setdefault(row_idx, set()).add('Markup % Should be in between 0 and 100')
-
+            elif key == 'lead_time':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Lead Time should be Number')
 
 
         if wms_code1 and preference1 and row_idx > 0 and  auto_po_switch == 'true':
-            supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user_id)
+            supp_val = SKUMaster.objects.filter(wms_code=wms_code1, user=user.id)
             if supp_val:
                 temp1 = SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1),
-                                                   sku__user=user_id)
+                                                   sku__user=user.id)
                 sku_supplier = SKUSupplier.objects.filter(sku_id=supp_val[0].id, supplier_id=supplier_id,
-                                                          sku__user=user_id)
+                                                          sku__user=user.id)
                 if sku_supplier:
                     temp1 = []
             if temp1:
@@ -2869,8 +2897,8 @@ def validate_supplier_sku_form(open_sheet, user_id):
     if not index_status:
         return 'Success'
 
-    f_name = '%s.supplier_sku_form.xls' % user_id
-    write_error_file(f_name, index_status, open_sheet, SUPPLIER_SKU_HEADERS, 'Supplier')
+    f_name = '%s.supplier_sku_form.xls' % user.username
+    write_error_file(f_name, index_status, open_sheet, headers, 'Supplier')
     return f_name
 
 
@@ -2886,7 +2914,16 @@ def supplier_sku_upload(request, user=''):
         except:
             return HttpResponse('Invalid File')
 
-        status = validate_supplier_sku_form(open_sheet, str(user.id))
+        mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
+        headers = mapping.keys()
+        file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
+        if user.userprofile.warehouse_level != 0:
+            del headers['Warehouse']
+        for col_idx in range(0, open_sheet.ncols):
+            cell_data = open_sheet.cell(0, col_idx).value
+            if headers[col_idx] != cell_data:
+                return 'Invalid File'
+        status = validate_supplier_sku_form(open_sheet, user, headers, file_mapping)
         if status != 'Success':
             return HttpResponse(status)
         supplier_sku_instance = None
@@ -2895,13 +2932,22 @@ def supplier_sku_upload(request, user=''):
                 sku_code = ''
                 wms_code = ''
                 supplier_data = copy.deepcopy(SUPPLIER_SKU_DATA)
-                for col_idx in range(0, len(SUPPLIER_SKU_HEADERS)):
+                for key, col_idx in file_mapping.items():
                     cell_data = open_sheet.cell(row_idx, col_idx).value
-                    if col_idx == 0:
+                    if key == 'warehouse':
+                        warehouse = cell_data
+                        if warehouse:
+                            all_users = get_related_user_objs(user.id)
+                            user_obj = all_users.filter(username=warehouse)
+                            if not user_obj:
+                                index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                            else:
+                                user = user_obj[0]
+                    elif key == 'supplier_id':
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
                         supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
-                    elif col_idx == 1:
+                    elif key == 'sku_code':
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)
                         cell_data = str(cell_data)
@@ -2912,51 +2958,51 @@ def supplier_sku_upload(request, user=''):
                                                                       sku_id=sku_master[0].id)
                         if supplier_sku_obj:
                             supplier_sku_instance = supplier_sku_obj[0]
-                    elif col_idx == 2:
+                    elif key == 'supplier_code':
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
                         supplier_data['supplier_code'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.supplier_code = cell_data
-                    elif col_idx == 3:
+                    elif key == 'preference':
                         if not cell_data:
                             cell_data = 0
                         supplier_data['preference'] = str(int(cell_data))
                         if supplier_data['preference'] and supplier_sku_instance:
                             supplier_sku_instance.preference = supplier_data['preference']
-                    elif col_idx == 4:
+                    elif key == 'moq':
                         if not cell_data:
                             cell_data = 0
                         cell_data = int(cell_data)
                         supplier_data['moq'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.moq = cell_data
-                    elif col_idx == 5:
+                    elif key == 'price':
                         if not cell_data:
                             cell_data = 0
                         cell_data = float(cell_data)
                         supplier_data['price'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.price = cell_data
-                    elif col_idx == 6:
+                    elif key == 'costing_type':
                         if not cell_data :
                             cell_data = 'Price Based'
                         supplier_data['costing_type'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.costing_type = cell_data
-                    elif col_idx == 7:
+                    elif key == 'margin_percentage':
                         if not cell_data :
                             cell_data = 0
                         supplier_data['margin_percentage'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.margin_percentage = cell_data
-                    elif col_idx == 8:
+                    elif key == 'markup_percentage':
                         if not cell_data :
                             cell_data = 0
                         supplier_data['markup_percentage'] = cell_data
                         if cell_data and supplier_sku_instance:
                             supplier_sku_instance.markup_percentage = cell_data
-                    elif col_idx == 9:
+                    elif key == 'lead_time':
                         if not cell_data :
                             cell_data = 0
                         cell_data = int(cell_data)

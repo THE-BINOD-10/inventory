@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.warehouse_level = Session.user_profile.warehouse_level;
 
     vm.filters = {'datatable': 'SupplierSKUMappingMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -40,6 +41,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('moq').withTitle('MOQ'),
         DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time'),
     ];
+    if(vm.warehouse_level==0) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
+    }
 
     vm.dtInstance = {};
 
@@ -91,6 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
     vm.update = false;
     get_suppliers();
+    get_warehouses();
     $state.go('app.masters.sourceSKUMapping.mapping');
   }
 
@@ -158,13 +163,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(data.message) {
         data = data.data;
         var list = [];
-        angular.forEach(data.suppliers, function(d){
-          list.push(d.supplier_id)
-        });
+//        angular.forEach(data.suppliers, function(d){
+//          list.push(d.supplier_id)
+//        });
         vm.supplier_list = list;
         vm.model_data.supplier_id = vm.supplier_list[0];
         vm.costing_type_list = data.costing_type;
         vm.model_data.costing_type = 'Price Based';
+      }
+    });
+  }
+
+  // Get all warehouse list
+  vm.warehouse_list = [];
+  function get_warehouses() {
+    vm.service.apiCall('get_warehouse_list/').then(function(data){
+      if(data.message) {
+        data = data.data;
+        var list = [];
+        angular.forEach(data.warehouses, function(d){
+          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+        });
+        vm.warehouse_list = list;
       }
     });
   }

@@ -11627,17 +11627,25 @@ def get_company_id(user, level=''):
     return company.id
 
 
-def get_related_users(user_id):
+def get_related_users(user_id, level=0):
     """ this function generates all users related to a user """
     user = User.objects.get(id=user_id)
     company_id = get_company_id(user)
-    user_groups = UserGroups.objects.filter(company_id=company_id)
-
+    if not level:
+        user_groups = UserGroups.objects.filter(company_id=company_id)
+    else:
+        user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) |
+                                                Q(user__userprofile__warehouse_level=level), company_id=company_id)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     all_users = list(set(user_list1 + user_list2))
     log.info("all users %s" % all_users)
     return all_users
+
+def get_related_user_objs(user_id, level=0):
+    user_ids = get_related_users(user_id, level=level)
+    users = User.objects.filter(id__in=user_ids) 
+    return users
 
 def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
     bulk_objs = []

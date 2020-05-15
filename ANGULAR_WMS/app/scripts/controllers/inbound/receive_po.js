@@ -838,7 +838,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
         angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0) {
+          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
             status = true;
           }
         });

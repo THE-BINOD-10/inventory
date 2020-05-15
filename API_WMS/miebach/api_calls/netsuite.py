@@ -42,12 +42,11 @@ def connect_tba():
       token_key=NS_TOKEN_KEY, 
       token_secret=NS_TOKEN_SECRET)
     return nc
-def netsuite_update_create_sku(data, sku_attr_dict, user):
+def netsuite_update_create_sku(data, sku_attr_dict, user, external_id=''):
     data_response = {}
     try:
         nc = connect_tba()
         ns = nc.raw_client
-        external_id = get_incremental(user, 'netsuite_external_id')
         invitem = ns.InventoryItem()
         invitem.taxSchedule = ns.RecordRef(internalId=1)
         invitem.itemId = data.sku_code

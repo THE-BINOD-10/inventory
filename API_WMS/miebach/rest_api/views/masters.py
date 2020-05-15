@@ -1263,8 +1263,14 @@ def update_sku(request, user=''):
     return HttpResponse('Updated Successfully')
 
 def netsuite_sku(data, user):
+    external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
-    response = netsuite_update_create_sku(data, sku_attr_dict, user)
+    netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
+    if netsuite_map_obj:
+        external_id = netsuite_map_obj[0].external_id
+    if not external_id:
+        external_id = get_incremental(user, 'netsuite_external_id')
+    response = netsuite_update_create_sku(data, sku_attr_dict, user, external_id=external_id)
     if response.has_key('__values__'):
         external_id = response['__values__']['externalId']
         internal_id = response['__values__']['internalId']

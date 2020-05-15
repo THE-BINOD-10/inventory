@@ -1,13 +1,10 @@
 <div class="row">
   <div class="col-md-12">
-    <table class="table" class="pull-left" style="margin-left: 10px;">
+    <table class="table" class="pull-left">
       <thead>
         <tr>
-          <th>Service Code*</th>
+          <th>Asset Code*</th>
           <th>Title</th>
-          <th>Asset Code</th>
-          <th>Start Date</th>
-          <th>End Date</th>
           <th class="w10_">Quantity*</th>
           <th>UOM</th>
           <th class="plus"></th>
@@ -27,16 +24,6 @@
           <td>
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
-          <td>
-            <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="50">
-          </td>
-          <td>
-            <input name="service_start_date" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" ng-readonly="true">
-          </td>
-          <td>
-            <input name="service_end_date" ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" ng-readonly="true">
-          </td>
-
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"

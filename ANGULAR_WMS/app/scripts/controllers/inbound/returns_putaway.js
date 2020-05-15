@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
           }),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
           .renderWith(function(data, type, full, meta) {
-            return "<input type='text' name='quantity' value='"+full.Quantity+"' class='smallbox'>"
+            return "<input type='text' name='quantity' value='"+full.Quantity+"' class='smallbox' ng-class='service.get_decimal_perm()' ng-keyup='showCase.check_return_qty("+meta.row+")'>"
           })
     ];
 
@@ -97,6 +97,20 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
         vm.process = false;
       }
     })
+  }
+
+  vm.check_return_qty = check_return_qty
+  function check_return_qty(row_id) {
+    var original_quantity = vm.dtInstance.DataTable.context[0].aoData[row_id]._aData.Quantity;
+    var new_quantity = $($(".custom-table:visible")).find("tbody tr").eq(row_id).find("input[name='quantity']").val();
+    if(new_quantity == '') {
+      new_quantity = 0;
+    }
+    if(new_quantity>original_quantity) {
+      Service.showNoty('Entered Quantity is more than Returned Quantity');
+      $($(".custom-table:visible")).find("tbody tr").eq(row_id).find("input[name='quantity']").val(original_quantity);
+    }
+
   }
 }
 

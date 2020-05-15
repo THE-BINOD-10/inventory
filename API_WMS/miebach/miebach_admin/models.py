@@ -553,6 +553,7 @@ class PendingPO(models.Model):
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPOs')
+    product_category = models.CharField(max_length=64, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)
@@ -1679,6 +1680,8 @@ class StockTransfer(models.Model):
     class Meta:
         db_table = 'STOCK_TRANSFER'
         unique_together = ('order_id', 'st_po', 'sku')
+        index_together = (('sku',))
+
 
     def __unicode__(self):
         return str(self.order_id)
@@ -3769,6 +3772,7 @@ class StockTransferSummary(models.Model):
 
     class Meta:
         db_table = 'STOCK_TRANSFER_SUMMARY'
+        index_together = (('stock_transfer',))
 
 
 @reversion.register()

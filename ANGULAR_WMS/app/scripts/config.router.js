@@ -2164,10 +2164,10 @@ var app = angular.module('urbanApp')
             title: 'Approval PO Report',
           }
         })
-//        .state('app.reports.ApprovalPOReport.ApprovalDetailReport', {
-//            url: '/ApprovalDetailReport',
-//            templateUrl: 'views/reports/toggles/approval_deatils.html',
-//          })
+        .state('app.reports.ApprovalPOReport.ApprovalDetailReport', {
+            url: '/ApprovalDetailReport',
+            templateUrl: 'views/reports/toggles/approval_details.html',
+          })
         .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
             url: '/STGoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',

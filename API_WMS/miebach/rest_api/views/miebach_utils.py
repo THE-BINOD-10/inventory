@@ -10930,6 +10930,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             'pending_po__remarks']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
+    results = ''
     order_data = lis[col_num]
     if order_term== 'desc':
         order_data = '-%s' % order_data
@@ -10999,6 +11000,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
         approver1, approver2, approver3, approver4, approver5 = '', '', '', '', ''
         approver1_date, approver2_date, approver3_date, approver4_date, approver5_date = '', '', '', '', ''
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
+
         tax_data = PendingLineItems.objects.filter(pending_po__po_number=result['pending_po__po_number'])
         cgst_tax =  0
         sgst_tax =  0
@@ -11131,14 +11133,13 @@ def get_approval_detail_report_data(search_params, user, sub_user):
     count = 0
     if stop_index:
         results = pending_data[start_index:stop_index]
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
-    POtoPRsMap = {}
-    for eachPO, pr_number in approvedPRQs:
-        POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
-
+    # approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
+    # POtoPRsMap = {}
+    # for eachPO, pr_number in approvedPRQs:
+    #     POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
     for result in results:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
+        #approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
@@ -11148,7 +11149,6 @@ def get_approval_detail_report_data(search_params, user, sub_user):
                                                           result['total_amt'], purchase_type='PO')
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=user,
                                                     level=result['pending_po__pending_level'])
-
         tax_data = PendingLineItems.objects.filter(pending_po__po_number=result['pending_po__po_number'])
         cgst_tax = 0
         sgst_tax = 0
@@ -11171,8 +11171,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                            pr_user=user, level=result['pending_po__pending_level'])
+                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],pr_user=user, level=result['pending_po__pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
@@ -11189,6 +11188,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
                                                                 pr_user=user,
                                                                 level=result['pending_po__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+        count =+1
         ord_dict = OrderedDict((
             ('PO Created Date', po_date),
             ('PO Release Date', po_delivery_date),
@@ -11205,17 +11205,17 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('SKU Category', result['sku__sku_category']),
             ('Sub Category', result['sku__sub_category']),
             ('PO QTY',result['total_qty']),
-            ('Unit Price without tax', result['sku__price']),
-            ('Unit Price with tax',tax_amount + result['sku__price']),
+            ('Unit Price without tax', result['total_qty'] * result['sku__price']),
+            ('Unit Price with tax',tax_amount + result['total_qty'] * result['sku__price']),
+            ('Tax Percentage', total_tax)
             ('MRP', result['sku__mrp']),
-            ('Pre-Tax PO Amount',result['total_amt']),
-            ('Tax', total_tax),
-            ('After Tax PO Amount',result['total_amt']+total_tax),
+            ('Pre-Tax PO Amount',result['total_qty']*result['sku__price']),
+            ('Tax', ((result['total_qty']*result['sku__price'])*total_tax)/100)
+            ('After Tax PO Amount',((result['total_qty']*result['sku__price'])*total_tax)/100 + result['total_qty']*result['sku__price']),
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),
             ('Warehouse Name', result['pending_po__wh_user__username']),
-            ('Report Generation Time', result['pending_po__wh_user__username'])))
-        count =+1
+            ('Report Generation Time', get_local_date(user,datetime.datetime.now()))))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

@@ -68,7 +68,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
             # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
         else:
             error_message = 'supplier id missing'
-            update_error_message(failed_status, 5024, error_message, '')
+            update_error_message(failed_status, 5024, error_message, '', 'supplierid')
 
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration',
@@ -88,10 +88,10 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     value = float(value)
                 except:
                     error_message = '%s is Number field' % val
-                    update_error_message(failed_status, 5024, error_message, '')
+                    update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
-                    update_error_message(failed_status, 5024, 'Enter valid Email ID', '')
+                    update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
             data_dict[key] = value
             # if supplier_master and value:
             #     setattr(supplier_master, key, value)
@@ -100,11 +100,15 @@ def netsuite_validate_supplier(request, supplier, user=''):
             secondary_email_id = secondary_email_id.split(',')
             for mail in secondary_email_id:
                 if validate_supplier_email(mail):
-                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', '')
+                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
         if not failed_status:
             master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+            log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
 
-    except:
+    except Exception as e:
         traceback.print_exc()
-        return failed_status.values()
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        failed_status = [{'status': 0,'message': 'Internal Server Error'}]
+        return failed_status

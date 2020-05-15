@@ -1591,6 +1591,7 @@ def switches(request, user=''):
                        'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                        'stock_auto_receive':'stock_auto_receive',
                        'st_po_prefix':'st_po_prefix',
+                       'receive_po_inv_value_qty_check':'receive_po_inv_value_qty_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

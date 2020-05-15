@@ -431,6 +431,8 @@ class OrderCharges(models.Model):
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
     charge_tax_value = models.FloatField(default = 0)
+    order_type = models.CharField(max_length=256, default='order')
+    extra_flag = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2152,6 +2154,8 @@ class SellerPOSummary(models.Model):
     receipt_number = models.PositiveIntegerField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateField(blank=True, null=True)
+    invoice_value = models.FloatField(default=0)
+    invoice_quantity = models.FloatField(default=0)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)

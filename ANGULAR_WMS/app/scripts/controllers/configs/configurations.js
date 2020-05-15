@@ -57,6 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
                     'st_po_prefix': false,
+                    'receive_po_inv_value_qty_check': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -102,6 +103,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      113:'discrepency_prefix',
                      114: 'auto_generate_receive_qty',
                      115: 'st_po_prefix',
+                     116: 'receive_po_inv_value_qty_check',
                      }
 
   vm.check_box_data = [
@@ -692,6 +694,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     param_no: 114,
    class_name: "fa fa-server",
    display: true
+  },
+  {
+    name: "Check Invoice Value & Invoice Quantity In GRN",
+    model_name: "receive_po_inv_value_qty_check",
+    param_no: 116,
+    class_name: "fa fa-server",
+    display: true
   },
 ]
 

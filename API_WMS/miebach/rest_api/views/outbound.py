@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
@@ -2642,7 +2643,7 @@ def update_invoice(request, user=''):
         # Updating or Creating Order other charges Table
         for i in range(0, len(myDict.get('charge_name', []))):
             if myDict.get('charge_id') and myDict['charge_id'][i]:
-                order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
+                order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id, order_type='order')
                 invoice_order_charge = InvoiceOrderCharges.objects.filter(id = myDict['charge_id'][i] ,user = user.id)
                 if order_charges.exists() or  invoice_order_charge.exists():
                     if not myDict['charge_amount'][i]:
@@ -5129,6 +5130,7 @@ def insert_order_data(request, user=''):
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
+            import pdb; pdb.set_trace()
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
             order_summary_dict['invoice_type'] = invoice_type
@@ -7591,7 +7593,7 @@ def get_seller_order_details(request, user=''):
             taxes_data.append(tax_master.json())
 
         if order_id:
-            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id, order_type='order')
             order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
 
         order_details_data.append(
@@ -7779,7 +7781,7 @@ def get_view_order_details(request, user=''):
             taxes_data.append(tax_master.json())
 
         if order_id:
-            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id, order_type='order')
             order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
 
         order_details_data.append(
@@ -10057,7 +10059,7 @@ def order_charges_obj_for_orderid(order_id, user_id):
             cust_wh_ids = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_id).values_list('cust_wh_id',
                                                                                                         flat=True).distinct()
             if cust_wh_ids:
-                order_charge_obj = OrderCharges.objects.filter(order_id=order_id, user__in=cust_wh_ids)
+                order_charge_obj = OrderCharges.objects.filter(order_id=order_id, user__in=cust_wh_ids, order_type='order')
                 total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
     return total_charge_amount
 
@@ -13468,7 +13470,7 @@ def delete_order_charges(request, user=''):
     try:
         data_id = request.GET.get('id', '')
         if data_id:
-            other_charges = OrderCharges.objects.filter(id=data_id, user_id=user.id)
+            other_charges = OrderCharges.objects.filter(id=data_id, user_id=user.id, order_type='order')
             if other_charges:
                 other_charges.delete()
     except Exception as e:
@@ -13566,7 +13568,7 @@ def intermediate_order_cancel(request, user=''):
 def add_order_charges(request, user=''):
     order_id = request.POST.get('order_id', '')
     order_charges = eval(request.POST.get('order_charges', ''))
-    order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=order_id)
+    order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=order_id, order_type='order')
     data_dict = {}
     data_response = {}
     for obj in order_charges:
@@ -13580,6 +13582,7 @@ def add_order_charges(request, user=''):
             data_dict['charge_amount'] = obj['charge_amount']
             data_dict['order_id'] = order_id
             data_dict['user_id'] = user.id
+            data_dict['order_type'] = 'order'
             OrderCharges.objects.create(**data_dict)
     message = "Order Charges Saved Successfully"
     data_response['data'] = order_charges

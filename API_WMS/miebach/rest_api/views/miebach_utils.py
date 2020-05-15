@@ -2513,6 +2513,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_allocate_sale_order':'auto_allocate_sale_order',
                         'po_or_pr_edit_permission_approver': 'po_or_pr_edit_permission_approver',
                         'stock_auto_receive':'stock_auto_receive',
+                        'receive_po_inv_value_qty_check':'receive_po_inv_value_qty_check',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -5421,7 +5422,7 @@ def get_order_summary_data(search_params, user, sub_user):
         unit_price = "%.2f" % unit_price
 
         #otherordercharges
-        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'])
+        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'], order_type='order')
         if order_charges_obj.exists():
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
             total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']

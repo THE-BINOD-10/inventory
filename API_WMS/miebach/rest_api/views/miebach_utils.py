@@ -94,9 +94,9 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '', 'batch_based':''}
 
-SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': '', 'service_end_date': '', 'service_type': ''}
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': None, 'service_end_date': None, 'service_type': ''}
 
-ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': '', 'store_id': '', 'asset_type': '', 'vendor': ''}
+ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'asset_type': '', 'vendor': ''}
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 
@@ -338,7 +338,13 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity',
                       'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'SKU Code', 'Supplier Code', 'Preference', 'MOQ', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage','Lead Time']
+SUPPLIER_SKU_HEADERS = OrderedDict(( ('Warehouse', 'warehouse'), ('Supplier Id', 'supplier_id'),
+                                     ('SKU Code', 'sku_code'), ('Supplier Code', 'supplier_code'),
+                                     ('Preference', 'preference'), ('MOQ', 'moq'), ('Price', 'price'),
+                                     ('Costing Type (Price Based/Margin Based/Markup Based)', 'costing_type'),
+                                     ('MarkDown Percentage', 'margin_percentage'),
+                                     ('Markup Percentage', 'markup_percentage'),('Lead Time', 'lead_time')
+                                ))
 
 SUPPLIER_SKU_ATTRIBUTE_HEADERS = ['Supplier Id', 'SKU Attribute Type(Brand, Category)', 'SKU Attribute Value', 'Price', 'Costing Type (Price Based/Margin Based/Markup Based)', 'MarkDown Percentage','Markup Percentage']
 
@@ -1215,9 +1221,12 @@ INVENTORY_VALUE_REPORT_DICT = {
 
 DISCREPANCY_REPORT_DICT = {
     'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'PO Number', 'name': 'order_id', 'type': 'input'},
         {'label': 'Discrepancy Number', 'name': 'discrepancy_number', 'type': 'input'},
-        {'label': 'Supplier ID/Name', 'name': 'supplier_id', 'type': 'supplier_search'},
+        {'label': 'Supplier ID/Name', 'name': 'supplier', 'type': 'supplier_search'},
     ],
     'dt_headers': ['Discrepancy Number', 'PO Number','Supplier ID', 'Supplier Name',],
     'dt_url': 'get_discrepancy_report', 'excel_name': 'get_discrepancy_report',
@@ -2626,6 +2635,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'attributes_sync': 'attributes_sync',
                         'tax_master_sync': 'tax_master_sync',
                         'supplier_sync': 'supplier_sync',
+                        'enable_margin_price_check':'enable_margin_price_check',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -4183,7 +4193,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
            'purchase_order__stpurchaseorder__open_st__warehouse_id', 'purchase_order__stpurchaseorder__open_st__warehouse__username', 'id',
            'purchase_order__stpurchaseorder__open_st__sku__sku_code', 'purchase_order__stpurchaseorder__open_st__sku__sku_desc',
            'purchase_order__stpurchaseorder__open_st__sku__sku_category', 'purchase_order__stpurchaseorder__open_st__sku__sub_category',
-           'purchase_order__stpurchaseorder__open_st__sku__sku_brand', 'purchase_order__stpurchaseorder__open_st__sku__hsn_code', 
+           'purchase_order__stpurchaseorder__open_st__sku__sku_brand', 'purchase_order__stpurchaseorder__open_st__sku__hsn_code',
            'purchase_order__stpurchaseorder__open_st__sku__sku_class', 'purchase_order__stpurchaseorder__open_st__sku__style_name',
            'total_received','purchase_order__stpurchaseorder__open_st__price', 'id',
            'purchase_order__stpurchaseorder__open_st__cgst_tax', 'purchase_order__stpurchaseorder__open_st__sgst_tax',
@@ -10927,10 +10937,11 @@ def get_discrepancy_report_data(search_params, user, sub_user):
         search_parameters['purchase_order__order_id'] = search_params['order_id']
     if 'discrepancy_number' in search_params:
         search_parameters['discrepancy_number'] = search_params['discrepancy_number']
-    if 'supplier_id' in search_params and ':' in search_params['supplier_id']:
-            search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
-                search_params['supplier_id'].split(':')[0]
-
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+                search_params['supplier'].split(':')[0]
+    if 'sku_code' in search_params:
+        search_parameters['purchase_order__open_po__sku__wms_code'] = search_params['sku_code']
 
     search_parameters['user'] = user.id
     master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\

@@ -61,6 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'discrepency_prefix':'',
                     'st_po_prefix': false,
                     'supplier_sync': false,
+                    'enable_margin_price_check':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -110,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      115: 'st_po_prefix',
                      116: 'display_parts_allocation',
                      117: 'supplier_sync',
+                     118:'enable_margin_price_check',
                      }
 
   vm.check_box_data = [
@@ -729,6 +731,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
    },
+   {
+    name: "Enable Margin Check for PO",
+    model_name: "enable_margin_price_check",
+    param_no: 118,
+    class_name: "fa fa-server",
+    display: true
+    }
 ]
 
   vm.empty = {};
@@ -921,6 +930,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           Auth.status();
           vm.baseFunction()
           vm.pr_selected = "";
+        }
+      });
+    }
+  }
+  vm.checkExistingConfigName = function(datum, type){
+    var records = []
+    if(type == 'PR'){
+      records = vm.model_data.actual_pr_approvals_conf_data;
+    } else if(type == 'PO'){
+      records = vm.model_data.pr_approvals_conf_data;
+    }
+    if(datum.name && records.length > 0){
+      angular.forEach(records, function(record){
+        if (record.pr_name == datum.name){
+          datum.name = '';
+          Service.showNoty('Same Config Name cant be provided');
         }
       });
     }

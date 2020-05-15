@@ -1,6 +1,6 @@
 <div class="row">
   <div class="col-md-12">
-    <table class="table" class="pull-left" style="margin-left: 10px;">
+    <table class="table" class="pull-left" style="margin-left: 20px;">
       <thead>
         <tr>
           <th>Asset Code*</th>
@@ -27,15 +27,12 @@
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
-                   ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
+                   ng-change="showCase.checkResubmit(product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
-          <td>
-            <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
         </tr>
       </tbody>
     </table>

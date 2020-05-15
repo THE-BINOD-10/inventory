@@ -10,6 +10,7 @@ from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
 from miebach_utils import *
+from inbound_common_operations import *
 import pytz
 from send_message import send_sms
 from operator import itemgetter
@@ -855,9 +856,11 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR'):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     finalLevel = 'level0'
-    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type)
+    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
@@ -6509,6 +6512,7 @@ def get_purchase_order_data(order):
     rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
+    owner_email = '',
     unit = ""
     gstin_number = ''
     order_type = 'purchase order'
@@ -6550,6 +6554,7 @@ def get_purchase_order_data(order):
         supplier_id = order.open_po.supplier.supplier_id
         address = user_data.address
         email_id = user_data.email_id
+        owner_email = user_data.owner_email_id
         username = user_data.name
         order_quantity = open_data.order_quantity
         intransit_quantity = order.intransit_quantity
@@ -6600,7 +6605,7 @@ def get_purchase_order_data(order):
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
-                  'order_type': order_type,
+                  'order_type': order_type,'owner_email':owner_email,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
                   'intransit_quantity': intransit_quantity, 'order_type': order_type,
@@ -10919,6 +10924,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
+    margin_check = get_misc_value('enable_margin_price_check', user.id, number=False, boolean=True)
     try:
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
@@ -10987,6 +10993,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         if sku_master.block_options == "PO":
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
+        if margin_check:
+            status = check_margin_percentage(sku_master.id, sup_markdown.id)
+            if status:
+                data = {'error_msg': status}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -11617,17 +11627,25 @@ def get_company_id(user, level=''):
     return company.id
 
 
-def get_related_users(user_id):
+def get_related_users(user_id, level=0):
     """ this function generates all users related to a user """
     user = User.objects.get(id=user_id)
     company_id = get_company_id(user)
-    user_groups = UserGroups.objects.filter(company_id=company_id)
-
+    if not level:
+        user_groups = UserGroups.objects.filter(company_id=company_id)
+    else:
+        user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) |
+                                                Q(user__userprofile__warehouse_level=level), company_id=company_id)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     all_users = list(set(user_list1 + user_list2))
     log.info("all users %s" % all_users)
     return all_users
+
+def get_related_user_objs(user_id, level=0):
+    user_ids = get_related_users(user_id, level=level)
+    users = User.objects.filter(id__in=user_ids) 
+    return users
 
 def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
     bulk_objs = []

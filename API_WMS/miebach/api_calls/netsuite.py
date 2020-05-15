@@ -81,7 +81,7 @@ def netsuite_update_supplier(request, user=''):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(supplier))
     try:
-        failed_status = netsuite_validate_supplier(supplier, user=request.user)
+        failed_status = netsuite_validate_supplier(request,supplier, user=request.user)
         status = {'status': 200, 'message': 'Success'}
         if failed_status:
             status = failed_status[0]
@@ -94,7 +94,7 @@ def netsuite_update_supplier(request, user=''):
         status = {'status': 0,'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
-def netsuite_validate_supplier(supplier, user=''):
+def netsuite_validate_supplier(request, supplier, user=''):
     failed_status = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
@@ -111,7 +111,7 @@ def netsuite_validate_supplier(supplier, user=''):
                 update_error_message(failed_status, 5024, error_message, '')
         if supplier.has_key('supplierid'):
             supplier_id = supplier.get('supplierid')
-            supplier_master = get_or_none(SupplierMaster, {'id': supplier_id, 'user':user.id})
+            # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
         else:
             error_message = 'supplier id missing'
             update_error_message(failed_status, 5024, error_message, '')
@@ -124,17 +124,23 @@ def netsuite_validate_supplier(supplier, user=''):
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno'
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'status':1, 'po_exp_duration':0}
-        data_dict = {"id":supplier_id, "user":user.id, 'creation_date':datetime.datetime.now(), 'updation_date':datetime.datetime.now()}
+        data_dict = {}
+        filter_dict = {'supplier_id': supplier_id }
         for key,val in supplier_dict.iteritems():
             value = supplier.get(val, '')
             if key in number_field.keys():
             	value = supplier.get(val, 0)
+                try:
+                    value = float(value)
+                except:
+                    error_message = '%s is Number field' % val
+                    update_error_message(failed_status, 5024, error_message, '')
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
                     update_error_message(failed_status, 5024, 'Enter valid Email ID', '')
             data_dict[key] = value
-            if supplier_master and value:
-                setattr(supplier_master, key, value)
+            # if supplier_master and value:
+            #     setattr(supplier_master, key, value)
         secondary_email_id = supplier.get('secondaryemailid', '')
         if secondary_email_id:
             secondary_email_id = secondary_email_id.split(',')
@@ -142,21 +148,7 @@ def netsuite_validate_supplier(supplier, user=''):
                 if validate_supplier_email(mail):
                     update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', '')
         if not failed_status:
-            if supplier_master:
-                supplier_master.save()
-            else:
-                supplier_master = SupplierMaster(**data_dict)
-                supplier_master.save()
-            if secondary_email_id:
-                for mail in secondary_email_id:
-                    master_email_map = {}
-                    master_email_map['user'] = user
-                    master_email_map['master_id'] = supplier_master.id
-                    master_email_map['master_type'] = 'supplier'
-                    master_email_map['email_id'] = mail
-                    master_email_map['creation_date'] = datetime.datetime.now()
-                    master_email_map['updation_date'] = datetime.datetime.now()
-                    master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+            master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
         return failed_status.values()
 
     except:

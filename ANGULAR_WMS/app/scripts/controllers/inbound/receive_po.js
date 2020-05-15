@@ -990,6 +990,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                   // vm.sku_list_1.push(sku.wms_code);
                   if(vm.field == sku.wms_code){
+                      sku.batch_ref = field
                     // $timeout(function() {
                       //vm.sort_items = [];
                       //vm.sort_items.push(vm.model_data.data[i]);

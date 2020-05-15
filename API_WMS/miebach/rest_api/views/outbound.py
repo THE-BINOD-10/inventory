@@ -914,6 +914,7 @@ def get_picklist_data(data_id, user_id):
             order_code = ''
             mrp = 0
             batch_no = ''
+            batch_ref = ''
             manufactured_date =''
             expiry_date = ''
             courier_name = ''
@@ -982,6 +983,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1028,7 +1030,7 @@ def get_picklist_data(data_id, user_id):
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map,
+                                               'batchno':batch_no, "batch_ref":batch_ref, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map,
                                                'sku_brand': sku_brand}
             else:
                 batch_data[match_condition]['reserved_quantity'] += reserved_quantity
@@ -1064,6 +1066,7 @@ def get_picklist_data(data_id, user_id):
             #order_id = ''
             mrp = ''
             batch_no = ''
+            batch_ref = ''
             manufactured_date = ''
             expiry_date = ''
             parent_sku_code = ''
@@ -1133,6 +1136,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1169,7 +1173,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'expiry_date': expiry_date,
                  'category': category, 'customer_address': customer_address,
-                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
+                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,"batch_ref":batch_ref,
                  'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code,
                  'sku_imeis_map': sku_imeis_map, 'sku_brand': sku_brand})
 
@@ -1198,6 +1202,7 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             mrp = ''
             batch_no = ''
+            batch_ref = ''
             expiry_date = ''
             manufactured_date = ''
             parent_sku_code = ''
@@ -1225,6 +1230,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1273,7 +1279,7 @@ def get_picklist_data(data_id, user_id):
                  'category': category,
                  'manufactured_date':manufactured_date, 'expiry_date': expiry_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
-                 'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
+                 'mrp':mrp, 'batchno':batch_no,"batch_ref":batch_ref, 'is_combo_picklist': is_combo_picklist,
                  'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map, 'sku_brand': sku_brand})
 
             if wms_code in sku_total_quantities.keys():

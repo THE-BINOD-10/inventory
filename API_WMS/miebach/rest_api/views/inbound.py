@@ -509,8 +509,10 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
-    stock_trs_ord_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
-    stock_trs_recv_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
+    st_result_order_ids = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids,
+                                                       po__order_id__in=stock_results_objs.values_list('po__order_id', flat=True))
+    stock_trs_ord_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
+    stock_trs_recv_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
     if stock_trs_ord_qty.exists():
         st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty)
     if stock_trs_recv_qty.exists():
@@ -762,7 +764,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id, prefix=key[3],
                                              open_po__sku_id__in=sku_master_ids)
         if not order:
-            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id, po_id__prefix=key[3],
+            order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,po_id__order_id=key[0], po_id__prefix=key[3],
                                                    open_st__sku_id__in=sku_master_ids)
             if order:
                 order = [order[0].po]
@@ -3021,7 +3023,7 @@ def get_supplier_data(request, user=''):
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                     'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
-                                    'discrepency_check':temp_json.get('discrepency_check', 'false'),
+                                    'discrepency_check':temp_json.get('discrepency_check', ''),
                                     'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
@@ -4181,7 +4183,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
 
-        if not value:
+        if not value and not discrepency_quantity:
             continue
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
@@ -4498,6 +4500,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                if not value:
+                    continue
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
@@ -4549,7 +4553,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
-            sku_slices = generate_grn_pagination(sku_list)
+            sku_slices=[]
+            if sku_list:
+                sku_slices = generate_grn_pagination(sku_list)
             if seller_receipt_id:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
                             + '/' + str(seller_receipt_id)

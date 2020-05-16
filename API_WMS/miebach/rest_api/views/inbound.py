@@ -3021,7 +3021,7 @@ def get_supplier_data(request, user=''):
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                     'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
-                                    'discrepency_check':temp_json.get('discrepency_check', 'false'),
+                                    'discrepency_check':temp_json.get('discrepency_check', ''),
                                     'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),

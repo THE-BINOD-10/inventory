@@ -1248,15 +1248,17 @@ def get_sku(request):
 @login_required
 def update_order(request):
     try:
-        orders = json.loads(request.body)
+        request_data = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    log.info('Request params for ' + request.user.username + ' is ' + str(request_data))
     try:
-        validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
-        if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        failed_status = validate_update_order(request_data, user=request.user, company_name='mieone')
+        if not failed_status:
+            failed_status = {'status': 200, 'message': 'Success'}
+        else:
+            failed_status = {'status': 207, 'messages': failed_status}
+        return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
         log.info(status)
     except Exception as e:
         import traceback
@@ -1293,7 +1295,7 @@ def create_orders(request):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log.info('create orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 

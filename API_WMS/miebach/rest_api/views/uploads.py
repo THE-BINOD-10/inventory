@@ -2726,7 +2726,7 @@ def supplier_sku_upload(request, user=''):
                     if col_idx == 0:
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
-                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
+                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id).id
                     elif col_idx == 1:
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)

@@ -11,6 +11,8 @@ log = init_logger('logs/inbound_discrepancy.log')
 
 def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_dict):
     try:
+        bill_no = ''
+        bill_date = ''
         for key, val in report_data_dict.items():
             exec(key + '=val')
         putaway_data = {'putaway_key': []}
@@ -30,8 +32,8 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
             if key[3]:
                 price = key[3]
             entry_price = float(price) * float(value)
-            purchase_order_dict = {'wms_code': key[1],
-                                   'measurement_unit': key[2],
+            purchase_order_dict = {'wms_code': key[1],'invoice_date':bill_date,
+                                   'measurement_unit': key[2],'invoice_number':bill_no,
                                    'price': price, 'cgst_tax': key[4], 'sgst_tax': key[5],
                                    'igst_tax': key[6], 'utgst_tax': key[7], 'amount': entry_price,
                                    'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
@@ -52,7 +54,8 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
             total_discrepency_qty += discrepency_quantity
             if discrepency_quantity and not print_des:
                 purchase_order_text = json.dumps(purchase_order_dict)
-                discrepency_dict = {'quantity': discrepency_quantity, 'return_reason': discrepencey_reason, }
+                discrepency_dict = {'quantity': discrepency_quantity, 'return_reason': discrepencey_reason,
+                                    'new_data': purchase_order_text}
                 if po_id:
                     discrepency_dict['purchase_order_id'] = po_id
                     po_order = PurchaseOrder.objects.get(id=po_id)
@@ -60,8 +63,6 @@ def generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_d
                     purchase_order.received_quantity +=discrepency_quantity
                     purchase_order.discrepancy_quantity = discrepency_quantity
                     purchase_order.save()
-                else:
-                    discrepency_dict['new_data'] = purchase_order_text
                 if not print_des:
                     incremental_object = IncrementalTable.objects.filter(user=user.id, type_name='discrepancy')
                     if not incremental_object.exists():

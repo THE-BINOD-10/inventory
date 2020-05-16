@@ -10843,7 +10843,7 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
         if margin_check:
-            status = check_margin_percentage(sku_master.id, sup_markdown.id)
+            status = check_margin_percentage(sku_master.id, sup_markdown.id, user)
             if status:
                 data = {'error_msg': status}
     except Exception as e:

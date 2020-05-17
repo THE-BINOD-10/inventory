@@ -21,9 +21,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var send = {};
     var name ='';
   	if (vm.toggle_detail) {
-      name = 'aprroval_po_summary_report';
-    } else {
       name = 'aprroval_po_detail_report';
+    } else {
+      name = 'aprroval_po_summary_report';
     }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
     	if (data.message) {
@@ -42,7 +42,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             vm.datatable = true;
             vm.dtInstance = {};
     		vm.report_data['row_click'] = true;
+    		if (name =="aprroval_po_detail_report")
+    		{
             vm.report_data['excel_name'] = 'get_approval_detail_report'
+            }
+            else{
+            vm.vm.report_data['excel_name'] = 'get_approval_summary_report'
+            }
           })
         }
     	}

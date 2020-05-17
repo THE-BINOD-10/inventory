@@ -10984,7 +10984,8 @@ def get_approval_summary_report_data(search_params, user, sub_user):
     # POtoPRsMap = {}
     # # for eachPO, pr_number in approvedPRQs:
     # #     POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
-
+    else:
+        results = pending_data
     for result in results:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         #approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
@@ -11120,7 +11121,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                    'sku__sku_code','sku__sku_desc','sku__sku_category','sku__sku_class','sku__sku_brand',
-                   'sku__style_name', 'sku__price','sku__mrp','sku__sub_category',
+                   'sku__style_name', 'sku__price','sku__mrp','sku__sub_category','quantity','price',
                    'pending_po__requested_user__username', 'pending_po__po_number','pending_po__wh_user__username',
                    'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
@@ -11137,6 +11138,8 @@ def get_approval_detail_report_data(search_params, user, sub_user):
     # POtoPRsMap = {}
     # for eachPO, pr_number in approvedPRQs:
     #     POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
+    else:
+        results = pending_data
     for result in results:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         #approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
@@ -11205,13 +11208,13 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('SKU Category', result['sku__sku_category']),
             ('Sub Category', result['sku__sub_category']),
             ('PO QTY',result['total_qty']),
-            ('Unit Price without tax', result['total_qty'] * result['sku__price']),
-            ('Unit Price with tax',tax_amount + result['total_qty'] * result['sku__price']),
+            ('Unit Price without tax', result['quantity'] * result['price']),
+            ('Unit Price with tax',tax_amount + result['quantity'] * result['price']),
             ('Tax Percentage', total_tax),
             ('MRP', result['sku__mrp']),
-            ('Pre-Tax PO Amount',result['total_qty']*result['sku__price']),
-            ('Tax', ((result['total_qty']*result['sku__price'])*total_tax)/100),
-            ('After Tax PO Amount',((result['total_qty']*result['sku__price'])*total_tax)/100 + result['total_qty']*result['sku__price']),
+            ('Pre-Tax PO Amount',result['quantity']*result['price']),
+            ('Tax', ((result['quantity']*result['price'])*total_tax)/100),
+            ('After Tax PO Amount',((result['quantity']*result['price'])*total_tax)/100 + result['quantity']*result['price']),
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),
             ('Warehouse Name', result['pending_po__wh_user__username']),

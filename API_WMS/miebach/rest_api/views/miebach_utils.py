@@ -10907,14 +10907,16 @@ def get_po_approval_report_data(search_params, user, sub_user):
     count = 0
     if stop_index:
         results = pending_data[start_index:stop_index]
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
-    POtoPRsMap = {}
-    for eachPO, pr_number in approvedPRQs:
-        POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
+    else:
+        results = pending_data
+    # # approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
+    # POtoPRsMap = {}
+    # for eachPO, pr_number in approvedPRQs:
+    #     POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
     for result in results:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
+        #approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')

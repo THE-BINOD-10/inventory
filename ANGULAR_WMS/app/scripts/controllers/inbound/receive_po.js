@@ -586,7 +586,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.save_sku = function(){
       var that = vm;
-      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
           vm.display_approval_button && Object.keys(vm.model_data.uploaded_file_dict).length == 0) {
         if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
           colFilters.showNoty("Uploading file is mandatory");
@@ -705,7 +705,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
-        if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
             Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
@@ -838,7 +838,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
         angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0) {
+          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
             status = true;
           }
         });
@@ -2392,9 +2392,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
-      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
-      vm.singleDecimalVal(sku_row_data.apmc_percent, 'apmc_percent', index, parent_index);
-
       if (vm.industry_type == 'FMCG') {
         var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
         if (Number(sku_row_data.discrepency_quantity)) {
@@ -2534,6 +2531,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(po_quantity && po_quantity < tot_qty) {
           vm.display_approval_button = true;
           vm.send_admin_mail=true;
+          Service.showNoty("Received Quantity Greater Than PO Quantity")
           if (outerindex != undefined ){
            vm.model_data.data[outerindex][innerindex].wrong_sku = 1
           }

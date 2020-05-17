@@ -2726,7 +2726,7 @@ def supplier_sku_upload(request, user=''):
                     if col_idx == 0:
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
-                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
+                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id).id
                     elif col_idx == 1:
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)
@@ -2978,7 +2978,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
                         if  margin_check and sku_master and supplier :
-                            status = check_margin_percentage(sku_master[0].id, supplier[0].id)
+                            status = check_margin_percentage(sku_master[0].id, supplier[0].id, user)
                             if status:
                                 index_status.setdefault(row_idx, set()).add(status)
                         data_dict['sku_id'] = sku_master[0].id

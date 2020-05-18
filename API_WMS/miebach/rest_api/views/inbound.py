@@ -1132,6 +1132,7 @@ def generated_pr_data(request, user=''):
     total_data = []
     ser_data = []
     levelWiseRemarks = []
+    enquiryRemarks = []
     pr_delivery_date = ''
     pr_created_date = ''
     validateFlag = 0
@@ -1150,6 +1151,15 @@ def generated_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+
+    currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPO')
+    if currentPOenquiries.exists():
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
+            sender, receiver, enquiry, response = eachEnq
+            enquiryRemarks.append({"sender":sender, "receiver": receiver,
+                        "enquiry": enquiry, "response": response
+                })
+    
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     validated_users.insert(0, record[0].requested_user.email)
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
@@ -1182,7 +1192,8 @@ def generated_pr_data(request, user=''):
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
-                                    'validateFlag': validateFlag, 'validated_users': validated_users}))
+                                    'validateFlag': validateFlag, 'validated_users': validated_users,
+                                    'enquiryRemarks': enquiryRemarks}))
 
 
 @csrf_exempt

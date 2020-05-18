@@ -263,10 +263,40 @@
         <div class="col-md-2 pull-left" style="margin-top: 27px;">
           <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
         </div>
-        
       </div>
-
-
+      <div class="row" ng-if="showCase.model_data.enquiryRemarks">
+        <div class="col-md-10">
+          <strong class="pull-left" style="margin-left: 10px;">
+          Enquiry History:
+          </strong>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Sender</th>
+                <th>Receiver</th>
+                <th>Enquiry</th>
+                <th>Response</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="product in showCase.model_data.enquiryRemarks" id="tab_count">
+                <td>
+                  <input ng-model="product.sender" title="{{product.sender}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+                </td>
+                <td>
+                  <input ng-model="product.receiver" title="{{product.receiver}}" type="text" class="form-control detectTab" readonly ng-debounce  size="5">
+                </td>
+                <td>
+                  <input ng-model="product.enquiry" title="{{product.enquiry}}" type="text" class="form-control detectTab" readonly ng-debounce  size="10">
+                </td>
+                <td>
+                  <input ng-model="product.response" title="{{product.response}}" type="text" class="form-control detectTab" readonly ng-debounce size="50">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
       </div>
 		</div>

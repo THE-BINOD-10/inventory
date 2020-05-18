@@ -172,6 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
+          vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {

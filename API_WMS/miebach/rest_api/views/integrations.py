@@ -2167,6 +2167,73 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         str(user.username), str(orders), str(e)))
     return insert_status, failed_status.values(), final_data_dict
 
+def cancel_order(order_details, original_order_id, user):
+    admin_user = get_admin(user)
+    order_detail_ids = order_details.values_list('id', flat=True)
+    seller_orders = list(
+        SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED',
+                                   status=1). \
+        values_list('order_id', flat=True))
+    order_detail_ids = list(order_detail_ids)
+    IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    picklists = Picklist.objects.filter(order_id__in=order_detail_ids, order__user=user.id)
+    if seller_orders:
+        OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
+        SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
+        order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
+    if order_detail_ids and not picklists:
+        for order_detail_id in order_detail_ids:
+            order_obj = OrderDetail.objects.get(id=order_detail_id)
+            order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
+            if order_obj.original_quantity == order_obj.cancelled_quantity:
+                order_obj.status = 3
+            elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
+                order_obj.status = 2
+            else:
+                order_obj.status = 0
+            order_obj.save()
+            if admin_user:
+                OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+
+def validate_update_order(request_data, user='', company_name=''):
+    search_params = {'user': user.id}
+    sister_whs = []
+    original_order_id = ''
+    status = ''
+    failed_status = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data.has_key('order_id'):
+        original_order_id = str(request_data['order_id'])
+    else:
+        error_message = 'Order ID required'
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    if request_data.has_key('warehouse'):
+        warehouse = request_data['warehouse']
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            error_message = 'Invalid Warehouse Name'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    search_params = {'user': user.id}
+    if request_data.has_key('sku_code'):
+        search_params['sku__sku_code'] = request_data['sku_code']
+    if request_data.has_key('status'):
+        status = request_data['status'].lower()
+    else:
+        error_message = 'Please mention status'
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    if not failed_status:
+        order_details = OrderDetail.objects.filter(original_order_id=original_order_id, **search_params)
+        if order_details:
+            if status == 'cancel':
+                cancel_order(order_details, original_order_id,user)
+        else:
+            error_message = 'Please check the data'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    return failed_status.values()
+
 def validate_create_orders(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()

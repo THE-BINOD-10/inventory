@@ -606,7 +606,6 @@ class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
-    priority = models.IntegerField(default=0)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
     intransit_quantity = models.FloatField(default=0)
@@ -1589,6 +1588,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
+        index_together = ('open_st', 'po')
 
     def __unicode__(self):
         return str(self.po_id)
@@ -1611,6 +1611,8 @@ class StockTransfer(models.Model):
     class Meta:
         db_table = 'STOCK_TRANSFER'
         unique_together = ('order_id', 'st_po', 'sku')
+        index_together = (('sku',))
+
 
     def __unicode__(self):
         return str(self.order_id)
@@ -3678,6 +3680,7 @@ class StockTransferSummary(models.Model):
 
     class Meta:
         db_table = 'STOCK_TRANSFER_SUMMARY'
+        index_together = (('stock_transfer',))
 
 
 @reversion.register()

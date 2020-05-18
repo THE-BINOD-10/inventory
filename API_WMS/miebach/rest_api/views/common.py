@@ -570,7 +570,9 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions', 'RaiseActualPR': 'get_actual_pr_suggestions',
+    'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
+    'RaiseActualPR': 'get_actual_pr_suggestions',
+    'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \

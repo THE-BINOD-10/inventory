@@ -905,6 +905,10 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_pending_purchase_order.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_po_enquiries.js'
+                  ])
                 });
               }]
           },
@@ -939,6 +943,14 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePo.SavedPurchaseRequest', {
           url: '/SavedPendingPO',
           templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
+          })
+          // .state('app.inbound.RaisePo.pendingPOEnquiries', {
+          // url: '/pendingPOEnquiries',
+          // templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
+          // })
+          .state('app.inbound.RaisePo.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
           })
 
 

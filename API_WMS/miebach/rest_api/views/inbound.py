@@ -164,7 +164,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
         count += 1
 
 @csrf_exempt
-def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PO', 'pending_po__open_po': None} # 'pending_pr__wh_user':user #'final_status': 'cancelled' Ignoring  cancelled status till reports created.
     if request.user.id != user.id:
         currentUserLevel = ''
@@ -293,7 +293,59 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
+@csrf_exempt
+def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')
+    for enqObj in enqQs:
+        sender = enqObj.sender.email
+        receiver = request.user.email
+        enquiry = enqObj.enquiry
+        status = enqObj.status
+        response = enqObj.response
+        enquiryDict = OrderedDict((
+                                ('id', enqObj.id),
+                                ('Enquiry From', sender), 
+                                ('Enquiry To', receiver), 
+                                ('Enquiry Text', enquiry),
+                                ('Response', response),
+                                ('Status', status),
+                                ('DT_RowClass', 'results')))
+        temp_data['aaData'].append(enquiryDict)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pending_enquiry(request, user=''):
+    pendingEnqData = {}
+    genEnqId = request.GET.get('data_id', '')
+    enqQs = GenericEnquiry.objects.filter(id=genEnqId)
+    if enqQs.exists():
+        enqObj = enqQs[0]
+        pendingEnqData.update({
+                'id': enqObj.id,
+                'sender': enqObj.sender.email,
+                'receiver': enqObj.receiver.email,
+                'enquiry': enqObj.enquiry,
+                'response': enqObj.response,
+                'status': enqObj.status
+            })
+    return HttpResponse(json.dumps(pendingEnqData))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def submit_pending_enquiry(request, user=''):
+    genEnqId = request.POST.get('data_id', '')
+    response = request.POST.get('response', '')
+    enqQs = GenericEnquiry.objects.filter(id=genEnqId)
+    if enqQs.exists():
+        enqObj = enqQs[0]
+        enqObj.response = response
+        enqObj.status = 'submitted'
+        enqObj.save()
+
+    return HttpResponse('Submitted Successfully')
 @csrf_exempt
 def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -1073,6 +1125,8 @@ def generated_po_data(request, user=''):
 def generated_pr_data(request, user=''):
     pr_number = request.POST.get('pr_number', '')
     requested_user = request.POST.get('requested_user', '')
+    requestedUserId = User.objects.get(username=requested_user).id
+    pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     supplier_id = request.POST.get('supplier_id', '')
     record = PendingPO.objects.filter(requested_user__username=requested_user, po_number=pr_number)
     total_data = []
@@ -1096,6 +1150,8 @@ def generated_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+    validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+    validated_users.insert(0, record[0].requested_user.email)
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
                     'cgst_tax', 'sgst_tax', 'igst_tax']
     lineItems = record[0].pending_polineItems.values_list(*lineItemVals)
@@ -1124,9 +1180,9 @@ def generated_pr_data(request, user=''):
                                     }, 'pk': apprId})
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier.supplier_id, 'supplier_name': record[0].supplier.name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
-                                    'pr_created_date': pr_created_date, 'warehouse': user.first_name,
+                                    'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
-                                    'validateFlag': validateFlag}))
+                                    'validateFlag': validateFlag, 'validated_users': validated_users}))
 
 
 @csrf_exempt
@@ -1169,6 +1225,7 @@ def generated_actual_pr_data(request, user=''):
         'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date', 
         'sku__servicemaster__service_end_date',
     ]
+    validated_users = list(record[0].pending_prApprovals.values_list('validated_by', flat=True).order_by('level'))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
@@ -1204,7 +1261,8 @@ def generated_actual_pr_data(request, user=''):
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
-                                    'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag}))
+                                    'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
+                                    'validated_users': validated_users}))
 
 
 @csrf_exempt
@@ -2967,6 +3025,53 @@ def cancel_pr(request, user=''):
     if prQs.exists():
         prQs.update(final_status='cancelled')
     return HttpResponse("Deleted Successfully")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def submit_pending_approval_enquiry(request, user=''):
+    is_purchase_request = request.POST.get('is_purchase_request')
+    pr_number = request.POST.get('pr_number')
+    requested_username = request.POST.get('requested_user', '')
+    enquiry_to = request.POST.get('enquiry_to', '')
+    enquiry_remarks = request.POST.get('enquiry_remarks', '')
+    emailsOfApprovedUsersMap = {}
+    if is_purchase_request == 'true':
+        requested_user = User.objects.get(username=requested_username)
+        pendingPurchaseObj = PendingPO.objects.get(requested_user__username=requested_user, 
+                                        po_number=pr_number)
+        emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
+        permission_name = 'pending po'
+        admin_user = None
+        user = pendingPurchaseObj.wh_user
+        if user.userprofile.warehouse_type == 'STORE':
+            userQs = UserGroups.objects.filter(user=user)
+            if userQs.exists:
+                parentCompany = userQs[0].company_id
+                admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+                admin_user = admin_userQs[0].user
+        if admin_user:
+            user = admin_user
+
+        groupQs = user.groups.exclude(name=user.username).filter(permissions__name__contains=permission_name)
+        for grp in groupQs:
+            gp = Group.objects.get(id=grp.id)
+            approved_emails = gp.user_set.filter().exclude(id=user.id).filter(email=enquiry_to).values_list('email','id')
+            emailsOfApprovedUsersMap.update(approved_emails)            
+        receiver_userId = emailsOfApprovedUsersMap.get(enquiry_to, '')
+        if not receiver_userId:
+            return HttpResponse('Something Went Wrong')
+        sendEnquiryMap = {
+            'sender_id': request.user.id,
+            'receiver_id': receiver_userId,
+            'master_id': pendingPurchaseObj.id,
+            'master_type': 'pendingPO',
+            'enquiry': enquiry_remarks,
+            'status': 'pending'
+        }
+        GenericEnquiry.objects.create(**sendEnquiryMap)
+
+    return HttpResponse("Submitted Successfully")        
 
 @csrf_exempt
 @login_required

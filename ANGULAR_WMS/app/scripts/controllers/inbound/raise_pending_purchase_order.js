@@ -23,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.filters = {'datatable': 'RaisePR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'RaisePendingPurchase', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -172,6 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
+          vm.model_data.validated_users = data.data.validated_users;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {
               data.fields.cess_tax = 0;
@@ -456,6 +457,30 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       })
     }
+  vm.submit_enquiry = function(form){
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    if (vm.is_purchase_request){
+      elem.push({name:'is_purchase_request', value:true})
+    }
+    if (vm.pr_number){
+      elem.push({name:'pr_number', value:vm.pr_number})
+    }
+    if (vm.requested_user){
+      elem.push({name:'requested_user', value:vm.requested_user})
+    }
+    vm.service.apiCall('submit_pending_approval_enquiry/', 'POST', elem, true).then(function(data){
+      if(data.message){
+        if(data.data == 'Submitted Successfully') {
+          vm.close();
+          vm.service.refresh(vm.dtInstance);
+        } else {
+          vm.service.showNoty(data.data);
+        }
+      }
+    })
+  }
 
     vm.print_pending_po = function(form, validation_type) {
       $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})

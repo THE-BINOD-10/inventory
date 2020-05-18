@@ -19,6 +19,9 @@
       <tab heading="Pending For Approval Purchase Orders" ng-if="showCase.permissions.enable_pending_approval_pos">
         <div ng-include="'views/inbound/raise_po/raise_pending_purchase_order.html'"></div>
       </tab>
+      <tab heading="Pending PO Enquiries" ng-if="showCase.permissions.enable_pending_approval_pos">
+        <div ng-include="'views/inbound/raise_po/pending_po_enquiries.html'"></div>
+      </tab>
     </tabset>
   </div>
 </div>

@@ -1570,6 +1570,7 @@ def get_orders(request):
         picked_quantity = 0
         payment_status = 'Pending'
         shipment_dict = {}
+        aux_info = {}
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
                              values('order_id', 'shipping_quantity')
@@ -1585,6 +1586,11 @@ def get_orders(request):
                                     payment_received_sum = Sum('payment_received'))
         if payment['invoice_amount_sum'] == payment['payment_received_sum']:
             payment_status='Paid'
+        payment_summary = PaymentSummary.objects.filter(order=data_dict[0].id)
+        if payment_summary.exists():
+            payment_summary = payment_summary[0]
+            payment_info = payment_summary.payment_info
+            aux_info = json.loads(payment_info.aux_info)
         items = []
         charge_amount= 0
         item_dict = {}
@@ -1626,7 +1632,8 @@ def get_orders(request):
             dispatched_quantity = shipment_dict.get(data.id, 0)
             # picked_quantity_sku -= dispatched_quantity
             cancelled_quantity = data.cancelled_quantity
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'sku_brand':data.sku.sku_brand,
+                         'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'cancelled_quantity':cancelled_quantity,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
@@ -1660,7 +1667,7 @@ def get_orders(request):
                                     ('customer_id', data_dict[0].customer_id),
                                     ('customer_name',data_dict[0].customer_name),
                                     ('billing_address',billing_address ),
-                                    ('shipping_address',shipping_address),('items',items))))
+                                    ('shipping_address',shipping_address),('items',items),('payment_info',aux_info))))
     page_info['data'] = record
     page_info['message'] = 'success'
     page_info['page_info']['total_count'] = total_count

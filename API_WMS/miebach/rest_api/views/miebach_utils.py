@@ -814,7 +814,7 @@ APPROVAL_PO_DETAIL_REPORT_DICT = {
      ],
     'dt_headers':['PO Created Date', 'PO Release Date','PO Number','Status', 'Supplier ID', 'Supplier Name',
     'SKU Code', 'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'Sub Category', 'PO QTY', 'Unit Price without tax',
-    'Unit Price with tax', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount', 'Status', 'Warehouse Name', 'Report Generation Time'],
+    'Unit Price with tax', 'MRP', 'Pre-Tax PO Amount', 'Tax Amount', 'After Tax PO Amount', 'Status', 'Warehouse Name', 'Report Generation Time'],
      'dt_url': 'get_approval_detail_report', 'excel_name': 'get_approval_detail_report',
      'print_url': 'get_approval_detail_report',
   }
@@ -11171,7 +11171,6 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             igst_tax = tax_data.igst_tax
             total_tax = cgst_tax + sgst_tax + igst_tax
             tax_amount = result['total_amt'] * (total_tax / 100)
-
         release_data = PurchaseOrder.objects.filter(order_id=result['pending_po__po_number'],prefix=result['pending_po__prefix'], open_po__sku__user=user.id)
         release_date = ''
         if release_data.exists():
@@ -11220,12 +11219,12 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('Sub Category', result['sku__sub_category']),
             ('PO QTY',result['total_qty']),
             ('Unit Price without tax', result['price']),
-            ('Unit Price with tax',((result['price']+cgst_tax+sgst_tax+igst_tax)/100)+ (result['price'])),
+            ('Unit Price with tax',round(((result['price']*(cgst_tax+sgst_tax+igst_tax)/100)+ (result['price'])),4)),
             ('Tax Percentage', total_tax),
             ('MRP', result['sku__mrp']),
-            ('Pre-Tax PO Amount',result['quantity']*result['price']),
-            ('Tax', ((result['quantity']*result['price'])*total_tax)/100),
-            ('After Tax PO Amount',((result['quantity']*result['price'])*total_tax)/100 + result['quantity']*result['price']),
+            ('Pre-Tax PO Amount',round(result['quantity']*result['price'],4)),
+            ('Tax Amount', (round(((result['quantity']*result['price'])*total_tax)/100, 4))),
+            ('After Tax PO Amount',(round(((result['quantity']*result['price'])*total_tax)/100 + result['quantity']*result['price'],4))),
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),
             ('Warehouse Name', result['pending_po__wh_user__username']),

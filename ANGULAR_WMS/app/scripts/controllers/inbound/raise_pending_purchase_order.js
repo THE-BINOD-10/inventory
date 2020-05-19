@@ -886,6 +886,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
+    vm.validate_sku_check = function(product, item, index, sku, type){
+      if (vm.model_data.data.length ==1 && type=='add' && typeof(sku) !="undefined") {
+        vm.get_sku_details(product, item, index);
+      } else if (typeof(sku) !="undefined"){
+        for (var i = 0; i < vm.model_data.data.length; i++) {
+          if (Object.keys(vm.model_data.data[i]['fields']['sku']).includes('capacity')) {
+            if (vm.model_data.data[i]['fields']['sku']['wms_code'] == sku.split(' :')[0]) {
+              product.fields.sku.wms_code = '';
+              vm.service.showNoty('Duplicate Sku Code !!');
+              break;
+            }
+          } else if (i == vm.model_data.data.length-1 && type=='add'){
+            vm.get_sku_details(product, item, index);
+          }
+        }
+      } else if (typeof(sku) =="undefined") {
+        product.fields.sku = {'price':0, 'wms_code':''}
+      }
+    }
+
     vm.get_sku_details = function(product, item, index) {
       vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;

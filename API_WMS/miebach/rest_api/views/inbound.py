@@ -12164,6 +12164,7 @@ def confirm_central_add_po(request, sales_data='', user=''):
                     value['order_quantity'] = float(record['order_qty'])
                     value['po_name'] ='%s%s_%s-%s' % (po_prefix, str(datetime.datetime.now()).split(' ')[0].replace('-', ''), po_id, get_increment_series_no(shipment_reference[warehouse]))
                     send_data.setdefault(key, value)
+                    value['po_name'] ='%s%s_%s-%s' % (po_prefix, str(datetime.datetime.now()).split(' ')[0].replace('-', ''), po_id, get_increment_series_no(shipment_reference[warehouse]))
                     rendered_data = confirm_add_central_po(request, send_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, warehouse_user, admin_user)
                     if rendered_data['data'] and (warehouse_user.username in pdf_generation.keys()):
                         pdf_generation[warehouse_user.username]['data'].append(rendered_data['data'][0])

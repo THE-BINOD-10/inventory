@@ -11048,9 +11048,9 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             ('Supplier Name', result['pending_po__supplier__name']),
             ('Expected Delivery', po_delivery_date),
             ('Ordered Quantity', result['total_qty']),
-            ('Base Amount', result['total_amt']),
+            ('Base Amount', round(result['total_amt'],4)),
             ('Tax Amount', tax_amount),
-            ('Total Amount', result['total_amt'] + tax_amount),
+            ('Total Amount', round(result['total_amt'] + tax_amount ,4)),
             ('Final Status', result['pending_po__final_status']),
             ('Created by', result['pending_po__requested_user__username']),
             ('Approver 1', approver1),
@@ -11228,7 +11228,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),
             ('Warehouse Name', result['pending_po__wh_user__username']),
-            ('Report Generation Time', get_local_date(user,datetime.datetime.now()))))
+            ('Report Generation Time', str(get_local_date(user,datetime.datetime.now())))))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

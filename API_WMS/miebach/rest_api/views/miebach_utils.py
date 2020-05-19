@@ -11073,7 +11073,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             ('Approver 5', approver5),
             ('Approver 5 Date', approver5_date),
             ('Approver 5 Status', approver5_status),
-            ('PO Release Date', str(get_local_date(user,release_date)))))
+            ('PO Release Date', get_local_date(user,release_date))))
         count =+1
         temp_data['aaData'].append(ord_dict)
 
@@ -11233,7 +11233,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('Qty received', result['total_qty']),
             ('Status', result['pending_po__final_status'].title()),
             ('Warehouse Name', result['pending_po__wh_user__username']),
-            ('Report Generation Time', str(get_local_date(user,datetime.datetime.now())))))
+            ('Report Generation Time', get_local_date(user,datetime.datetime.now()))))
         temp_data['aaData'].append(ord_dict)
 
     return temp_data

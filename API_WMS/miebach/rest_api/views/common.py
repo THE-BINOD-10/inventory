@@ -918,7 +918,17 @@ def pr_request(request):
 
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
-    sub_users = get_sub_users(parentUser)
+    admin_user = None
+    if parentUser.userprofile.warehouse_type == 'STORE':
+        userQs = UserGroups.objects.filter(user=parentUser)
+        if userQs.exists:
+            parentCompany = userQs[0].company_id
+            admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+            admin_user = admin_userQs[0].user
+    if admin_user:
+        sub_users = get_sub_users(admin_user)
+    else:
+        sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
         login(request, reqSubUser)

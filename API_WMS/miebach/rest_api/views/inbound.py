@@ -538,7 +538,6 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     rw_order_ids_list = rw_results_objs.filter(
         purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
         values_list('purchase_order_id', flat=True)
-
     results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params). \
         filter(purchase_order_query, open_po__sku__user__in=user).exclude(status__in=['location-assigned', 'confirmed-putaway'])
     po_result_order_ids = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids,
@@ -2762,7 +2761,6 @@ def add_pr(request, user=''):
         else:
             is_actual_pr = 'false'
             reversion.set_comment("addPendingPO")
-
         if myDict.get('pr_number'):
             pr_number = int(myDict.get('pr_number')[0])
         else:
@@ -2771,7 +2769,8 @@ def add_pr(request, user=''):
             else:
                 # pr_number = get_incremental(user, 'PurchaseRequest')
                 pr_number = get_purchase_order_id(user)
-
+                if pr_number == 0:
+                    pr_number = pr_number + 1
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
             mailSub = 'pr_created'

@@ -11073,7 +11073,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             ('Approver 5', approver5),
             ('Approver 5 Date', approver5_date),
             ('Approver 5 Status', approver5_status),
-            ('PO Release Date', release_date)))
+            ('PO Release Date', str(release_date))))
         count =+1
         temp_data['aaData'].append(ord_dict)
 

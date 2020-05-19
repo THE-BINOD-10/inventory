@@ -1956,9 +1956,9 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv_main.html'
           })
-		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen', {
-            url: '/StockTransferInvoiceGen',
-            templateUrl: 'views/outbound/print/stock_transfer_inv_gen.html'
+		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceE', {
+            url: '/StockInvoice',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
           })
 
          .state('app.outbound.CustomerInvoices.InvoiceM', {

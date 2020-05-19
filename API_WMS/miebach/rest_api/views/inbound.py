@@ -576,8 +576,10 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
-    stock_trs_ord_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
-    stock_trs_recv_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
+    st_result_order_ids = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids,
+                                                       po__order_id__in=stock_results_objs.values_list('po__order_id', flat=True))
+    stock_trs_ord_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
+    stock_trs_recv_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
     if stock_trs_ord_qty.exists():
         st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty)
     if stock_trs_recv_qty.exists():
@@ -614,9 +616,9 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         filter(received_quantity__lt=F('open_po__order_quantity')).values_list('id',
                                                                                flat=True)
     results1 = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
-    sort_col = 'creation_date'
+    sort_col = 'order_id'
     if order_term == 'desc':
-        sort_col = '-creation_date'
+        sort_col = '-order_id'
     results = PurchaseOrder.objects.filter(id__in=results1).order_by(sort_col).\
         values('order_id', 'open_po__sku__user', 'rwpurchase__rwo__vendor__user',
                'stpurchaseorder__open_st__sku__user', 'prefix').distinct()
@@ -829,7 +831,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id, prefix=key[3],
                                              open_po__sku_id__in=sku_master_ids)
         if not order:
-            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id, po_id__prefix=key[3],
+            order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,po_id__order_id=key[0], po_id__prefix=key[3],
                                                    open_st__sku_id__in=sku_master_ids)
             if order:
                 order = [order[0].po]
@@ -1733,6 +1735,7 @@ def switches(request, user=''):
                        'tax_master_sync': 'tax_master_sync',
                        'st_po_prefix':'st_po_prefix',
                        'supplier_sync': 'supplier_sync',
+                       'enable_margin_price_check':'enable_margin_price_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3277,6 +3280,9 @@ def get_supplier_data(request, user=''):
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                     'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
+                                    'discrepency_check':temp_json.get('discrepency_check', ''),
+                                    'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
+                                    'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price':float("%.2f"% float(order_data.get('price',0))),
                                     'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
@@ -3388,6 +3394,7 @@ def update_putaway(request, user=''):
         log.info("Update Receive PO data for user %s and request params are %s" % (
             user.username, str(request.POST.dict())))
         send_for_approval = request.POST.get('display_approval_button', '')
+        send_admin_mail = request.POST.get('send_admin_mail', '')
         approval_po_created = True
         remarks = request.POST.get('remarks', '')
         expected_date = request.POST.get('expected_date', '')
@@ -3400,7 +3407,7 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack',
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
@@ -3464,17 +3471,23 @@ def update_putaway(request, user=''):
                 master_docs_obj.save()
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
-            if not grn_permission:
-                if get_misc_value('grn_approval', user.id) == 'true':
-                    perm = Permission.objects.get(codename='change_purchaseorder')
-                    sub_users = get_sub_users(user)
-                    sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
-                    receiver_mails = list(sub_users.values_list('email', flat=True))
-                    po_reference = get_po_reference(po)
-                    mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
-                    subject = 'GRN Approval request for PO: %s' % po_reference
-                    receiver_mails.append(user.email)
-                    send_mail(list(set(receiver_mails)), subject, mail_message)
+            po_reference = get_po_reference(po)
+            mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
+            subject = 'GRN Approval request for PO: %s' % po_reference
+            if send_admin_mail == 'true':
+                email_ids=list(MasterEmailMapping.objects.filter(master_type="po_admin_approval",
+                                                  user_id=user.id).values_list('email_id',flat=True))
+                if email_ids:
+                    send_mail(email_ids, subject, mail_message)
+            else:
+                if not grn_permission:
+                    if get_misc_value('grn_approval', user.id) == 'true':
+                        perm = Permission.objects.get(codename='change_purchaseorder')
+                        sub_users = get_sub_users(user)
+                        sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
+                        receiver_mails = list(sub_users.values_list('email', flat=True))
+                        receiver_mails.append(user.email)
+                        send_mail(list(set(receiver_mails)), subject, mail_message)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3864,10 +3877,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                 if pallet_number:
                     if temp_dict['pallet_data'] == 'true':
                         insert_pallet_data(temp_dict, po_loc)
-                if float(purchase_data['order_quantity']) <= data.received_quantity+ float(temp_dict.get('discrepency_quantity',0)):
-                    data.status = 'location-assigned'
-                    data.save()
-                    break
                 if received_quantity == 0:
                     if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
                         data.status = 'location-assigned'
@@ -4384,13 +4393,11 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         mrp = 0
         temp_dict = {}
         discrepency_quantity, discrepency_reason = 0, ''
-        if myDict.get('discrepency_check','') :
-            if myDict.get('discrepency_check')[0]!='false':
-                if myDict.get('discrepency_check', '')[i]:
-                    if myDict['discrepency_quantity'][i]:
-                        discrepency_quantity = float(myDict['discrepency_quantity'][i])
-                    discrepency_reason = myDict['discrepency_reason'][i]
-                    send_discrepencey = True
+        if 'true' in  myDict.get('discrepency_check',[]):
+            send_discrepencey = True
+            discrepency_reason = myDict['discrepency_reason'][i]
+            if myDict['discrepency_quantity'][i]:
+                discrepency_quantity = float(myDict['discrepency_quantity'][i])
 
         if failed_qty_dict:
             wms_code = myDict['wms_code'][i]
@@ -4411,7 +4418,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         #    if sku_master:
         #        sku_master.update(mrp=float(myDict['mrp'][i]))
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
-            if myDict['wms_code'][i] and myDict['quantity'][i]:
+            if myDict['wms_code'][i] and myDict['quantity'][i] or send_discrepencey :
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 exist_id = 0
                 for exist_list_ind, exist_list_id in enumerate(myDict['id']):
@@ -4434,7 +4441,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
 
-        if not value:
+        if not value and not discrepency_quantity:
             continue
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
@@ -4691,6 +4698,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
     reversion.set_comment("generate_grn")
     data_dict = ''
+    owner_email = ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
@@ -4749,6 +4757,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                if not value:
+                    continue
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
@@ -4776,7 +4786,6 @@ def confirm_grn(request, confirm_returns='', user=''):
             btn_class = 'inb-putaway'
         else:
             btn_class = 'inb-qc'
-
         if not status_msg or send_discrepencey:
             if not purchase_data:
                 return HttpResponse('Success')
@@ -4785,6 +4794,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             telephone = purchase_data['phone_number']
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
+            owner_email = purchase_data.get('owner_email','')
             gstin_number = purchase_data['gstin_number']
             remarks = purchase_data['remarks']
             order_id = data.order_id
@@ -4800,7 +4810,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
-            sku_slices = generate_grn_pagination(sku_list)
+            sku_slices=[]
+            if sku_list:
+                sku_slices = generate_grn_pagination(sku_list)
             if seller_receipt_id:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
                             + '/' + str(seller_receipt_id)
@@ -4854,15 +4866,18 @@ def confirm_grn(request, confirm_returns='', user=''):
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             if send_discrepencey and fmcg:
                 discrepency_rendered, data_dict_po = generate_discrepancy_data(user, po_new_data, print_des=False, **report_data_dict)
-                send_email_discrepancy = get_misc_value('grn_discrepancy' ,user.id , number=False, boolean=True)
-                if send_email_discrepancy:
-                    secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=data_dict[1][1], user=user.id,
+                if discrepency_rendered:
+                    send_email_discrepancy = get_misc_value('grn_discrepancy' ,user.id , number=False, boolean=True)
+                    if send_email_discrepancy:
+                        secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=data_dict[1][1], user=user.id,
                                                                                   master_type='supplier').values_list(
                                                                                     'email_id', flat=True).distinct())
-                    supplier_email_id = []
-                    supplier_email_id.insert(0, supplier_email)
-                    supplier_email_id.extend(secondary_supplier_email)
-                    write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email_id, telephone,po_data,
+                        supplier_email_id = []
+                        supplier_email_id.insert(0, supplier_email)
+                        if owner_email:
+                            supplier_email_id.append(owner_email)
+                        supplier_email_id.extend(secondary_supplier_email)
+                        write_and_mail_pdf(po_reference, discrepency_rendered, request, user, supplier_email_id, telephone,po_data,
                                         order_date, internal=True, report_type="Discrepancy Note", data_dict_po=data_dict_po)
                 t = loader.get_template('templates/toggle/c_putaway_toggle.html')
                 rendered = t.render(report_data_dict)
@@ -5824,6 +5839,9 @@ def validate_putaway(all_data, user):
             for pol in po_location:
                 if pol.purchase_order.open_po:
                     validate_seller_id = pol.purchase_order.open_po.sellerpo_set.filter()[0].seller_id
+                elif pol.purchase_order.stpurchaseorder_set.filter():
+                     validate_seller_id = pol.purchase_order.stpurchaseorder_set.filter()[0].open_st.po_seller_id
+
     mrp_putaway_status = []
     for key, value in all_data.iteritems():
 
@@ -9062,6 +9080,11 @@ def get_po_segregation_data(request, user=''):
             if segregation_obj.batch_detail.mrp != segregation_obj.purchase_order.open_po.mrp:
                 #deviation_remarks['MRP Deviation'] = True
                 deviation_remarks.append('MRP Deviation')
+            if not segregation_obj.purchase_order.open_po:
+                st_purchase_order =STPurchaseOrder.objects.filter(po_id=segregation_obj.purchase_order.id)
+                if st_purchase_order.exists():
+                    if segregation_obj.batch_detail.mrp != st_purchase_order.open_st.mrp:
+                        deviation_remarks.append('MRP Deviation')
             if segregation_obj.batch_detail.expiry_date and segregation_obj.purchase_order.open_po.sku.shelf_life\
                     and shelf_life_ratio:
                 sku_days = int(segregation_obj.purchase_order.open_po.sku.shelf_life * (float(shelf_life_ratio)/100))
@@ -10944,6 +10967,7 @@ def get_debit_note_data(rtv_number, user):
             data_dict_item['cess'] = obj.seller_po_summary.cess_tax
         if obj.seller_po_summary.apmc_tax:
             data_dict_item['apmc'] = obj.seller_po_summary.apmc_tax
+        data_dict_item['return_reason'] = obj.return_reason
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
@@ -10997,8 +11021,8 @@ def prepare_rtv_json_data(request_data, user):
         data_dict = {}
         if 'rtv_id' in request_data:
             data_dict['rtv_id'] = request_data['rtv_id'][ind]
-        if 'rtv_reasons' in request_data:
-            data_dict['rtv_reasons'] = request_data['rtv_reasons'][0]
+        if 'rtv_reason' in request_data:
+            data_dict['rtv_reasons'] = request_data['rtv_reason'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = float(request_data['return_qty'][ind])
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])

@@ -2195,8 +2195,8 @@ def print_descrepancy_note(request, user=''):
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
                 filter_params = {'purchase_order_id': obj.purchase_order.id}
-                if len(obj.po_number.split('/')) >= 2:
-                    reciept_number = obj.po_number.split('/')[1]
+                if obj.receipt_number:
+                    filter_params['receipt_number'] = obj.receipt_number
                 seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
                 price = obj.purchase_order.open_po.price
                 mrp = 0
@@ -2206,15 +2206,19 @@ def print_descrepancy_note(request, user=''):
                         price = seller_po_obj.batch_detail.buy_price
                         mrp = seller_po_obj.batch_detail.mrp
                 if not updated_discrepancy:
-                    updated_discrepancy=True
+                    updated_discrepancy = True
                     invoice_number, invoice_date = '', ''
                     if seller_po_summary.exists():
                         invoice_number = seller_po_summary[0].invoice_number
-                        invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                        invoice_date = seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
                     supplier = obj.purchase_order.open_po.supplier
                     order_date = get_local_date(request.user, obj.purchase_order.creation_date)
                     order_date = datetime.datetime.strftime(
                         datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    if not invoice_number and obj.new_data:
+                        data_dict = json.loads(obj.new_data)
+                        invoice_number = data_dict.get('invoice_number', '')
+                        invoice_date = data_dict.get('invoice_date', '')
                     report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
                                         'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
                                         'company_name': profile.company_name, 'company_address': profile.address,

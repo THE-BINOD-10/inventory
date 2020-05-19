@@ -3550,6 +3550,7 @@ def ba_to_sa_calculate_now(request, user=''):
         log.info(
             "BA to SA calculating saving for user %s started at %s" % (user.username, str(datetime.datetime.now())))
         for data in master_data:
+            remarks = ''
             sku_avg_sale_per_day_units = 0
             sku_avg_sale_per_day_value = 0
             cumulative_contribution = 0

@@ -322,7 +322,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -339,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_reason', 'value': sku.rtv_reason});
         });
       });
 
@@ -364,7 +364,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -381,6 +380,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_reason', 'value': sku.rtv_reason});
         });
       });
 

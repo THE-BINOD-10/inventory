@@ -2501,7 +2501,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         if not tax and igst_tax:
                             tax = igst_tax
                         if order_create and not invoice_amount:
-                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            amt = (float(order_details['quantity']) * order_details['unit_price']) -\
+                                  order_summary_dict['discount']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
 
                         if order.has_key('payment_status'):

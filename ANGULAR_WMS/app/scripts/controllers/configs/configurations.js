@@ -44,8 +44,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'display_parts_allocation':false,
+                    'auto_generate_receive_qty':false,
+                    'sku_packs_invoice':false,
+                    'mandate_ewaybill_number':false,
+                    'allow_partial_picklist': false,
+                    'enable_pending_approval_prs': false,
+                    'auto_allocate_sale_order':false,
+                    'po_or_pr_edit_permission_approver': false,
+                    'stock_auto_receive': false,
+                    'discrepency_prefix':'',
+                    'st_po_prefix': false,
+                    'supplier_sync': false,
+                    'enable_margin_price_check':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -81,6 +95,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
                      105: 'enable_pending_approval_pos',
+                     106: 'mandate_ewaybill_number',
+                     107: 'enable_pending_approval_prs',
+                     108: 'auto_allocate_sale_order',
+                     109: 'sku_packs_invoice',
+                     110: 'allow_partial_picklist',
+                     111: 'po_or_pr_edit_permission_approver',
+                     112: 'stock_auto_receive',
+                     113:'discrepency_prefix',
+                     114: 'auto_generate_receive_qty',
+                     115: 'st_po_prefix',
+                     116: 'display_parts_allocation',
+                     117: 'supplier_sync',
+                     118:'enable_margin_price_check',
                      }
 
   vm.check_box_data = [
@@ -610,13 +637,89 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
+   name: "Display Allocation/Deallocation Page",
+   model_name: "display_parts_allocation",
+   param_no: 116,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Enable Pending For Approval POs",
    model_name: "enable_pending_approval_pos",
    param_no: 105,
    class_name: "fa fa-server",
    display: true
   },
-
+  {
+   name: "Mandate EwayBillNumber in ShipmentInfo",
+   model_name: "mandate_ewaybill_number",
+   param_no: 106,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Enable Pending For Approval PRs",
+   model_name: "enable_pending_approval_prs",
+   param_no: 107,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Allow Partial Picklist Generation",
+   model_name: "allow_partial_picklist",
+   param_no: 110,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Auto Allocate Sale Order",
+   model_name: "auto_allocate_sale_order",
+   param_no: 108,
+   class_name: "fa fa-server",
+   display: true
+ },
+ {
+   name: "Display SKU Packs In Invoice",
+   model_name: "sku_packs_invoice",
+   param_no: 109,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Edit permission to Approvers for POs/PRs",
+   model_name: "po_or_pr_edit_permission_approver",
+   param_no: 111,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 112,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+   name: "Auto Fill Receive Quantity",
+   model_name: "auto_generate_receive_qty",
+    param_no: 114,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Sync Supplier b/n Users",
+   model_name: "supplier_sync",
+   param_no: 117,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+    name: "Enable Margin Check for PO",
+    model_name: "enable_margin_price_check",
+    param_no: 118,
+    class_name: "fa fa-server",
+    display: true
+    }
 ]
 
   vm.empty = {};
@@ -725,6 +828,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
     }
+    if (vm.switch_names[switch_num] === "st_po_prefix" || vm.switch_names[switch_num] === "invoice_prefix") {
+      if (vm.model_data.st_po_prefix && vm.model_data.prefix && vm.model_data.st_po_prefix.toLocaleLowerCase() == vm.model_data.prefix.toLocaleLowerCase()) {
+        Service.showNoty("po prefix , stock Transfer Prefix cannot be same !!! ", 'warning');
+        return
+      }
+    }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {
         Service.showNoty(data.data);
@@ -755,17 +864,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   }
   vm.pr_save = function (data, type) {
     if(type =='save') {
-      vm.add_empty_index('', 'save');
+      vm.add_empty_index('', 'save', 'pr_save');
       console.log(vm.model_data['selected_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_pr_config_data'];
+      var permGivenMails = vm.model_data['pr_permissive_emails'];
+      if (permGivenMails.length == 0){
+        Service.showNoty("No Users have Change PO Permissions.")
+      }
+      if(permGivenMails.length != 0) {
+        var emailsToUpdate = toBeUpdateData[0]['mail_id'];
+        var notPresentEmails = [];
+        angular.forEach(emailsToUpdate, function(eachLevelEmails){
+          angular.forEach(eachLevelEmails.split(","), function(eachMail){
+            if (!(permGivenMails.includes(eachMail))) {
+              notPresentEmails.push(eachMail);
+            }
+          });
+        });
+      }
+      console.log(notPresentEmails);
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
+      } else if (notPresentEmails.length != 0){
+          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
       } else {
-        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData)}).then(function(data){
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'pr_save'}).then(function(data){
           if(data.message) {
             msg = data.data;
             $scope.showNoty();
@@ -778,13 +905,66 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     } else {
       console.log(type)
       var toBeDeleteData = vm.model_data['selected_pr_config_data'];
-      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData)}).then(function(data){
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData), 'type': 'pr_save'}).then(function(data){
         if(data.message) {
           msg = data.data;
           $scope.showNoty();
           Auth.status();
           vm.baseFunction()
           vm.pr_selected = "";
+        }
+      });
+    }
+  }
+  vm.actual_pr_save = function (data, type) {
+    if(type =='save') {
+      vm.add_empty_index('', 'save', 'actual_pr_save');
+      console.log(vm.model_data['selected_actual_pr_config_data'])
+      var toBeUpdateData = vm.model_data['selected_actual_pr_config_data'];
+      var permGivenMails = vm.model_data['actual_pr_permissive_emails'];
+      if (permGivenMails.length == 0){
+        Service.showNoty("No Users have Change PR Permissions.")
+      }
+      if(permGivenMails.length != 0) {
+        var emailsToUpdate = toBeUpdateData[0]['mail_id'];
+        var notPresentEmails = [];
+        angular.forEach(emailsToUpdate, function(eachLevelEmails){
+          angular.forEach(eachLevelEmails.split(","), function(eachMail){
+            if (!(permGivenMails.includes(eachMail))) {
+              notPresentEmails.push(eachMail);
+            }
+          });
+        });
+      }
+      if (!toBeUpdateData[0].name) {
+        Service.showNoty('Enter Configuration name');
+      } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
+        Service.showNoty('Min Amt Should not Exceed Max Amt');
+      } else if (!toBeUpdateData[0]['mail_id']['level0']) {
+        Service.showNoty('Email required !');
+      } else if (notPresentEmails.length != 0){
+          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
+      } else {
+        vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'actual_pr_save'}).then(function(data){
+          if(data.message) {
+            msg = data.data;
+            $scope.showNoty();
+            Auth.status();
+            vm.baseFunction()
+            vm.actual_pr_selected = "";
+          }
+        });
+      }
+    } else {
+      console.log(type)
+      var toBeDeleteData = vm.model_data['selected_actual_pr_config_data'];
+      vm.service.apiCall("delete_pr_config/", "POST", {'data':JSON.stringify(toBeDeleteData), 'type': 'actual_pr_save'}).then(function(data){
+        if(data.message) {
+          msg = data.data;
+          $scope.showNoty();
+          Auth.status();
+          vm.baseFunction()
+          vm.actual_pr_selected = "";
         }
       });
     }
@@ -797,6 +977,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data['prefix_data'] = [];
       vm.model_data['prefix_dc_data'] = [];
       vm.model_data['prefix_cn_data'] = [];
+      vm.model_data['prefix_st_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
         vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                         marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -806,6 +987,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
       angular.forEach(data.data.prefix_cn_data, function(data){
         vm.model_data.prefix_cn_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+      })
+      angular.forEach(data.data.prefix_st_data, function(data){
+        vm.model_data.prefix_st_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -817,15 +1001,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   });
 
-  vm.add_empty_index = function(data, operation) {
+  vm.add_empty_index = function(data, operation, pr_type) {
+    var prConfigData = vm.model_data['selected_pr_config_data'];
+    var totalData = vm.model_data['total_pr_config_ranges'];
+    if(pr_type == 'actual_pr_save'){
+      prConfigData = vm.model_data['selected_actual_pr_config_data'];
+      totalData = vm.model_data['total_actual_pr_config_ranges'];
+    }
     if (operation == 'delete') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         if(data.name == tuple.name) {
-          vm.model_data['selected_pr_config_data'].splice(index,1)        
+          prConfigData.splice(index,1)
         }
       })
     } else if (operation == 'add_email' || operation == 'remove_email') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         if(data.name == tuple.name) {
           if (operation == 'add_email') {
             tuple['mail_id']['level'+Object.keys(tuple['mail_id']).length] = ""
@@ -837,29 +1027,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         }
       })
     } else if (operation == 'save') {
-      angular.forEach(vm.model_data['selected_pr_config_data'], function(tuple, index){
+      angular.forEach(prConfigData, function(tuple, index){
         angular.forEach(Object.keys(tuple['mail_id']), function(level) {
-          var values = tuple.name+level
+          var values = tuple.min_Amt+level
           var emails = $("."+values).val();
           tuple['mail_id'][level] = emails;
         })
       })
     } else {
       var empty_dict = {'name': '', 'min_Amt': 0, 'max_Amt': '', 'mail_id': {'level0': ""}, 'remove': 0};
-      if (vm.model_data['selected_pr_config_data'].length != 0) {
-        var check_last_record = vm.model_data['selected_pr_config_data'][vm.model_data['selected_pr_config_data'].length -1]
+      if (prConfigData.length != 0) {
+        var check_last_record = prConfigData[prConfigData.length -1]
         if (check_last_record['name'] == '') {
           Service.showNoty('please Fill Available One');
         }
       } else {
-        if (vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]) {
-          var min_amt = vm.model_data['total_pr_config_ranges'][vm.model_data['total_pr_config_ranges'].length -1]['max_Amt']+1;
+        if (totalData[totalData.length -1]) {
+          var min_amt = totalData[totalData.length -1]['max_Amt']+1;
           empty_dict['min_Amt'] = min_amt;
-          vm.model_data['selected_pr_config_data'].push(empty_dict);
-          vm.pr_add_show = true;
+          prConfigData.push(empty_dict);
+          if(pr_type == 'actual_pr_save'){
+            vm.actual_pr_add_show = true;
+          } else {
+            vm.pr_add_show = true;
+          }
         } else {
-          vm.model_data['selected_pr_config_data'].push(empty_dict);
-          vm.pr_add_show = true;
+          prConfigData.push(empty_dict);
+          if(pr_type == 'actual_pr_save'){
+            vm.actual_pr_add_show = true;
+          } else {
+            vm.pr_add_show = true;
+          }
         }
       }
     }
@@ -975,8 +1173,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.model_data['prefix_data'] = [];
         vm.model_data['prefix_dc_data'] = [];
         vm.model_data['pr_approvals_conf_data'] = [];
+        vm.model_data['actual_pr_approvals_conf_data'] = [];
         vm.model_data['selected_pr_config_data'] = [];
+        vm.model_data['selected_actual_pr_config_data'] = [];
         vm.model_data['total_pr_config_ranges'] = [];
+        vm.model_data['total_actual_pr_config_ranges'] = [];
         angular.forEach(data.data.prefix_data, function(data){
           vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
                                           marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
@@ -995,6 +1196,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
             vm.model_data.total_pr_config_ranges.push(data_dict)
             vm.model_data.pr_approvals_conf_data.push({pr_name: data.name});
+          })
+        }
+        if (data.data.actual_pr_approvals_conf_data.length > 0) {
+          var temp_length = data.data.actual_pr_approvals_conf_data.length;
+          angular.forEach(data.data.actual_pr_approvals_conf_data, function(data, index){
+            var data_dict = {}
+            data_dict['name'] = data.name;
+            data_dict['min_Amt'] = data.min_Amt;
+            data_dict['max_Amt'] = data.max_Amt;
+            data_dict['mail_id'] = data.mail_id;
+            temp_length == (index+1) ? data_dict['remove'] = 1 : data_dict['remove'] = 0;
+            vm.model_data.total_actual_pr_config_ranges.push(data_dict)
+            vm.model_data.actual_pr_approvals_conf_data.push({pr_name: data.name});
           })
         }
         angular.forEach(vm.model_data, function(value, key) {
@@ -1059,6 +1273,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
         $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
         $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
         $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
         $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
         if (vm.model_data.invoice_titles) {
@@ -1070,7 +1285,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         vm.getPosremarks(vm.model_data.pos_remarks)
         vm.getDeliveryChallanterms(vm.model_data.delivery_challan_terms_condtions)
       }
-    })    
+    })
   }
 
   vm.baseFunction();
@@ -1468,6 +1683,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     })
   }
 
+  // vm.model_data.actual_pr_add_new = true;
+  vm.ActualPRSelected = function(name) {
+    vm.model_data.selected_actual_pr_config_data = []
+    angular.forEach(vm.model_data.total_actual_pr_config_ranges, function(data){
+      if (name == data.name) {
+        vm.model_data.selected_actual_pr_config_data.push(data);
+        vm.actual_pr_add_show = true;
+      }
+    })
+  }
+
   vm.saved_pr_configs = [];
   vm.filterPRConfigs = function() {
     vm.saved_pr_configs = [];
@@ -1477,6 +1703,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     for(var i=0; i < vm.model_data.pr_conf_names.length; i++) {
       if (vm.saved_pr_configs.indexOf(vm.model_data.pr_conf_names[i]) == -1) {
         vm.model_data.pr_name = vm.model_data.pr_conf_names[i];
+        break;
+      }
+    }
+  }
+
+  vm.saved_actual_pr_configs = [];
+  vm.filterActualPRConfigs = function() {
+    vm.saved_pr_configs = [];
+    angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_actual_pr_configs.push(data.name);
+    })
+    for(var i=0; i < vm.model_data.actual_pr_conf_names.length; i++) {
+      if (vm.saved_actual_pr_configs.indexOf(vm.model_data.actual_pr_conf_names[i]) == -1) {
+        vm.model_data.actual_pr_name = vm.model_data.pr_conf_names[i];
         break;
       }
     }
@@ -1713,16 +1953,115 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   }
   //Credit Note Config Code Ended
 
+  vm.marketplace_add_show_st = false;
+  vm.marketplace_selected_st = '';
+  vm.saveStockTransferInvoice = function(name, value) {
 
+    if(!name) {
 
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else {
+      vm.updateMarketplaceSt(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
 
+        if(vm.model_data.prefix_st_data[i].marketplace_name == vm.model_data.marketplace_name_st) {
 
+          vm.model_data.prefix_st_data[i].marketplace_name = vm.model_data.marketplace_name_st;
+          vm.model_data.prefix_st_data[i].marketplace_prefix = vm.model_data.marketplace_prefix_st;
+          vm.model_data.prefix_st_data[i].marketplace_interfix = vm.model_data.marketplace_interfix_st;
+          vm.model_data.prefix_st_data[i].marketplace_date_type = vm.model_data.marketplace_date_type_st;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
 
+        vm.model_data.prefix_st_data.push({marketplace_name: vm.model_data.marketplace_name_st,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix_st,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix_st,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type_st});
+      }
+      vm.marketplace_add_show_st = false;
+      vm.marketplace_selected_st = "";
+      vm.model_data.marketplace_name_st = "";
+      vm.model_data.marketplace_prefix_st = "";
+      vm.model_data.marketplace_interfix_st = "";
+      vm.model_data.marketplace_date_type_st = "";
+      vm.model_data.marketplace_new_st = true;
+    }
+  }
 
+   vm.marketplaceSelectedst = function(name) {
 
+    if (name) {
 
+      for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
 
+        if(vm.model_data.prefix_st_data[i].marketplace_name == name) {
 
+          vm.model_data.marketplace_name_st = vm.model_data.prefix_st_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix_st = vm.model_data.prefix_st_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix_st= vm.model_data.prefix_st_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type_st = vm.model_data.prefix_st_data[i].marketplace_date_type;
+          vm.model_data["marketplace_new_st"] = false;
+          vm.marketplace_add_show_st = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["marketplace_new_st"] = true;
+      vm.marketplace_add_show_st = false;
+      vm.model_data.marketplace_name_st = "";
+      vm.model_data.marketplace_prefix_st = "";
+    }
+  }
+
+  vm.updateMarketplaceSt = function(name, value, type) {
+
+      var send = {marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix_st,
+                  marketplace_date_type: vm.model_data.marketplace_date_type_st,
+                  type_name: 'stock_transfer_invoice', type_value: name}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_st_data.length; i++) {
+
+          if(vm.model_data.prefix_st_data[i].marketplace_name == vm.model_data.marketplace_name_st) {
+
+            vm.model_data.prefix_st_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show_st = false;
+        vm.marketplace_selected_st = "";
+        vm.model_data.marketplace_name_st = "";
+        vm.model_data.marketplace_prefix_st = "";
+        vm.model_data.marketplace_new_st = true;
+      }
+      vm.service.apiCall("update_user_type_sequence/", "GET", send).then(function(data) {
+
+        console.log(data);
+        Service.showNoty(data.data.status);
+      })
+  }
+  vm.saved_marketplaces_st = [];
+  vm.filterMarkeplacesSt = function() {
+    vm.saved_marketplaces_st = [];
+    angular.forEach(vm.model_data.prefix_st_data, function(data){
+      vm.saved_marketplaces_st.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces_st.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
+  }
 
 
 

@@ -16,42 +16,50 @@ var app = angular.module('urbanApp')
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
         }
       }
-      $rootScope.$redirect = '';
-      $rootScope.$current_pr ='';
-      $rootScope.$state = $state;
-      $rootScope.$stateParams = $stateParams;
-      $rootScope.$on('$stateChangeSuccess', function () {
-        window.scrollTo(0, 0);
-      });
-      FastClick.attach(document.body);
-      if(window.location.href.includes('pr_request')){
-        if(window.location.href.split('pr_request')[1].includes('hash_code')) {
-          Session.unset();
-          $rootScope.$redirect = 'pr_request';
-          var data = window.location.href.split('pr_request')[1];
-          swal2({
-            title: 'Redirecting to Validate PO',
-            text: 'User Authentication in Progress..',
-            imageUrl: 'images/default_loader.gif',
-            imageWidth: 150,
-            imageHeight: 150,
-            imageAlt: 'Custom image',
-            showConfirmButton:false,
-          })
-          $http.get(Session.url + 'pr_request/'+data).then(function (resp) {
-           if (resp) {
-            resp = resp.data;
-            $rootScope.$current_pr = resp.aaData['aaData'][0]
-            localStorage.clear();
-            if (resp.message != "Fail") {
-              Session.set(resp.data)
-              swal2.close()
-              $state.go("app.inbound.RaisePo");
-              }
-            }
-        });
-        }
-      } else {
+     $rootScope.$redirect = '';
+     $rootScope.$current_pr ='';
+     $rootScope.$current_po = '';
+     $rootScope.$state = $state;
+     $rootScope.$stateParams = $stateParams;
+     $rootScope.$on('$stateChangeSuccess', function () {
+       window.scrollTo(0, 0);
+     });
+     FastClick.attach(document.body);
+     if(window.location.href.includes('pending_pr_request') || window.location.href.includes('pending_po_request')){
+       var tmp_route = window.location.href.includes('pending_pr_request') ? 'pending_pr_request' : 'pending_po_request';
+       if(window.location.href.split(tmp_route)[1].includes('hash_code')) {
+         Session.unset();
+         $rootScope.$redirect = tmp_route;
+         var data = window.location.href.split(tmp_route)[1];
+         swal2({
+           title: 'Redirecting to Validate PO',
+           text: 'User Authentication in Progress..',
+           imageUrl: 'images/default_loader.gif',
+           imageWidth: 150,
+           imageHeight: 150,
+           imageAlt: 'Custom image',
+           showConfirmButton:false,
+         })
+         $http.get(Session.url + tmp_route +'/'+data).then(function (resp) {
+          if (resp) {
+           resp = resp.data;
+           if (tmp_route == 'pending_pr_request') {
+             var main_route = "app.inbound.RaisePr";
+             $rootScope.$current_pr = resp.aaData['aaData'][0]
+           } else {
+             var main_route = "app.inbound.RaisePo";
+             $rootScope.$current_po = resp.aaData['aaData'][0]
+           }
+           localStorage.clear();
+           if (resp.message != "Fail") {
+             Session.set(resp.data)
+             swal2.close()
+             $state.go(main_route);
+             }
+           }
+       });
+       }
+     } else {
         var skipAsync = false;
         var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
           $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
@@ -434,6 +442,32 @@ var app = angular.module('urbanApp')
              templateUrl: 'views/masters/toggles/customer_update.html'
            })
 
+           .state('app.masters.VehicleMaster', {
+          url: '/VehicleMaster',
+          permission: 'show_vehiclemaster',
+          templateUrl: 'views/masters/vehicle_datatable.html',
+          resolve: {
+//            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+//                return $ocLazyLoad.load('scripts/controllers/masters/vehicleMaster.js');
+//                    }]
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/vehicleMaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+              }]
+          },
+          data: {
+            title: 'Vehicle Master',
+          }
+        })
+          .state('app.masters.VehicleMaster.vehicle', {
+             url: '/vehicle',
+             templateUrl: 'views/masters/toggles/vehicle_update.html'
+           })
+
            .state('app.masters.SkuPackMaster', {
              url: '/SkuPackMaster',
              // permission: 'sku_pack_config',
@@ -734,37 +768,49 @@ var app = angular.module('urbanApp')
           abstract: true,
           url: '/inbound',
         })
-        // .state('app.inbound.RaisePr', {
-        //   url: '/RaisePR',
-        //   permission: 'add_openpr|change_openpr',
-        //   templateUrl: 'views/inbound/raise_purchase_request.html',
-        //   resolve: {
-        //       deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-        //         return $ocLazyLoad.load([
-        //           'scripts/controllers/inbound/raise_purchase_request.js'
-        //         ])
-        //       }]
-        //   },
-        //   data: {
-        //     title: 'Raise PR',
-        //   }
-        // })
-        // .state('app.inbound.RaisePr.OpenPr', {
-        //   url: '/PurchaseRequest',
-        //   templateUrl: 'views/inbound/toggle/raise_pr.html'
-        //   })
-        // .state('app.inbound.RaisePr.PurchaseOrder', {
-        //   url: '/PurchaseOrder',
-        //   templateUrl: 'views/inbound/toggle/raise_purchase.html'
-        //   })
-        // .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
-        //   url: '/ApprovePR',
-        //   templateUrl: 'views/inbound/toggle/approve_pr.html'
-        //   })
+        .state('app.inbound.RaisePr', {
+          url: '/RaisePR',
+          permission: 'add_pendingpr|change_pendingpr|view_pendingpr',
+          templateUrl: 'views/inbound/raise_pr.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
+                ])
+              }]
+          },
+          data: {
+            title: 'Raise PR',
+          }
+        })
+        .state('app.inbound.RaisePr.OpenPr', {
+          url: '/PurchaseRequest',
+          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          })
+        .state('app.inbound.RaisePr.PurchaseOrder', {
+          url: '/PurchaseOrder',
+          templateUrl: 'views/inbound/toggle/raise_purchase.html'
+          })
+        .state('app.inbound.RaisePr.PurchaseRequest', {
+          url: '/RaisePurchaseRequest',
+          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          })
+          .state('app.inbound.RaisePr.ApprovePurchaseRequest', {
+          url: '/ApprovePR',
+          templateUrl: 'views/inbound/toggle/approve_pr.html'
+          })
+          .state('app.inbound.RaisePr.SavedPurchaseRequest', {
+          url: '/SavedPR',
+          templateUrl: 'views/inbound/toggle/saved_pr.html'
+          })
+          .state('app.inbound.RaisePr.ConvertPRtoPO', {
+          url: '/ConverPRtoPO',
+          templateUrl: 'views/inbound/toggle/convert_pr_to_po.html'
+          })
 
         .state('app.inbound.RaisePo', {
-          url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
-          permission: 'add_openpo|change_openpo|add_intransitorders|add_pendingpurchase|change_pendingpurchase|view_pendingpurchase',
+          url: '/RaisePO',
+          permission: 'add_openpo|change_openpo|add_intransitorders|add_pendingpo|change_pendingpo|view_pendingpo',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -784,7 +830,7 @@ var app = angular.module('urbanApp')
                   ])
                 }).then( function() {
                     return $ocLazyLoad.load([
-                      'scripts/controllers/inbound/raise_purchase_request.js'
+                      'scripts/controllers/inbound/raise_pending_purchase_order.js'
                   ])
                 });
               }]
@@ -811,15 +857,15 @@ var app = angular.module('urbanApp')
           })
           .state('app.inbound.RaisePo.PurchaseRequest', {
           url: '/PendingForApprovalPurchaseOrder',
-          templateUrl: 'views/inbound/toggle/raise_pr.html'
+          templateUrl: 'views/inbound/toggle/raise_pending_purchase.html'
           })
           .state('app.inbound.RaisePo.ApprovePurchaseRequest', {
-          url: '/ApprovePR',
-          templateUrl: 'views/inbound/toggle/approve_pr.html'
+          url: '/ApprovePendingPO',
+          templateUrl: 'views/inbound/toggle/approve_pending_purchase.html'
           })
           .state('app.inbound.RaisePo.SavedPurchaseRequest', {
-          url: '/SavedPR',
-          templateUrl: 'views/inbound/toggle/saved_pr.html'
+          url: '/SavedPendingPO',
+          templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
           })
 
 
@@ -1714,6 +1760,25 @@ var app = angular.module('urbanApp')
             title: 'Back Orders',
           }
         })
+        .state('app.outbound.CreateAllocation', {
+          url: '/CreateAllocation',
+          permission: 'add_orderdetail',
+          templateUrl: 'views/outbound/create_allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/create_allocations/create_allocation.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_allocations/create_deallocation.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Create Allocation / Deallocation',
+          }
+        })
         .state('app.outbound.CreateStockTransfer', {
           url: '/CreateStockTransfer',
           permission: 'multi_warehouse',
@@ -1726,7 +1791,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Create Orders',
+            title: 'Create Stock Transfer',
           }
         })
         .state('app.outbound.CustomerInvoices', {
@@ -1744,7 +1809,15 @@ var app = angular.module('urbanApp')
                     return $ocLazyLoad.load([
                       'scripts/controllers/outbound/customer_invoices/customer_invoices.js'
                     ])
-                  });
+                  }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/customer_invoices/cancelled_invoice.js'
+                ]);
+                })
               }]
           },
           data: {
@@ -1798,9 +1871,9 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv_main.html'
           })
-		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen', {
-            url: '/StockTransferInvoiceGen',
-            templateUrl: 'views/outbound/print/stock_transfer_inv_gen.html'
+		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceE', {
+            url: '/StockInvoice',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
           })
 
          .state('app.outbound.CustomerInvoices.InvoiceM', {
@@ -1823,6 +1896,11 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+          .state('app.outbound.CustomerInvoices.StockTransferInvoiceE', {
+            url: '/StockInvoice',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
+
 
       // Upload route
       .state('app.uploads', {
@@ -2062,6 +2140,22 @@ var app = angular.module('urbanApp')
             url: '/GoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',
           })
+         .state('app.reports.STGoodsReceiptNote', {
+          url: '/STGoodsReceiptNote',
+          templateUrl: 'views/reports/st_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/st_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
+            url: '/STGoodsReceiptNote',
+            templateUrl: 'views/reports/toggles/purchase_order.html',
+          })
         .state('app.reports.ReceiptSummary', {
           url: '/ReceiptSummary',
           templateUrl: 'views/reports/receipt_summary.html',
@@ -2084,6 +2178,30 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Dispatch Summary',
+          }
+        })
+        .state('app.reports.AllocationReport', {
+          url: '/AllocationReport',
+          templateUrl: 'views/reports/allocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/allocation.js');
+              }]
+          },
+          data: {
+            title: 'Allocation Report',
+          }
+        })
+        .state('app.reports.DeAllocationReport', {
+          url: '/DeAllocationReport',
+          templateUrl: 'views/reports/deallocation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/deallocation.js');
+              }]
+          },
+          data: {
+            title: 'DeAllocation Report',
           }
         })
         .state('app.reports.SKUWiseStock', {
@@ -2504,8 +2622,28 @@ var app = angular.module('urbanApp')
             title: 'RTV Report',
           }
         })
+        .state('app.reports.CreditNoteReport', {
+          url: '/CreditNoteReport',
+          templateUrl: 'views/reports/credit_note_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/credit_note_report.js');
+              }]
+          },
+          data: {
+            title: 'Credit Note Report',
+          }
+        })
+        .state('app.reports.CreditNoteReport.CreditNoteReportPrint', {
+           url: '/CreditNoteReportPrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
+        .state('app.reports.DiscrepancyReport.print', {
+           url: '/DescrepancyNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
         .state('app.reports.CurrentStockReport', {
@@ -2578,6 +2716,31 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'BASA Report',
+          }
+        })
+        .state('app.reports.CancelledInvoicesReport', {
+          url: '/CancelInvoiceReport',
+          templateUrl: 'views/reports/cancel_invoice_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/cancel_invoice_report.js');
+              }]
+          },
+          data: {
+            title: 'Cancelled Invoices Report',
+          }
+        })
+        
+        .state('app.reports.DiscrepancyReport', {
+          url: '/DiscrepancyReport',
+          templateUrl: 'views/reports/discrepancy_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/discrepancy_report.js');
+              }]
+          },
+          data: {
+            title: 'Discrepancy Report',
           }
         })
         .state('app.reports.BulkStockUpdate', {

@@ -152,10 +152,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.create_rtv = function(){
       var flag = false;
       var id = '';
+      var order_prefix = '';
       angular.forEach(vm.selected, function(value, key){
         if (value && !flag) {
           flag = true;
           id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
+          order_prefix = vm.dtInstance.DataTable.context[0].aoData[key]._aData.prefix;
         } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
           flag = false;
@@ -164,8 +166,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
 
       if (flag) {
-
-        vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
+        var data_to_send = {
+          'data_id': id,
+          'prefix': order_prefix
+        }
+        vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
               vm.title = "Create RTV";
@@ -317,7 +322,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -334,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_reason', 'value': sku.rtv_reason});
         });
       });
 
@@ -359,7 +364,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-      elem.push({'name': 'rtv_reasons', 'value': vm.model_data.rtv_reasons});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -376,6 +380,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_reason', 'value': sku.rtv_reason});
         });
       });
 

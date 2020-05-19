@@ -37,7 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
-    vm.allocate_order = false;
+    vm.allocate_order = vm.permissions.auto_allocate_sale_order;
     vm.excl_order_map = {};
 
     function reloadData () {

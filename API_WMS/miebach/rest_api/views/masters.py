@@ -200,7 +200,10 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             master_data = sku_master.order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    count = 0
     for data in master_data[start_index:stop_index]:
+        attributes = get_user_attributes(user, 'sku')
+        sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -234,6 +237,12 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
              ('HSN Code', data.hsn_code), ('Tax Type',data.product_type),
              ('Creation Date', creation_date),
              ('Updation Date', updation_date))))
+        for attribute in attributes:
+            if attribute['attribute_name'] in sku_attributes.keys():
+                temp_data['aaData'][count].update(OrderedDict(((str(attribute['attribute_name']), str(sku_attributes[attribute['attribute_name']])),)))
+            else:
+                temp_data['aaData'][count].update(OrderedDict(((str(attribute['attribute_name']),''),)))
+        count +=1
 
 
 @csrf_exempt
@@ -280,7 +289,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 
         else:
             master_data = SupplierMaster.objects.filter(
-                Q(id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
+                Q(supplier_id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
                     phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
                 **search_params).order_by(order_data)
 
@@ -317,7 +326,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -354,7 +363,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         order_data = '-%s' % order_data
     if search_term:
         mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter(
-            Q(supplier__id__icontains=search_term) | Q(preference__icontains=search_term) | Q(
+            Q(supplier__supplier_id__icontains=search_term) | Q(preference__icontains=search_term) | Q(
                 moq__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(
                 supplier_code__icontains=search_term), sku__user=user.id, supplier__user=user.id,
             **filter_params).order_by(order_data)
@@ -365,7 +374,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                                                        **filter_params).order_by(
             order_data)
 
-    temp_data['recordsTotal'] = len(mapping_results)
+    temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
         sku_preference = result.preference
@@ -374,7 +383,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = int(float(sku_preference))
             except:
                 sku_preference = 0
-        temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier_id), ('wms_code', result.sku.wms_code),
+        temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
                                                 ('costing_type', result.costing_type),('price', result.price),
@@ -415,9 +424,9 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
     search_params = get_filtered_params(filters, lis)
     if 'status__icontains' in search_params.keys():
-        if (str(search_params['status__icontains']).lower() in "active"):
+        if str(search_params['status__icontains']).lower() in "active":
             search_params["status__icontains"] = 1
-        elif (str(search_params['status__icontains']).lower() in "inactive"):
+        elif str(search_params['status__icontains']).lower() in "inactive":
             search_params["status__icontains"] = 0
         else:
             search_params["status__icontains"] = "none"
@@ -470,20 +479,23 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        temp_data['aaData'].append(
-            OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                         ('shipping_address', data.shipping_address),
-                         ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
-                         ('tin_number', data.tin_number), ('credit_period', data.credit_period),
-                         ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                         ('price_type', price_type), ('cst_number', data.cst_number),
-                         ('pan_number', data.pan_number), ('customer_type', data.customer_type),
-                         ('pincode', data.pincode), ('city', data.city), ('state', data.state),
-                         ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
-                         ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
-                         ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
-                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
-                         ('role', data.role), ('spoc_name', data.spoc_name))))
+        data_dict = OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
+                                 ('shipping_address', data.shipping_address),
+                                 ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
+                                 ('tin_number', data.tin_number), ('credit_period', data.credit_period),
+                                 ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
+                                 ('price_type', price_type), ('cst_number', data.cst_number),
+                                 ('pan_number', data.pan_number), ('customer_type', data.customer_type),
+                                 ('pincode', data.pincode), ('city', data.city), ('state', data.state),
+                                 ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
+                                 ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),('customer_reference',data.customer_reference),
+                                 ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
+                                 ('is_distributor', str(data.is_distributor)), ('markup', data.markup),('chassis_number', data.chassis_number),
+                                 ('role', data.role), ('spoc_name', data.spoc_name)))
+        data_dict['customer_attributes'] = dict(MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
+                                                            attribute_model='customer').\
+                            values_list('attribute_name', 'attribute_value'))
+        temp_data['aaData'].append(data_dict)
 
 
 @csrf_exempt
@@ -849,6 +861,11 @@ def get_sku_data(request, user=''):
     sku_data['block_options'] = 'No'
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
+    substitutes_list = []
+    if data.substitutes:
+        substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
+    substitutes_list = ','.join(map(str, substitutes_list))
+    sku_data['substitutes'] = substitutes_list
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -872,7 +889,13 @@ def get_sku_data(request, user=''):
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
     attributes = get_user_attributes(user, 'sku')
-    sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+    sku_attribute_objs = data.skuattributes_set.filter()
+    sku_attributes = OrderedDict()
+    for sku_attribute_obj in sku_attribute_objs:
+        sku_attributes.setdefault(sku_attribute_obj.attribute_name, [])
+        if sku_attribute_obj.attribute_value:
+            sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
+    #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
@@ -1083,6 +1106,12 @@ def update_sku(request, user=''):
                 ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
                 if ean_status:
                     return HttpResponse(ean_status)
+            elif key == 'substitutes':
+                if value :
+                    substitutes = value.split(',')
+                    subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
+                    if subs_status:
+                        return HttpResponse(subs_status)
 
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
@@ -1113,12 +1142,12 @@ def update_sku(request, user=''):
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
-        status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        if "python" not in status:
-            sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-            subprocess.call(sku_query, shell=True)
-        else:
-            print "already running"
+        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+        #if "python" not in status:
+        #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+        #    subprocess.call(sku_query, shell=True)
+        #else:
+        #    print "already running"
 
         insert_update_brands(user)
 
@@ -1229,8 +1258,8 @@ def update_supplier_values(request, user=''):
     """ Update Supplier Data """
     log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
-        data_id = request.POST['id']
-        data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
+        data_id = request.POST['supplier_id']
+        data = get_or_none(SupplierMaster, {'supplier_id': data_id, 'user': user.id})
         old_name = data.name
         upload_master_file(request, user, data.id, "SupplierMaster")
         create_login = request.POST.get('create_login', '')
@@ -1238,8 +1267,11 @@ def update_supplier_values(request, user=''):
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
+        update_dict = {}
         if secondary_email_id[0]:
             for mail in secondary_email_id:
+                if not mail:
+                    continue
                 if validate_supplier_email(mail):
                     return HttpResponse('Enter correct Secondary Email ID')
         for key, value in request.POST.iteritems():
@@ -1255,10 +1287,14 @@ def update_supplier_values(request, user=''):
                     value = 1
                 else:
                     value = 0
-            setattr(data, key, value)
-        data.save()
+            update_dict[key] = value
+            #setattr(data, key, value)
+        filter_dict = {'supplier_id': data.supplier_id }
+        del update_dict['supplier_id']
+        master_objs = sync_supplier_master(request, user, update_dict, filter_dict, secondary_email_id=secondary_email_id)
+        #data.save()
 
-        master_data_dict = {}
+        '''master_data_dict = {}
         master_data_dict['user_id'] = user.id
         master_data_dict['master_type'] = 'supplier'
         master_data_dict['master_id'] = data_id
@@ -1272,7 +1308,7 @@ def update_supplier_values(request, user=''):
             master_data_dict['email_id'] = mail
             master_data_dict['master_id'] = data_id
             master_data_dict['master_type'] = 'supplier'
-            MasterEmailMapping.objects.create(**master_data_dict)
+            MasterEmailMapping.objects.create(**master_data_dict)'''
 
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
@@ -1307,11 +1343,11 @@ def insert_supplier(request, user=''):
     """ Add New Supplier"""
     log.info('Add New Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
-        supplier_id = request.POST['id']
+        supplier_id = request.POST['supplier_id']
         secondary_email_id = ''
         if not supplier_id:
             return HttpResponse('Missing Required Fields')
-        data = filter_or_none(SupplierMaster, {'id': supplier_id})
+        data = filter_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user': user.id})
         status_msg = 'Supplier Exists'
         sku_status = 0
         rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
@@ -1322,8 +1358,8 @@ def insert_supplier(request, user=''):
         #     return HttpResponse('Phone Number already exists')
         secondary_email_id = request.POST.get('secondary_email_id', '').split(',')
         for mail in secondary_email_id:
-            if validate_supplier_email(mail):
-		return HttpResponse('Enter Correct Secondary Email ID')
+            if mail and validate_supplier_email(mail):
+                return HttpResponse('Enter Correct Secondary Email ID')
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
@@ -1348,13 +1384,19 @@ def insert_supplier(request, user=''):
                 if key in ['login_created', 'create_login', 'password', 'username', 'secondary_email_id']:
                     continue
                 data_dict[key] = value
-            data_dict['user'] = user.id
-            supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
-            supplier_master.save()
+            #data_dict['user'] = user.id
+            supplier_id = data_dict['supplier_id']
+            del data_dict['supplier_id']
+            filter_dict = {'supplier_id': supplier_id}
+            #supplier_master = create_new_supplier(user, supplier_id, data_dict)
+
+            master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+            supplier_master = master_objs[user.id]
+            #upload_master_file(request, user, supplier_master.id, "SupplierMaster")
+            #supplier_master.save()
             status_msg = 'New Supplier Added'
 
-            for mail in secondary_email_id:
+            '''for mail in secondary_email_id:
                 master_email_map = {}
                 master_email_map['user'] = user
                 master_email_map['master_id'] = supplier_master.id
@@ -1362,7 +1404,7 @@ def insert_supplier(request, user=''):
                 master_email_map['email_id'] = mail
                 master_email_map['creation_date'] = datetime.datetime.now()
                 master_email_map['updation_date'] = datetime.datetime.now()
-                master_email_map = MasterEmailMapping.objects.create(**master_email_map)
+                master_email_map = MasterEmailMapping.objects.create(**master_email_map)'''
 
             if create_login == 'true':
                 data = supplier_master
@@ -1382,28 +1424,12 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
-    master_id = master_id
-    master_type = master_type
-    if not master_file:
-        master_file = request.FILES.get('master_file', '')
-    if not master_file and master_id and master_type:
-        return 'Fields are missing.'
-    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
-    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
-    if not master_doc:
-        master_doc = MasterDocs(**upload_doc_dict)
-        master_doc.save()
-    return 'Uploaded Successfully'
-
-@csrf_exempt
 @get_admin_user
 def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     for key, value in request.POST.iteritems():
-        if key == 'mrp':
+        if key == 'mrp' or key == 'supplier_id':
             continue
         if key in ('moq', 'price'):
             if not value:
@@ -1435,7 +1461,7 @@ def insert_mapping(request, user=''):
             value = sku_id[0]
 
         elif key == 'supplier_id':
-            supplier = SupplierMaster.objects.get(id=value, user=user.id)
+            supplier = SupplierMaster.objects.get(supplier_id=value, user=user.id)
             value = supplier.id
 
         elif key == 'price' and not value:
@@ -1456,7 +1482,7 @@ def insert_mapping(request, user=''):
         if sku_supplier:
             return HttpResponse('Preference matched with existing WMS Code')
 
-        data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
+        data = SKUSupplier.objects.filter(supplier_id=supplier.id, sku_id=sku_id[0].id)
         if data:
             return HttpResponse('Duplicate Entry')
         preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
@@ -1540,6 +1566,7 @@ def update_customer_values(request, user=''):
                 setattr(data, key, value)
 
         data.save()
+        update_master_attributes(data, request, user, 'customer')
         if create_login == 'true':
             status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='customer')
@@ -1698,6 +1725,8 @@ def insert_customer(request, user=''):
             for key, value in request.POST.iteritems():
                 if key in loop_exclude_list:
                     continue
+                if 'attr_' in key:
+                    continue
                 if key == 'status':
                     if value == 'Active':
                         value = 1
@@ -1711,6 +1740,7 @@ def insert_customer(request, user=''):
             customer_master = CustomerMaster(**data_dict)
             customer_master.save()
 
+            update_master_attributes(customer_master, request, user, 'customer_master')
             # Level 2 price type creation
             create_level_wise_price_type(2, level_2_price_type, customer_master, user)
             status_msg = 'New Customer Added'
@@ -1902,7 +1932,7 @@ def get_supplier_list(request, user=''):
     suppliers = SupplierMaster.objects.filter(user=user.id)
     supplier_list = []
     for supplier in suppliers:
-        supplier_list.append({'id': supplier.id, 'name': supplier.name})
+        supplier_list.append({'supplier_id': supplier.supplier_id, 'name': supplier.name})
     costing_type = ['Price Based', 'Margin Based','Markup Based']
     return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
 
@@ -2572,12 +2602,12 @@ def insert_sku(request, user=''):
 
         insert_update_brands(user)
         # update master sku txt file
-        status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        if "python" not in status:
-            sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-            subprocess.call(sku_query, shell=True)
-        else:
-            print "already running"
+        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+        #if "python" not in status:
+        #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+        #    subprocess.call(sku_query, shell=True)
+        #else:
+        #    print "already running"
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -4209,7 +4239,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
 
         else:
             master_data = SupplierMaster.objects.filter(
-                Q(id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
+                Q(supplier_id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
                     phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
                 **search_params).order_by(order_data)
 
@@ -4487,7 +4517,7 @@ def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search
         order_data = '-%s' % order_data
     search_parameters['user'] = user.id
     if search_term:
-        master_data = SKUSupplier.objects.filter(Q(supplier__id__icontains=search_term)|Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|Q(margin_percentage__icontains=search_term)|
+        master_data = SKUSupplier.objects.filter(Q(supplier__supplier_id__icontains=search_term)|Q(attribute_type__icontains=search_term) |Q(attribute_value__icontains=search_term)|Q(margin_percentage__icontains=search_term)|
                                                  Q(markup_percentage__icontains=search_term)|Q(costing_type__icontains=search_term) | Q(price__icontains=search_term),**search_parameters).order_by(order_data)
     else:
         master_data = SKUSupplier.objects.filter(**search_parameters).order_by(order_data)
@@ -4498,7 +4528,7 @@ def get_source_sku_attributes_mapping(start_index, stop_index, temp_data, search
     for obj in master_data[start_index:stop_index]:
         temp_data['aaData'].append(OrderedDict((('attribute_type', obj.attribute_type),
                                                        ('id', obj.id),
-                                                       ('supplier_id', obj.supplier_id),
+                                                       ('supplier_id', obj.supplier.supplier_id),
                                                        ('attribute_value', obj.attribute_value),
                                                        ('costing_type', obj.costing_type),
                                                        ('markdown_percentage', obj.margin_percentage),
@@ -4516,9 +4546,14 @@ def insert_supplier_attribute(request, user=''):
                 data_dict['margin_percentage'] = value
             else:
                 data_dict[key] = value
+    supplier = SupplierMaster.objects.filter(user=user.id, supplier_id=data_dict['supplier_id'])
+    if not supplier.exists():
+        return HttpResponse("Invalid Supplier")
+    else:
+        supplier_master_id = supplier[0].id
     if request.POST['api_type'] == 'insert':
         supplier_sku = SKUSupplier.objects.filter(user=user.id,
-                                            supplier_id=data_dict['supplier_id'],
+                                            supplier_id=supplier_master_id,
                                             attribute_type=data_dict['attribute_type'],
                                             attribute_value=data_dict['attribute_value'])
         if supplier_sku.exists():
@@ -4535,8 +4570,79 @@ def insert_supplier_attribute(request, user=''):
     elif request.POST['api_type'] == 'update' and request.POST['id']:
         supplier_sku = SKUSupplier.objects.filter(id=request.POST['id'], user=user.id)
         if supplier_sku.exists():
+            if 'supplier_id' in data_dict.keys():
+                del data_dict['supplier_id']
             supplier_sku.update(**data_dict)
             data = 'Updated Successfully'
     else:
         data = 'Error Case'
     return HttpResponse(data)
+
+
+# @csrf_exempt
+# def get_vehicle_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+#     lis = ['customer_id', 'name', 'customer_type', 'city', 'status']
+#
+#     search_params = get_filtered_params(filters, lis)
+#     if 'status__icontains' in search_params.keys():
+#         if (str(search_params['status__icontains']).lower() in "active"):
+#             search_params["status__icontains"] = 1
+#         elif (str(search_params['status__icontains']).lower() in "inactive"):
+#             search_params["status__icontains"] = 0
+#         else:
+#             search_params["status__icontains"] = "none"
+#     order_data = lis[col_num]
+#     if order_term == 'desc':
+#         order_data = '-%s' % order_data
+#     if search_term:
+#         search_dict = {'active': 1, 'inactive': 0}
+#         if search_term.lower() in search_dict:
+#             search_terms = search_dict[search_term.lower()]
+#             master_data = CustomerMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+#                 order_data)
+#
+#         else:
+#             master_data = CustomerMaster.objects.filter(
+#                 Q(name__icontains=search_term) | Q(address__icontains=search_term) |
+#                 Q(phone_number__icontains=search_term) | Q(email_id__icontains=search_term),
+#                 user=user.id, **search_params).order_by(order_data)
+#
+#     else:
+#         master_data = CustomerMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+#
+#     temp_data['recordsTotal'] = len(master_data)
+#     temp_data['recordsFiltered'] = len(master_data)
+#     for data in master_data[start_index: stop_index]:
+#         status = 'Inactive'
+#         if data.status:
+#             status = 'Active'
+#
+#         if data.phone_number:
+#             try:
+#                 data.phone_number = int(float(data.phone_number))
+#             except:
+#                 data.phone_number = ''
+#         login_created = False
+#         customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
+#         user_name = ""
+#         price_type = ""
+#         if customer_login:
+#             login_created = True
+#             # user = customer_login[0].user
+#             user_name = customer_login[0].user.username
+#
+#         price_band_flag = get_misc_value('priceband_sync', user.id)
+#         if price_band_flag == 'true':
+#             user = get_admin(data.user)
+#
+#         price_types = get_distinct_price_types(user)
+#         price_type = data.price_type
+#         phone_number = ''
+#         if data.phone_number and data.phone_number != '0':
+#             phone_number = data.phone_number
+#         temp_data['aaData'].append(
+#             OrderedDict((('vehicle_id', data.customer_id), ('vehicle_number', data.name), ('status', status),
+#                          ('customer_type', data.customer_type),
+#                          ('city', data.city), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
+#                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results')
+#                        )))

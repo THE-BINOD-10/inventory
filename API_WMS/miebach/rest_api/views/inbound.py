@@ -2769,9 +2769,7 @@ def add_pr(request, user=''):
                 pr_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
                 # pr_number = get_incremental(user, 'PurchaseRequest')
-                pr_number = get_purchase_order_id(user)
-                if pr_number == 0:
-                    pr_number = pr_number + 1
+                pr_number = get_incremental(user, 'po', default_val=1)
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
             mailSub = 'pr_created'

@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.permissions = Session.roles.permissions;
     vm.reloadData = function(data_table) {
     vm.filters = {'datatable': data_table}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -81,6 +82,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.title = "ADD PRICING"
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
+
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_pricemaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
+
 
   vm.close = function() {
     angular.copy(empty_data, vm.model_data);

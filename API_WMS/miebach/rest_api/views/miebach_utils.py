@@ -793,6 +793,7 @@ APPROVAL_PO_SUMMARY_REPORT_DICT = {
          {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
          {'label': 'Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
      ],
 'dt_headers': [ "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Expected Delivery", "Ordered Quantity", "Base Amount",
                            "Tax Amount", "Total Amount", "Final Status", "Created by", "Approver 1", "Approver 1 Date", "Approver 1 Status",
@@ -809,6 +810,7 @@ APPROVAL_PO_DETAIL_REPORT_DICT = {
          {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
          {'label': 'Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
+         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
      ],
     'dt_headers':['PO Created Date', 'PO Release Date','PO Number','Status', 'Supplier ID', 'Supplier Name',
     'SKU Code', 'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'Sub Category', 'PO QTY', 'Unit Price without tax',
@@ -10947,6 +10949,8 @@ def get_approval_summary_report_data(search_params, user, sub_user):
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['pending_po__supplier_id'] = supp_search[0]
+    if 'open_po' in search_params:
+        search_parameters['pending_po__po_number'] = search_params['open_po']
     if user.userprofile.warehouse_type == 'admin':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -11097,6 +11101,8 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'open_po' in search_params:
+        search_parameters['pending_po__po_number'] = search_params['open_po']
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['pending_po__supplier_id'] = supp_search[0]
@@ -11166,6 +11172,11 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             total_tax = cgst_tax + sgst_tax + igst_tax
             tax_amount = result['total_amt'] * (total_tax / 100)
 
+        release_data = PurchaseOrder.objects.filter(order_id=result['pending_po__po_number'],prefix=result['pending_po__prefix'], open_po__sku__user=user.id)
+        release_date = ''
+        if release_data.exists():
+            release_date = release_data[0].creation_date
+
         last_updated_by = ''
         last_updated_time = ''
         last_updated_remarks = ''
@@ -11194,7 +11205,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         count =+1
         ord_dict = OrderedDict((
             ('PO Created Date', po_date),
-            ('PO Release Date', po_delivery_date),
+            ('PO Release Date', release_date),
             ('PO Number', po_reference),
             ('PO Created by',result['pending_po__requested_user__username']),
             ('Status',result['pending_po__final_status'].title()),
@@ -11208,8 +11219,8 @@ def get_approval_detail_report_data(search_params, user, sub_user):
             ('SKU Category', result['sku__sku_category']),
             ('Sub Category', result['sku__sub_category']),
             ('PO QTY',result['total_qty']),
-            ('Unit Price without tax', result['quantity'] * result['price']),
-            ('Unit Price with tax',tax_amount + result['quantity'] * result['price']),
+            ('Unit Price without tax', result['price']),
+            ('Unit Price with tax',((result['price']+cgst_tax+sgst_tax+igst_tax)/100)+ (result['price'])),
             ('Tax Percentage', total_tax),
             ('MRP', result['sku__mrp']),
             ('Pre-Tax PO Amount',result['quantity']*result['price']),

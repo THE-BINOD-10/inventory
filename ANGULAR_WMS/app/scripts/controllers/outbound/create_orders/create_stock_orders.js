@@ -79,7 +79,7 @@ vm.changeUnitPrice = function(data){
   vm.service.apiCall('get_sellers_list/').then(function(data){
     if(data.message) {
       vm.sellers_list = data.data.sellers;
-      if(vm.sellers_list) {
+      if(vm.sellers_list.length > 0) {
         vm.model_data.source_seller_id = vm.sellers_list[0].id;
       }
     }
@@ -106,15 +106,15 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.update_availabe_stock = function(sku_data) {
-
      var send = {sku_code: sku_data.sku_id, location: ""}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
-
         if(data.data.available_quantity) {
-
           sku_data["capacity"] = data.data.available_quantity;
+        }
+        if (vm.industry_type == 'FMCG') {
+          sku_data['price'] = data.data.data[Object.keys(data.data.data)[0]]['buy_price'];
         }
       }
     });
@@ -135,7 +135,7 @@ vm.changeUnitPrice = function(data){
             record.order_quantity = 1
           }
           if(!(record.price)) {
-            record.price = data.mrp;
+            record.price = data.cost_price;
           }
           if(vm.igst_enable){
             if(data.igst_tax){
@@ -163,12 +163,25 @@ vm.changeUnitPrice = function(data){
     })
   }
   vm.verifyTax = function() {
-    if (vm.warehouse_list_states[vm.model_data.selected] == vm.current_user[Object.keys(vm.current_user)[0]]) {
-      vm.tax_cg_sg = true;
-      vm.igst_enable = false;
+    var temp_ware_name = '';
+    if (vm.warehouse_list_states[vm.model_data.selected] && vm.warehouse_list_states[vm.model_data.selected]){
+      if (vm.warehouse_list_states[vm.model_data.selected] == vm.current_user[Object.keys(vm.current_user)[0]]) {
+        vm.tax_cg_sg = true;
+        vm.igst_enable = false;
+      } else {
+        vm.tax_cg_sg = false;
+        vm.igst_enable = true;
+      }
     } else {
-      vm.tax_cg_sg = false;
-      vm.igst_enable = true;
+      if (!vm.warehouse_list_states[vm.model_data.selected]){
+        temp_ware_name = vm.model_data.selected;
+        vm.model_data.selected = '';
+        colFilters.showNoty(temp_ware_name +" - Please update state in Warehouse Mater");
+      }
+      if (!vm.current_user[Object.keys(vm.current_user)[0]]){
+        vm.model_data.selected = '';
+        colFilters.showNoty(Object.keys(vm.current_user)[0]+" - Please update state in Warehouse Mater");
+      }
     }
   }
 
@@ -178,7 +191,7 @@ vm.changeUnitPrice = function(data){
     vm.service.apiCall("get_sellers_list/", "GET", temp_data).then(function(data){
       if(data.message) {
         vm.dest_sellers_list = data.data.sellers;
-        if(vm.sellers_list) {
+        if(vm.sellers_list.length>0) {
           vm.model_data.dest_seller_id = vm.sellers_list[0].id;
         }
       }

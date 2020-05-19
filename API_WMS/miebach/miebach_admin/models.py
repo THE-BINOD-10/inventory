@@ -218,6 +218,7 @@ class LocationMaster(models.Model):
 
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
+    supplier_id = models.CharField(max_length=64, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
     address = models.CharField(max_length=256)
@@ -611,7 +612,6 @@ class PurchaseOrder(models.Model):
     discrepancy_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=256, default='')
-    priority = models.IntegerField(default=0)
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
@@ -619,6 +619,7 @@ class PurchaseOrder(models.Model):
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
     payment_received = models.FloatField(default=0)
+    priority = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1091,6 +1092,9 @@ class CustomerMaster(models.Model):
     lead_time = models.PositiveIntegerField(blank=True, default=0)
     role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
     spoc_name = models.CharField(max_length=256, default='')
+    chassis_number = models.CharField(max_length=256, default='')
+    customer_reference = models.CharField(max_length=256, default='')
+    customer_aux_info = models.TextField(default='', blank=True)
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -1585,6 +1589,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
+        index_together = ('open_st', 'po')
 
     def __unicode__(self):
         return str(self.po_id)
@@ -1607,6 +1612,8 @@ class StockTransfer(models.Model):
     class Meta:
         db_table = 'STOCK_TRANSFER'
         unique_together = ('order_id', 'st_po', 'sku')
+        index_together = (('sku',))
+
 
     def __unicode__(self):
         return str(self.order_id)
@@ -2031,6 +2038,7 @@ class PaymentInfo(models.Model):
     payment_mode = models.CharField(max_length=64, default='')
     method_of_payment = models.CharField(max_length=64, default='')
     payment_date = models.DateTimeField(auto_now=True)
+    aux_info = models.TextField(default='', blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2594,7 +2602,7 @@ class SKUAttributes(models.Model):
 
     class Meta:
         db_table = 'SKU_ATTRIBUTES'
-        unique_together = ('sku', 'attribute_name')
+        #unique_together = ('sku', 'attribute_name')
         index_together = ('sku', 'attribute_name')
 
     def __unicode__(self):
@@ -3615,6 +3623,23 @@ class ProccessRunning(models.Model):
         db_table = 'PROCESS_RUNNING'
         unique_together = ('user', 'process_name')
 
+
+class MasterAttributes(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_id = models.CharField(max_length=32, default='')
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
+        index_together = ('user', 'attribute_id', 'attribute_model', 'attribute_name')
+
+
+
 #Signals
 @receiver(post_save, sender=OrderDetail)
 def save_order_original_quantity(sender, instance, created, **kwargs):
@@ -3656,6 +3681,7 @@ class StockTransferSummary(models.Model):
 
     class Meta:
         db_table = 'STOCK_TRANSFER_SUMMARY'
+        index_together = (('stock_transfer',))
 
 
 @reversion.register()

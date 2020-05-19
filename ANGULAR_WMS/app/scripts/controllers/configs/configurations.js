@@ -47,6 +47,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
+                    'display_parts_allocation':false,
+                    'auto_generate_receive_qty':false,
                     'sku_packs_invoice':false,
                     'mandate_ewaybill_number':false,
                     'allow_partial_picklist': false,
@@ -56,6 +58,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'stock_auto_receive': false,
                     'discrepency_prefix':'',
                     'st_po_prefix': false,
+                    'supplier_sync': false,
+                    'enable_margin_price_check':false,
                     'central_admin_level_po': false,
                   };
   vm.all_mails = '';
@@ -100,8 +104,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
                      113:'discrepency_prefix',
-                     114: 'st_po_prefix',
-                     115: 'central_admin_level_po',
+                     114: 'auto_generate_receive_qty',
+                     115: 'st_po_prefix',
+                     116: 'display_parts_allocation',
+                     117: 'supplier_sync',
+                     118:'enable_margin_price_check',
+                     119: 'central_admin_level_po',
                      }
 
   vm.check_box_data = [
@@ -630,7 +638,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
   },
-{
+  {
+   name: "Display Allocation/Deallocation Page",
+   model_name: "display_parts_allocation",
+   param_no: 116,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
    name: "Enable Pending For Approval POs",
    model_name: "enable_pending_approval_pos",
    param_no: 105,
@@ -686,10 +701,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    class_name: "fa fa-server",
    display: true
    },
+   {
+   name: "Auto Fill Receive Quantity",
+   model_name: "auto_generate_receive_qty",
+    param_no: 114,
+   class_name: "fa fa-server",
+   display: true
+  },
+  {
+   name: "Sync Supplier b/n Users",
+   model_name: "supplier_sync",
+   param_no: 117,
+   class_name: "fa fa-server",
+   display: true
+   },
+   {
+    name: "Enable Margin Check for PO",
+    model_name: "enable_margin_price_check",
+    param_no: 118,
+    class_name: "fa fa-server",
+    display: true
+  },
   {
    name: "Central Purchase Order",
    model_name: "central_admin_level_po",
-   param_no: 115,
+   param_no: 119,
    class_name: "fa fa-server",
    display: true
   }

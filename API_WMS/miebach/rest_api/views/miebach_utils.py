@@ -11023,7 +11023,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
                                                     prefix=result['pending_po__prefix'])
         release_date = ''
         if release_data.exists():
-            release_date = release_data[0].creation_date
+            release_date = get_local_date(user,release_data[0].creation_date)
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
@@ -11046,6 +11046,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
                     approver1 = prApprQs[0].validated_by
                     approver1_date = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     approver1_status = result['pending_po__final_status'].title()
+
         ord_dict = OrderedDict((
             ('PO Date', po_date),
             ('PO Number', po_reference),
@@ -11073,7 +11074,7 @@ def get_approval_summary_report_data(search_params, user, sub_user):
             ('Approver 5', approver5),
             ('Approver 5 Date', approver5_date),
             ('Approver 5 Status', approver5_status),
-            ('PO Release Date', get_local_date(user,release_date))))
+            ('PO Release Date', release_date)))
         count =+1
         temp_data['aaData'].append(ord_dict)
 
@@ -11179,7 +11180,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         release_data = PurchaseOrder.objects.filter(order_id=result['pending_po__po_number'],prefix=result['pending_po__prefix'])
         release_date = ''
         if release_data.exists():
-            release_date = release_data[0].creation_date
+            release_date = get_local_date(user, release_data[0].creation_date)
 
         last_updated_by = ''
         last_updated_time = ''
@@ -11209,7 +11210,7 @@ def get_approval_detail_report_data(search_params, user, sub_user):
         count =+1
         ord_dict = OrderedDict((
             ('PO Created Date', po_date),
-            ('PO Release Date', get_local_date(user,release_date)),
+            ('PO Release Date', release_date),
             ('PO Number', po_reference),
             ('PO Created by',result['pending_po__requested_user__username']),
             ('Status',result['pending_po__final_status'].title()),

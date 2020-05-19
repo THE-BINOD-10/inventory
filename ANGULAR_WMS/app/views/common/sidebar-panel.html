@@ -759,6 +759,11 @@
             <span>Credit Note Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-if="user.parent.parent_username == user.userName">
+          <a ui-sref="app.reports.ApprovalPOReport">
+            <span>Approval PO Report</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->

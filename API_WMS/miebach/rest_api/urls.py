@@ -568,6 +568,8 @@ urlpatterns = [
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     url(r'^get_credit_note_report/$', get_credit_note_report),
     url(r'print_credit_note_report/$', print_credit_note_report),
+    url(r'get_approval_summary_report/$', get_approval_summary_report),
+    url(r'get_approval_detail_report/$', get_approval_detail_report),
     url(r'^get_st_po_filter/$', get_st_po_filter),
 ]
 

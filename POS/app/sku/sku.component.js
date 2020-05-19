@@ -651,7 +651,7 @@
           },function(error){
             self.submit_enable = false;
             alert("Something went wrong");
-          });  
+          });
       }
 
 
@@ -716,7 +716,7 @@
             clear_fields();
           },function(error){
             self.submit_enable = false;
-            alert("Internet disconnected");
+            alert("Backend Error, Contact to Admin !!");
 
             //change the network status
 //            order_data.summary.nw_status = OFFLINE;

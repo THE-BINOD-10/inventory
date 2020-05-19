@@ -7,7 +7,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4>
       </div>
       <!-- body-->
-      <div class="modal-body">
+      <div class="modal-body" ng-mouseover="showCase.readonly_permission()">
           <div class="clearfix">
             <div class="row">
               <div class="col-md-4">
@@ -79,9 +79,9 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="!permissions.priceband_sync">
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="!permissions.priceband_sync" ng-show="show_tab('change_pricemaster')">
           <span>Save</span>
-          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10"  ng-if="process"></span>
         </button>
       </div>
     </div><!-- /.modal-content -->

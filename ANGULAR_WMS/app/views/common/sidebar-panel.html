@@ -50,13 +50,13 @@
 
     <!--
       Masters -->
-    <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
+    <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL') || show_tab('MASTERS_VIEW_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-cubes"></i>
         <span>Masters</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active" ng-show="show_tab('add_skumaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_skumaster')">
           <a ui-sref="app.masters.SKUMaster">
             <span>SKU Master</span>
           </a>
@@ -66,13 +66,13 @@
             <span>Location Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_suppliermaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_suppliermaster')">
           <a ui-sref="app.masters.SupplierMaster">
             <span>Supplier Master</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('add_skusupplier')">
+          <a ui-sref="app.masters.sourceSKUMapping" ng-show="show_tab('view_skusupplier')">
             <span>Source-SKU Mapping</span>
           </a>
         </li>
@@ -102,7 +102,7 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster') && !show_tab('show_vehiclemaster')">
+          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('view_customermaster') && !show_tab('show_vehiclemaster')">
             <span>Customer Master</span>
           </a>
         </li>
@@ -146,7 +146,7 @@
             <span>Size Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_pricemaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_pricemaster')">
           <a ui-sref="app.masters.PricingMaster">
             <span>Pricing Master</span>
           </a>
@@ -757,6 +757,16 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.CreditNoteReport">
             <span>Credit Note Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active"ng-if="user.parent.parent_username == user.userName">
+          <a ui-sref="app.reports.OpenPOApprovalReport">
+            <span>Open PO Approval Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.parent.parent_username == user.userName">
+          <a ui-sref="app.reports.ApprovalPOReport">
+            <span>Approval PO Report</span>
           </a>
         </li>
       </ul>

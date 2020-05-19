@@ -657,7 +657,10 @@ def customer_order(request):
                                      str(payment_received)))
                             continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
-                    order_level_disc_per_sku = (tot_order_level_discount * item['price']) / order['summary']['total_amount']
+                    try:
+                        order_level_disc_per_sku = (tot_order_level_discount * item['price']) / order['summary']['total_amount']
+                    except Exception as e:
+                        order_level_disc_per_sku = 0
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
                                                         issue_type=order['summary']['issue_type'], \

@@ -243,6 +243,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Generate Delivery Challan Before PullConfiramation",
+      model_name: "generate_delivery_challan_before_pullConfiramation",
+      param_no: 79,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+    {
       name: "Generate Picklist for out of stock orders",
       model_name: "no_stock_switch",
       param_no: 11,
@@ -305,13 +313,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-    {
-      name: "Central Order Management",
-      model_name: "central_order_mgmt",
-      param_no: 70,
-      class_name: "fa fa-server",
-      display: true
-    },
+
     {
       name: "Enable Ratings",
       model_name: "mark_as_delivered",
@@ -389,6 +391,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Enable Brand Categorization",
+      model_name: "brand_categorization",
+      param_no: 93,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
       name: "Disable Brands View",
       model_name: "disable_brands_view",
       param_no: 54,
@@ -460,7 +469,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     },
   ]
   vm.general_check_box_data = [
-
+    {
+      name: "Central Order Management",
+      model_name: "central_order_mgmt",
+      param_no: 70,
+      class_name: "fa fa-server",
+      display: true
+    },
     {
       name: "Sync Supplier b/n Users",
       model_name: "supplier_sync",
@@ -517,13 +532,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
 
-    {
-      name: "Generate Delivery Challan Before PullConfiramation",
-      model_name: "generate_delivery_challan_before_pullConfiramation",
-      param_no: 79,
-      class_name: "fa fa-server",
-      display: true
-    },
 
 
     {
@@ -533,13 +541,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-    {
-      name: "Enable Brand Categorization",
-      model_name: "brand_categorization",
-      param_no: 93,
-      class_name: "fa fa-server",
-      display: true
-    },
+
 
 
     {

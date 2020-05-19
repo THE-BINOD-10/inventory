@@ -232,16 +232,19 @@
                         </div>
                       </div>
                       <div class="row col-md-12" style="padding-bottom: 15px">
-                        <div class="col-md-5 col-sm-8 col-xs-12">
-                          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
-                          <strong style="line-height: 34px;" class="pull-left ml20"> Grn Extra Fields </strong>
-                        </div>
-                        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
-                          <input class="grn_fields" type="text" value="{{showCase.model_data.grn_fields}}" ui-jq="tagsInput"/>
-                        </div>
-                        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_extra_fields('.grn_fields')" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
-                        </div>
+                          <div class="col-md-5 col-sm-8 col-xs-12">
+                              <i class="fa fa-tags fa-15px pull-left" style="line-height: 34px;"></i>
+                              <strong style="line-height: 34px;" class="pull-left ml20"> View Order Extra status </strong>
+                          </div>
+                          <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
+                              <input id="order_statuses" class="extra_view_order_status" type="text"
+                                  value="{{showCase.model_data.extra_view_order_status}}" ui-jq="tagsInput" />
+                          </div>
+                          <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_extra_order_status()"
+                                  class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+                          </div>
                       </div>
+
                       <div class="row col-md-12" style="padding-bottom: 15px">
                         <div class="col-md-5 col-sm-8 col-xs-12">
                           <i class="fa fa-tags fa-15px pull-left" style="line-height: 34px;"></i>
@@ -325,6 +328,18 @@
                             ng-click="showCase.updateMarketplaceSt(showCase.model_data.marketplace_name_st, showCase.model_data.marketplace_prefix_st, 'delete')"
                             ng-if="!showCase.model_data.marketplace_new">Delete</button>
                         </div>
+                      </div>
+                      <div class="row col-md-12" style="padding-bottom: 15px">
+                        <div class="col-md-5 col-sm-8 col-xs-12">
+                          <i class="fa fa-outdent fa-15px pull-left" style="line-height: 34px;"></i>
+                          <strong style="line-height: 34px;" class="pull-left ml20"> OrderID Prefix</strong>
+                        </div>
+                        <div class="col-md-1 col-sm-2 col-xs-3">
+                          <input type="text" class="form-control" id="order_prefix" ng-model="showCase.model_data.order_prefix">
+                        </div>
+                        <div class="col-md-1 col-sm-1 col-xs-1"><i
+                            ng-click="showCase.switches(showCase.model_data.order_prefix, 97)" class="fa fa-save"
+                            style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
                       </div>
                 </div>
             </div>

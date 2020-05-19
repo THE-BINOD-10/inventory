@@ -190,6 +190,20 @@ class Command(BaseCommand):
                             unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                             if order_type == 'internal_sales':
                                 discount = cod.discount
+                    elif picklist_obj.exists() and picklist_obj[0].storder_set.filter():
+                        picklist_obj = picklist_obj[0]
+                        stock_transfer = picklist_obj.storder_set.filter()[0].stock_transfer
+                        if stock_transfer and stock_transfer.st_po and stock_transfer.st_po.open_st:
+                            open_st = stock_transfer.st_po.open_st
+                            unit_price = open_st.price
+                            tax = 0
+                            if picklist_obj.stock and picklist_obj.stock.batch_detail:
+                                unit_price = picklist_obj.stock.batch_detail.buy_price
+                                tax = picklist_obj.stock.batch_detail.tax_percent
+                            order_type = 'stock_transfer'
+                            tax_type = 'intra_state'
+                            cess_tax = stock_transfer.st_po.open_st.cess_tax
+                            #unit_price = (unit_price * 100) / (100 + (tax + cess_tax))
                     else:
                         unit_price = 0
                 group_val = (sku_detail.sku_id, mrp, weight)

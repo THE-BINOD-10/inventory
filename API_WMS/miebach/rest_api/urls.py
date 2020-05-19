@@ -438,6 +438,10 @@ urlpatterns = [
     url(r'^dispatch_serial_numbers/$', dispatch_serial_numbers),
     url(r'^save_misc_value/$', save_misc_value),
     url(r'^get_value_for_misc_type/$', get_value_for_misc_type),
+    url(r'^get_discrepancy_report/$', get_discrepancy_report),
+    url(r'^print_descrepancy_note/$', print_descrepancy_note),
+
+
 
 
     # Uploaded POs [SWISS MILITARY]
@@ -456,6 +460,7 @@ urlpatterns = [
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
     url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
+    url(r'^get_sku_wise_st_po_filter/$', get_sku_wise_st_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
@@ -552,7 +557,9 @@ urlpatterns = [
     url(r'^get_credit_note_form_report/$', get_credit_note_form_report),
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
-    # url(r'^print_credit_note_form_report/$', print_credit_note_form_report),
+    url(r'^get_credit_note_report/$', get_credit_note_report),
+    url(r'print_credit_note_report/$', print_credit_note_report),
+    url(r'^get_st_po_filter/$', get_st_po_filter),
 ]
 
 # urlpatterns += patterns('rest_api.views',

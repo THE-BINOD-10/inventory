@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_dc_invoice':false,
                     'display_order_reference':false,
                     'move_inventory_reasons':'',
+                    'discrepancy_reasons':'',
                     'enable_pending_approval_pos':false,
                     'mandate_invoice_number':false,
                     'sku_packs_invoice':false,
@@ -51,6 +52,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'allow_partial_picklist': false,
                     'enable_pending_approval_prs': false,
                     'auto_allocate_sale_order':false,
+                    'po_or_pr_edit_permission_approver': false,
+                    'stock_auto_receive': false,
+                    'discrepency_prefix':'',
+                    'st_po_prefix': false,
                     'central_admin_level_po': false,
                   };
   vm.all_mails = '';
@@ -86,13 +91,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      102: 'display_order_reference',
                      103: 'picklist_sort_by_sku_sequence',
                      104: 'mandate_invoice_number',
-                     109: 'sku_packs_invoice',
                      105: 'enable_pending_approval_pos',
                      106: 'mandate_ewaybill_number',
                      107: 'enable_pending_approval_prs',
                      108: 'auto_allocate_sale_order',
+                     109: 'sku_packs_invoice',
                      110: 'allow_partial_picklist',
-                     111: 'central_admin_level_po',
+                     111: 'po_or_pr_edit_permission_approver',
+                     112: 'stock_auto_receive',
+                     113:'discrepency_prefix',
+                     114: 'st_po_prefix',
+                     115: 'central_admin_level_po',
                      }
 
   vm.check_box_data = [
@@ -664,12 +673,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-   name: "Central Purchase Order",
-   model_name: "central_admin_level_po",
+   name: "Edit permission to Approvers for POs/PRs",
+   model_name: "po_or_pr_edit_permission_approver",
    param_no: 111,
    class_name: "fa fa-server",
    display: true
+  },
+  {
+   name: "Stock Transfer Auto Receive",
+   model_name: "stock_auto_receive",
+   param_no: 112,
+   class_name: "fa fa-server",
+   display: true
    },
+  {
+   name: "Central Purchase Order",
+   model_name: "central_admin_level_po",
+   param_no: 115,
+   class_name: "fa fa-server",
+   display: true
+  }
 ]
 
   vm.empty = {};
@@ -777,6 +800,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data[vm.switch_names[switch_num]] = value;
       Service.showNoty("Auto PO & Notify SKU below Threshold can't be enabled simultaneously", 'warning');
       return
+    }
+    if (vm.switch_names[switch_num] === "st_po_prefix" || vm.switch_names[switch_num] === "invoice_prefix") {
+      if (vm.model_data.st_po_prefix && vm.model_data.prefix && vm.model_data.st_po_prefix.toLocaleLowerCase() == vm.model_data.prefix.toLocaleLowerCase()) {
+        Service.showNoty("po prefix , stock Transfer Prefix cannot be same !!! ", 'warning');
+        return
+      }
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {
@@ -1217,6 +1246,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
         $(".bank_option_fields").importTags(vm.model_data.bank_option_fields);
         $(".invoice_types").importTags(vm.model_data.invoice_types);
+        $(".discrepancy_reasons").importTags(vm.model_data.discrepancy_reasons);
         $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
         $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
         if (vm.model_data.invoice_titles) {

@@ -11,7 +11,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-from inbound import generate_grn_pagination
+from inbound_common_operations import generate_grn_pagination
 from dateutil.relativedelta import *
 
 
@@ -87,6 +87,13 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+    elif report_name in ['st_grn_report']:
+        admin_user=get_admin(user)
+        if 'sister_warehouse' in filter_keys:
+            sister_wh = get_sister_warehouse(admin_user)
+            data_index = data['filters'].index(
+                filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',
                          'corporate_reseller_mapping_report', 'financial_report', ''):
@@ -163,7 +170,15 @@ def print_stock_location(request, user=''):
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_st_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_st_po_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -184,6 +199,13 @@ def get_sku_wise_po_filter(request, user=''):
     temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_st_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_st_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -513,7 +535,7 @@ def get_supplier_details_data(search_params, user, sub_user):
     else:
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
             open_po__sku__user=user.id, **search_parameters)
-    purchase_orders = suppliers.values('order_id', 'status').distinct().annotate(
+    purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity')). \
         order_by(order_val)
@@ -529,7 +551,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         purchase_orders = purchase_orders[start_index:stop_index]
 
     for purchase_order in purchase_orders:
-        po_data = suppliers.filter(order_id=purchase_order['order_id'])
+        po_data = suppliers.filter(order_id=purchase_order['order_id'], prefix=purchase_order['prefix'])
         total_amt = 0
         for po in po_data:
             price, quantity = po.open_po.price, po.open_po.order_quantity
@@ -558,7 +580,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
                                                     ('Ordered Quantity', purchase_order['total_ordered']),
-                                                    ('Amount', total_amt),
+                                                    ('Amount', total_amt),('prefix', purchase_order['prefix']),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status_var), ('order_id', po_obj.order_id))))
     # supplier_data['total_charge'] = total_charge
@@ -836,9 +858,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                  'reason': adjustment.reason,
                                                  'creation_date': creation_date,
                                                  'quantity': 0,
+                                                 'cycle_quantity':0,
                                                  'prices_list': [], 'amount': 0,
                                                  'cycle': adjustment.cycle})
             grouping_data[group_key]['quantity'] += adjustment.adjusted_quantity
+            grouping_data[group_key]['cycle_quantity'] +=adjustment.cycle.seen_quantity
             grouping_data[group_key]['amount'] += amount
             grouping_data[group_key]['prices_list'].append(price)
         adjustments = grouping_data.values()
@@ -871,6 +895,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                         searchable = attribute.attribute_value
                     if attribute.attribute_name == 'Bundle':
                         bundle = attribute.attribute_value
+            if data['quantity'] < 0 :
+                initial_quantity = abs(data['quantity'])
+            else:
+                initial_quantity = data['cycle_quantity'] - data['quantity']
+
             temp_data['aaData'].append(OrderedDict((('SKU Code', sku.sku_code),
                                                     ('Name', sku.sku_desc),
                                                     ('Weight', weight),
@@ -889,10 +918,14 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Quantity', data['quantity']),
                                                     ('Average Cost', avg_cost),
                                                     ('Value', amount),
+                                                    ('changed_qty', data['quantity']),
+                                                    ('post_adjustment_qty', data['cycle_quantity']),
+                                                    ('initial_quantity', initial_quantity),
+                                                    ('changed_unit_value', avg_cost),
+                                                    ('changed_total_value', amount),
                                                     ('Reason', data['reason']),
                                                     ('User', updated_user_name),
                                                     ('Transaction Date', data['creation_date']),
-
                                                     )))
     else:
         temp_data['recordsTotal'] = len(adjustments)
@@ -1041,6 +1074,9 @@ def print_po_reports(request, user=''):
     po_id = request.GET.get('po_id', '')
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
+    st_grn = request.GET.get('st_grn', '')
+    po_pre = request.GET.get('prefix', '')
+    utgst_tax , cess_tax , apmc_tax,measurement_unit = 0, 0, 0,''
     data_dict = ''
     bill_no = ''
     bill_date = ''
@@ -1050,9 +1086,14 @@ def print_po_reports(request, user=''):
         'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
         'UTGST(%)', 'Amount', 'Description')
     po_data = {headers: []}
+    filter_params = {}
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
+    if st_grn:
+        filter_params['stpurchaseorder__open_st__sku__user'] = user.id
+    else:
+        filter_params['open_po__sku__user'] = user.id
     if po_id:
-        results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+        results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre, **filter_params)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
@@ -1065,7 +1106,7 @@ def print_po_reports(request, user=''):
     for data in results:
         receipt_type = ''
         lr_number = ''
-        lr_number_obj = LRDetail.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id)
+        lr_number_obj = LRDetail.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user.id, purchase_order__prefix=data.prefix)
         if lr_number_obj.exists():
             lr_number = lr_number_obj[0].lr_number
         if po_id:
@@ -1073,7 +1114,10 @@ def print_po_reports(request, user=''):
             bill_date = data.updation_date
             if receipt_no:
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
-                open_data = data.open_po
+                if st_grn:
+                    open_data = data.stpurchaseorder_set.filter()[0].open_st
+                else:
+                    open_data = data.open_po
                 grouped_data = OrderedDict()
                 if seller_summary_objs[0].overall_discount:
                     overall_discount = seller_summary_objs[0].overall_discount
@@ -1091,9 +1135,10 @@ def print_po_reports(request, user=''):
                     cgst_tax = open_data.cgst_tax
                     sgst_tax = open_data.sgst_tax
                     igst_tax = open_data.igst_tax
-                    utgst_tax = open_data.utgst_tax
-                    cess_tax = open_data.cess_tax
-                    apmc_tax = seller_summary_obj.apmc_tax
+                    if not st_grn:
+                        utgst_tax = open_data.utgst_tax
+                        cess_tax = open_data.cess_tax
+                        apmc_tax = seller_summary_obj.apmc_tax
                     if seller_summary_obj.cess_tax:
                         cess_tax = seller_summary_obj.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax + apmc_tax
@@ -1121,10 +1166,12 @@ def print_po_reports(request, user=''):
                         amount = amount - (amount * float(discount) / 100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
+                    if not st_grn:
+                        measurement_unit = open_data.measurement_unit
                     grouped_data.setdefault(grouping_key, {'wms_code': open_data.sku.wms_code,
                                                            'order_quantity': open_data.order_quantity,
                                                            'received_quantity': 0,
-                                                           'measurement_unit': open_data.measurement_unit,
+                                                           'measurement_unit': measurement_unit,
                                                            'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                                            'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
@@ -1186,20 +1233,29 @@ def print_po_reports(request, user=''):
         purchase_order = results[0]
         if not po_id:
             purchase_order = results[0].purchase_order
-        address = purchase_order.open_po.supplier.address
-        address = '\n'.join(address.split(','))
+        if st_grn:
+            user_profile = UserProfile.objects.filter(user_id=purchase_order.stpurchaseorder_set.filter()[0].stocktransfer_set.filter()[0].sku.user)
+            address = user_profile[0].address
+            telephone = user_profile[0].phone_number
+            name = user_profile[0].user.username
+            supplier_id = user_profile[0].user.id
+            tin_number = user_profile[0].gst_number
+
+        else:
+            address = purchase_order.open_po.supplier.address
+            address = '\n'.join(address.split(','))
+            telephone = purchase_order.open_po.supplier.phone_number
+            name = purchase_order.open_po.supplier.name
+            supplier_id = purchase_order.open_po.supplier.id
+            tin_number = purchase_order.open_po.supplier.tin_number
         remarks = purchase_order.remarks
-        telephone = purchase_order.open_po.supplier.phone_number
-        name = purchase_order.open_po.supplier.name
-        supplier_id = purchase_order.open_po.supplier.id
-        tin_number = purchase_order.open_po.supplier.tin_number
         order_id = purchase_order.order_id
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
-        order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+        order_date = datetime.datetime.strftime(purchase_order.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)  # user_profile.address
@@ -1238,11 +1294,11 @@ def print_po_reports(request, user=''):
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
+                   'st_grn':st_grn,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
                    'remarks': remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)})
-
 
 @csrf_exempt
 @get_admin_user
@@ -1338,12 +1394,12 @@ def excel_reports(request, user=''):
             for i in tmp:
                 headers.append(str(i))
     if temp[1] in ['get_credit_note_form_report'] and len(report_data['aaData']) > 0:
-            squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number', 
-                'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ', 
-                'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule', 
-                'Purchase Order Distribution', 'Receipt', 'Receipt Line', 'Consumption Advice', 
-                'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location', 
-                'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1', 
+            squareBracketCols = ['**Supplier', '*Supplier Site', 'Legal Entity Name', 'Prepayment Number',
+                'Liability Distribution', 'Context Value', 'Additional Information', 'Regional Context Value ',
+                'Regional Information ', 'Purchase Order', 'Purchase Order Line', 'Purchase Order Schedule',
+                'Purchase Order Distribution', 'Receipt', 'Receipt Line', 'Consumption Advice',
+                'Consumption Advice Line Number', 'Distribution Combination', 'Distribution Set', 'Ship-to Location',
+                'Ship-from Location', 'Location of Final Discharge', 'Context Value_1', 'Additional Information_1',
                 'Project Information', 'Multiperiod Accounting Accrual Account'
                 ]
             report_data['New_aaData'] = []
@@ -1840,11 +1896,12 @@ def print_stock_cover_report(request, user=''):
 @get_admin_user
 def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
+    po_prefix = request.GET.get('prefix', '')
     total_qty = 0
     total = 0
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
@@ -2060,6 +2117,66 @@ def print_debit_note(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def print_descrepancy_note(request, user=''):
+    from inbound_descrepancy import generate_discrepancy_data
+    disp_number = request.GET.get('discrepancy_number', '')
+    po_new_data = OrderedDict()
+    updated_discrepancy = False
+    profile = UserProfile.objects.get(user=user.id)
+    report_data_dict ={}
+    if disp_number:
+        discrepancy_objects = Discrepancy.objects.filter(user=user.id, discrepancy_number=disp_number)
+        for obj in discrepancy_objects:
+            if obj.purchase_order:
+                open_po = obj.purchase_order.open_po
+                filter_params = {'purchase_order_id': obj.purchase_order.id}
+                if len(obj.po_number.split('/')) >= 2:
+                    reciept_number = obj.po_number.split('/')[1]
+                seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
+                price = obj.purchase_order.open_po.price
+                mrp = 0
+                if seller_po_summary.exists():
+                    seller_po_obj = seller_po_summary[0]
+                    if seller_po_obj.batch_detail:
+                        price = seller_po_obj.batch_detail.buy_price
+                        mrp = seller_po_obj.batch_detail.mrp
+                if not updated_discrepancy:
+                    updated_discrepancy=True
+                    invoice_number, invoice_date = '', ''
+                    if seller_po_summary.exists():
+                        invoice_number = seller_po_summary[0].invoice_number
+                        invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                    supplier = obj.purchase_order.open_po.supplier
+                    order_date = get_local_date(request.user, obj.purchase_order.creation_date)
+                    order_date = datetime.datetime.strftime(
+                        datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
+                                        'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
+                                        'company_name': profile.company_name, 'company_address': profile.address,
+                                        'po_number': obj.po_number, 'bill_no': invoice_number,'full_discrepancy_number':disp_number,
+                                        'order_date': order_date, 'bill_date': invoice_date,
+                                        }
+
+                cond = ('', open_po.sku.wms_code, '', price, open_po.cgst_tax, open_po.sgst_tax, open_po.igst_tax,
+                        '', open_po.sku.sku_desc, 0, 0, 0, 0, mrp)
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+            else:
+                data_dict =json.loads(obj.new_data)
+                cond = ('', data_dict['wms_code'], '', data_dict['price'], data_dict['cgst_tax'], data_dict['sgst_tax'], data_dict['igst_tax'],
+                        '', data_dict['sku_desc'], 0, 0, 0, 0, data_dict['mrp'])
+                po_new_data.setdefault(cond, {'discrepency_quantity': 0,
+                                              'discrepency_reason': ''})
+                po_new_data[cond]['discrepency_quantity'] += obj.quantity
+                po_new_data[cond]['discrepency_reason'] = obj.return_reason
+        discrepency_rendered = generate_discrepancy_data(user, po_new_data, print_des=True, **report_data_dict)
+        return HttpResponse(discrepency_rendered)
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_sku_wise_rtv_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_rtv_filter_data(search_params, user, request.user)
@@ -2163,6 +2280,13 @@ def get_basa_report(request, user=''):
     temp_data = get_basa_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_discrepancy_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_discrepancy_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -2225,3 +2349,38 @@ def get_cancel_invoice_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_cancel_invoice_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_credit_note_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def reprint_credit_note_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_credit_note_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@login_required
+@get_admin_user
+def print_credit_note_report(request, user=''):
+    from inbound import get_sales_return_print_json
+    credit_note_number = request.GET.get('credit_note_number')
+    return_ids = list(OrderReturns.objects.filter(order__user=user.id, credit_note_number=credit_note_number)\
+        .values_list('return_id', flat=True))
+    final_data = get_sales_return_print_json(return_ids, user)
+    return_sales_print = []
+    return_sales_print.append(final_data)
+
+    return render(request, 'templates/toggle/sales_return_print.html',
+                  {'show_data_invoice': return_sales_print})

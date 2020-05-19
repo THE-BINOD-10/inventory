@@ -1,60 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('GoodsReceiptNoteCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('STGoodsReceiptNoteCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
-
-    /*var vm = this;
-    vm.colFilters = colFilters;
-    vm.service = Service;
-    vm.service.print_enable = false;
-
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'get_po_filter/',
-              type: 'GET',
-              data: vm.model_data,
-              xhrFields: {
-                withCredentials: true
-              },
-              data: vm.model_data
-           })
-       .withDataProp('data')
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity')
-    ];
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true}).success(function(data, status, headers, config) {
-
-                  console.log(data);
-                  var html = $(data);
-                  vm.print_page = $(html).clone();
-                  html = $(html).find(".modal-body > .form-group");
-                  $(html).find(".modal-footer").remove()
-                  $(".modal-body").html(html);
-                });
-                $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
-            });
-        });
-        return nRow;
-    }
-
-  */
   var vm = this;
   vm.service = Service;
   vm.datatable = false;
@@ -76,14 +25,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
           vm.title = "Stock transfer Note";
         }
-        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix, {withCredential: true}).success(function(data, status, headers, config) {
+        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&st_grn='+1+'&prefix='+aData.prefix, {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
             vm.print_page = $(html).clone();
             //html = $(html).find(".modal-body > .form-group");
             //$(html).find(".modal-footer").remove()
             $(".modal-body").html(html);
           });
-          $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
+          $state.go('app.reports.STGoodsReceiptNote.PurchaseOrder');
     }
   }
 
@@ -94,9 +43,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var send = {};
   	var name;
   	if (vm.toggle_sku_wise) {
-      name = 'sku_wise_grn_report';
+      name = 'sku_wise_st_grn_report';
     } else {
-      name = 'grn_report';
+      name = 'st_grn_report';
     }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
   	if(data.message) {
@@ -117,9 +66,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.report_data['excel2'] = true;
   		    vm.report_data['row_click'] = true;
           if (vm.toggle_sku_wise) {
-              vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
+              vm.report_data['excel_name'] = 'sku_wise_st_goods_receipt'
           } else {
-              vm.report_data['excel_name'] = 'goods_receipt'
+              vm.report_data['excel_name'] = 'st_goods_receipt'
           }
         })
   	  }
@@ -146,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.close = close;
   function close() {
     vm.title = "Purchase Order";
-    $state.go('app.reports.GoodsReceiptNote');
+    $state.go('app.reports.STGoodsReceiptNote');
   }
 
   vm.print = print;

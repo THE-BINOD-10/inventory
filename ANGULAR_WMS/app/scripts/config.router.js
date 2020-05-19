@@ -2095,6 +2095,22 @@ var app = angular.module('urbanApp')
             url: '/GoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',
           })
+         .state('app.reports.STGoodsReceiptNote', {
+          url: '/STGoodsReceiptNote',
+          templateUrl: 'views/reports/st_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/st_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
+            url: '/STGoodsReceiptNote',
+            templateUrl: 'views/reports/toggles/purchase_order.html',
+          })
         .state('app.reports.ReceiptSummary', {
           url: '/ReceiptSummary',
           templateUrl: 'views/reports/receipt_summary.html',
@@ -2537,8 +2553,28 @@ var app = angular.module('urbanApp')
             title: 'RTV Report',
           }
         })
+        .state('app.reports.CreditNoteReport', {
+          url: '/CreditNoteReport',
+          templateUrl: 'views/reports/credit_note_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/credit_note_report.js');
+              }]
+          },
+          data: {
+            title: 'Credit Note Report',
+          }
+        })
+        .state('app.reports.CreditNoteReport.CreditNoteReportPrint', {
+           url: '/CreditNoteReportPrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
+        .state('app.reports.DiscrepancyReport.print', {
+           url: '/DescrepancyNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
         .state('app.reports.CurrentStockReport', {
@@ -2623,6 +2659,19 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Cancelled Invoices Report',
+          }
+        })
+        
+        .state('app.reports.DiscrepancyReport', {
+          url: '/DiscrepancyReport',
+          templateUrl: 'views/reports/discrepancy_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/discrepancy_report.js');
+              }]
+          },
+          data: {
+            title: 'Discrepancy Report',
           }
         })
         .state('app.reports.BulkStockUpdate', {

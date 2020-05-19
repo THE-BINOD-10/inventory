@@ -392,7 +392,6 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <!--<li ui-sref-active="active">-->
         <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
@@ -501,6 +500,11 @@
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
+          <a ui-sref="app.reports.STGoodsReceiptNote">
+            <span>Stock Transfer Goods Receipt Note</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_polocation')">
@@ -703,6 +707,11 @@
             <span>BA SA Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="user.user_profile.industry_type == 'FMCG'">
+          <a ui-sref="app.reports.DiscrepancyReport">
+            <span>Discrepancy Report</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_moveinventory')">
           <a ui-sref="app.reports.MoveInventoryReport">
             <span>Move Inventory Report</span>
@@ -721,6 +730,11 @@
         <li ui-sref-active="active" ng-show="user.userName == 'ola_admin'">
           <a ui-sref="app.reports.creditNoteForm">
             <span>Credit Note Form (ORACLE Upload File)</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.CreditNoteReport">
+            <span>Credit Note Report</span>
           </a>
         </li>
       </ul>

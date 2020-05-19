@@ -10841,7 +10841,7 @@ def get_credit_note_report_data(search_params, user, sub_user, serial_view=False
 def get_discrepancy_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
-    lis = ['id','po_number','discrepancy_number']
+    lis = ['discrepancy_number','po_number','po_number','purchase_order__open_po__supplier__supplier_id','purchase_order__open_po__supplier__supplier_name']
     col_num = search_params.get('order_index', 1)
     order_term = search_params.get('order_term', 'asc')
     start_index = search_params.get('start', 0)
@@ -10874,12 +10874,12 @@ def get_discrepancy_report_data(search_params, user, sub_user):
 
     search_parameters['user'] = user.id
     master_data = Discrepancy.objects.filter(**search_parameters).exclude(purchase_order=None)\
-        .order_by(order_data).values('po_number','discrepancy_number','purchase_order__open_po__supplier__id','purchase_order__open_po__supplier__name').distinct()
+        .values('po_number','discrepancy_number','purchase_order__open_po__supplier__supplier_id','purchase_order__open_po__supplier__name').order_by(order_data).distinct()
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(OrderedDict((('PO Number', data['po_number']),
                                                 ('Discrepancy Number', data['discrepancy_number']),
-                                                ('Supplier ID', data['purchase_order__open_po__supplier__id']),
+                                                ('Supplier ID', data['purchase_order__open_po__supplier__supplier_id']),
                                                 ('Supplier Name', data['purchase_order__open_po__supplier__name']),)))
     return temp_data

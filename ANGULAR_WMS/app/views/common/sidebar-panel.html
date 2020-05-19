@@ -18,7 +18,8 @@
     <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
   </div>
   <!-- /logo -->
-  <p style="display: inline-flex;width: auto;text-transform: uppercase;padding-left: 10%;font-size: 12px;color: #fff;line-height:12;">{{(session.parent.user_first_name == "")? session.parent.userName:session.parent.user_first_name;}}</p>
+ <div style="text-overflow: ellipsis;white-space: nowrap;overflow: hidden;text-transform: uppercase;font-size: 12px;color: #fff;line-height:12;" align="center">{{(session.parent.user_first_name == "")? session.parent.userName:session.parent.user_first_name;}}
+  </div>
 
 </div>
 

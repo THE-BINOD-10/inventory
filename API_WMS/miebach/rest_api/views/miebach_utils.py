@@ -83,7 +83,7 @@ PERMISSION_KEYS = ['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_
                    'add_inventoryadjustment',
                    'add_orderdetail', 'add_picklist']
 LABEL_KEYS = ["NOTIFICATION_LABEL", "MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
-              "OTHERS_LABEL", "UPLOADS", "REPORTS", "CONFIGURATIONS", "PAYMENT_LABEL"]
+              "OTHERS_LABEL", "UPLOADS", "REPORTS", "CONFIGURATIONS", "PAYMENT_LABEL", 'MASTERS_VIEW_LABEL']
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
@@ -2002,15 +2002,15 @@ PERMISSION_DICT = OrderedDict((
     # Notifications
     ("NOTIFICATION_LABEL", (("Notifications", "view_pushnotifications"), )),
     # Masters
-    ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
-                       ("Supplier Master", "add_suppliermaster"), ("Source SKU Mapping", "add_skusupplier"),
+    ("MASTERS_LABEL", (("SKU Master Edit", "add_skumaster"), ("Location Master", "add_locationmaster"),
+                       ("Supplier Master Edit", "add_suppliermaster"), ("Source SKU Mapping Edit", "add_skusupplier"),
                        ("Project Master", "add_corporatemaster"),
                        ("Reseller Corporate Mapping", "add_corpresellermapping"),
-                       ("Customer Master", "add_customermaster"), ("Customer SKU Mapping", "add_customersku"),
+                       ("Customer Master Edit", "add_customermaster"), ("Customer SKU Mapping", "add_customersku"),
                        ("BOM Master", "add_bommaster"), ("Staff Master", "add_staffmaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
-                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
+                       ('Pricing Master Edit', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
                        ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'),
                        ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
                        ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'),
@@ -2096,6 +2096,13 @@ PERMISSION_DICT = OrderedDict((
                  ('Stock Cover Report' ,'add_skudetailstats'),
                  ('MoveInventory Report','view_moveinventory'),
                  ('Bulk To Retail Report', 'view_substitutionsummary'))),
+    #Master Edit Access
+    ("MASTERS_VIEW_LABEL", (('SKU Master View','view_skumaster'),
+                        ('Supplier Master View','view_suppliermaster'),
+                        ('Source SKU Mapping View', 'view_skusupplier'),
+                        ('Pricing Master View', 'view_pricemaster'),
+                        ('Customer Master View', 'view_customermaster'),)),
+
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),

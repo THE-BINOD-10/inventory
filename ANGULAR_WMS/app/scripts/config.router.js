@@ -279,7 +279,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.SKUMaster', {
           url: '/SKUMaster',
-          permission: 'add_skumaster',
+          permission:'view_skumaster',
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -342,7 +342,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.sourceSKUMapping', {
           url: '/SourceSKUMapping',
-          permission: 'add_skusupplier',
+          permission: 'view_skusupplier',
           templateUrl: 'views/masters/source_sku_mapping.html',
 
           resolve: {
@@ -379,7 +379,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.SupplierMaster', {
           url: '/SupplierMaster',
-          permission: 'add_suppliermaster',
+          permission: 'view_suppliermaster',
           templateUrl: 'views/masters/supplier_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -426,7 +426,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.CustomerMaster', {
           url: '/CustomerMaster',
-          permission: 'add_customermaster',
+          permission: 'view_customermaster',
           templateUrl: 'views/masters/customer_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -627,7 +627,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.PricingMaster', {
           url: '/PricingMaster',
-          permission: 'add_pricemaster',
+          permission: 'view_pricemaster',
           templateUrl: 'views/masters/pricing_master.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

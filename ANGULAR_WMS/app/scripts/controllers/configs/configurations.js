@@ -152,6 +152,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.outbound_check_box_data = [
     {
+      name: "Stop Default Tax Type in Create Order",
+      model_name: "stop_default_tax",
+      param_no: 96,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Picklist Sort By SKU Sequence",
+      model_name: "picklist_sort_by_sku_sequence",
+      param_no: 103,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Display Delivery Challan Number In Invoice",
+      model_name: "display_dc_invoice",
+      param_no: 101,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Display IMEI Numbers In Invoice",
+      model_name: "show_imei_invoice",
+      param_no: 39,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
       name: "Auto Generate Picklist",
       model_name: "auto_generate_picklist",
       param_no: 22,
@@ -446,7 +474,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         param_no: 118,
         class_name: "fa fa-server",
         display: true
-        }
+      },
     {
       name: "Decimal Quantity",
       model_name: "float_switch",
@@ -454,13 +482,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-    {
-      name: "Picklist Sort By SKU Sequence",
-      model_name: "picklist_sort_by_sku_sequence",
-      param_no: 103,
-      class_name: "fa fa-envelope",
-      display: true
-    },
+
     {
       name: "Sync WMS Stock Count",
       model_name: "stock_sync",
@@ -477,20 +499,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
 
-    {
-      name: "Display IMEI Numbers In Invoice",
-      model_name: "show_imei_invoice",
-      param_no: 39,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "Display Delivery Challan Number In Invoice",
-      model_name: "display_dc_invoice",
-      param_no: 101,
-      class_name: "fa fa-refresh",
-      display: true
-    },
+
+
     {
       name: "Create Seller Order",
       model_name: "create_seller_order",
@@ -531,13 +541,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
 
-    {
-      name: "Stop Default Tax Type in Create Order",
-      model_name: "stop_default_tax",
-      param_no: 96,
-      class_name: "fa fa-server",
-      display: true
-    },
+
     {
       name: "Display Allocation/Deallocation Page",
       model_name: "display_parts_allocation",

@@ -2627,9 +2627,20 @@ def add_group(request, user=''):
                 else:
                     sub_perms = dict(sub_perms)
                     if sub_perms.has_key(perm):
-                        permissions = Permission.objects.filter(codename=sub_perms[perm])
-                        for permission in permissions:
-                            group.permissions.add(permission)
+                        if perm.endswith('Edit') and sub_perms[perm].startswith('add'):
+                            check_data = perm
+                            results = view_master_access(sub_perms, check_data)
+                            if results:
+                                lis = []
+                                for res in results:
+                                    permissions = Permission.objects.filter(codename=res)
+                                    lis.append(permissions[0])
+                                group.permissions.add(*lis)
+                        else:
+                            permissions = Permission.objects.filter(codename=sub_perms[perm])
+                            for permission in permissions:
+                                print("else permission ====",permission)
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -11229,6 +11240,17 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
 
+def view_master_access(sub_perms, check_data):
+    lis = ['add','view','change','delete']
+    final_lis = []
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    if check_data in dict(permission_dict['MASTERS_LABEL']):
+        add_data = sub_perms[check_data].split('_')
+        if add_data[0] == 'add':
+            for i in lis:
+                data1 = str(i)+"_"+add_data[1]
+                final_lis.append(data1)
+    return final_lis
 
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -11576,3 +11598,4 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 master_email_map['updation_date'] = datetime.datetime.now()
                 master_email_map = MasterEmailMapping.objects.create(**master_email_map)
     return master_objs
+

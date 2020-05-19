@@ -69,6 +69,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
             filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
+    else:
+        filtersMap['pending_pr__wh_user'] = user
     lis = ['-pending_pr__pr_number', 'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__pr_number',
@@ -177,6 +179,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
+    else:
+        filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
     lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',

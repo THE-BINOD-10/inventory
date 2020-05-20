@@ -351,6 +351,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 # ('markdown_percentage', data.markdown_percentage),
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
+                                                ('currency_code', data.currency_code),
                                                 )))
 
 
@@ -1241,7 +1242,7 @@ def delete_bom_data(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_master_data(request, user=''):
-    return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
+    return HttpResponse(json.dumps({'tax_data': TAX_VALUES, 'currency_codes': CURRENCY_CODES}))
 
 
 def validate_supplier_email(email):

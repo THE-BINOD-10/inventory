@@ -255,6 +255,8 @@ class SupplierMaster(models.Model):
     account_holder_name = models.CharField(max_length=256, default='')
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
+    currency_code = models.CharField(max_length=16, default='')
+
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')

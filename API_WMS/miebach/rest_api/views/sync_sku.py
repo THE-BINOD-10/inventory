@@ -115,12 +115,18 @@ def create_update_sku(all_skus, all_users):
                     update_sku_dict['service_end_date'] = sku.servicemaster.service_end_date
             except:
                 pass
+            try:
+                if sku.otheritemsmaster:
+                    instanceName = OtherItemsMaster
+                    update_sku_dict['item_type'] = sku.otheritemsmaster.item_type
+            except:
+                pass
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
                                  'relation_type': sku.relation_type,
                                  'creation_date': datetime.datetime.now().date(),
                                  'updation_date': datetime.datetime.now().date()})
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and sku.sku_code.upper() not in exist_skus:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster'] and sku.sku_code.upper() not in exist_skus:
                 new_sku_dict['user'] = user
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code

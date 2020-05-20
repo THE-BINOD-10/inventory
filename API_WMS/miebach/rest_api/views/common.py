@@ -11787,3 +11787,9 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 master_email_map['updation_date'] = datetime.datetime.now()
                 master_email_map = MasterEmailMapping.objects.create(**master_email_map)
     return master_objs
+
+def internal_external_map(response, type_name=''):
+    external_id = response['__values__']['externalId']
+    internal_id = response['__values__']['internalId']
+    NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
+                                         type_name=type_name)

@@ -42,7 +42,7 @@ def connect_tba():
       token_key=NS_TOKEN_KEY, 
       token_secret=NS_TOKEN_SECRET)
     return nc
-def netsuite_update_create_sku(data, sku_attr_dict, user, external_id=''):
+def netsuite_update_create_sku(data, sku_attr_dict, user):
     data_response = {}
     try:
         nc = connect_tba()
@@ -50,7 +50,7 @@ def netsuite_update_create_sku(data, sku_attr_dict, user, external_id=''):
         invitem = ns.InventoryItem()
         invitem.taxSchedule = ns.RecordRef(internalId=1)
         invitem.itemId = data.sku_code
-        invitem.externalId = external_id
+        invitem.externalId = data.sku_code
         invitem.displayName = data.sku_desc
         invitem.itemType = data.sku_type
         invitem.vendorname = data.sku_brand
@@ -134,7 +134,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     value = float(value)
                 except:
                     error_message = '%s is Number field' % val
-                    update_error_message(failed_status, 5024, error_message, '')
+                    update_error_message(failed_status, 5024, error_message, '', 'supplierid')
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
                     update_error_message(failed_status, 5024, 'Enter valid Email ID', '')

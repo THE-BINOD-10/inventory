@@ -3778,7 +3778,6 @@ class NetsuiteIdMapping(models.Model):
     external_id = models.CharField(max_length=64, default='')
     internal_id = models.CharField(max_length=64, default='')
     type_name = models.CharField(max_length=64, default='')
-    master_id = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

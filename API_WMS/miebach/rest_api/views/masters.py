@@ -16,6 +16,7 @@ import os
 from sync_sku import *
 import simplejson
 from api_calls.netsuite import netsuite_update_create_sku
+from rest_api.views.common import internal_external_map
 
 log = init_logger('logs/masters.log')
 
@@ -1282,19 +1283,16 @@ def update_sku(request, user=''):
     return HttpResponse('Updated Successfully')
 
 def netsuite_sku(data, user):
-    external_id = ''
+    # external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
     netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
-    if netsuite_map_obj:
-        external_id = netsuite_map_obj[0].external_id
-    if not external_id:
-        external_id = get_incremental(user, 'netsuite_external_id')
-    response = netsuite_update_create_sku(data, sku_attr_dict, user, external_id=external_id)
-    if response.has_key('__values__'):
-        external_id = response['__values__']['externalId']
-        internal_id = response['__values__']['internalId']
-        NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
-                                         type_name='sku_master', master_id=data.id)
+    # if netsuite_map_obj:
+    #     external_id = netsuite_map_obj[0].external_id
+    # if not external_id:
+    #     external_id = get_incremental(user, 'netsuite_external_id')
+    response = netsuite_update_create_sku(data, sku_attr_dict, user)
+    if response.has_key('__values__') and not netsuite_map_obj.exists():
+        internal_external_map(response, type_name='sku_master')
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):

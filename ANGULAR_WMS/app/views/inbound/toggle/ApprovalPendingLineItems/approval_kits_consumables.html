@@ -1,0 +1,52 @@
+<div class="row">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>WMS Code*</th>
+        <th>Title</th>
+        <th class="w10_">Quantity*</th>
+        <th>No.Of Tests</th>
+        <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+        <th>OpenPR Qty</th>
+        <th>Last 3M Avg Consumption</th>
+        <th>Available Stock</th>
+        <th>OpenPO Qty</th>
+        <th>Suggested PR Qty</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+        <td>
+          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
+          <input type="text" name="data-id" ng-model="product.pk" class="hide" 
+          ng-if="showCase.permissions.po_or_pr_edit_permission_approver || !(showCase.permissions.change_pendingpr)">
+          <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
+        </td>
+        <td>
+          <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+        </td>
+        <td>
+          <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                 ng-class="service.get_decimal_perm()" 
+                 ng-readonly="showCase.permissions.change_pendingpr"
+                 ng-change="showCase.checkResubmit(product.fields)"
+                 size="12">
+        </td>
+        <td>
+          <input ng-model="product.fields.no_of_tests" type="text" name="no_of_tests" 
+                 class="form-control detectTab"
+                 ng-class="service.get_decimal_perm()" ng-readonly="true"
+                 size="12">
+        </td>
+        <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+        </td>
+        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
+        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td>
+        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
+        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
+        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

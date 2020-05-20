@@ -856,9 +856,11 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR'):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category=''):
+    if not product_category:
+        product_category = 'Kits&Consumables'
     finalLevel = 'level0'
-    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type)
+    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]

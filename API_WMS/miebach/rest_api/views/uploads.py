@@ -8774,8 +8774,8 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
         for col_idx in range(1, no_of_cols):
             if get_cell_data(row_idx, col_idx, reader, file_type):
                 header_name = make_model_headers[col_idx - 1]
-                temp_header_name = header_name.split('<<>>')
-                if len(temp_header_name) != len(attr_grouping_key.split('<<>>')):
+                temp_header_name = header_name.split('<>')
+                if len(temp_header_name) != len(attr_grouping_key.split('<>')):
                     index_status.setdefault(row_idx, set()).add('Attribute Grouping Key not matching with headers')
                 make_model_map.append(header_name)
         sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
@@ -8800,16 +8800,16 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
             SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='sku_attribute_grouping_key',
                                          attribute_value__in=rem_list).delete()
             for rem_val in rem_list:
-                attr_names = attr_grouping_key.split('<<>>')
+                attr_names = attr_grouping_key.split('<>')
                 for attr_index, attr_name in enumerate(attr_names):
                     make_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='sku_attribute_grouping_key',
-                                                              attribute_value__regex=rem_val.split('<<>>')[attr_index])
+                                                              attribute_value__regex=rem_val.split('<>')[attr_index])
                     if not make_check.exists():
                         SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name=attr_name,
-                                                     attribute_value=rem_val.split('<<>>')[attr_index]).delete()
+                                                     attribute_value=rem_val.split('<>')[attr_index]).delete()
         for attr_value in final_data.get('sku_attribute_grouping_key', ''):
-            temp_data = attr_value.split('<<>>')
-            attr_names = attr_grouping_key.split('<<>>')
+            temp_data = attr_value.split('<>')
+            attr_names = attr_grouping_key.split('<>')
             attr_dict = {'sku_attribute_grouping_key': attr_value}
             for attr_ind in range(0, len(attr_names)):
                 attr_dict[attr_names[attr_ind]] = temp_data[attr_ind]

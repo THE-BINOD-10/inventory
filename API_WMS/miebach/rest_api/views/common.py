@@ -10,6 +10,7 @@ from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
 from miebach_utils import *
+from inbound_common_operations import *
 import pytz
 from send_message import send_sms
 from operator import itemgetter
@@ -2643,9 +2644,20 @@ def add_group(request, user=''):
                 else:
                     sub_perms = dict(sub_perms)
                     if sub_perms.has_key(perm):
-                        permissions = Permission.objects.filter(codename=sub_perms[perm])
-                        for permission in permissions:
-                            group.permissions.add(permission)
+                        if perm.endswith('Edit') and sub_perms[perm].startswith('add'):
+                            check_data = perm
+                            results = view_master_access(sub_perms, check_data)
+                            if results:
+                                lis = []
+                                for res in results:
+                                    permissions = Permission.objects.filter(codename=res)
+                                    lis.append(permissions[0])
+                                group.permissions.add(*lis)
+                        else:
+                            permissions = Permission.objects.filter(codename=sub_perms[perm])
+                            for permission in permissions:
+                                print("else permission ====",permission)
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -6509,6 +6521,7 @@ def get_purchase_order_data(order):
     rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
+    owner_email = '',
     unit = ""
     gstin_number = ''
     order_type = 'purchase order'
@@ -6550,6 +6563,7 @@ def get_purchase_order_data(order):
         supplier_id = order.open_po.supplier.supplier_id
         address = user_data.address
         email_id = user_data.email_id
+        owner_email = user_data.owner_email_id
         username = user_data.name
         order_quantity = open_data.order_quantity
         intransit_quantity = order.intransit_quantity
@@ -6600,7 +6614,7 @@ def get_purchase_order_data(order):
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
-                  'order_type': order_type,
+                  'order_type': order_type,'owner_email':owner_email,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'apmc_tax': apmc_tax,
                   'intransit_quantity': intransit_quantity, 'order_type': order_type,
@@ -10919,6 +10933,7 @@ def create_extra_fields_for_order(created_order_id, extra_order_fields, user):
 
 def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
     data = {}
+    margin_check = get_misc_value('enable_margin_price_check', user.id, number=False, boolean=True)
     try:
         sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
         if wms_code.isdigit():
@@ -10987,6 +11002,10 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
         if sku_master.block_options == "PO":
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
+        if margin_check:
+            status = check_margin_percentage(sku_master.id, sup_markdown.id, user)
+            if status:
+                data = {'error_msg': status}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -11370,6 +11389,17 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
 
+def view_master_access(sub_perms, check_data):
+    lis = ['add','view','change','delete']
+    final_lis = []
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    if check_data in dict(permission_dict['MASTERS_LABEL']):
+        add_data = sub_perms[check_data].split('_')
+        if add_data[0] == 'add':
+            for i in lis:
+                data1 = str(i)+"_"+add_data[1]
+                final_lis.append(data1)
+    return final_lis
 
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -11769,3 +11799,4 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 master_email_map['updation_date'] = datetime.datetime.now()
                 master_email_map = MasterEmailMapping.objects.create(**master_email_map)
     return master_objs
+

@@ -1248,15 +1248,17 @@ def get_sku(request):
 @login_required
 def update_order(request):
     try:
-        orders = json.loads(request.body)
+        request_data = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    log.info('Request params for ' + request.user.username + ' is ' + str(request_data))
     try:
-        validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
-        if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        failed_status = validate_update_order(request_data, user=request.user, company_name='mieone')
+        if not failed_status:
+            failed_status = {'status': 200, 'message': 'Success'}
+        else:
+            failed_status = {'status': 207, 'messages': failed_status}
+        return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
         log.info(status)
     except Exception as e:
         import traceback
@@ -1293,7 +1295,7 @@ def create_orders(request):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log.info('create orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
@@ -1568,6 +1570,7 @@ def get_orders(request):
         picked_quantity = 0
         payment_status = 'Pending'
         shipment_dict = {}
+        aux_info = {}
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
                              values('order_id', 'shipping_quantity')
@@ -1583,6 +1586,11 @@ def get_orders(request):
                                     payment_received_sum = Sum('payment_received'))
         if payment['invoice_amount_sum'] == payment['payment_received_sum']:
             payment_status='Paid'
+        payment_summary = PaymentSummary.objects.filter(order=data_dict[0].id)
+        if payment_summary.exists():
+            payment_summary = payment_summary[0]
+            payment_info = payment_summary.payment_info
+            aux_info = json.loads(payment_info.aux_info)
         items = []
         charge_amount= 0
         item_dict = {}
@@ -1624,7 +1632,8 @@ def get_orders(request):
             dispatched_quantity = shipment_dict.get(data.id, 0)
             # picked_quantity_sku -= dispatched_quantity
             cancelled_quantity = data.cancelled_quantity
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'sku_brand':data.sku.sku_brand,
+                         'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'cancelled_quantity':cancelled_quantity,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
@@ -1658,7 +1667,7 @@ def get_orders(request):
                                     ('customer_id', data_dict[0].customer_id),
                                     ('customer_name',data_dict[0].customer_name),
                                     ('billing_address',billing_address ),
-                                    ('shipping_address',shipping_address),('items',items))))
+                                    ('shipping_address',shipping_address),('items',items),('payment_info',aux_info))))
     page_info['data'] = record
     page_info['message'] = 'success'
     page_info['page_info']['total_count'] = total_count
@@ -2182,7 +2191,9 @@ def get_customers(request, user=''):
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     customer_ids = list(master_data.values_list('customer_id', flat=True))
-    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids).values('customer_id', 'invoice_amount')
+    today = datetime.date.today()
+    month_old = today - relativedelta(months=1)
+    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids, creation_date__gte=month_old).values('customer_id', 'invoice_amount')
     for item in customer_mapping:
         if item['customer_id'] in customer_dict:
             customer_dict[item['customer_id']] += item['invoice_amount']

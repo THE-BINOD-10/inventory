@@ -61,6 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'supplier_sync': false,
                     'enable_margin_price_check':false,
                     'central_admin_level_po': false,
+                    'sku_attribute_grouping_key': '',
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -110,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      117: 'supplier_sync',
                      118:'enable_margin_price_check',
                      119: 'central_admin_level_po',
+                     120: 'sku_attribute_grouping_key',
                      }
 
   vm.check_box_data = [

@@ -4678,7 +4678,7 @@ def search_makemodel_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='sku_attribute_grouping_key', attribute_value=type).\
         values_list('sku_id', flat=True))
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id, id__in=sku_ids)

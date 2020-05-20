@@ -2191,7 +2191,9 @@ def get_customers(request, user=''):
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     customer_ids = list(master_data.values_list('customer_id', flat=True))
-    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids).values('customer_id', 'invoice_amount')
+    today = datetime.date.today()
+    month_old = today - relativedelta(months=1)
+    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids, creation_date__gte=month_old).values('customer_id', 'invoice_amount')
     for item in customer_mapping:
         if item['customer_id'] in customer_dict:
             customer_dict[item['customer_id']] += item['invoice_amount']

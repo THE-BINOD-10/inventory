@@ -8,7 +8,14 @@
   .modal-body{
   overflow: scroll;
   }
-
+  .table > tbody > tr > td {
+    border-color: #ffffff !important;
+    border-top: #fff !important;
+  }
+  .select2-container .select2-choice{
+    height: 30px !important;
+    border: 1px solid #e8e8e8 !important;
+  }
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
@@ -78,26 +85,18 @@
                     <th>WMS Code*</th>
                     <th>Title</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
-                    <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
-
-                    <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
-                    <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
-                    <!-- <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th> -->
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
                     <th class="w10_">UTGST(%)</th>
-                    <!-- <th class="w10_">CESS(%)</th> -->
-                    <!-- <th class="w10_">APMC(%)</th> -->
-                    <!-- <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th> -->
                     <th class="plus"></th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+                <tbody ng-repeat="product in showCase.model_data.data">
+                  <tr id="tab_count">
                     <td>
                       <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
                       <input type="text" name="data-id" ng-model="product.pk" class="hide" 
@@ -110,10 +109,6 @@
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
-
-                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
-                      <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control detectTab " value="">
-                    </td> -->
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                              ng-class="service.get_decimal_perm()" 
@@ -123,14 +118,10 @@
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
                     </td>
-                    <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="true" ng-keyup="showCase.getTotals()" size="12">
                     </td>
-                    <!-- <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
-                      <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
-                    </td> -->
                     <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
 		               	<input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
@@ -147,24 +138,21 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
-                    <!-- <td>
-                       <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                   <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length !== 0" ng-debounce size="12">
-                    </td> -->
-                    <!-- <td>
-                      <input type="text" ng-model="product.fields.apmc_tax" name="apmc_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-                    </td> -->
-                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-                      <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control detectTab"
-                             ng-readonly="showCase.default_status">
-                    </td> -->
-                    <!-- <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
-                      <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
-                    </td> -->
-
-                  <!--   <td>
-                      <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
+                  </tr>
+                  <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">
+                    <td class="mb8" style="border-color: #e4e4e400; padding-left: 12px;">
+                      <select ui-select2 ng-model="datum.warehouse_loc" disabled>
+                        <option ng-selected="datum.warehouse_loc" value="{{datum.warehouse_loc}}">{{datum.warehouse_loc}}</option>
+                      </select>
+                    </td>
+                    <td><input ng-model="product.fields.description" type="text" class="form-control detectTab" readonly size="50"></td>
+                    <td><input ng-model="datum.order_qty" placeholder="Quantity" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.measurement_unit" placeholder="UOM" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.price" placeholder="Unit Price" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.sgst_tax" placeholder="SGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.cgst_tax" placeholder="CGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.igst_tax" placeholder="IGST(%)" type="text" class="form-control detectTab" readonly></td>
+                    <td><input ng-model="product.fields.utgst_tax" placeholder="UTGST(%)" type="text" class="form-control detectTab" readonly></td>
                   </tr>
                 </tbody>
               </table>
@@ -183,7 +171,6 @@
 		  <div class="col-md-12 col-sm-12 col-xs-12">
               <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
 		  </div>
-
 		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
           <table class="table table-bordered">
             <thead>
@@ -249,7 +236,7 @@
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
       </div>
 		</div>
-        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+        <div class="modal-footer">
           <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.approve_pr(form, 'approved')">Approve PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow" ng-click="showCase.print_pending_po(form)">PRINT PO</button>
           <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn pop pop-red pull-left" ng-click="showCase.approve_pr(form, 'rejected')">Reject PO</button>

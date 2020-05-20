@@ -927,6 +927,10 @@ def pr_request(request):
 
     # requested_user = parentUser
     purchase_number = prApprObj.purchase_number
+    if purchase_type == 'PO':
+        purchase_data_id = prApprObj.pending_po_id
+    else:
+        purchase_data_id = prApprObj.pending_pr_id
     response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
     #Data Table Data
     temp_data = {'aaData':[]}
@@ -997,6 +1001,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
+                                                ('id', purchase_data_id),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
@@ -5817,6 +5822,71 @@ def get_sku_stock_check(request, user=''):
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+
+
+def sku_level_stock_data(request, user):
+    sku_code = request.GET.get('sku_code')
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = sku_code
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return {'status': 0, 'message': 'Invalid Location'}
+        search_params['location__location'] = request.GET.get('location')
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
+
+    po_search_params = {'open_po__sku__user': user.id,
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        intransitQty = poOrderedQty - poReceivedQty
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return {'status': 1, 'available_quantity': 0,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+        return {'status': 0, 'message': 'No Stock Found'}
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return {'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_warehouse_level_data(request, user=''):
+    warehouses = request.GET.get('all_users', '')
+    warehouses = json.loads(warehouses)
+    all_users = User.objects.filter(username__in=warehouses)
+    data_dict = {}
+    for user in all_users:
+        data = sku_level_stock_data(request, user)
+        if data['status']:
+            data_dict[user.username] = {
+                                        'available_quantity': data['available_quantity'],
+                                        'intransit_quantity': data['intransit_quantity'],
+                                        'skuPack_quantity': data['skuPack_quantity'],
+                                        'order_qty': 0
+                                        }
+    return HttpResponse(json.dumps(data_dict, cls=DjangoJSONEncoder))
+
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):

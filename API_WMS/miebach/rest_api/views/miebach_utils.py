@@ -2621,6 +2621,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'stock_auto_receive':'stock_auto_receive',
                         'supplier_sync': 'supplier_sync',
                         'enable_margin_price_check':'enable_margin_price_check',
+                        'central_admin_level_po':'central_admin_level_po',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

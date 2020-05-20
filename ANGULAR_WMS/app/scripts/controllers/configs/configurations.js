@@ -60,6 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'st_po_prefix': false,
                     'supplier_sync': false,
                     'enable_margin_price_check':false,
+                    'central_admin_level_po': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -107,7 +108,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      115: 'st_po_prefix',
                      116: 'display_parts_allocation',
                      117: 'supplier_sync',
-                     118: 'enable_margin_price_check',
+                     118:'enable_margin_price_check',
+                     119: 'central_admin_level_po',
                      }
 
 
@@ -470,6 +472,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   ]
   vm.general_check_box_data = [
     {
+     name: "Central Purchase Order",
+     model_name: "central_admin_level_po",
+     param_no: 119,
+     class_name: "fa fa-server",
+     display: true
+   },
+    {
       name: "Central Order Management",
       model_name: "central_order_mgmt",
       param_no: 70,
@@ -737,7 +746,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-
     {
       name: "Enable Pending For Approval PRs",
       model_name: "enable_pending_approval_prs",
@@ -745,7 +753,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-
     {
       name: "Auto Allocate Sale Order",
       model_name: "auto_allocate_sale_order",

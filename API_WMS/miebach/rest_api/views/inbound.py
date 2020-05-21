@@ -48,11 +48,11 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR'}
-    if user.userprofile.warehouse_level == 2:
+    if user.userprofile.warehouse_type == 'STORE':
         pr_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
         filtersMap['pending_pr__wh_user__in'] = pr_users
         filtersMap['pending_pr__final_status'] = 'approved'
-    if request.user.id != user.id and user.userprofile.warehouse_level != 2:
+    elif request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data',
@@ -73,6 +73,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
             filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
+    else:
+        filtersMap['pending_pr__wh_user'] = user
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type', 
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -85,7 +87,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
-        'pending_pr__product_category', 'pending_pr__priority_type']
+        'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id']
 
     results = PendingLineItems.objects.filter(**filtersMap).exclude(pending_pr__final_status='pr_converted_to_po').values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -143,6 +145,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                                     pr_user=pr_user, level=result['pending_pr__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         temp_data['aaData'].append(OrderedDict((
+                                                ('PR Id', result['pending_pr_id']),
                                                 ('PR Number', result['pending_pr__pr_number']),
                                                 ('Product Category', product_category),
                                                 ('Priority Type', result['pending_pr__priority_type']),
@@ -186,6 +189,8 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
+    else:
+        filtersMap['pending_pr__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
     lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
@@ -201,7 +206,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__requested_user__username', 'pending_po__po_number',
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
-                    'pending_po__prefix', 'pending_po__delivery_date', 'pending_po__pending_prs__pr_number',
+                    'pending_po__prefix', 'pending_po__delivery_date',
                     'pending_po__pending_prs__wh_user__first_name', 'pending_po__wh_user',
                     'pending_po__product_category']
 
@@ -346,6 +351,8 @@ def submit_pending_enquiry(request, user=''):
         enqObj.save()
 
     return HttpResponse('Submitted Successfully')
+
+
 @csrf_exempt
 def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -2829,46 +2836,156 @@ def convert_pr_to_po(request, user=''):
             is_actual_pr = myDict.get('is_actual_pr')[0]
         else:
             is_actual_pr = 'false'
-        if myDict.get('pr_number'):
-            pr_number = int(myDict.get('pr_number')[0])
+        if myDict.get('pr_id'):
+            pr_numbers = map(int, myDict.get('pr_id')[0].split(', '))
         else:
             return HttpResponse("No PR Number Found")
-
-        product_category = ''
-        if myDict.get('product_category'):
-            product_category = myDict.get('is_actual_pr')[0]
-
-        requested_userName = myDict.get('requested_user')[0]
-        requestedUserId = User.objects.get(username=requested_userName).id
-        pr_user = get_warehouse_user_from_sub_user(requestedUserId)
-        existingPRQs = PendingPR.objects.filter(pr_number=pr_number, wh_user=pr_user)
+        existingPRQs = PendingPR.objects.filter(id__in=pr_numbers)
         if not existingPRQs.exists():
             return HttpResponse("No PR found with the given PR Number")
-        else:
-            existingPRObj = existingPRQs[0]
-        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         orderStatus = 'saved'
-        mailSub = 'po_created'
-        poSuppliers, unMappedSkus = splitPRtoPO(all_data, user)
-        
-        if unMappedSkus:
-            return HttpResponse('No Vendors Mapping for SKUs: %s ' %(', '.join(unMappedSkus)))
+        suppliers = list(set(myDict['supplier']))
+        supplierSKUMapping = {}
+        skuQtyMap = {}
 
-        for supplier, skusInPO in poSuppliers.items():
-            po_number = get_purchase_order_id(user)
-            totalAmt, pendingPoObj = createPRObjandRertunOrderAmt(request, myDict, all_data, user, po_number,
-                                        baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
-                                        supplier=supplier, convertPRtoPO=True)
-            pendingPoObj.pending_prs.add(existingPRObj)    
-        existingPRObj.final_status='pr_converted_to_po'
-        existingPRObj.save()
+        for i in range(0, len(myDict['sku_code'])):
+            sku_code = myDict['sku_code'][i]
+            supplier = myDict['supplier'][i]
+            quantity = myDict['quantity'][i]
+            supplierSKUMapping.setdefault(supplier, []).append(sku_code)
+            skuQtyMap[sku_code] = quantity
+
+        for supplier, all_skus in supplierSKUMapping.items():
+            po_id = get_incremental(user, 'po', default_val=1)
+            pr_ids = map(int, myDict.get('pr_id')[0].split(', '))
+            shipments = user.useraddresses_set.filter(address_type='Shipment Address').values()
+            if shipments.exists():
+                shipToAddress = shipments[0]['address']
+            else:
+                shipToAddress = ''
+            existingPRObjs = PendingPR.objects.filter(id__in=pr_ids)
+            purchaseMap = {
+                'requested_user': request.user,
+                'wh_user': user,
+                'delivery_date': datetime.datetime.today(),
+                'ship_to': shipToAddress,
+                'pending_level': baseLevel,
+                'final_status': orderStatus,
+                'product_category': 'Kits&Consumables'
+            }
+            purchaseMap['po_number'] = po_id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            if user_profile:
+                purchaseMap['prefix'] = user_profile[0].prefix
+            if supplier:
+                supplyObj = SupplierMaster.objects.get(user=user.id, supplier_id=supplier)
+                purchaseMap['supplier_id'] = supplyObj.id
+            pendingPoObj = PendingPO.objects.create(**purchaseMap)
+            for existingPRObj in existingPRObjs:
+                pendingPoObj.pending_prs.add(existingPRObj)
+                existingPRObj.final_status='pr_converted_to_po'
+                existingPRObj.save()
+
+            for sku_code in all_skus:
+                quantity = skuQtyMap[sku_code]
+                tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
+                sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                if not sku_id:
+                    continue
+                skuTaxes = get_supplier_sku_price_values(supplyObj.id, sku_code, user)
+                if not skuTaxes: continue
+                skuTaxVal = skuTaxes[0]
+                taxes = skuTaxVal['taxes']
+                if taxes:
+                    sgst_tax = taxes[0]['sgst_tax']
+                    cgst_tax = taxes[0]['cgst_tax']
+                    igst_tax = taxes[0]['igst_tax']
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    price = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    price = skuTaxVal['mrp']
+
+                pendingLineItems = {
+                    'pending_po': pendingPoObj,
+                    'purchase_type': 'PO',
+                    'sku_id': sku_id[0].id,
+                }
+                try:
+                    pendingLineItems['quantity'] = quantity
+                except:
+                    pendingLineItems['quantity'] = 0
+                try:
+                    pendingLineItems['price'] = price
+                except:
+                    pendingLineItems['price'] = 0
+                pendingLineItems['measurement_unit'] = "UNITS"
+                pendingLineItems['sgst_tax'] = sgst_tax
+                pendingLineItems['cgst_tax'] = cgst_tax
+                pendingLineItems['igst_tax'] = igst_tax
+                PendingLineItems.objects.update_or_create(**pendingLineItems)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("PR Convertion failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_preview_data(request, user=''):
+    # myDict = dict(request.POST.iterlists())
+    prIds = json.loads(request.POST.get('prIds'))
+    preview_data = {'data': []}
+    prQs = PendingPR.objects.filter(id__in=prIds)
+    lineItemVals = ['sku__sku_code', 'quantity']
+    lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
+    lineItems = dict(lineItemsQs.values_list('sku__sku_code').annotate(Sum('quantity')))
+    skuPrNumsMap = {}
+    skuSupMapping = {}
+    skuPrIdsMap = {}
+    unMappedSkus = []
+    for lineItem in lineItemsQs:
+         skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.pr_number))
+         skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
+    
+    for sku_code, quantity in lineItems.items():
+        tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
+        supplierId = ''
+        supplierMapping = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=user.id)
+        if supplierMapping.exists():
+            supplierId = supplierMapping[0].supplier.supplier_id
+            skuTaxes = get_supplier_sku_price_values(supplierMapping[0].supplier, sku_code, user)
+            if skuTaxes:
+                skuTaxVal = skuTaxes[0]
+                taxes = skuTaxVal['taxes']
+                if taxes:
+                    sgst_tax = taxes[0]['sgst_tax']
+                    cgst_tax = taxes[0]['cgst_tax']
+                    igst_tax = taxes[0]['igst_tax']
+                if skuTaxVal.get('sku_supplier_price', ''):
+                    price = skuTaxVal.get('sku_supplier_price', '')
+                else:
+                    price = skuTaxVal['mrp']
+                tax = sgst_tax + cgst_tax + igst_tax
+                amount = quantity * price
+                total = amount + (amount * (tax/100))
+            skuSupMapping.setdefault(sku_code, []).append(supplierId)
+
+        preview_data['data'].append(OrderedDict((
+                ('pr_id', ', '.join(skuPrIdsMap[sku_code])),
+                ('supplier', supplierId),
+                ('pr_number', ','.join(skuPrNumsMap[sku_code])),
+                ('sku_code', sku_code),
+                ('quantity', quantity),
+                ('unit_price', price),
+                ('amount', amount),
+                ('tax', tax),
+                ('total', total),
+            )))
+    return HttpResponse(json.dumps(preview_data))
 
 
 @csrf_exempt
@@ -2937,7 +3054,7 @@ def add_pr(request, user=''):
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, is_po_creation=True)
             admin_user = None
-            if user.userprofile.warehouse_type == 'STORE':
+            if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
                 userQs = UserGroups.objects.filter(user=user)
                 if userQs.exists:
                     parentCompany = userQs[0].company_id
@@ -3058,7 +3175,7 @@ def submit_pending_approval_enquiry(request, user=''):
         permission_name = 'pending po'
         admin_user = None
         user = pendingPurchaseObj.wh_user
-        if user.userprofile.warehouse_type == 'STORE':
+        if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
             userQs = UserGroups.objects.filter(user=user)
             if userQs.exists:
                 parentCompany = userQs[0].company_id

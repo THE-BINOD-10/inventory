@@ -245,7 +245,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PR';
-          vm.pr_number = aData['PR Number']
+          // vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
@@ -491,27 +491,55 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
     }
 
-    vm.convert_pr_to_po = function(form, validation_type) {
+    vm.pr_to_po_preview = function(){
+      vm.bt_disable = true;
+      var prIds = [];
+
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+          prIds.push(temp['_aData']["PR Id"]);
+        }
+        if(Object.keys(vm.selected).length-1 == parseInt(key)){
+          var data_dict = {
+            'prIds': JSON.stringify(prIds)
+          };
+          if(prIds.length > 0){
+            vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
+              if(data.message){
+                vm.preview_data = data.data;
+                $state.go("app.inbound.RaisePr.PRemptyPreview");
+              }
+            });
+          } else {
+            vm.bt_disable = false;
+          }
+        }
+      });
+    }
+    vm.convert_pr_to_po = function(form) {
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      if (vm.is_actual_pr){
-        elem.push({name:'is_actual_pr', value:true})
-      }
-      if (vm.pr_number){
-        elem.push({name:'pr_number', value:vm.pr_number})
-      }
-      if (vm.requested_user){
-        elem.push({name:'requested_user', value:vm.requested_user})
-      }
-      vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
-        if(data.message){
-          if(data.data == 'Converted PR to PO Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.pop_msg(data.data);
-          }
+      elem.push({name:'is_actual_pr', value:true})
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
+      // if (vm.requested_user){
+      //   elem.push({name:'requested_user', value:vm.requested_user})
+      // }
+      vm.service.alert_msg("Proceed to Continue").then(function(msg) {
+        if (msg == "true") {
+          vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
+          if(data.message){
+              if(data.data == 'Converted PR to PO Successfully') {
+                vm.close();
+                vm.service.refresh(vm.dtInstance);
+              } else {
+                vm.service.pop_msg(data.data);
+              }
+            }
+          })
         }
       })
     }

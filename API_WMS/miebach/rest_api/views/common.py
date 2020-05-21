@@ -920,7 +920,7 @@ def pr_request(request):
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
     admin_user = None
-    if parentUser.userprofile.warehouse_type == 'STORE':
+    if parentUser.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
         userQs = UserGroups.objects.filter(user=parentUser)
         if userQs.exists:
             parentCompany = userQs[0].company_id

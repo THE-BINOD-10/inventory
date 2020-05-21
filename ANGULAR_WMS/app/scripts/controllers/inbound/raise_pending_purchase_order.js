@@ -223,7 +223,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
-          vm.pr_number = aData['PR Number']
+          // vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
@@ -430,8 +430,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }
-      if (vm.pr_number){
-        elem.push({name:'pr_number', value:vm.pr_number})
+      if (vm.model_data.pr_number){
+        elem.push({name:'pr_number', value:vm.model_data.pr_number})
       }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
@@ -465,8 +465,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if (vm.is_purchase_request){
       elem.push({name:'is_purchase_request', value:true})
     }
-    if (vm.pr_number){
-      elem.push({name:'pr_number', value:vm.pr_number})
+    if (vm.model_data.pr_number){
+      elem.push({name:'pr_number', value:vm.model_data.pr_number})
     }
     if (vm.requested_user){
       elem.push({name:'requested_user', value:vm.requested_user})

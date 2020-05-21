@@ -3089,6 +3089,7 @@ def get_supplier_data(request, user=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
+                                    "batch_ref": temp_json.get('batch_ref', ''),
                                     'pallet_number': temp_json.get('pallet_number', ''),
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
@@ -3118,7 +3119,7 @@ def get_supplier_data(request, user=''):
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
                                  'buy_price': order_data['price'],
-                                 'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
+                                 'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
@@ -3657,6 +3658,8 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                     user_check = 'purchase_order__stpurchaseorder__open_st__sku__user'
                 po_loc, created_qc_ids = save_update_order(location_quantity, location_data, temp_dict, user_check, user, created_qc_ids=created_qc_ids)
                 #Batch Details Creation
+                if 'batch_ref' in temp_dict:
+                    batch_dict['batch_ref']= temp_dict['batch_ref']
                 batch_dict['transact_type'] = 'po_loc'
                 batch_dict['transact_id'] = po_loc.id
                 create_update_batch_data(batch_dict)
@@ -3693,6 +3696,8 @@ def save_po_location(put_zone, temp_dict, seller_received_list=None, run_segrega
                         setattr(pallet_data, 'po_location_id', po_loc)
                         pallet_data.save()
                 #Batch Details Creation
+                if 'batch_ref' in temp_dict:
+                    batch_dict['batch_ref']= temp_dict['batch_ref']
                 batch_dict['transact_type'] = 'po_loc'
                 batch_dict['transact_id'] = po_location_id
                 create_update_batch_data(batch_dict)
@@ -4314,7 +4319,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
                           'expiry_date': myDict['exp_date'][i], 'manufactured_date': myDict['mfg_date'][i],
                           'tax_percent': myDict['tax_percent'][i], 'mrp': myDict['mrp'][i],
-                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i]}
+                          'buy_price': myDict['buy_price'][i], 'weight': myDict['weight'][i],"batch_ref": myDict['batch_ref'][i]}
 
 
         seller_received_list = []
@@ -4378,6 +4383,8 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                                                seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
+        if 'batch_ref' in myDict.keys():
+           temp_dict["batch_ref"]=myDict['batch_ref'][i]
         if discrepency_quantity:
             temp_dict['discrepency_quantity'] = discrepency_quantity
         if get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1:

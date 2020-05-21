@@ -537,39 +537,85 @@ function view_orders() {
     }
 
 
-function pull_confirmation() {
-
-  vm.sku_scan = function(event, field) {
-
-    var field = field;
-    vm.service.scan(event, field).then(function(data){
-      if(data) {
-        var sku_brand = vm.model_data.data[0].sku_brand;
-        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
-          if(data.message) {
-            if(typeof(data.data) == 'string') {
-              alert(data.data);
-              vm.model_data.scan_sku = "";
-              return false;
-            }
-            field = data.data.sku_code;
-            vm.model_data.scan_sku = field;
-
-            if(vm.check_sku_match(field)) {
-              if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
-                alert("Reservered quantity equal to picked quantity");
-                vm.model_data.scan_sku = "";
-              } else {
-                vm.incr_qty();
-              }
-            } else {
-              alert("Invalid SKU");
-              vm.model_data.scan_sku = "";
-            }
-          }
-        })
+vm.check_scanned_content_match = function(field){
+    var exist = false;
+    var sku_code ='';
+    angular.forEach(vm.model_data.data, function(record){
+      if(record.batch_ref == field) {
+        exist = true;
+        sku_code = record.sku_code;
+        return exist;
       }
     });
+    if(exist){
+      return {"status":exist,"sku_code":sku_code};
+    }
+    return {"status":exist};
+}
+vm.scanned_content_incr_qty = function(sku_field) {
+  var sku = sku_field;
+  var location = vm.model_data.scan_location;
+  var status = false;
+  for(var i=0; i < vm.model_data.data.length; i++) {
+
+    if(vm.model_data.data[i].wms_code == sku) {
+      if(vm.increase(vm.model_data.data[i])) {
+        status = false;
+        break;
+      } else {
+        status = true;
+      }
+    }
+  }
+  if(status) {
+    alert("Reserved quantity equal to picked quantity");
+    vm.model_data.scan_sku = "";
+  }
+}
+
+function pull_confirmation() {
+  vm.sku_scan = function(event, field) {
+    var field = field;
+    let sku_status=vm.check_scanned_content_match(field)
+    if(sku_status["status"]) {
+      let sku_field=sku_status["sku_code"]
+      if(vm.model_data.sku_total_quantities[sku_field] <= vm.remain_quantity[sku_field]) {
+        alert("Reservered quantity equal to picked quantity");
+        vm.model_data.scan_sku = "";
+      } else {
+        vm.scanned_content_incr_qty(sku_field);
+      }
+    } 
+    else {
+      vm.service.scan(event, field).then(function(data){
+        if(data) {
+          var sku_brand = vm.model_data.data[0].sku_brand;
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field, 'sku_brand': sku_brand}).then(function(data){
+            if(data.message) {
+              if(typeof(data.data) == 'string') {
+                alert(data.data);
+                vm.model_data.scan_sku = "";
+                return false;
+              }
+              field = data.data.sku_code;
+              vm.model_data.scan_sku = field;
+
+              if(vm.check_sku_match(field)) {
+                if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+                  alert("Reservered quantity equal to picked quantity");
+                  vm.model_data.scan_sku = "";
+                } else {
+                  vm.incr_qty();
+                }
+              } else {
+                alert("Invalid SKU");
+                vm.model_data.scan_sku = "";
+              }
+            }
+          })
+        }
+      });
+    }
   }
 
 

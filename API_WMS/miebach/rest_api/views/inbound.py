@@ -55,10 +55,9 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
     elif request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        memQs = MasterEmailMapping.objects.filter(master_type='actual_pr_approvals_conf_data',
+        memQs = MasterEmailMapping.objects.filter(user=user, master_type='actual_pr_approvals_conf_data',
                                                   email_id=currentUserEmailId)
-        if memQs.exists() and memQs.count() == 1:
-            memObj = memQs[0]
+        for memObj in memQs:
             master_id = memObj.master_id
             prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
             if prApprObj.exists():
@@ -2884,7 +2883,7 @@ def convert_pr_to_po(request, user=''):
             pendingPoObj = PendingPO.objects.create(**purchaseMap)
             for existingPRObj in existingPRObjs:
                 pendingPoObj.pending_prs.add(existingPRObj)
-                existingPRObj.final_status='pr_converted_to_po'
+                # existingPRObj.final_status='pr_converted_to_po'
                 existingPRObj.save()
 
             for sku_code in all_skus:
@@ -2969,6 +2968,10 @@ def get_pr_preview_data(request, user=''):
                     price = skuTaxVal.get('sku_supplier_price', '')
                 else:
                     price = skuTaxVal['mrp']
+                if skuTaxVal.get('sku_supplier_moq', ''):
+                    moq = skuTaxVal['sku_supplier_moq']
+                else:
+                    moq = 0
                 tax = sgst_tax + cgst_tax + igst_tax
                 amount = quantity * price
                 total = amount + (amount * (tax/100))
@@ -2980,6 +2983,7 @@ def get_pr_preview_data(request, user=''):
                 ('pr_number', ','.join(skuPrNumsMap[sku_code])),
                 ('sku_code', sku_code),
                 ('quantity', quantity),
+                ('moq', moq),
                 ('unit_price', price),
                 ('amount', amount),
                 ('tax', tax),

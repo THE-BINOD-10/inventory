@@ -15,6 +15,7 @@
                   <th>Supplier</th>
                   <th>PR Number</th>
                   <th>SKU Code</th>
+                  <th>MOQ</th>
                   <th>Quantity</th>
                   <th>Unit Rate</th>
                   <th>Amount</th>
@@ -35,18 +36,26 @@
                     <input ng-hide="true" class="form-control" ng-model="data.pr_id" type="text" name="pr_id">
                   </td>
                   <td>
-                    <input class="form-control" ng-model="data.sku_code" type="text" name="sku_code"readonly>
+                    <input class="form-control" ng-model="data.sku_code" type="text" name="sku_code" readonly>
                   </td>
                   <td>
-                    <input class="form-control" ng-model="data.quantity" type="text" name="quantity"readonly>
+                    <input class="form-control" ng-model="data.moq" type="text" name="moq" readonly>
                   </td>
-                  <!-- <td>{{data.pr_number}}</td> -->
-                  
-                  <!-- <td>{{data.quantity}}</td> -->
-                  <td>{{data.unit_price}}</td>
-                  <td>{{data.amount}}</td>
-                  <td>{{data.tax}}</td>
-                  <td>{{data.total}}</td>
+                  <td>
+                    <input class="form-control" ng-model="data.quantity" type="text" name="quantity" readonly>
+                  </td>
+                  <td>
+                    <input class="form-control" ng-model="data.unit_price" type="text" name="unit_price" readonly>
+                  </td>
+                  <td>
+                    <input class="form-control" ng-model="data.amount" type="text" name="amount" readonly>
+                  </td>
+                  <td>
+                    <input class="form-control" ng-model="data.tax" type="text" name="tax" readonly>
+                  </td>
+                  <td>
+                    <input class="form-control" ng-model="data.total" type="text" name="total" readonly>
+                  </td>
                  </tr>
                </tbody>
              </table>

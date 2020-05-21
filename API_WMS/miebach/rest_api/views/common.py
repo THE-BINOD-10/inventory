@@ -11285,6 +11285,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                     'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
         if supplier_sku:
             resultMap['sku_supplier_price'] = supplier_sku[0].price
+            resultMap['sku_supplier_moq'] = supplier_sku[0].moq
         result_data.append(resultMap)
 
         return result_data

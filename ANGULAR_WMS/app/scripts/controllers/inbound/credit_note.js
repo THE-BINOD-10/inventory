@@ -29,7 +29,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
-    // var columns = ['Warehouse Name', 'Total Quantity']
     // vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns = [
       DTColumnBuilder.newColumn('po_number').withTitle('PO Number'),
@@ -133,7 +132,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         })
       }
     }
-
     vm.close = close;
     function close() {
       vm.model_data = {};

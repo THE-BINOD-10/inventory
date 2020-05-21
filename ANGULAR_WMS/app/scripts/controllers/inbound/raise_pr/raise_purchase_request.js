@@ -55,9 +55,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Total Quantity", 
+    var columns = [ "PR Number", "Total Quantity",
                     "PR Created Date", "PR Delivery Date", "Warehouse",
-                    "PR Raise By",  "Validation Status", "Pending Level", 
+                    "PR Raise By",  "Validation Status", "Pending Level",
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -91,7 +91,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
       return nRow;
     }
-
+  $scope.getkeys = function (event) {
+        let key = event.keyCode;
+        if (event.altKey && event.which == 78) { // alt + n  enter key
+          let index= (vm.model_data.data.length)-1
+          vm.update_data(index, true, true)
+          $('input[name="wms_code"]').trigger('focus');
+        }
+    }
   $(document).on('keydown', 'input.detectTab', function(e) {
     var keyCode = e.keyCode || e.which;
 

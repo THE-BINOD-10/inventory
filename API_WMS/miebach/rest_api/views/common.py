@@ -927,6 +927,10 @@ def pr_request(request):
 
     # requested_user = parentUser
     purchase_number = prApprObj.purchase_number
+    if purchase_type == 'PO':
+        purchase_data_id = prApprObj.pending_po_id
+    else:
+        purchase_data_id = prApprObj.pending_pr_id
     response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
     #Data Table Data
     temp_data = {'aaData':[]}
@@ -997,6 +1001,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
+                                                ('id', purchase_data_id),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
@@ -2627,9 +2632,20 @@ def add_group(request, user=''):
                 else:
                     sub_perms = dict(sub_perms)
                     if sub_perms.has_key(perm):
-                        permissions = Permission.objects.filter(codename=sub_perms[perm])
-                        for permission in permissions:
-                            group.permissions.add(permission)
+                        if perm.endswith('Edit') and sub_perms[perm].startswith('add'):
+                            check_data = perm
+                            results = view_master_access(sub_perms, check_data)
+                            if results:
+                                lis = []
+                                for res in results:
+                                    permissions = Permission.objects.filter(codename=res)
+                                    lis.append(permissions[0])
+                                group.permissions.add(*lis)
+                        else:
+                            permissions = Permission.objects.filter(codename=sub_perms[perm])
+                            for permission in permissions:
+                                print("else permission ====",permission)
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -5806,6 +5822,71 @@ def get_sku_stock_check(request, user=''):
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}))
+
+
+def sku_level_stock_data(request, user):
+    sku_code = request.GET.get('sku_code')
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = sku_code
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return {'status': 0, 'message': 'Invalid Location'}
+        search_params['location__location'] = request.GET.get('location')
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
+
+    po_search_params = {'open_po__sku__user': user.id,
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        intransitQty = poOrderedQty - poReceivedQty
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return {'status': 1, 'available_quantity': 0,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+        return {'status': 0, 'message': 'No Stock Found'}
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return {'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_warehouse_level_data(request, user=''):
+    warehouses = request.GET.get('all_users', '')
+    warehouses = json.loads(warehouses)
+    all_users = User.objects.filter(username__in=warehouses)
+    data_dict = {}
+    for user in all_users:
+        data = sku_level_stock_data(request, user)
+        if data['status']:
+            data_dict[user.username] = {
+                                        'available_quantity': data['available_quantity'],
+                                        'intransit_quantity': data['intransit_quantity'],
+                                        'skuPack_quantity': data['skuPack_quantity'],
+                                        'order_qty': 0
+                                        }
+    return HttpResponse(json.dumps(data_dict, cls=DjangoJSONEncoder))
+
 
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
@@ -9336,7 +9417,7 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date', 'weight', 'batch_ref')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:
@@ -10843,7 +10924,7 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
         if margin_check:
-            status = check_margin_percentage(sku_master.id, sup_markdown.id)
+            status = check_margin_percentage(sku_master.id, sup_markdown.id, user)
             if status:
                 data = {'error_msg': status}
     except Exception as e:
@@ -11229,6 +11310,17 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
 
+def view_master_access(sub_perms, check_data):
+    lis = ['add','view','change','delete']
+    final_lis = []
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    if check_data in dict(permission_dict['MASTERS_LABEL']):
+        add_data = sub_perms[check_data].split('_')
+        if add_data[0] == 'add':
+            for i in lis:
+                data1 = str(i)+"_"+add_data[1]
+                final_lis.append(data1)
+    return final_lis
 
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -11576,3 +11668,4 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 master_email_map['updation_date'] = datetime.datetime.now()
                 master_email_map = MasterEmailMapping.objects.create(**master_email_map)
     return master_objs
+

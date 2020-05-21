@@ -136,6 +136,7 @@ urlpatterns = [
     url(r'^confirm_po1/$', confirm_po1),
     url(r'^delete_po_group/$', delete_po_group),
     url(r'^confirm_add_po/$', confirm_add_po),
+    url(r'^confirm_central_add_po/$', confirm_central_add_po),
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
     url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
@@ -568,6 +569,9 @@ urlpatterns = [
     url(r'^get_cancel_invoice_report/$', get_cancel_invoice_report),
     url(r'^get_credit_note_report/$', get_credit_note_report),
     url(r'print_credit_note_report/$', print_credit_note_report),
+    url(r'get_po_approval_report/$', get_po_approval_report),
+    url(r'get_approval_summary_report/$', get_approval_summary_report),
+    url(r'get_approval_detail_report/$', get_approval_detail_report),
     url(r'^get_st_po_filter/$', get_st_po_filter),
 ]
 
@@ -697,6 +701,7 @@ urlpatterns += [
     url(r'get_tally_data/', get_tally_data),
     url(r'get_categories_list/', get_categories_list),
     url(r'get_sku_stock_check/', get_sku_stock_check),
+    url(r'get_warehouse_level_data/', get_warehouse_level_data),
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),

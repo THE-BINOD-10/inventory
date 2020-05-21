@@ -21,7 +21,7 @@ from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
 from dateutil.relativedelta import *
 from django.db.models.functions import ExtractHour, ExtractMinute
-
+import unicodedata
 
 
 # from inbound import *

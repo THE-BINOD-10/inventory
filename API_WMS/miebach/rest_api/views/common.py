@@ -1933,7 +1933,10 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+                cell_data = open_sheet.cell(row_idx, col_idx).value
+                if isinstance(cell_data, unicode):
+                    cell_data = unicodedata.normalize('NFKD', cell_data).encode('ascii', 'ignore')
+                ws1.write(row_idx, col_idx, str(cell_data), header_style)
             ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:

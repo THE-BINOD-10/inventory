@@ -8766,7 +8766,18 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
     data_list = []
     attr_grouping_key = get_misc_value('sku_attribute_grouping_key', user.id)
     for col_idx in range(1, no_of_cols):
-        make_model_headers.append(get_cell_data(0, col_idx, reader, file_type))
+        header = get_cell_data(0, col_idx, reader, file_type)
+        try:
+            if isinstance(header, unicode):
+                header = unicodedata.normalize('NFKD', header).encode('ascii', 'ignore')
+            else:
+                header = str(header)
+        except Exception as e:
+            header = ''
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Attribute Grouping Failed for user %s " % str(user.username))
+        make_model_headers.append(header)
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         sku_code = get_cell_data(row_idx, 0, reader, file_type)
@@ -8774,10 +8785,14 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
         for col_idx in range(1, no_of_cols):
             if get_cell_data(row_idx, col_idx, reader, file_type):
                 header_name = make_model_headers[col_idx - 1]
+                if header_name == 'Status':
+                    continue
                 temp_header_name = header_name.split('<>')
                 if len(temp_header_name) != len(attr_grouping_key.split('<>')):
                     index_status.setdefault(row_idx, set()).add('Attribute Grouping Key not matching with headers')
                 make_model_map.append(header_name)
+        if isinstance(sku_code, float):
+            sku_code = str(int(sku_code))
         sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
         if not sku_master.exists():
             index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
@@ -8812,6 +8827,8 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
             attr_names = attr_grouping_key.split('<>')
             attr_dict = {'sku_attribute_grouping_key': attr_value}
             for attr_ind in range(0, len(attr_names)):
+                if not temp_data[attr_ind]:
+                    continue
                 attr_dict[attr_names[attr_ind]] = temp_data[attr_ind]
             for attr_key, attr_val in attr_dict.items():
                 create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(final_data['sku_master'], attr_key,

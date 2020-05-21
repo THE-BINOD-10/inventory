@@ -112,12 +112,73 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      119: 'central_admin_level_po',
                      }
 
-  vm.check_box_data = [
+
+  vm.masters_check_box_data = [
     {
-      name: "Tally Enable/Disable",
-      model_name: "tally_config",
-      param_no: 30,
-      class_name: "fa fa-th",
+      name: "Use Serial Numbers for SKUs",
+      model_name: "use_imei",
+      param_no: 6,
+      class_name: "fa fa-list-ol",
+      display: true
+    },
+    {
+      name: "Sync SKU b/n Users",
+      model_name: "sku_sync",
+      param_no: 21,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "SKU Pack Configuration",
+      model_name: "sku_pack_config",
+      param_no: 74,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Mandate Sku Supplier Mapping in PO",
+      model_name: "mandate_sku_supplier",
+      param_no: 88,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Disable Auto Supplier SKU Mapping",
+      model_name: "supplier_mapping",
+      param_no: 99,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+
+
+  vm.outbound_check_box_data = [
+    {
+      name: "Stop Default Tax Type in Create Order",
+      model_name: "stop_default_tax",
+      param_no: 96,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Picklist Sort By SKU Sequence",
+      model_name: "picklist_sort_by_sku_sequence",
+      param_no: 103,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Display Delivery Challan Number In Invoice",
+      model_name: "display_dc_invoice",
+      param_no: 101,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Display IMEI Numbers In Invoice",
+      model_name: "show_imei_invoice",
+      param_no: 39,
+      class_name: "fa fa-refresh",
       display: true
     },
     {
@@ -125,13 +186,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_generate_picklist",
       param_no: 22,
       class_name: "fa fa-envelope-o",
-      display: true
-    },
-    {
-      name: "Repeat PO",
-      model_name: "repeat_po",
-      param_no: 93,
-      class_name: "fa fa-refresh",
       display: true
     },
     {
@@ -145,13 +199,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "First In First Out Required",
       model_name: "fifo_switch",
       param_no: 3,
-      class_name: "glyphicon glyphicon-sort",
-      display: true
-    },
-    {
-      name: "Location Serial Mapping",
-      model_name: "loc_serial_mapping_switch",
-      param_no: 94,
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
@@ -198,61 +245,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Enable/Disable Cross Stock",
-      model_name: "back_order",
-      param_no: 5,
-      class_name: "fa fa-exchange",
-      display: true
-    },
-    {
-      name: "Use Serial Numbers for SKUs",
-      model_name: "use_imei",
-      param_no: 6,
-      class_name: "fa fa-list-ol",
-      display: true
-    },
-    {
-      name: "Pallet Enable/Disable",
-      model_name: "pallet_switch",
-      param_no: 7,
-      class_name: "fa fa-archive",
-      display: true
-    },
-    {
-      name: "Production Enable/Disable",
-      model_name: "production_switch",
-      param_no: 8,
+      name: "Generate Delivery Challan Before PullConfiramation",
+      model_name: "generate_delivery_challan_before_pullConfiramation",
+      param_no: 79,
       class_name: "fa fa-server",
       display: true
     },
-    {
-      name: "POS Enable/Disable",
-      model_name: "pos_switch",
-      param_no: 9,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
-      name: "Auto PO Enable/Disable",
-      model_name: "auto_po_switch",
-      param_no: 10,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
-      name: "Auto Confirm PO",
-      model_name: "auto_confirm_po",
-      param_no: 50,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
-      name: "Display Place Sample option in Customer Portal",
-      model_name: "create_order_po",
-      param_no: 51,
-      class_name: "fa fa-refresh",
-      display: true
-    },
+
     {
       name: "Generate Picklist for out of stock orders",
       model_name: "no_stock_switch",
@@ -275,41 +274,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Picklist Sort By SKU Sequence",
-      model_name: "picklist_sort_by_sku_sequence",
-      param_no: 103,
-      class_name: "fa fa-envelope",
-      display: true
-    },
-    {
-      name: "Sync WMS Stock Count",
-      model_name: "stock_sync",
-      param_no: 20,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "Sync SKU b/n Users",
-      model_name: "sku_sync",
-      param_no: 21,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "sync customer price grid b/n users.",
-      model_name: "priceband_sync",
-      param_no: 48,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "Label Generation",
-      model_name: "label_generation",
-      param_no: 35,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
       name: "Support Marketplace Model",
       model_name: "marketplace_model",
       param_no: 34,
@@ -317,51 +281,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Display IMEI Numbers In Invoice",
-      model_name: "show_imei_invoice",
-      param_no: 39,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "Display Delivery Challan Number In Invoice",
-      model_name: "display_dc_invoice",
-      param_no: 101,
-      class_name: "fa fa-refresh",
-      display: true
-    },
-    {
-      name: "Create Seller Order",
-      model_name: "create_seller_order",
-      param_no: 41,
-      class_name: "fa fa-server",
-      display: vm.marketplace_user
-    },
-    {
-      name: "Display Remarks in Mail",
-      model_name: "display_remarks_mail",
-      param_no: 40,
-      class_name: "fa fa-envelope",
-      display: true
-    },
-    {
-      name: "Decimal Quantity",
-      model_name: "float_switch",
-      param_no: 15,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
       name: "Invoice number generation",
       model_name: "increment_invoice",
       param_no: 44,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
-      name: "Generic Warehouse Level",
-      model_name: "generic_wh_level",
-      param_no: 49,
       class_name: "fa fa-server",
       display: true
     },
@@ -387,6 +309,97 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Customer DC Enable/Disable",
+      model_name: "customer_dc",
+      param_no: 64,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+    {
+      name: "Enable Ratings",
+      model_name: "mark_as_delivered",
+      param_no: 68,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Central Order Reassigning",
+      model_name: "central_order_reassigning",
+      param_no: 73,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Sno(Sequence Number) in Invoice",
+      model_name: "sno_in_invoice",
+      param_no: 77,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Dispatch QC Check",
+      model_name: "dispatch_qc_check",
+      param_no: 83,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Block Expired Batches In Picklist",
+      model_name: "block_expired_batches_picklist",
+      param_no: 84,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Display Order Reference in Outbound",
+      model_name: "display_order_reference",
+      param_no: 102,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Mandate EwayBillNumber in ShipmentInfo",
+      model_name: "mandate_ewaybill_number",
+      param_no: 106,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Allow Partial Picklist Generation",
+      model_name: "allow_partial_picklist",
+      param_no: 110,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Display SKU Packs In Invoice",
+      model_name: "sku_packs_invoice",
+      param_no: 109,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+  ]
+
+
+
+  vm.b2b_check_box_data = [
+    {
+      name: "Display Place Sample option in Customer Portal",
+      model_name: "create_order_po",
+      param_no: 51,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Enable Brand Categorization",
+      model_name: "brand_categorization",
+      param_no: 93,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
       name: "Disable Brands View",
       model_name: "disable_brands_view",
       param_no: 54,
@@ -394,23 +407,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Sellable Segregation Enable/Disable",
-      model_name: "sellable_segregation",
-      param_no: 55,
-      class_name: "glyphicon glyphicon-sort",
-      display: true
-    },
-    {
       name: "Display Price in Customer Portal",
       model_name: "display_styles_price",
       param_no: 56,
-      class_name: "fa fa-rupee",
-      display: true
-    },
-    {
-      name: "Show Purchase History",
-      model_name: "show_purchase_history",
-      param_no: 57,
       class_name: "fa fa-rupee",
       display: true
     },
@@ -436,6 +435,245 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Restrict order to stock availability in customer portal",
+      model_name: "order_exceed_stock",
+      param_no: 71,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+
+  vm.notification_check_box_data = [
+    {
+      name: "Notify SKU below Threshold",
+      model_name: "sku_less_than_threshold",
+      param_no: 86,
+      class_name: "fa fa-server",
+      display: true
+    }
+  ]
+  vm.pos_check_box_data = [
+    {
+      name: "POS Enable/Disable",
+      model_name: "pos_switch",
+      param_no: 9,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+  vm.tally_check_box_data = [
+    {
+      name: "Tally Enable/Disable",
+      model_name: "tally_config",
+      param_no: 30,
+      class_name: "fa fa-th",
+      display: true
+    },
+  ]
+  vm.general_check_box_data = [
+    {
+     name: "Central Purchase Order",
+     model_name: "central_admin_level_po",
+     param_no: 119,
+     class_name: "fa fa-server",
+     display: true
+   },
+    {
+      name: "Central Order Management",
+      model_name: "central_order_mgmt",
+      param_no: 70,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Sync Supplier b/n Users",
+      model_name: "supplier_sync",
+      param_no: 117,
+      class_name: "fa fa-server",
+      display: true
+      },
+      {
+        name: "Enable Margin Check for PO",
+        model_name: "enable_margin_price_check",
+        param_no: 118,
+        class_name: "fa fa-server",
+        display: true
+      },
+    {
+      name: "Decimal Quantity",
+      model_name: "float_switch",
+      param_no: 15,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+    {
+      name: "Sync WMS Stock Count",
+      model_name: "stock_sync",
+      param_no: 20,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+
+    {
+      name: "sync customer price grid b/n users.",
+      model_name: "priceband_sync",
+      param_no: 48,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+
+
+
+    {
+      name: "Create Seller Order",
+      model_name: "create_seller_order",
+      param_no: 41,
+      class_name: "fa fa-server",
+      display: vm.marketplace_user
+    },
+
+    {
+      name: "Generic Warehouse Level",
+      model_name: "generic_wh_level",
+      param_no: 49,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+
+
+    {
+      name: "Allow Rejected Serial Numbers",
+      model_name: "allow_rejected_serials",
+      param_no: 90,
+      class_name: "fa fa-server",
+      display: true
+    },
+
+
+
+    {
+      name: "Display Allocation/Deallocation Page",
+      model_name: "display_parts_allocation",
+      param_no: 116,
+      class_name: "fa fa-server",
+      display: true
+     },
+
+  ]
+
+  vm.production_check_box_data = [
+    {
+      name: "Production Enable/Disable",
+      model_name: "production_switch",
+      param_no: 8,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+  vm.reports_check_box_data = [
+    {
+      name: "Display NonTransacted SKU's In Stock Ledger",
+      model_name: "non_transacted_skus",
+      param_no: 85,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+  vm.stock_locater_check_box_data = [
+    {
+      name: "Allocate Stock for Combo Products",
+      model_name: "combo_allocate_stock",
+      param_no: 76,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+
+  ]
+
+  vm.payments_check_box_data = [
+    {
+      name: "Alternative Payment Tracker Enable/Disable",
+      model_name: "invoice_based_payment_tracker",
+      param_no: 66,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
+
+  vm.inbound_check_box_data = [
+    {
+      name: "Repeat PO",
+      model_name: "repeat_po",
+      param_no: 93,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Location Serial Mapping",
+      model_name: "loc_serial_mapping_switch",
+      param_no: 94,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Enable/Disable Cross Stock",
+      model_name: "back_order",
+      param_no: 5,
+      class_name: "fa fa-exchange",
+      display: true
+    },
+    {
+      name: "Pallet Enable/Disable",
+      model_name: "pallet_switch",
+      param_no: 7,
+      class_name: "fa fa-archive",
+      display: true
+    },
+    {
+      name: "Auto PO Enable/Disable",
+      model_name: "auto_po_switch",
+      param_no: 10,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto Confirm PO",
+      model_name: "auto_confirm_po",
+      param_no: 50,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Label Generation",
+      model_name: "label_generation",
+      param_no: 35,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Display Remarks in Mail",
+      model_name: "display_remarks_mail",
+      param_no: 40,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Sellable Segregation Enable/Disable",
+      model_name: "sellable_segregation",
+      param_no: 55,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Show Purchase History",
+      model_name: "show_purchase_history",
+      param_no: 57,
+      class_name: "fa fa-rupee",
+      display: true
+    },
+    {
       name: "Auto Raise Stock Transfer Enable/Disable",
       model_name: "auto_raise_stock_transfer",
       param_no: 62,
@@ -449,287 +687,101 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
+
     {
-      name: "Customer DC Enable/Disable",
-      model_name: "customer_dc",
-      param_no: 64,
+      name: "Check Invoice Value In Receive PO",
+      model_name: "receive_po_invoice_check",
+      param_no: 67,
       class_name: "fa fa-server",
       display: true
     },
     {
-      name: "Central Order Management",
-      model_name: "central_order_mgmt",
-      param_no: 70,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
-     name: "Alternative Payment Tracker Enable/Disable",
-     model_name: "invoice_based_payment_tracker",
-     param_no: 66,
-     class_name: "fa fa-server",
-     display: true
-    },
-    {
-     name: "Check Invoice Value In Receive PO",
-     model_name: "receive_po_invoice_check",
-     param_no: 67,
-     class_name: "fa fa-server",
-     display: true
-    },
-    {
-     name: "Enable Ratings",
-     model_name: "mark_as_delivered",
-     param_no: 68,
-     class_name: "fa fa-server",
-     display: true
-    },
-    {
-     name: "Restrict order to stock availability in customer portal",
-     model_name: "order_exceed_stock",
-     param_no: 71,
-     class_name: "fa fa-server",
-     display: true
-    },
-    {
-      name: "SKU Pack Configuration",
-      model_name: "sku_pack_config",
-      param_no: 74,
-      class_name: "fa fa-server",
-      display: true
-    },
-   {
-     name: "Central Order Reassigning",
-     model_name: "central_order_reassigning",
-     param_no: 73,
-     class_name: "fa fa-server",
-     display: true
-   },
-   {
       name: "User Prefix for PO Order ID",
       model_name: "po_sub_user_prefix",
       param_no: 75,
       class_name: "fa fa-server",
       display: true
-   },
-   {
-      name: "Allocate Stock for Combo Products",
-      model_name: "combo_allocate_stock",
-      param_no: 76,
-      class_name: "glyphicon glyphicon-sort",
+    },
+
+    {
+      name: "Unique MRP in Putaway",
+      model_name: "unique_mrp_putaway",
+      param_no: 80,
+      class_name: "fa fa-server",
       display: true
-   },
-   {
-     name: "Sno(Sequence Number) in Invoice",
-     model_name: "sno_in_invoice",
-     param_no: 77,
-     class_name: "fa fa-server",
-     display: true
-   },
-   {
-     name: "Unique MRP in Putaway",
-     model_name: "unique_mrp_putaway",
-     param_no: 80,
-     class_name: "fa fa-server",
-     display: true
-   },
-   {
-     name: "Generate Delivery Challan Before PullConfiramation",
-     model_name: "generate_delivery_challan_before_pullConfiramation",
-     param_no: 79,
-     class_name: "fa fa-server",
-     display: true
-   },
-   {
-    name: "Dispatch QC Check",
-    model_name: "dispatch_qc_check",
-    param_no: 83,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-    name: "Block Expired Batches In Picklist",
-    model_name: "block_expired_batches_picklist",
-    param_no: 84,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-    name: "Display NonTransacted SKU's In Stock Ledger",
-    model_name: "non_transacted_skus",
-    param_no: 85,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-    name: "Notify SKU below Threshold",
-    model_name: "sku_less_than_threshold",
-    param_no: 86,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-   name: "Mandate Sku Supplier Mapping in PO",
-   model_name: "mandate_sku_supplier",
-   param_no: 88,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Update MRP On GRN",
-   model_name: "update_mrp_on_grn",
-   param_no: 89,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Allow Rejected Serial Numbers",
-   model_name: "allow_rejected_serials",
-   param_no: 90,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Brand Categorization",
-   model_name: "brand_categorization",
-   param_no: 93,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Purchase Order Preview",
-   model_name: "purchase_order_preview",
-   param_no: 95,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Stop Default Tax Type in Create Order",
-   model_name: "stop_default_tax",
-   param_no: 96,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Disable Auto Supplier SKU Mapping",
-   model_name: "supplier_mapping",
-   param_no: 99,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-    name: "Show MRP in Goods Receipt Note",
-    model_name: "show_mrp_grn",
-    param_no: 100,
-    class_name: "fa fa-rupee",
-    display: true
-  },
-  {
-   name: "Display Order Reference in Outbound",
-   model_name: "display_order_reference",
-   param_no: 102,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Mandate Invoice Number in GRN",
-   model_name: "mandate_invoice_number",
-   param_no: 104,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Display Allocation/Deallocation Page",
-   model_name: "display_parts_allocation",
-   param_no: 116,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Pending For Approval POs",
-   model_name: "enable_pending_approval_pos",
-   param_no: 105,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Mandate EwayBillNumber in ShipmentInfo",
-   model_name: "mandate_ewaybill_number",
-   param_no: 106,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Enable Pending For Approval PRs",
-   model_name: "enable_pending_approval_prs",
-   param_no: 107,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Allow Partial Picklist Generation",
-   model_name: "allow_partial_picklist",
-   param_no: 110,
-   class_name: "fa fa-server",
-   display: true
-   },
-   {
-   name: "Auto Allocate Sale Order",
-   model_name: "auto_allocate_sale_order",
-   param_no: 108,
-   class_name: "fa fa-server",
-   display: true
- },
- {
-   name: "Display SKU Packs In Invoice",
-   model_name: "sku_packs_invoice",
-   param_no: 109,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Edit permission to Approvers for POs/PRs",
-   model_name: "po_or_pr_edit_permission_approver",
-   param_no: 111,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Stock Transfer Auto Receive",
-   model_name: "stock_auto_receive",
-   param_no: 112,
-   class_name: "fa fa-server",
-   display: true
-   },
-   {
-   name: "Auto Fill Receive Quantity",
-   model_name: "auto_generate_receive_qty",
-    param_no: 114,
-   class_name: "fa fa-server",
-   display: true
-  },
-  {
-   name: "Sync Supplier b/n Users",
-   model_name: "supplier_sync",
-   param_no: 117,
-   class_name: "fa fa-server",
-   display: true
-   },
-   {
-    name: "Enable Margin Check for PO",
-    model_name: "enable_margin_price_check",
-    param_no: 118,
-    class_name: "fa fa-server",
-    display: true
-  },
-  {
-   name: "Central Purchase Order",
-   model_name: "central_admin_level_po",
-   param_no: 119,
-   class_name: "fa fa-server",
-   display: true
-  }
-]
+    },
+
+    {
+      name: "Update MRP On GRN",
+      model_name: "update_mrp_on_grn",
+      param_no: 89,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Enable Purchase Order Preview",
+      model_name: "purchase_order_preview",
+      param_no: 95,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Show MRP in Goods Receipt Note",
+      model_name: "show_mrp_grn",
+      param_no: 100,
+      class_name: "fa fa-rupee",
+      display: true
+    },
+    {
+      name: "Mandate Invoice Number in GRN",
+      model_name: "mandate_invoice_number",
+      param_no: 104,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Enable Pending For Approval POs",
+      model_name: "enable_pending_approval_pos",
+      param_no: 105,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Enable Pending For Approval PRs",
+      model_name: "enable_pending_approval_prs",
+      param_no: 107,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto Allocate Sale Order",
+      model_name: "auto_allocate_sale_order",
+      param_no: 108,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Edit permission to Approvers for POs/PRs",
+      model_name: "po_or_pr_edit_permission_approver",
+      param_no: 111,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Stock Transfer Auto Receive",
+      model_name: "stock_auto_receive",
+      param_no: 112,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto Fill Receive Quantity",
+      model_name: "auto_generate_receive_qty",
+      param_no: 114,
+      class_name: "fa fa-server",
+      display: true
+    },
+  ]
 
   vm.empty = {};
   vm.message = "";

@@ -13,7 +13,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from miebach_admin.choices import *
 from common import *
-from masters import create_network_supplier
+from masters import *
 from miebach_utils import *
 from django.core import serializers
 import csv
@@ -2946,7 +2946,7 @@ def supplier_sku_upload(request, user=''):
                     elif key == 'supplier_id':
                         if isinstance(cell_data, (int, float)):
                             cell_data = str(int(cell_data))
-                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id)
+                        supplier_data['supplier_id'] = SupplierMaster.objects.get(supplier_id=cell_data, user=user.id).id
                     elif key == 'sku_code':
                         if isinstance(cell_data, (int, float)):
                             cell_data = int(cell_data)
@@ -3205,7 +3205,7 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                             if sku_master[0].block_options == 'PO':
                                 index_status.setdefault(row_idx, set()).add("WMS Code is blocked for PO")
                         if  margin_check and sku_master and supplier :
-                            status = check_margin_percentage(sku_master[0].id, supplier[0].id)
+                            status = check_margin_percentage(sku_master[0].id, supplier[0].id, user)
                             if status:
                                 index_status.setdefault(row_idx, set()).add(status)
                         data_dict['sku_id'] = sku_master[0].id

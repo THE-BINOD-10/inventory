@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.permissions = Session.roles.permissions;
     vm.priceband_sync = Session.roles.permissions.priceband_sync;
     vm.display_sku_cust_mapping = Session.roles.permissions.display_sku_cust_mapping;
 
@@ -80,6 +81,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.model_data.role = vm.customer_roles[0];
   }
   vm.base();
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_customermaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
 
   vm.close = function() {
 

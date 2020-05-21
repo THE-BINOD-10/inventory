@@ -42,6 +42,7 @@ def connect_tba():
       token_key=NS_TOKEN_KEY, 
       token_secret=NS_TOKEN_SECRET)
     return nc
+
 def netsuite_update_create_sku(data, sku_attr_dict, user):
     data_response = {}
     try:
@@ -70,6 +71,64 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update/Create sku data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
+
+def netsuite_create_grn(user, grn_data):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        item = []
+        grnrec = ns.ItemReceipt()
+        grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
+        grnrec.tranDate = grn_data['grn_date']
+        grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
+        # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
+        for data in grn_data['items']:
+            line_item = {'item': ns.RecordRef(externalId='001-001'), 'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemRecive': True}
+            item.append(line_item)
+        grnrec.itemList = {'item':item}
+        grnrec.externalId = grn_data['grn_number']
+        grnrec.tranid = grn_data['grn_number']
+        data_response = ns.upsert(grnrec)
+        data_response = json.dumps(data_response.__dict__)
+        data_response = json.loads(data_response)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create GRN data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
+
+
+def netsuite_create_po(po_data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        item = []
+        purorder = ns.PurchaseOrder()
+        purorder.entity = ns.RecordRef(internalId=136, type="vendor")
+        purorder.tranDate = po_data['po_date']
+        # purorder.dueDate = po_data['due_date']
+        purorder.approvalStatus = ns.RecordRef(internalId=2)
+        purorder.externalId = po_data['po_number']
+        # purorder.tranid = po_data['po_number']
+        # purorder.memo = po_data['remarks']
+        # purorder.subsidiary = '1'
+        # purorder.department = po_data['user_id']
+        for data in po_data['items']:
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'rate': data['unit_price']}
+            item.append(line_item)
+        purorder.itemList = {'item':item}
+        data_response = ns.upsert(purorder)
+        data_response = json.dumps(data_response.__dict__)
+        data_response = json.loads(data_response)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create PurchaseOrder data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
 @login_required
@@ -114,7 +173,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
             # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
         else:
             error_message = 'supplier id missing'
-            update_error_message(failed_status, 5024, error_message, '')
+            update_error_message(failed_status, 5024, error_message, '', 'supplierid')
 
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
 		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration',
@@ -134,10 +193,10 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     value = float(value)
                 except:
                     error_message = '%s is Number field' % val
-                    update_error_message(failed_status, 5024, error_message, '', 'supplierid')
+                    update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
-                    update_error_message(failed_status, 5024, 'Enter valid Email ID', '')
+                    update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
             data_dict[key] = value
             # if supplier_master and value:
             #     setattr(supplier_master, key, value)
@@ -146,11 +205,15 @@ def netsuite_validate_supplier(request, supplier, user=''):
             secondary_email_id = secondary_email_id.split(',')
             for mail in secondary_email_id:
                 if validate_supplier_email(mail):
-                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', '')
+                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
         if not failed_status:
             master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+            log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
 
-    except:
+    except Exception as e:
         traceback.print_exc()
-        return failed_status.values()
+        log_err.debug(traceback.format_exc())
+        log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        failed_status = [{'status': 0,'message': 'Internal Server Error'}]
+        return failed_status

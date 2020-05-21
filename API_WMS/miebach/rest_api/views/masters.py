@@ -1291,8 +1291,8 @@ def netsuite_sku(data, user):
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
     response = netsuite_update_create_sku(data, sku_attr_dict, user)
-    if response.has_key('__values__') and not netsuite_map_obj.exists():
-        internal_external_map(response, type_name='sku_master')
+    # if response.has_key('__values__') and not netsuite_map_obj.exists():
+    #     internal_external_map(response, type_name='sku_master')
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):

@@ -186,6 +186,8 @@ def get_pr_suggestions(start_index, stop_index, temp_data, search_term, order_te
             filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
+    else:
+        filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
     lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
@@ -524,8 +526,10 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
         open_st__sku_id__in=sku_master_ids). \
         filter(st_search_query, po__open_po__isnull=True,
                open_st__sku__user__in=user, **search_params1)
-    stock_trs_ord_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
-    stock_trs_recv_qty = stock_results_objs.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
+    st_result_order_ids = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids,
+                                                       po__order_id__in=stock_results_objs.values_list('po__order_id', flat=True))
+    stock_trs_ord_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_order_qty=Sum('open_st__order_quantity'))
+    stock_trs_recv_qty = st_result_order_ids.values_list('po__order_id', 'po__prefix').distinct().annotate(total_received_qty=Sum('po__received_quantity'))
     if stock_trs_ord_qty.exists():
         st_order_qtys_dict = generate_po_qty_dict(stock_trs_ord_qty)
     if stock_trs_recv_qty.exists():
@@ -777,7 +781,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id, prefix=key[3],
                                              open_po__sku_id__in=sku_master_ids)
         if not order:
-            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id, po_id__prefix=key[3],
+            order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id,po_id__order_id=key[0], po_id__prefix=key[3],
                                                    open_st__sku_id__in=sku_master_ids)
             if order:
                 order = [order[0].po]
@@ -1993,6 +1997,7 @@ def confirm_po(request, user=''):
                  'total_amt_in_words' : total_amt_in_words,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+    netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -3162,6 +3167,9 @@ def get_supplier_data(request, user=''):
                                         re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
                                     'value': rec_data,
                                     'wrong_sku': temp_json.get('wrong_sku', 0),
+                                    'discrepency_check':temp_json.get('discrepency_check', ''),
+                                    'discrepency_quantity':temp_json.get('discrepency_quantity', 0),
+                                    'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price':float("%.2f"% float(order_data.get('price',0))),
                                     'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
@@ -4320,7 +4328,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
 
-        if not value:
+        if not value and not discrepency_quantity:
             continue
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
@@ -4636,6 +4644,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             if fmcg:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
+                if not value:
+                    continue
                 putaway_data[headers].append({'wms_code': key[1], 'order_quantity': order_quantity_dict[key[0]],
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
@@ -4687,7 +4697,9 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
-            sku_slices = generate_grn_pagination(sku_list)
+            sku_slices=[]
+            if sku_list:
+                sku_slices = generate_grn_pagination(sku_list)
             if seller_receipt_id:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
                             + '/' + str(seller_receipt_id)
@@ -4734,6 +4746,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
+            netsuite_grn(user, report_data_dict, po_reference)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -4768,7 +4781,22 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 # def confirm_qc_grn(request, user=''):
 
+def netsuite_grn(user, data_dict, po_number):
+    from api_calls.netsuite import netsuite_create_grn
+    grn_number = data_dict.get('po_number', '')
+    today = datetime.date.today()
+    Now = today.isoformat()
+    po_data = data_dict['data'].values()[0]
+    grn_data = {'po_number':po_number, 'grn_number':grn_number, 'items':[],'grn_date':Now}
+    for data in po_data:
+        item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],
+                'quantity':data['order_quantity'], 'unit_price':data['price'],
+                'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
+                'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
+                'batch_no':data['batch_no']}
+        grn_data['items'].append(item)
 
+    response = netsuite_create_grn(user, grn_data)
 
 
 
@@ -7094,6 +7122,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan,
                      'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+        netsuite_po(order_id, user, purchase_order, data_dict, po_number)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -7122,6 +7151,35 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
+def netsuite_po(order_id, user, open_po, data_dict, po_number):
+    from api_calls.netsuite import netsuite_create_po
+    order_id = order_id
+    po_number = po_number
+    company_id = ''
+    due_date = ''
+    # company_id = get_company_id(user)
+    purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
+    _purchase_order = purchase_objs[0]
+    po_date = _purchase_order.creation_date
+    po_date = po_date.isoformat()
+    # due_date =data_dict.get(delivery_date)
+    # due_date = due_date.isoformat()
+    po_data = {'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
+                'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
+                'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
+                'remarks':_purchase_order.remarks, 'items':[]}
+    for purchase_order in purchase_objs:
+        _open = purchase_order.open_po
+        item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
+                'quantity':_open.order_quantity, 'unit_price':_open.price,
+                'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
+                'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
+        po_data['items'].append(item)
+
+    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
+    response = netsuite_create_po(po_data, user)
+    # if response.has_key('__values__') and not netsuite_map_obj.exists():
+    #     internal_external_map(response, type_name='PO')
 
 def create_mail_attachments(f_name, html_data):
     from random import randint
@@ -7408,6 +7466,7 @@ def confirm_po1(request, user=''):
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
                          'show_cess_tax': show_cess_tax, 'company_address': company_address,
                          'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
+            netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')

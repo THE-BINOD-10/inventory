@@ -4,7 +4,7 @@
      <div ng-include="'views/common/excel.html'"></div>
   </div>
   <div class="layout-body">
-    <div class="panel">
+    <div class="panel" ng-if="!showCase.permissions.receive_po_inv_value_qty_check">
       <div class="panel-header">
         <div class="row">
           <div class="col-md-3 mt15" style="float: right;">
@@ -23,5 +23,15 @@
       </div>
       <div ng-include="'views/common/datatable.html'"></div>
     </div>
+    <tabset class="box-tab" ng-if="showCase.permissions.receive_po_inv_value_qty_check">
+      <tab heading="Receive Purchase Orders">
+        <div ng-include="'views/inbound/receive_po/receive_po_order.html'"></div>
+      </tab>
+      <tab heading="Credit Note" ng-controller="CreditNoteCtrl as showCase" ng-click="showCase.firstReload()">
+        <div class="panel">
+          <div ng-include="'views/common/datatable.html'"></div>
+        </div>
+      </tab>
+    </tabset>
   </div>
 </div>

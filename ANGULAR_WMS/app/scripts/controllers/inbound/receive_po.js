@@ -680,16 +680,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.absOfInvQty = function(){
       var inv_match_qty = 0;
+      vm.total_grn_quantity = 0;
       angular.forEach(vm.model_data.data, function(record, index){
         if (record[0].value){
           inv_match_qty += parseInt(record[0].value);
         }
         if (index+1 == vm.model_data.data.length) {
           if (inv_match_qty == parseInt(vm.model_data.invoice_quantity)) {
+            vm.total_grn_quantity = inv_match_qty;
             vm.confirm_grn_api()
           } else {
             vm.service.alert_msg("Invoice Quantity Mismatch").then(function(msg) {
               if (msg == "true") {
+                vm.total_grn_quantity = inv_match_qty;
                 vm.confirm_grn_api()
               }
             })
@@ -755,13 +758,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         elem = $(elem).serializeArray();
         var form_data = new FormData();
-        console.log(form_data);
         var files = $(".grn-form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
         if (vm.model_data.other_charges.length > 0) {
           elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
+        }
+        if (vm.permissions.receive_po_inv_value_qty_check) {
+          elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity}); 
         }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {

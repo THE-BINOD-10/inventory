@@ -696,7 +696,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    display: true
   },
   {
-    name: "Check Invoice Value & Invoice Quantity In GRN",
+    name: "Mandate Invoice Value & Invoice Quantity In GRN",
     model_name: "receive_po_inv_value_qty_check",
     param_no: 116,
     class_name: "fa fa-server",

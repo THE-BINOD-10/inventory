@@ -2154,8 +2154,6 @@ class SellerPOSummary(models.Model):
     receipt_number = models.PositiveIntegerField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateField(blank=True, null=True)
-    invoice_value = models.FloatField(default=0)
-    invoice_quantity = models.FloatField(default=0)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
@@ -3683,3 +3681,23 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+
+
+class POCreditNote(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    invoice_value = models.FloatField(default=0)
+    invoice_quantity = models.FloatField(default=0)
+    receipt_number  = models.PositiveIntegerField(default=0)
+    po_number = models.CharField(max_length=32, default='')
+    po_prefix = models.CharField(max_length=32, default='')
+    credit_number = models.CharField(max_length=32, default='')
+    credit_date = models.DateField(blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_CREDIT_NOTE'
+        unique_together = ('user', 'po_number', 'po_prefix', 'receipt_number')

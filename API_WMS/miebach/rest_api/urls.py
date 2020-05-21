@@ -217,7 +217,8 @@ urlpatterns = [
     url(r'^save_pr/$', save_pr),
     url(r'^generated_actual_pr_data/$', generated_actual_pr_data),
     url(r'^convert_pr_to_po/$', convert_pr_to_po),
-
+    url(r'^get_credit_note_po_data/$',get_credit_note_po_data),
+    url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
 
 
     # Production

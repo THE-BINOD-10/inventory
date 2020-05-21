@@ -1,0 +1,56 @@
+<div class="page-layout">
+  <div>
+    <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
+      <div class="panel">
+        <div class="panel-body">
+          <div class="panel tab-content" id="configurations">
+
+          </div>
+          <div class="row col-md-12" style="padding-bottom: 15px">
+            <div class="col-md-5 col-sm-8 col-xs-12">
+              <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+              <strong style="line-height: 34px;" class="pull-left ml20"> Inbound/ Outbound mail Notifications</strong>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-4 mail_notifications">
+              <select id="maxOption2" class="selectpicker show-menu-arrow form-control" ng-model="showCase.mail_alerts"
+                multiple ng-change="showCase.mail_alerts_change('enable_mail_reports', '#maxOption2', 'data')">
+                <option ng-selected="showCase.check_selected(value, 'mail_inputs')"
+                  ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
+              </select>
+            </div>
+            <div class="bootstrap-tagsinput col-md-4 col-sm-4 col-xs-10"
+              ng-if="showCase.check_selected('internal_mail', 'mail_inputs')">
+              <input class="internal_mails" type="text" value="{{showCase.model_data.internal_mails}}"
+                ui-jq="tagsInput" />
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2" ng-if="showCase.check_selected('internal_mail', 'mail_inputs')"><i
+                ng-click="showCase.update_internal_mails()" class="fa fa-save"
+                style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+            </div>
+          </div>
+
+          <div class="row col-md-12" style="padding-bottom: 15px"
+            ng-repeat="config in showCase.notification_check_box_data" ng-if="config.display">
+            <div class="col-md-5 col-sm-8 col-xs-12">
+              <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>
+              <strong style="line-height: 34px;" class="pull-left ml20">{{config.name}}</strong>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-4">
+              <label class="switch switch-sm square mt5">
+                <div>
+                  <input type="checkbox" ng-model="showCase.model_data[config.model_name]"
+                    ng-change="showCase.switches(showCase.model_data[config.model_name], config.param_no)">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

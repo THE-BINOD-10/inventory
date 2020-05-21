@@ -1933,7 +1933,10 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+                cell_data = open_sheet.cell(row_idx, col_idx).value
+                if isinstance(cell_data, unicode):
+                    cell_data = unicodedata.normalize('NFKD', cell_data).encode('ascii', 'ignore')
+                ws1.write(row_idx, col_idx, str(cell_data), header_style)
             ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:
@@ -4678,7 +4681,7 @@ def search_makemodel_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='sku_attribute_grouping_key', attribute_value=type).\
         values_list('sku_id', flat=True))
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id, id__in=sku_ids)

@@ -1619,6 +1619,7 @@ def switches(request, user=''):
                        'supplier_sync': 'supplier_sync',
                        'enable_margin_price_check':'enable_margin_price_check',
                        'central_admin_level_po': 'central_admin_level_po',
+                       'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

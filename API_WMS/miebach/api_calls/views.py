@@ -1574,6 +1574,8 @@ def get_orders(request):
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
                              values('order_id', 'shipping_quantity')
+        shipment_ids = dict(ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
+                             values_list('order_id', 'id'))
         for item in shipment_mapping:
             if item['order_id'] in shipment_dict:
                 shipment_dict[item['order_id']] += item['shipping_quantity']
@@ -1616,15 +1618,19 @@ def get_orders(request):
                 #     sku_status = 'Picked'
                 # else:
                 #     sku_status = 'Partially Picked'
-                # if seller_sku.exists():
-                #     if picked_quantity_sku == data.original_quantity and invoice_num_check:
-                #         sku_status = 'Invoice generated'
+                if seller_sku.exists():
+                    sku_status = 'Invoiced'
                 #     if picked_quantity_sku != data.original_quantity and invoice_num_check:
                 #         sku_status = 'Partial invoice generated'
             elif data.status == '1':
                 sku_status = 'Open'
             elif data.status == '2':
                 sku_status = 'Dispatched'
+                sku_tracking = ShipmentTracking.objects.filter(shipment_id=shipment_ids.get(data.id), shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+                if sku_tracking:
+                    sku_status = sku_tracking[0]
             elif data.status == '3':
                 sku_status = 'Cancelled'
             # if picked_quantity_sku == 0:
@@ -1636,8 +1642,10 @@ def get_orders(request):
                          'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'cancelled_quantity':cancelled_quantity,
+                         'mrp': data.sku.mrp,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
                          'shipment_charge':float('%.2f' % charge_amount), 'discount_amount':'',
+                         'invoice_amount': data.invoice_amount,
                          'tax_percent':{'CGST':'', 'SGST':'', 'IGST':''}}
             shipping_address = {"address": data_dict[0].address}
             if order_summary.exists():
@@ -1662,6 +1670,7 @@ def get_orders(request):
         record.append(OrderedDict(( ('order_id',data_dict[0].original_order_id),
                                     ('order_date',created),('shipment_date',shipment),
                                     ('order_reference',data_dict[0].order_reference),
+                                    ('invoice_amount', payment['invoice_amount_sum']),
                                     ('payment_status', payment_status),
                                     ('source',data_dict[0].marketplace),
                                     ('customer_id', data_dict[0].customer_id),

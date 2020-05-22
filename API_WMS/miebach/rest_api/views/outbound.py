@@ -917,6 +917,7 @@ def get_picklist_data(data_id, user_id):
             order_code = ''
             mrp = 0
             batch_no = ''
+            batch_ref = ''
             manufactured_date =''
             expiry_date = ''
             courier_name = ''
@@ -985,6 +986,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1031,7 +1033,7 @@ def get_picklist_data(data_id, user_id):
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
-                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map,
+                                               'batchno':batch_no, "batch_ref":batch_ref, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map,
                                                'sku_brand': sku_brand}
             else:
                 batch_data[match_condition]['reserved_quantity'] += reserved_quantity
@@ -1067,6 +1069,7 @@ def get_picklist_data(data_id, user_id):
             #order_id = ''
             mrp = ''
             batch_no = ''
+            batch_ref = ''
             manufactured_date = ''
             expiry_date = ''
             parent_sku_code = ''
@@ -1136,6 +1139,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1172,7 +1176,7 @@ def get_picklist_data(data_id, user_id):
                  'manufactured_date':manufactured_date,
                  'expiry_date': expiry_date,
                  'category': category, 'customer_address': customer_address,
-                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
+                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,"batch_ref":batch_ref,
                  'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code,
                  'sku_imeis_map': sku_imeis_map, 'sku_brand': sku_brand})
 
@@ -1201,6 +1205,7 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             mrp = ''
             batch_no = ''
+            batch_ref = ''
             expiry_date = ''
             manufactured_date = ''
             parent_sku_code = ''
@@ -1228,6 +1233,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    batch_ref = stock_id.batch_detail.batch_ref
                     try:
                         manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
                     except:
@@ -1276,7 +1282,7 @@ def get_picklist_data(data_id, user_id):
                  'category': category,
                  'manufactured_date':manufactured_date, 'expiry_date': expiry_date,
                  'marketplace': marketplace, 'original_order_id' : original_order_id,
-                 'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
+                 'mrp':mrp, 'batchno':batch_no,"batch_ref":batch_ref, 'is_combo_picklist': is_combo_picklist,
                  'parent_sku_code':parent_sku_code, 'sku_imeis_map': sku_imeis_map, 'sku_brand': sku_brand})
 
             if wms_code in sku_total_quantities.keys():
@@ -11718,15 +11724,16 @@ def construct_sell_ids(request, user, status_flag='processed_orders', cancel_inv
 
     if cancel_inv:
         del field_mapping['order_id_in']
-        field_mapping['invoice_number_in'] = 'invoice_number__in'
+        field_mapping['full_invoice_number_in'] = 'full_invoice_number__in'
     for data_id in seller_summary_dat:
         splitted_data = data_id.split(':')
-        common_id = 'invoice_number_in' if cancel_inv else 'order_id_in'
+        common_id = 'full_invoice_number_in' if cancel_inv else 'order_id_in'
         sell_ids.setdefault(field_mapping[common_id], [])
         sell_ids[field_mapping[common_id]].append(splitted_data[0])
-        if splitted_data[1]:
-            sell_ids.setdefault('pick_number__in', [])
-            sell_ids['pick_number__in'].append(splitted_data[1])
+        if not cancel_inv:
+            if splitted_data[1]:
+                sell_ids.setdefault('pick_number__in', [])
+                sell_ids['pick_number__in'].append(splitted_data[1])
         # sell_ids['order_status_flag'] = status_flag
     return sell_ids
 

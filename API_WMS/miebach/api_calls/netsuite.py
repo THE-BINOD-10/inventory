@@ -57,9 +57,11 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         invitem.vendorname = data.sku_brand
         invitem.upc = data.ean_number
         invitem.isinactive = data.status
+        invitem.itemtype = data.batch_based
+        # invitem.taxtype = data.product_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
-        # invitem.purchaseunit = sku_attr_dict['Purchase UOM']
+        # invitem.purchaseunit = sku_attr_dict.get('Purchase UOM', '')
         invitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
@@ -67,6 +69,38 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)])
+        data_response = ns.upsert(invitem)
+        data_response = json.dumps(data_response.__dict__)
+        data_response = json.loads(data_response)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create sku data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
+
+def netsuite_update_create_service(data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        invitem = ns.ServicePurchaseItem()
+        invitem.taxSchedule = ns.RecordRef(internalId=1)
+        invitem.itemId = data.sku_code
+        invitem.externalId = data.sku_code
+        invitem.displayName = data.sku_desc
+        invitem.itemType = data.sku_type
+        invitem.vendorname = data.sku_brand
+        invitem.department = data.sku_class
+        invitem.isinactive = data.status
+        invitem.cost = data.cost_price
+        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
+        invitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.end_date),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.star_date),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)])
         data_response = ns.upsert(invitem)
         data_response = json.dumps(data_response.__dict__)
         data_response = json.loads(data_response)

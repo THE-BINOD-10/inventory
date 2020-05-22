@@ -491,6 +491,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
     }
 
+    vm.customSelectAll = function(allSelected){
+      angular.forEach(vm.preview_data.data, function(cbox) {
+        allSelected?cbox.checkbox=true:cbox.checkbox=false;
+      })      
+    }
+
+    vm.getColor = function(data){
+      if (data.moq > data.quantity){
+        return "label label-danger"
+      } else {
+        return "label label-success"
+      }
+    }
+
     vm.pr_to_po_preview = function(){
       vm.bt_disable = true;
       var prIds = [];
@@ -508,6 +522,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
               if(data.message){
                 vm.preview_data = data.data;
+                for(var i = 0; i < vm.preview_data.data.length; i++) {
+                  vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i].supplier_id + ":" + vm.preview_data.data[i].supplier_name;
+                }
                 $state.go("app.inbound.RaisePr.PRemptyPreview");
               }
             });
@@ -517,20 +534,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
+
     vm.convert_pr_to_po = function(form) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      elem.push({name:'is_actual_pr', value:true})
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
-      // if (vm.requested_user){
-      //   elem.push({name:'requested_user', value:vm.requested_user})
-      // }
-      vm.service.alert_msg("Proceed to Continue").then(function(msg) {
+      // var elem = angular.element($('form'));
+      // elem = elem[0];
+      // elem = $(elem).serializeArray();
+      // elem.push({name:'is_actual_pr', value:true})
+      var selectedItems = [];
+      var alertMsg = "";
+      angular.forEach(vm.preview_data.data, function(eachLineItem){
+        if (eachLineItem.checkbox){
+          if (eachLineItem.moq > eachLineItem.quantity){
+            alertMsg = alertMsg + " " + eachLineItem.sku_code 
+          } else {
+            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+            selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+          };
+        }
+      });
+      vm.service.alert_msg(alertMsg+" - Can't be processed").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
+          vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
           if(data.message){
               if(data.data == 'Converted PR to PO Successfully') {
                 vm.close();

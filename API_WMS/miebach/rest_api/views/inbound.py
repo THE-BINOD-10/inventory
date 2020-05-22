@@ -48,7 +48,7 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR'}
-    if user.userprofile.warehouse_type == 'STORE':
+    if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
         pr_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
         filtersMap['pending_pr__wh_user__in'] = pr_users
         filtersMap['pending_pr__final_status'] = 'approved'
@@ -206,7 +206,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date',
-                    'pending_po__pending_prs__wh_user__first_name', 'pending_po__wh_user',
+                    'pending_po__wh_user',
                     'pending_po__product_category']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
@@ -231,6 +231,8 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     POtoPRsMap = {}
     for eachPO, pr_number in approvedPRQs:
         POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
+
+    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__first_name'))
     for result in results[start_index: stop_index]:
         warehouse = user.first_name
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
@@ -284,7 +286,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
                                                 ('Store', warehouse),
-                                                ('Department', result['pending_po__pending_prs__wh_user__first_name']),
+                                                ('Department', POtoPRDeptMap[result['pending_po__po_number']]),
                                                 ('PO Raise By', result['pending_po__requested_user__first_name']),
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
@@ -2831,38 +2833,42 @@ def convert_pr_to_po(request, user=''):
     try:
         log.info("PR Convertion for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
-        if myDict.get('is_actual_pr'):
-            is_actual_pr = myDict.get('is_actual_pr')[0]
-        else:
-            is_actual_pr = 'false'
-        if myDict.get('pr_id'):
-            pr_numbers = map(int, myDict.get('pr_id')[0].split(', '))
-        else:
-            return HttpResponse("No PR Number Found")
-        existingPRQs = PendingPR.objects.filter(id__in=pr_numbers)
-        if not existingPRQs.exists():
-            return HttpResponse("No PR found with the given PR Number")
+        # if myDict.get('is_actual_pr'):
+        #     is_actual_pr = myDict.get('is_actual_pr')[0]
+        # else:
+        #     is_actual_pr = 'false'
+        # if myDict.get('pr_id'):
+        #     pr_numbers = map(int, myDict.get('pr_id')[0].split(', '))
+        # else:
+        #     return HttpResponse("No PR Number Found")
+        import pdb; pdb.set_trace()
+        # existingPRQs = PendingPR.objects.filter(id__in=pr_numbers)
+        # if not existingPRQs.exists():
+        #     return HttpResponse("No PR found with the given PR Number")
         baseLevel = 'level0'
         orderStatus = 'saved'
         suppliers = list(set(myDict['supplier']))
         supplierSKUMapping = {}
         skuQtyMap = {}
+        supplierPrIdsMap = {}
 
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
             supplier = myDict['supplier'][i]
             quantity = myDict['quantity'][i]
+            pr_ids = myDict['pr_id'][i].split(', ')
             supplierSKUMapping.setdefault(supplier, []).append(sku_code)
             skuQtyMap[sku_code] = quantity
+            supplierPrIdsMap.setdefault(supplier, []).append(pr_ids)
 
         for supplier, all_skus in supplierSKUMapping.items():
             po_id = get_incremental(user, 'po', default_val=1)
-            pr_ids = map(int, myDict.get('pr_id')[0].split(', '))
             shipments = user.useraddresses_set.filter(address_type='Shipment Address').values()
             if shipments.exists():
                 shipToAddress = shipments[0]['address']
             else:
                 shipToAddress = ''
+            pr_ids = supplierPrIdsMap.get(supplier)[0]
             existingPRObjs = PendingPR.objects.filter(id__in=pr_ids)
             purchaseMap = {
                 'requested_user': request.user,
@@ -2931,17 +2937,35 @@ def convert_pr_to_po(request, user=''):
     return HttpResponse("Converted PR to PO Successfully")
 
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def send_pr_to_parent_store(request, user=''):
+    # myDict = dict(request.POST.iterlists())
+    # for i in range(myDict.get('sku_code')):
+    prIds = json.loads(request.POST.get('prIds'))
+    skuPrIdsMap = {'SKU1': [50, 54]}
+    for sku, prIds in skuPrIdsMap.items():
+        for prId in prIds:
+            pendingPrObj = PendingPR.objects.get(id=prId)
+            lineItem = PendingLineItems.objects.filter(sku__sku_code=sku, pending_pr_id=prId)
+
+    return HttpResponse('Added Successfully')
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def get_pr_preview_data(request, user=''):
+    skuPrIdsMap = {'SKU1': [50, 54]}
     # myDict = dict(request.POST.iterlists())
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
     prQs = PendingPR.objects.filter(id__in=prIds)
-    lineItemVals = ['sku__sku_code', 'quantity']
+    # lineItemVals = ['sku__sku_code', 'quantity']
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
-    lineItems = dict(lineItemsQs.values_list('sku__sku_code').annotate(Sum('quantity')))
+    lineItems = lineItemsQs.values_list('sku__sku_code', 'sku__sku_desc').annotate(Sum('quantity'))
     skuPrNumsMap = {}
     skuSupMapping = {}
     skuPrIdsMap = {}
@@ -2950,13 +2974,14 @@ def get_pr_preview_data(request, user=''):
          skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.pr_number))
          skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
     
-    for sku_code, quantity in lineItems.items():
-        tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
+    for lineItem in lineItems:
+        sku_code, sku_desc, quantity = lineItem
+        tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''
         supplierMapping = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=user.id)
         if supplierMapping.exists():
             supplierId = supplierMapping[0].supplier.supplier_id
-            skuTaxes = get_supplier_sku_price_values(supplierMapping[0].supplier, sku_code, user)
+            skuTaxes = get_supplier_sku_price_values(supplierMapping[0].supplier.id, sku_code, user)
             if skuTaxes:
                 skuTaxVal = skuTaxes[0]
                 taxes = skuTaxVal['taxes']
@@ -2970,8 +2995,6 @@ def get_pr_preview_data(request, user=''):
                     price = skuTaxVal['mrp']
                 if skuTaxVal.get('sku_supplier_moq', ''):
                     moq = skuTaxVal['sku_supplier_moq']
-                else:
-                    moq = 0
                 tax = sgst_tax + cgst_tax + igst_tax
                 amount = quantity * price
                 total = amount + (amount * (tax/100))
@@ -2979,15 +3002,18 @@ def get_pr_preview_data(request, user=''):
 
         preview_data['data'].append(OrderedDict((
                 ('pr_id', ', '.join(skuPrIdsMap[sku_code])),
-                ('supplier', supplierId),
+                ('supplier_id', supplierId),
+                ('supplier_name', supplierId),
                 ('pr_number', ','.join(skuPrNumsMap[sku_code])),
                 ('sku_code', sku_code),
+                ('sku_desc', sku_desc),
                 ('quantity', quantity),
                 ('moq', moq),
                 ('unit_price', price),
                 ('amount', amount),
                 ('tax', tax),
                 ('total', total),
+                ('checkbox', False)
             )))
     return HttpResponse(json.dumps(preview_data))
 

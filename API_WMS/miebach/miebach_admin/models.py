@@ -546,6 +546,7 @@ class GenericEnquiry(models.Model):
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')

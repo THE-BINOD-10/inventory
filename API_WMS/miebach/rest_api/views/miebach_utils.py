@@ -21,7 +21,7 @@ from utils import init_logger, get_currency_format
 from miebach_admin.choices import SELLABLE_CHOICES
 from dateutil.relativedelta import *
 from django.db.models.functions import ExtractHour, ExtractMinute
-
+import unicodedata
 
 
 # from inbound import *
@@ -2625,6 +2625,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'stock_auto_receive':'stock_auto_receive',
                         'supplier_sync': 'supplier_sync',
                         'enable_margin_price_check':'enable_margin_price_check',
+                        'central_admin_level_po':'central_admin_level_po',
+                        'sku_attribute_grouping_key': 'sku_attribute_grouping_key',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

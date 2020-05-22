@@ -8764,22 +8764,42 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
     make_model_headers = []
     index_status = {}
     data_list = []
+    attr_grouping_key = get_misc_value('sku_attribute_grouping_key', user.id)
     for col_idx in range(1, no_of_cols):
-        make_model_headers.append(get_cell_data(0, col_idx, reader, file_type))
+        header = get_cell_data(0, col_idx, reader, file_type)
+        try:
+            if isinstance(header, unicode):
+                header = unicodedata.normalize('NFKD', header).encode('ascii', 'ignore')
+            else:
+                header = str(header)
+        except Exception as e:
+            header = ''
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Attribute Grouping Failed for user %s " % str(user.username))
+        make_model_headers.append(header)
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         sku_code = get_cell_data(row_idx, 0, reader, file_type)
         make_model_map = []
         for col_idx in range(1, no_of_cols):
             if get_cell_data(row_idx, col_idx, reader, file_type):
-                make_model_map.append(make_model_headers[col_idx-1])
+                header_name = make_model_headers[col_idx - 1]
+                if header_name == 'Status':
+                    continue
+                temp_header_name = header_name.split('<>')
+                if len(temp_header_name) != len(attr_grouping_key.split('<>')):
+                    index_status.setdefault(row_idx, set()).add('Attribute Grouping Key not matching with headers')
+                make_model_map.append(header_name)
+        if isinstance(sku_code, float):
+            sku_code = str(int(sku_code))
         sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
         if not sku_master.exists():
             index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
         else:
             sku_master = sku_master[0]
             data_dict['sku_master'] = sku_master
-        data_dict['make_model_map'] = make_model_map
+        data_dict['sku_attribute_grouping_key'] = make_model_map
         data_list.append(data_dict)
     if index_status:
         f_name = generate_error_excel(index_status, fname, reader, file_type)
@@ -8788,26 +8808,28 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
     sku_attr_mapping = []
     for final_data in data_list:
         exist_make_model_map = list(SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id,
-                                                                 attribute_name='make_model_map'). \
+                                                                 attribute_name='sku_attribute_grouping_key'). \
                                     values_list('attribute_value', flat=True))
-        rem_list = set(exist_make_model_map) - set(final_data['make_model_map'])
+        rem_list = set(exist_make_model_map) - set(final_data['sku_attribute_grouping_key'])
         if rem_list:
-            SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make_model_map',
+            SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='sku_attribute_grouping_key',
                                          attribute_value__in=rem_list).delete()
             for rem_val in rem_list:
-                make_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
-                                                          attribute_value__startswith=rem_val.split('-')[0])
-                if not make_check.exists():
-                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='make',
-                                                 attribute_value=rem_val.split('-')[0]).delete()
-                model_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
-                                                           attribute_value__startswith=rem_val.split('-')[1])
-                if not model_check.exists():
-                    SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='model',
-                                                 attribute_value=rem_val.split('-')[1]).delete()
-        for attr_value in final_data['make_model_map']:
-            temp_data = attr_value.split('-')
-            attr_dict = {'make_model_map': attr_value, 'Make': temp_data[0], 'Model': temp_data[1]}
+                attr_names = attr_grouping_key.split('<>')
+                for attr_index, attr_name in enumerate(attr_names):
+                    make_check = SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name='sku_attribute_grouping_key',
+                                                              attribute_value__regex=rem_val.split('<>')[attr_index])
+                    if not make_check.exists():
+                        SKUAttributes.objects.filter(sku_id=final_data['sku_master'].id, attribute_name=attr_name,
+                                                     attribute_value=rem_val.split('<>')[attr_index]).delete()
+        for attr_value in final_data.get('sku_attribute_grouping_key', ''):
+            temp_data = attr_value.split('<>')
+            attr_names = attr_grouping_key.split('<>')
+            attr_dict = {'sku_attribute_grouping_key': attr_value}
+            for attr_ind in range(0, len(attr_names)):
+                if not temp_data[attr_ind]:
+                    continue
+                attr_dict[attr_names[attr_ind]] = temp_data[attr_ind]
             for attr_key, attr_val in attr_dict.items():
                 create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(final_data['sku_master'], attr_key,
                                                                                 attr_val,

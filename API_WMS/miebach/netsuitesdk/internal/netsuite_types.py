@@ -21,7 +21,9 @@ COMPLEX_TYPES = {
         'WsRole',
         'DateCustomFieldRef',
         'StringCustomFieldRef',
-        'CustomFieldList'
+        'CustomFieldList',
+        'SelectCustomFieldRef',
+        'DoubleCustomFieldRef'
     ],
 
     # ns4: https://webservices.netsuite.com/xsd/platform/v2017_2_0/messages.xsd
@@ -65,7 +67,11 @@ COMPLEX_TYPES = {
         'Item', 'ItemSearch',
         'InventoryItem',
         'NonInventoryPurchaseItem',
-        'ServiceItem'
+        'NonInventorySaleItem',
+        'NonInventoryResaleItem',
+        'ServicePurchaseItem',
+        'ServiceSaleItem',
+        'ServiceResaleItem',
     ],
 
     'ns19': [

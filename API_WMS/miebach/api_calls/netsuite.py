@@ -118,13 +118,13 @@ def netsuite_update_create_service(data, user):
         serviceitem.isinactive = data.status
         serviceitem.cost = data.cost_price
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
-        serviceitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.end_date),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.star_date),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
+        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
+        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
+        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
+        serviceitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)])
-        data_response = ns.upsert(invitem)
+        data_response = ns.upsert(serviceitem)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

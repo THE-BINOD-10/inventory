@@ -2,7 +2,7 @@ import os, sys
 activate_this = os.path.abspath('../stockone/Scripts/activate_this.py')
 execfile(activate_this, dict(__file__=activate_this))
 #sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
-sys.path.append('C:\\Users\\stockone\\Documents\\tally_partial_invoices\\WMS_ANGULAR\\TallyHolder')
+sys.path.append('C:\\Users\\stockone\\Downloads\\git_master\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
 django.setup()
@@ -119,6 +119,7 @@ def populate_api_sales_invoice_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
+
         try:
             data = {'client_name': user_id, 'invoice_num': obj['voucher_no'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['voucher_foreign_key'],

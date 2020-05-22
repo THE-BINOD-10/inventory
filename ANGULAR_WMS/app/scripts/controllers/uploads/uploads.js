@@ -26,6 +26,36 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_skumaster"
                  }, {
+                   title: "Asset Master Download/ Upload",
+                   download: "Download Asset Form",
+                   upload: "Upload Asset Form",
+                   durl: "asset_form/",
+                   uurl: "asset_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_assetmaster"
+                 }, {
+                   title: "Service Master Download/ Upload",
+                   download: "Download Service Form",
+                   upload: "Upload Service Form",
+                   durl: "service_form/",
+                   uurl: "service_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_servicemaster"
+                 }, {
+                   title: "OtherItems Master Download/ Upload",
+                   download: "Download OtherItems Form",
+                   upload: "Upload OtherItems Form",
+                   durl: "otheritems_form/",
+                   uurl: "otheritems_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_otheritemsmaster"
+                 }, {
                    title: "Inventory Download/ Upload",
                    download: "Download Inventory Form",
                    upload: "Upload Inventory Form",
@@ -346,6 +376,27 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_pricemaster",
+                 },
+                 {
+                   title: "Order Allocation Download/ Upload",
+                   download: "Order Allocation Download Form",
+                   upload: "Order Allocation Upload Form",
+                   durl: "order_allocation_form/",
+                   uurl: "order_allocation_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "display_parts_allocation",
+                 },
+                 {
+                   title: "Vehicle Master Download/ Upload",
+                   download: "Download Vehicle Master Form",
+                   upload: "Upload Vehicle Master Form",
+                   durl: "vehiclemaster_form/",
+                   uurl: "vehiclemaster_upload/",
+                   dparam: "download-vehiclemaster-file",
+                   value: "",
+                   show: true,
+                   perm: "show_vehiclemaster"
                  },
                  {
                    title: "SKU Substitutes Download/ Upload",

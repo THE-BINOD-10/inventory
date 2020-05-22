@@ -1248,15 +1248,17 @@ def get_sku(request):
 @login_required
 def update_order(request):
     try:
-        orders = json.loads(request.body)
+        request_data = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    log.info('Request params for ' + request.user.username + ' is ' + str(request_data))
     try:
-        validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
-        if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        failed_status = validate_update_order(request_data, user=request.user, company_name='mieone')
+        if not failed_status:
+            failed_status = {'status': 200, 'message': 'Success'}
+        else:
+            failed_status = {'status': 207, 'messages': failed_status}
+        return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
         log.info(status)
     except Exception as e:
         import traceback
@@ -1293,7 +1295,7 @@ def create_orders(request):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log.info('create orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
@@ -1568,6 +1570,7 @@ def get_orders(request):
         picked_quantity = 0
         payment_status = 'Pending'
         shipment_dict = {}
+        aux_info = {}
         data_dict = OrderDetail.objects.filter(user=user.id,original_order_id=order)
         shipment_mapping = ShipmentInfo.objects.filter(order_id__in=list(data_dict.values_list('id', flat=True))).\
                              values('order_id', 'shipping_quantity')
@@ -1583,6 +1586,11 @@ def get_orders(request):
                                     payment_received_sum = Sum('payment_received'))
         if payment['invoice_amount_sum'] == payment['payment_received_sum']:
             payment_status='Paid'
+        payment_summary = PaymentSummary.objects.filter(order=data_dict[0].id)
+        if payment_summary.exists():
+            payment_summary = payment_summary[0]
+            payment_info = payment_summary.payment_info
+            aux_info = json.loads(payment_info.aux_info)
         items = []
         charge_amount= 0
         item_dict = {}
@@ -1624,7 +1632,8 @@ def get_orders(request):
             dispatched_quantity = shipment_dict.get(data.id, 0)
             # picked_quantity_sku -= dispatched_quantity
             cancelled_quantity = data.cancelled_quantity
-            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'order_quantity':data.original_quantity,
+            item_dict = {'sku':data.sku.sku_code, 'name':data.sku.sku_desc,'sku_brand':data.sku.sku_brand,
+                         'order_quantity':data.original_quantity,
                          'picked_quantity':picked_quantity_sku,'dispatched_quantity' :dispatched_quantity,
                          'cancelled_quantity':cancelled_quantity,
                          'status':sku_status,'unit_price':float('%.2f' % data.unit_price),
@@ -1658,7 +1667,7 @@ def get_orders(request):
                                     ('customer_id', data_dict[0].customer_id),
                                     ('customer_name',data_dict[0].customer_name),
                                     ('billing_address',billing_address ),
-                                    ('shipping_address',shipping_address),('items',items))))
+                                    ('shipping_address',shipping_address),('items',items),('payment_info',aux_info))))
     page_info['data'] = record
     page_info['message'] = 'success'
     page_info['page_info']['total_count'] = total_count
@@ -2016,50 +2025,58 @@ def get_mp_inventory(request):
 def get_inventory(request,user=''):
     user = request.user
     data = []
+    limit = 10
     search_params = {}
     search_params1 = {}
     error_status = []
+    skus = []
     request_data = request.body
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    sister_whs = []
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    user_id = list(User.objects.filter(username__in=sister_whs).values_list('id', flat=True))
+    user_id.append(user.id)
     try:
-        try:
-            request_data = json.loads(request_data)
-            limit = request_data.get('limit', 10)
-            skus = request_data.get('sku', [])
-            if type(skus) != list:
-                skus = [skus]
-            skus = map(lambda sku: str(sku), skus)
-            warehouse = request_data.get('warehouse', '')
-            if skus:
-                search_params['sku__sku_code__in'] = skus
-                search_params1['product_code__sku_code__in'] = skus
-                limit = len(skus)
-        except:
-            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
-        sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-        sister_whs = []
-        for sister_wh1 in sister_whs1:
-            sister_whs.append(str(sister_wh1).lower())
-        if warehouse.lower() in sister_whs:
-            user = User.objects.get(username=warehouse)
-        else:
-            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
-        sku_records = SKUMaster.objects.filter(user=user.id, sku_code__in=skus).values('sku_code', 'id')
+        if request_data:
+            try:
+                request_data = json.loads(request_data)
+                limit = request_data.get('limit', 10)
+                skus = request_data.get('sku', [])
+                if type(skus) != list:
+                    skus = [skus]
+                skus = map(lambda sku: str(sku), skus)
+                if skus:
+                    search_params['sku__sku_code__in'] = skus
+                    search_params1['product_code__sku_code__in'] = skus
+                    limit = len(skus)
+            except:
+                return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
+            
+            if request_data.has_key('warehouse'):
+                warehouse = request_data.get('warehouse', '')
+                if warehouse.lower() in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                    user_id = [user.id]
+                else:
+                    return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid Warehouse Name'}), status=400)
+        sku_records = SKUMaster.objects.filter(user__in=user_id, sku_code__in=skus).values('sku_code', 'id')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
             error_status.append({'sku': error_sku, 'message': 'SKU not found', 'status': 5030})
-        job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
+        job_order = JobOrder.objects.filter(product_code__user__in=user_id, status__in=['grn-generated', 'pick_confirm'])
         job_ids = job_order.values_list('id', flat=True)
 
-        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values_list(
+        picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_id).values_list(
             'stock__sku__wms_code'). \
                                  distinct().annotate(reserved=Sum('reserved')))
-        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_id). \
                             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
                             annotate(rm_reserved=Sum('reserved')))
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand').distinct(). \
-                                                                    annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user=user.id,**search_params)
+                                                                    annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user__in=user_id,**search_params)
         wms_codes = map(lambda d: d[0], master_data)
         # quantity_master_data = master_data.aggregate(Sum('total'))
         if 'stock_value__icontains' in search_params1.keys():
@@ -2068,11 +2085,11 @@ def get_inventory(request,user=''):
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
-        sku_type_qty = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1).values_list(
+        sku_type_qty = dict(OrderDetail.objects.filter(user__in=user_id, quantity__gt=0, status=1).values_list(
         'sku__sku_code').distinct().annotate(Sum('quantity')))
         page_info = scroll_data(request, master_data, limit=limit, request_type='body')
         data_lis = []
-        sku_master = SKUMaster.objects.filter(user=user.id)
+        # sku_master = SKUMaster.objects.filter(user=user.id)
         master_data = page_info['data']
         for ind, data in enumerate(master_data):
             total_stock_value = 0
@@ -2084,7 +2101,7 @@ def get_inventory(request,user=''):
                     if len(data) > 4:
                         total = data[4]
 
-            sku = sku_master.get(user=user.id, sku_code=data[0])
+            # sku = sku_master.get(user=user.id, sku_code=data[0])
             if data[0] in picklist_reserved.keys():
                 reserved += float(picklist_reserved[data[0]])
             if data[0] in raw_reserved.keys():
@@ -2174,7 +2191,9 @@ def get_customers(request, user=''):
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     customer_ids = list(master_data.values_list('customer_id', flat=True))
-    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids).values('customer_id', 'invoice_amount')
+    today = datetime.date.today()
+    month_old = today - relativedelta(months=1)
+    customer_mapping = OrderDetail.objects.filter(user=user.id, customer_id__in=customer_ids, creation_date__gte=month_old).values('customer_id', 'invoice_amount')
     for item in customer_mapping:
         if item['customer_id'] in customer_dict:
             customer_dict[item['customer_id']] += item['invoice_amount']
@@ -2207,6 +2226,7 @@ def get_shipmentinfo(request, user=''):
     request_data = request.body
     limit = 10
     sister_whs = []
+    record = []
     search_query = Q()
     total_data = []
     search_params = {}
@@ -2226,9 +2246,8 @@ def get_shipmentinfo(request, user=''):
             if request_data.get('limit'):
                 limit = request_data['limit']
             if request_data.has_key('invoice_number'):
-                search_params['invoice_number'] = request_data['invoice_number']
                 if type(request_data['invoice_number']) == list:
-                    search_params['invoice_number'] = request_data['invoice_number']
+                    search_params['invoice_number__in'] = request_data['invoice_number']
                 else:
                     search_params['invoice_number'] = request_data['invoice_number']
             if request_data.has_key('order_id'):
@@ -2237,59 +2256,80 @@ def get_shipmentinfo(request, user=''):
                 else:
                     search_params['order__original_order_id'] = request_data['order_id']
             if request_data.has_key('shipment_number'):
-                search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+                if type(request_data['shipment_number']) == list:
+                    search_params['order_shipment__shipment_number__in'] = request_data['shipment_number']
+                else:
+                    search_params['order_shipment__shipment_number'] = request_data['shipment_number']
+
         search_params['order__user'] = user.id
-    master_data = ShipmentInfo.objects.filter(**search_params).values_list('order_id',flat= True).distinct().order_by('-creation_date')
+    master_data = ShipmentInfo.objects.filter(**search_params).values_list('order__original_order_id',flat= True).distinct().order_by('-creation_date')
     page_info = scroll_data(request, master_data, limit=limit, request_type='body')
     master_data = page_info['data']
     count = 1
     for order in master_data:
-        shiment_dict = ShipmentInfo.objects.filter(order_id=order)
-        for data in shiment_dict:
-            shipping_address,address = '',''
-            charge_amount = 0
-            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=data.order.customer_id).
-                                            values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
-            status = 'Dispatched'
-            original_order_id = data.order.original_order_id
-            address = customer_details[0]['address']
-            shipping_address = customer_details[0]['shipping_address']
-            other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
-            if other_charges:
-                charge_amount = other_charges[0].charge_amount
-            if not shipping_address:
-                shipping_address = address
-            grouping_key = original_order_id
-            tracking = ShipmentTracking.objects.filter(shipment_id=data.id, shipment__order__user=user.id).\
-                                                order_by('-creation_date'). \
-                                                values_list('ship_status', flat=True)
-            if tracking:
-                status = tracking[0]
-            if data.order_shipment:
-                order_shipment = data.order_shipment
-                shipment_number = str(order_shipment.shipment_number)
-                awb_number = order_shipment.shipment_reference
-                ewaybill_number = order_shipment.ewaybill_number
-                estimated_shipment_date = get_local_date(user, order_shipment.shipment_date)
-                # manifest_number = str(order_shipment.manifest_number)
-            if grouping_key in data_dict.keys():
-                count += 1
-            data_dict.setdefault(grouping_key, {'order_id': original_order_id, 'ewaybill_number': ewaybill_number,
-                               'awb_number': awb_number,
-                               'shipment_number': shipment_number,
-                               'estimated_shipment_date':estimated_shipment_date,
-                               'invoice_number': data.invoice_number,
-                               'delivery_status':status,
-                               'package_dispatch_date': get_local_date(user, data.creation_date),
-                               'delivery_charges':charge_amount,
-                               'shipping_address':shipping_address,
-                               })
-        data_dict[grouping_key]['no_of_items_in_package'] = count
-    order_data_loop = data_dict.values()
-    for data1 in order_data_loop:
-        total_data.append(data1)
-    page_info['data'] = total_data
-    return HttpResponse(json.dumps(page_info))
+        shipment_dicts = ShipmentInfo.objects.filter(order__original_order_id=order, order__user=user.id).\
+                                              values('order_shipment__shipment_number', 
+                                                    'order_shipment__manifest_number',
+                                                    'order__customer_id', 'order__customer_name', 
+                                                    'order_shipment__shipment_reference', 
+                                                    'order_shipment__ewaybill_number', 
+                                                    'order_shipment__shipment_date','id',
+                                                    'order__sku__sku_code','shipping_quantity', 
+                                                    'creation_date','invoice_number','order__sku__sku_desc')
+        shipment_dict = shipment_dicts[0]
+        items = []
+        shipping_address,address = '',''
+        charge_amount = 0
+        customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=shipment_dict['order__customer_id']).
+                                        values('id', 'customer_id', 'name', 'address', 'shipping_address','phone_number'))
+        original_order_id = str(order)
+        address = customer_details[0]['address']
+        shipping_address = customer_details[0]['shipping_address']
+        other_charges = OrderCharges.objects.filter(user_id=user.id, order_id=original_order_id)
+        package_dispatch_date = get_local_date(user, shipment_dict["creation_date"])
+        if other_charges:
+            charge_amount = other_charges[0].charge_amount
+        if not shipping_address:
+            shipping_address = address
+        if shipment_dict["order_shipment__shipment_date"]:
+            shipment_number = str(shipment_dict['order_shipment__shipment_number'])
+            awb_number = shipment_dict['order_shipment__shipment_reference']
+            ewaybill_number = shipment_dict['order_shipment__ewaybill_number']
+            estimated_shipment_date = get_local_date(user, shipment_dict["order_shipment__shipment_date"])
+        status = 'Dispatched'
+        tracking = ShipmentTracking.objects.filter(shipment_id=shipment_dict['id'], shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+        if tracking:
+            status = tracking[0]
+        for data in shipment_dicts:
+            sku_status = 'Dispatched'
+            sku_tracking = ShipmentTracking.objects.filter(shipment_id=data['id'], shipment__order__user=user.id).\
+                                            order_by('-creation_date'). \
+                                            values_list('ship_status', flat=True)
+            if sku_tracking:
+                sku_status = tracking[0]
+            items.append(OrderedDict((("sku_code",data['order__sku__sku_code']), 
+                                     ('sku_desc', data['order__sku__sku_desc']),
+                                     ("shipping_quantity", data['shipping_quantity']),
+                                     ('status', sku_status))))
+
+        count = len(items)
+        record.append(OrderedDict((('order_id', original_order_id), ('ewaybill_number', ewaybill_number),
+                               ('awb_number', awb_number),
+                               ('shipment_number', shipment_number),
+                               ('no_of_items_in_package', count),
+                               ('estimated_shipment_date', estimated_shipment_date),
+                               ('invoice_number', shipment_dict['invoice_number']),
+                               ('delivery_status', status),
+                               ('package_dispatch_date', package_dispatch_date),
+                               ('delivery_charges', charge_amount),
+                               ('shipping_address',shipping_address),
+                               ('items',items)
+                               )))
+    page_info['data'] = record
+    page_info['message'] = 'success'
+    return HttpResponse(json.dumps(page_info, cls=DjangoJSONEncoder))
 
 @login_required
 @get_admin_user

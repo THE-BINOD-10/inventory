@@ -55,8 +55,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Total Quantity", 
-                    "PR Created Date", "PR Delivery Date", "Warehouse",
+    var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
+                    "PR Created Date", "Department",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -161,11 +161,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
+                  "product_category": data.data.product_category,
+                  "priority_type": data.data.priority_type,
                   // "supplier_name": data.data.supplier_name,
                   "warehouse": data.data.warehouse,
                   "data": data.data.data,
           };
           vm.model_data = {};
+          vm.resubmitCheckObj = {};
+          vm.is_resubmitted = false;
           angular.copy(empty_data, vm.model_data);
 
           vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
@@ -181,7 +185,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
+            vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
+          console.log(vm.resubmitCheckObj);
 
           vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -220,6 +226,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
+          vm.checkResubmit = function(sku_data){
+            vm.is_resubmitted = false;
+            if (sku_data.order_quantity){
+              angular.forEach(vm.model_data.data, function(eachField){
+                var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                if (oldQty != parseInt(eachField.fields.order_quantity)){
+                  vm.is_resubmitted = true
+                }
+              })
+            }
+          }
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
@@ -232,6 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
+          vm.convertPoFlag = data.data.convertPoFlag
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
@@ -272,6 +290,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -336,47 +356,53 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.populate_last_transaction('');
     }
 
-    vm.update_data = function (index, flag=true, plus=false) {
+    vm.getNoOfTests = function(order_quantity, data) {
+      var ordQty = parseInt(order_quantity)
+      if (ordQty > 0){
+        data.no_of_tests = ordQty * data.sku.no_of_tests;
+      }
+    }
+
+    vm.reset_model_data = function(product_category){
+      vm.model_data.data = [];
+      var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "sku": {"wms_code": "", "price":""}
+                          }
+      if (product_category == 'Kits&Consumables'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if (product_category == 'Assets'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'Services'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      }
+    }
+    vm.update_data = function (index, flag=true, plus=false, product_category='') {
+      var emptylineItems = {}
+      if (product_category == 'Kits&Consumables'){
+        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                          }
+      } else if (product_category == 'Assets'){
+        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                          }
+      }
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
-
           if (plus) {
+            vm.model_data.data.push({"fields": emptylineItems});
 
-            vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                     "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-                                     "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "", "utgst_tax": "", "tax": "", "is_new":true
-                                     }});
-
-          } else {
-
-            $scope.$apply(function() {
-
-              vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                       "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-                                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "apmc_tax": "","utgst_tax": "", "tax": "", "is_new":true
-                                       }});
-
-            });
-          }
+          } 
         } else {
-
           Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
-        if (flag) {
-          if(vm.model_data.data[index].seller_po_id){
-              vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-          } else {
-              vm.delete_data('id', vm.model_data.data[index].pk, index);
-          }
-          if(vm.permissions.show_purchase_history) {
-              $timeout( function() {
-                  vm.populate_last_transaction('delete')
-              }, 2000 );
-          }
-          vm.model_data.data.splice(index,1);
-          vm.getTotals();
-        }
+        vm.model_data.data.splice(index,1);
+        vm.getTotals();
       }
     }
 
@@ -408,23 +434,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-    vm.save_raise_pr = function(data, type) {
+    vm.save_raise_pr = function(data, type, is_resubmitted=false) {
       if (data.$valid) {
-        if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
+        // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
+          if (is_resubmitted == 'true'){
+            elem.push({name:'is_resubmitted', value:true})
+          }
+          if (vm.pr_number){
+            elem.push({name:'pr_number', value:vm.pr_number})
+          }
           var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
           if (type == 'save'){
             confirm_api ? vm.update_raise_pr() : '';
           } else {
             confirm_api ? vm.add_raise_pr(elem) : '';
           }
-        } else {
-          // data.supplier_id.$viewValue == '' ? vm.service.showNoty('Please Fill Supplier ID') : '';
-          typeof(data.pr_delivery_date.$viewValue) == "undefined" ? vm.service.showNoty('Please Fill PO Delivery Date') : '';
-          vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
-        }
       }
     }
 
@@ -490,7 +517,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true', {withCredential: true})
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var warehouse = '';
+      angular.forEach(elem, function(key, index) {
+        if(key.name == 'warehouse') {
+          warehouse = key.value;
+        }
+      });
+      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
       .success(function(data, status, headers, config) {
         vm.service.print_data(data, vm.model_data.pr_number);
       });
@@ -758,15 +794,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       return tax;
    }
    vm.update_available_stock = function(sku_data) {
-      var send = {sku_code: sku_data.wms_code, location: ""}
+      var send = {sku_code: sku_data.wms_code, location: "", "includeStoreStock":"true"}
       vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
         sku_data["capacity"] = 0;
         sku_data["intransit_quantity"] = 0;
         sku_data["skuPack_quantity"] = 0;
+        sku_data["openpr_qty"] = 0;
         if(data.message) {
           // if(data.data.available_quantity) {
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
+            sku_data["openpr_qty"] = data.data.openpr_qty;
           // }
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;
@@ -795,10 +833,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+      product.fields.sku.no_of_tests = item.noOfTests;
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
+      product.fields.asset_code = item.asset_code;
+      product.fields.service_start_date = item.service_start_date;
+      product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
+      product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
@@ -811,6 +854,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.openpr_qty = item.openpr_qty;
+      product.fields.available_qty = item.available_qty;
+      product.fields.openpo_qty = item.openpo_qty;
       product.fields.edit_tax = false;
       product.taxes = [];
       vm.getTotals();

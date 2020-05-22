@@ -6,7 +6,7 @@
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
-      <div class="modal-body">
+      <div class="modal-body" ng-mouseover="showCase.readonly_permission()">
           <div class="row" ng-if="!(showCase.model_data.login_created)">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Create Login</p>
@@ -98,7 +98,11 @@
             <div class="col-md-4">
                <div class="form-group">
                  <label class="control-label"> Customer Type </label>
-                 <input type="text" name="customer_type" class="form-control" ng-model="showCase.model_data.customer_type" maxlength="64">
+                 <select class="form-control" ng-model="showCase.model_data.customer_type" name="customer_type" >
+                  <option value=""> None </option>
+                  <option ng-repeat="one in ['Car', 'Workshop/RMT', 'Yard Executives', 'Yard Drivers', 'Vendor Workshop Drivers', 'Others']"
+                          value="{{one}}" ng-selected="one == showCase.model_data.customer_type">{{one}}</option>
+                </select>
                </div>
             </div>
             <div class="col-md-4">
@@ -156,6 +160,18 @@
                 <div class="form-group">
                   <label class="control-label"> SPOC Name </label>
                   <input type="text" name="spoc_name" class="form-control" ng-model="showCase.model_data.spoc_name" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Chassis Number </label>
+                  <input type="text" name="chassis_number" class="form-control" ng-model="showCase.model_data.chassis_number" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Customer Reference </label>
+                  <input type="text" name="customer_reference" class="form-control" ng-model="showCase.model_data.customer_reference" maxlength="256">
                 </div>
             </div>
             <div class="col-md-4" ng-if="permissions.user_type == 'distributor'">
@@ -228,7 +244,7 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="show_tab('change_customermaster')" ng-disabled="process">
           <span>Save</span>
           <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
         </button>

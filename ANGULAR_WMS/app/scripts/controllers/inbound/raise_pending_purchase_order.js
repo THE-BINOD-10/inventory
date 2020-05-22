@@ -55,8 +55,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "Total Quantity", "Total Amount", 
-                    "PO Created Date", "PO Delivery Date", "Warehouse",
+    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", "Total Quantity", "Total Amount", 
+                    "PO Created Date", "PO Delivery Date", "Store", "Department",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -161,6 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "sub_total": "",
             "pr_delivery_date": data.data.pr_delivery_date,
             "pr_created_date": data.data.pr_created_date,
+            "product_category": data.data.product_category,
             "supplier_name": data.data.supplier_name,
             "warehouse": data.data.warehouse,
             "data": data.data.data,
@@ -263,6 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {

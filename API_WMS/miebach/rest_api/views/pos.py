@@ -73,7 +73,7 @@ def get_pos_user_data(request, user=''):
         response_data['VAT'] = vat
         response_data['parent_id'] = user.user.id
         response_data['user_id'] = request.user.id
-        response_data['company'] = user.company_name
+        response_data['company'] = user.company.company_name
         response_data['address'] = user.address
         response_data['phone'] = user.phone_number
         response_data['gstin'] = user.gst_number
@@ -657,7 +657,10 @@ def customer_order(request):
                                      str(payment_received)))
                             continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
-                    order_level_disc_per_sku = (tot_order_level_discount * item['price']) / order['summary']['total_amount']
+                    try:
+                        order_level_disc_per_sku = (tot_order_level_discount * item['price']) / order['summary']['total_amount']
+                    except Exception as e:
+                        order_level_disc_per_sku = 0
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
                                                         issue_type=order['summary']['issue_type'], \

@@ -77,8 +77,7 @@
                   </tr>
                   {% endif %} -->
                   {% endfor %}
-                {% endfor %}
-                   {% for empty in page.empty_data%}
+                   {% for empty in page.empty_data %}
                       <tr class="rm-border" style="height: 38px;" ng-repeat="empty in data[0].empty_data">
                         {% for i in empty_td %}
                         <td><p style="height:10px"></p></td>
@@ -88,6 +87,7 @@
                         {% endif %}
                       </tr>
                   {% endfor %}
+                {% endfor %}
                   {% if forloop.last %}
                   <tr style="border-top: 1px solid black;font-weight: bold;" class="fs14 text-right" ng-if="$last">
                       <td colspan="3" style="text-align:left"><b>Total: </b></td>

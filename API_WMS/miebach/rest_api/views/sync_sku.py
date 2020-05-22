@@ -15,6 +15,7 @@ log = init_logger('logs/sync_sku.log')
 
 def insert_skus(user_id):
     """ This function syncs all sku among the connected Users for the first time"""
+    from rest_api.views.common import get_related_users
     st_time = datetime.datetime.now()
     log.info("first time sync process starting now")
 
@@ -34,34 +35,12 @@ def insert_skus(user_id):
 
 def update_skus(user_id, sku_codes):
     """ Whenever new SKU is added it needed to update in all related warehouses """
+    from rest_api.views.common import get_related_users
 
     all_users = get_related_users(user_id)
-    new_skus = SKUMaster.objects.filter(sku_code__in=sku_codes)
+    new_skus = SKUMaster.objects.filter(user=user_id, sku_code__in=sku_codes)
     create_update_sku(new_skus, all_users)
     return "Success"
-
-
-def get_related_users(user_id):
-    """ this function generates all users related to a user """
-    all_users = []
-    admin_user = UserGroups.objects.filter(admin_user_id=user_id)
-
-    if not admin_user:
-        admin_user_obj = UserGroups.objects.filter(user_id=user_id)
-        if admin_user_obj:
-            admin_user = admin_user_obj[0].admin_user_id
-        else:
-            admin_user = ''
-    else:
-        admin_user = user_id
-
-    if admin_user:
-        all_users.append(admin_user)
-        all_normal_user = UserGroups.objects.filter(admin_user_id=admin_user).values_list('user_id', flat=True)
-        all_users.extend(all_normal_user)
-
-    log.info("all users %s" % all_users)
-    return all_users
 
 
 def get_all_skus(all_users):
@@ -117,16 +96,47 @@ def create_update_sku(all_skus, all_users):
             if sku.ean_number and sku.ean_number != '0':
                 ean_numbers.append(sku.ean_number)
             attr_dict = OrderedDict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+            instanceName = SKUMaster
+            try:
+                if sku.assetmaster:
+                    instanceName = AssetMaster
+                    update_sku_dict['parent_asset_code'] = sku.assetmaster.parent_asset_code
+                    update_sku_dict['asset_type'] = sku.assetmaster.asset_type
+                    update_sku_dict['vendor'] = sku.assetmaster.vendor
+                    update_sku_dict['store_id'] = sku.assetmaster.store_id
+            except:
+                pass
+            try:
+                if sku.servicemaster:
+                    instanceName = ServiceMaster
+                    update_sku_dict['asset_code'] = sku.servicemaster.asset_code
+                    update_sku_dict['service_type'] = sku.servicemaster.service_type
+                    update_sku_dict['service_start_date'] = sku.servicemaster.service_start_date
+                    update_sku_dict['service_end_date'] = sku.servicemaster.service_end_date
+            except:
+                pass
+            try:
+                if sku.otheritemsmaster:
+                    instanceName = OtherItemsMaster
+                    update_sku_dict['item_type'] = sku.otheritemsmaster.item_type
+            except:
+                pass
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
                                  'relation_type': sku.relation_type,
                                  'creation_date': datetime.datetime.now().date(),
                                  'updation_date': datetime.datetime.now().date()})
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster'] and sku.sku_code.upper() not in exist_skus:
+                new_sku_dict['user'] = user
+                new_sku_dict['sku_code'] = sku.sku_code
+                new_sku_dict['wms_code'] = sku.wms_code
+                instanceName.objects.create(**new_sku_dict)
+                exist_skus.append(sku.sku_code.upper())
             if sku.sku_code.upper() not in exist_skus:
                 new_sku_dict['user'] = user
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code
-                new_sku_objs.append(SKUMaster(**new_sku_dict))
+                new_sku_objs.append(instanceName(**new_sku_dict))
                 if ean_numbers:
                     new_sku_eans[sku.sku_code] = ean_numbers
                 if attr_dict:
@@ -136,7 +146,11 @@ def create_update_sku(all_skus, all_users):
                 exist_skus.append(sku.sku_code.upper())
 
             else:
-                sku_obj = SKUMaster.objects.get(user=user, sku_code=sku.sku_code)
+                sku_obj = instanceName.objects.filter(user=user, sku_code=sku.sku_code)
+                if not sku_obj:
+                    continue
+                else:
+                    sku_obj = sku_obj[0]
                 #price_band_flag = get_misc_value('priceband_sync', sku.user)
                 #if (price_band_flag == 'true' or wh_type == 'CENTRAL_ADMIN') and not created:
                 sku_obj.__dict__.update(**update_sku_dict)
@@ -156,7 +170,8 @@ def create_update_sku(all_skus, all_users):
 
         code_obj_dict = {}
         if new_sku_objs:
-            bulk_create_in_batches(SKUMaster, new_sku_objs)
+            if new_sku_objs:
+                bulk_create_in_batches(SKUMaster, new_sku_objs)
             for new_sku_code, new_sku_value in new_sku_eans.items():
                 sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
                 code_obj_dict[new_sku_code] = sku_obj

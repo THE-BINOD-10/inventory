@@ -2,7 +2,7 @@ import os, sys
 activate_this = os.path.abspath('../stockone/Scripts/activate_this.py')
 execfile(activate_this, dict(__file__=activate_this))
 #sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
-sys.path.append('C:\\Users\\stockone\\Documents\\tally_partial_invoices\\WMS_ANGULAR\\TallyHolder')
+sys.path.append('C:\\Users\\stockone\\Downloads\\git_master\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
 django.setup()
@@ -14,7 +14,7 @@ from tally.tally.common_exceptions import *
 from PullFromStockone.models import *
 from tally.tally.logger_file import *
 
-bridge = TallyBridgeApp(dll="C:\\Users\\stockone\\Documents\\tally_partial_invoices\\WMS_ANGULAR\\TallyHolder\\tally\\DLL\\TallyBridgeDll.dll")
+bridge = TallyBridgeApp(dll="C:\\Users\\stockone\\Downloads\\git_master\\WMS_ANGULAR\\TallyHolder\\tally\\DLL\\TallyBridgeDll.dll")
 
 log = init_logger('logs/db_to_tally.log')
 

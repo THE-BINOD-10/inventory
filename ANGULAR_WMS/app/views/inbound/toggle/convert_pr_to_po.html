@@ -33,31 +33,31 @@
               <label class="control-label"> PR Number </label>
               <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="form-control" ng-readonly="true"> </div>
             </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
+            <!-- <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
                 <label class="control-label">PR Delivery Date</label>
                 <input name="pr_delivery_date" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" ng-readonly="true">
               </div>
-            </div>
+            </div> -->
             <div class="col-md-2 col-sm-2 col-xs-3">
               <div class="form-group">
                 <label class="control-label">PR Date</label>
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label"> Ship To </label>
               <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control" ng-readonly="true"> </div>
-            </div>
+            </div> -->
             <div class="col-md-2 col-sm-2 col-xs-3">
             <div class="form-group">
-              <label class="control-label"> Warehouse </label>
+              <label class="control-label"> Department </label>
               <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true"> </div>
             </div>
             <div class="col-md-12"><hr></div>
           </div>
-          <div class="row">
+          <!-- <div class="row">
             <div class="col-md-12">
               <table class="table">
                 <thead>
@@ -92,44 +92,17 @@
                 </tbody>
               </table>
             </div>
-          </div>
-        <div class="row" style="padding-bottom:0px;">
-          <!-- <div class="col-md-6 col-sm-6">
-          </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
-          </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
           </div> -->
-		  <!-- <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
-		  <div class="col-md-12 col-sm-12 col-xs-12">
-              <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
-		  </div> -->
-
-		  <!-- <div class="col-md-12 col-sm-12 col-xs-12 mb10">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>PO Date</th>
-                <th>PO Number</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Tax Percent</th>
-              </tr>
-            </thead>
-            <tbody ng-repeat="data in showCase.last_transaction_table">
-                <tr class="field">
-				          <td>{{data.po_date}}</td>
-                  <td>{{data.po_number}}</td>
-        					<td>{{data.received_quantity}}</td>
-        					<td>{{data.price}}</td>
-        					<td>{{data.total_tax}}</td>
-                </tr>
-            </tbody>
-          </table>
-		  </div> -->
-		  </div>
+          <div class="row" ng-if="showCase.model_data.product_category=='Kits&Consumables'" >
+            <div ng-include="'views/inbound/toggle/ApprovalPendingLineItems/approval_kits_consumables.html'"></div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.product_category=='Assets'" >
+            <div ng-include="'views/inbound/toggle/ApprovalPendingLineItems/approval_assets.html'"></div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.product_category=='Services'" >
+            <div ng-include="'views/inbound/toggle/ApprovalPendingLineItems/approval_services.html'"></div>
+          </div>
+        <!-- <div class="row" style="padding-bottom:0px;"></div> -->
       <div class="col-md-12 col-sm-12 col-xs-12">
         <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
           <strong>Remarks :</strong>
@@ -170,10 +143,11 @@
       </div>
 
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
-      </div>
+      <!-- </div> -->
 		</div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
-          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpr) && showCase.pending_status !='cancelled' && showCase.pending_status != 'rejected'" type="submit" class="btn pop pop-green" ng-click="showCase.convert_pr_to_po(form)">Convert to PO</button>
+          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpr) && showCase.pending_status !='cancelled' && showCase.pending_status != 'rejected' && showCase.convertPoFlag" 
+          type="submit" class="btn pop pop-green" ng-click="showCase.convert_pr_to_po(form)">Convert to PO</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-yellow pull-left" ng-click="showCase.print_pending_po(form)">PRINT PR</button>
         </div>
       </div>

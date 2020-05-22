@@ -179,7 +179,7 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
                   <tr>
@@ -230,7 +230,7 @@
                       <input type="hidden" name="wrong_sku" value="{{data.wrong_sku}}">
 
                       <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" ng-if="data.is_new">
-
+                      <input type="hidden" name="batch_ref" value="{{data.batch_ref}}">
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
@@ -249,7 +249,12 @@
                       <!-- out of elements end -->
                     </td>
                     <td>
-                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="!data.sku_desc_flag"
+                             class="form-control detectTab" readonly>
+                      <input type="text" name="sku_desc" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}"
+                             ng-if="data.sku_desc_flag"
+                             class="form-control detectTab">
                     </td>
                     <td ng-if="showCase.industry_type!='FMCG'">
                       <input type="text" name="sku_brand" ng-model="data.sku_brand" size="70" title="{{ data.sku_brand }}" class="form-control detectTab" readonly>
@@ -328,13 +333,9 @@
                                ng-keyup= "showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-<!--                      <input type="text" ng-model="data.discrepency_reason"-->
-<!--                             size="15" title="{{ data.discrepency_reason }}"-->
-<!--                             name="discrepency_reason" class="form-control detectTab"-->
-<!--                             value="{{data.discrepency_reason}}"-->
                        <select class="show-menu-arrow form-control pull-left" ng-model="data.discrepency_reason" name="discrepency_reason">
                       <option value="">Select</option>
-                      <option ng-repeat="reason in showCase.model_data.discrepancy_reasons" value="{{ reason }}"> {{ reason }}</option>
+                      <option  ng-repeat="reason in showCase.model_data.discrepancy_reasons" ng-selected="data.discrepency_reason == reason"  value="{{ reason }}"> {{ reason }}</option>
                       </select>
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
@@ -352,7 +353,7 @@
                       <input type="text" name="wms_code" size="30" class="form-control detectTab pricevalid" value="{{(data.wms_code == 'TEMP')? data.temp_wms: data.wms_code;}}" ng-readonly="records[0].dis && data.wms_code != 'TEMP'" title="{{ data.wms_code }}" ng-if="!data.is_new">
 
                       <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" ng-if="data.is_new">
-
+                      <input type="hidden" name="batch_ref" value="{{data.batch_ref}}">
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">

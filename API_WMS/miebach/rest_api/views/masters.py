@@ -15,6 +15,8 @@ from django.core import serializers
 import os
 from sync_sku import *
 import simplejson
+from api_calls.netsuite import *
+from rest_api.views.common import internal_external_map
 
 log = init_logger('logs/masters.log')
 
@@ -371,23 +373,37 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
-    order_data = SKU_SUPPLIER_MAPPING.values()[col_num]
-    filter_params = get_filtered_params(filters, SKU_SUPPLIER_MAPPING.values())
+    #sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['supplier__supplier_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 'margin_percentage',
+           'markup_percentage', 'sku__mrp', 'preference', 'moq', 'lead_time', 'sku__user']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter(
+        mapping_results = SKUSupplier.objects.filter(
             Q(supplier__supplier_id__icontains=search_term) | Q(preference__icontains=search_term) | Q(
                 moq__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(
-                supplier_code__icontains=search_term), sku__user=user.id, supplier__user=user.id,
+                supplier_code__icontains=search_term) | Q(supplier__user__in=search_users), sku__user__in=users,
             **filter_params).order_by(order_data)
 
     else:
-        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter(sku__user=user.id,
-                                                                                       supplier__user=user.id,
-                                                                                       **filter_params).order_by(
-            order_data)
+        mapping_results = SKUSupplier.objects.filter(sku__user__in=users,
+                                                     **filter_params).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -398,12 +414,14 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = int(float(sku_preference))
             except:
                 sku_preference = 0
+        warehouse = User.objects.get(id=result.sku.user).username
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
                                                 ('costing_type', result.costing_type),('price', result.price),
                                                 ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
                                                 ('lead_time', result.lead_time),
+                                                ('warehouse', warehouse),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -1127,6 +1145,7 @@ def update_sku(request, user=''):
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
+    admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1211,7 +1230,10 @@ def update_sku(request, user=''):
                     value = ''
             if instanceName == ServiceMaster:
                 if key in ['service_start_date', 'service_end_date']:
-                    value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                    try:
+                        value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                    except:
+                        value = None
             setattr(data, key, value)
         data.save()
         update_sku_attributes(data, request)
@@ -1226,6 +1248,8 @@ def update_sku(request, user=''):
         #    print "already running"
 
         insert_update_brands(user)
+        # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
+        netsuite_sku(data, user,instanceName=instanceName)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1257,6 +1281,21 @@ def update_sku(request, user=''):
         return HttpResponse('Update SKU Failed')
 
     return HttpResponse('Updated Successfully')
+
+def netsuite_sku(data, user, instanceName=''):
+    # external_id = ''
+    sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
+    # if netsuite_map_obj:
+    #     external_id = netsuite_map_obj[0].external_id
+    # if not external_id:
+    #     external_id = get_incremental(user, 'netsuite_external_id')
+    if instanceName == ServiceMaster:
+        response = netsuite_update_create_service(data, user)
+    else:
+        response = netsuite_update_create_sku(data, sku_attr_dict, user)
+    # if response.has_key('__values__') and not netsuite_map_obj.exists():
+    #     internal_external_map(response, type_name='sku_master')
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -1504,6 +1543,14 @@ def insert_supplier(request, user=''):
 def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
+    warehouse = request.POST.get('warehouse', '')
+    if warehouse:
+        all_users = get_related_user_objs(user.id)
+        user_obj = all_users.filter(username=warehouse)
+        if not user_obj:
+            return HttpResponse('Invalid Warehouse')
+        else:
+            user = user_obj[0]
     for key, value in request.POST.iteritems():
         if key == 'mrp' or key == 'supplier_id':
             continue
@@ -1527,8 +1574,17 @@ def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     auto_po_switch = get_misc_value('auto_po_switch', user.id)
+    warehouse = request.POST.get('warehouse', '')
+    if warehouse:
+        all_users = get_related_user_objs(user.id)
+        user_obj = all_users.filter(username=warehouse)
+        if not user_obj:
+            return HttpResponse('Invalid Warehouse')
+        else:
+            user = user_obj[0]
     for key, value in request.POST.iteritems():
-
+        if key == 'warehouse':
+            continue
         if key == 'wms_code':
             sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
             if not sku_id:
@@ -2703,6 +2759,7 @@ def insert_sku(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    admin_user = get_admin(user)
     try:
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
@@ -2727,6 +2784,7 @@ def insert_sku(request, user=''):
             instanceName = OtherItemsMaster
             status_msg = 'Other Item exists'
         data = filter_or_none(instanceName, filter_params)
+
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
         notified_users = []
@@ -2775,9 +2833,9 @@ def insert_sku(request, user=''):
                             try:
                                 value = datetime.datetime.strptime(value, '%d-%m-%Y')
                             except:
-                                value = ''
+                                value = None
                         else:
-                            value = ''
+                            value = None
                     data_dict[key] = value
 
             data_dict['sku_code'] = data_dict['wms_code']
@@ -2808,6 +2866,8 @@ def insert_sku(request, user=''):
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
+            if admin_user.get_username().lower() == 'metropolise':
+                netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -4357,16 +4417,19 @@ def delete_user_attribute(request, user=''):
 @login_required
 @get_admin_user
 def get_warehouse_list(request, user=''):
-    warehouse_admin = get_warehouse_admin(request.user.id)
-    exclude_admin = {}
-    if warehouse_admin.id == request.user.id:
-        exclude_admin = {'user_id': request.user.id}
-    all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)\
-                                .exclude(**exclude_admin)
+    warehouses = get_related_user_objs(user.id, level=user.userprofile.warehouse_level)
+    # warehouse_admin = get_warehouse_admin(request.user.id)
+    # exclude_admin = {}
+    # if warehouse_admin.id == request.user.id:
+    #     exclude_admin = {'user_id': request.user.id}
+    # all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)\
+    #                             .exclude(**exclude_admin)
 
     warehouse_list = []
-    for wh in all_user_groups:
-        warehouse_list.append({'warehouse_id': wh.id, 'warehouse_name': wh.user.username})
+    for wh in warehouses:
+        if wh.id == user.id:
+            continue
+        warehouse_list.append({'warehouse_id': wh.id, 'warehouse_name': wh.username})
     return HttpResponse(json.dumps({'warehouses': warehouse_list}))
 
 

@@ -96,17 +96,47 @@ def create_update_sku(all_skus, all_users):
             if sku.ean_number and sku.ean_number != '0':
                 ean_numbers.append(sku.ean_number)
             attr_dict = OrderedDict(sku.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+            instanceName = SKUMaster
+            try:
+                if sku.assetmaster:
+                    instanceName = AssetMaster
+                    update_sku_dict['parent_asset_code'] = sku.assetmaster.parent_asset_code
+                    update_sku_dict['asset_type'] = sku.assetmaster.asset_type
+                    update_sku_dict['vendor'] = sku.assetmaster.vendor
+                    update_sku_dict['store_id'] = sku.assetmaster.store_id
+            except:
+                pass
+            try:
+                if sku.servicemaster:
+                    instanceName = ServiceMaster
+                    update_sku_dict['asset_code'] = sku.servicemaster.asset_code
+                    update_sku_dict['service_type'] = sku.servicemaster.service_type
+                    update_sku_dict['service_start_date'] = sku.servicemaster.service_start_date
+                    update_sku_dict['service_end_date'] = sku.servicemaster.service_end_date
+            except:
+                pass
+            try:
+                if sku.otheritemsmaster:
+                    instanceName = OtherItemsMaster
+                    update_sku_dict['item_type'] = sku.otheritemsmaster.item_type
+            except:
+                pass
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
                                  'relation_type': sku.relation_type,
                                  'creation_date': datetime.datetime.now().date(),
                                  'updation_date': datetime.datetime.now().date()})
-
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster'] and sku.sku_code.upper() not in exist_skus:
+                new_sku_dict['user'] = user
+                new_sku_dict['sku_code'] = sku.sku_code
+                new_sku_dict['wms_code'] = sku.wms_code
+                instanceName.objects.create(**new_sku_dict)
+                exist_skus.append(sku.sku_code.upper())
             if sku.sku_code.upper() not in exist_skus:
                 new_sku_dict['user'] = user
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code
-                new_sku_objs.append(SKUMaster(**new_sku_dict))
+                new_sku_objs.append(instanceName(**new_sku_dict))
                 if ean_numbers:
                     new_sku_eans[sku.sku_code] = ean_numbers
                 if attr_dict:
@@ -116,7 +146,7 @@ def create_update_sku(all_skus, all_users):
                 exist_skus.append(sku.sku_code.upper())
 
             else:
-                sku_obj = SKUMaster.objects.filter(user=user, sku_code=sku.sku_code)
+                sku_obj = instanceName.objects.filter(user=user, sku_code=sku.sku_code)
                 if not sku_obj:
                     continue
                 else:
@@ -140,7 +170,8 @@ def create_update_sku(all_skus, all_users):
 
         code_obj_dict = {}
         if new_sku_objs:
-            bulk_create_in_batches(SKUMaster, new_sku_objs)
+            if new_sku_objs:
+                bulk_create_in_batches(SKUMaster, new_sku_objs)
             for new_sku_code, new_sku_value in new_sku_eans.items():
                 sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
                 code_obj_dict[new_sku_code] = sku_obj

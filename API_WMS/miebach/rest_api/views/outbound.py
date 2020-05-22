@@ -11724,15 +11724,16 @@ def construct_sell_ids(request, user, status_flag='processed_orders', cancel_inv
 
     if cancel_inv:
         del field_mapping['order_id_in']
-        field_mapping['invoice_number_in'] = 'invoice_number__in'
+        field_mapping['full_invoice_number_in'] = 'full_invoice_number__in'
     for data_id in seller_summary_dat:
         splitted_data = data_id.split(':')
-        common_id = 'invoice_number_in' if cancel_inv else 'order_id_in'
+        common_id = 'full_invoice_number_in' if cancel_inv else 'order_id_in'
         sell_ids.setdefault(field_mapping[common_id], [])
         sell_ids[field_mapping[common_id]].append(splitted_data[0])
-        if splitted_data[1]:
-            sell_ids.setdefault('pick_number__in', [])
-            sell_ids['pick_number__in'].append(splitted_data[1])
+        if not cancel_inv:
+            if splitted_data[1]:
+                sell_ids.setdefault('pick_number__in', [])
+                sell_ids['pick_number__in'].append(splitted_data[1])
         # sell_ids['order_status_flag'] = status_flag
     return sell_ids
 

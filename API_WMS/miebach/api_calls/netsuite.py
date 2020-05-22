@@ -57,12 +57,16 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         invitem.vendorname = data.sku_brand
         invitem.upc = data.ean_number
         invitem.isinactive = data.status
-        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
-        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category))
-        # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
         # invitem.purchaseunit = sku_attr_dict['Purchase UOM']
+        invitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)])
         data_response = ns.upsert(invitem)
         data_response = json.dumps(data_response.__dict__)
         data_response = json.loads(data_response)
@@ -81,11 +85,12 @@ def netsuite_create_grn(user, grn_data):
         item = []
         grnrec = ns.ItemReceipt()
         grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        grnrec.tranDate = grn_data['grn_date']
+        grnrec.tranDate = '2020-05-22T10:47:05+05:30'
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
         for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId='001-001'), 'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemRecive': True}
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 
+            'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
         grnrec.externalId = grn_data['grn_number']
@@ -97,7 +102,7 @@ def netsuite_create_grn(user, grn_data):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create GRN data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Create GRN data failed for %s and error was %s' % (str('001-001'), str(e)))
     return data_response
 
 
@@ -113,7 +118,7 @@ def netsuite_create_po(po_data, user):
         # purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
-        # purorder.tranid = po_data['po_number']
+        purorder.tranid = po_data['po_number']
         # purorder.memo = po_data['remarks']
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
@@ -128,7 +133,7 @@ def netsuite_create_po(po_data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create PurchaseOrder data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Create PurchaseOrder data failed and error was %s' % (str(e)))
     return data_response
 
 @login_required

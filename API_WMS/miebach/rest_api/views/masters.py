@@ -15,7 +15,7 @@ from django.core import serializers
 import os
 from sync_sku import *
 import simplejson
-from api_calls.netsuite import netsuite_update_create_sku
+from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
 
 log = init_logger('logs/masters.log')
@@ -1285,7 +1285,7 @@ def update_sku(request, user=''):
 def netsuite_sku(data, user):
     # external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
-    netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
+    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
     # if netsuite_map_obj:
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:

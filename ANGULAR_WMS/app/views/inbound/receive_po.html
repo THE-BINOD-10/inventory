@@ -29,6 +29,14 @@
       </tab>
       <tab heading="Credit Note" ng-controller="CreditNoteCtrl as showCase" ng-click="showCase.firstReload()">
         <div class="panel">
+          <div class="col-md-12 col-sm-12 col-xs-12" style="padding-bottom: 12px;">
+            <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+              <span><b>View Completed Credit Note : </b></span>
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-1">
+              <toggle ng-model="showCase.completed" ng-change="showCase.change_datatable()" onstyle="btn-success" offstyle="btn-success" size="btn-sm"></toggle>
+            </div>
+          </div>
           <div ng-include="'views/common/datatable.html'"></div>
         </div>
       </tab>

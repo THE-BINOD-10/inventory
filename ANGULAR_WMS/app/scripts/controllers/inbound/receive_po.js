@@ -740,7 +740,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
           colFilters.showNoty("Please Fill The Invoice Value Field");
-        } else if (vm.permissions.receive_po_inv_value_qty_check) {
+        } else if (vm.permissions.receive_po_inv_value_qty_check  && !vm.model_data.dc_level_grn) {
           vm.absOfInvQty();
         } else {
           vm.confirm_grn_api();

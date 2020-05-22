@@ -9,6 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.host = Session.host;
+    vm.completed = false;
     vm.user_type = Session.user_profile.user_type;
     vm.model_data = {};
     vm.filters = {'datatable': 'CreditNote', 'search0':'', 'search1':''};
@@ -30,43 +32,69 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
     // vm.dtColumns = vm.service.build_colums(columns);
-    vm.dtColumns = [
-      DTColumnBuilder.newColumn('po_number').withTitle('PO Number'),
-      DTColumnBuilder.newColumn('grn_number').withTitle('GRN Number'),
-      DTColumnBuilder.newColumn('po_date').withTitle('PO Date'),
-      DTColumnBuilder.newColumn('invoice_qty').withTitle('Invoice Quantity'),
-      DTColumnBuilder.newColumn('grn_qty').withTitle('GRN Quantity'),
-      DTColumnBuilder.newColumn('credit_qty').withTitle('Credit Quantity'),
-      DTColumnBuilder.newColumn('invoice_value').withTitle('Invoice Value')
-    ];
+      vm.dtColumns = [
+        DTColumnBuilder.newColumn('id').withTitle('Credit ID'),
+        DTColumnBuilder.newColumn('po_number').withTitle('PO Number'),
+        DTColumnBuilder.newColumn('grn_number').withTitle('GRN Number'),
+        DTColumnBuilder.newColumn('po_date').withTitle('PO Date'),
+        DTColumnBuilder.newColumn('invoice_qty').withTitle('Invoice Quantity'),
+        DTColumnBuilder.newColumn('grn_qty').withTitle('GRN Quantity'),
+        DTColumnBuilder.newColumn('credit_qty').withTitle('Credit Quantity'),
+        DTColumnBuilder.newColumn('invoice_value').withTitle('Invoice Value'),
+        DTColumnBuilder.newColumn('credit_number').withTitle('Credit Number'),
+        DTColumnBuilder.newColumn('credit_date').withTitle('Credit Date'),
+      ];
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
           $scope.$apply(function() {
-            var dataDict = {
-              'po_id': aData['po_id'],
-              'prefix': aData['prefix'],
-              'receipt': aData['receipt_no']
-            }
-            vm.service.apiCall('get_credit_note_po_data/', 'POST', dataDict).then(function(data){
-              if(data.message) {
-                vm.grn_details_keys = ['PO Number', 'GRN Number', 'Supplier ID', 'Supplier Name', 'Order Date']
-                vm.model_data = data.data;
-                vm.selected_id = aData.id
-                vm.model_data['GRN Number'] = aData.grn_number
-                vm.model_data['PO Number'] = aData.po_number
-                vm.model_data['Order Date'] = aData.po_date
-                vm.model_data['invoice_number'] = aData.invoice_number
-                vm.model_data['invoice_date'] = aData.invoice_date
-                vm.model_data['invoice_value'] = aData.invoice_value
-                vm.model_data['invoice_quantity'] = aData.invoice_qty
-                vm.model_data['challan_number'] = aData.challan_number
-                vm.model_data['challan_date'] = aData.challan_date
-                vm.title = "Credit Note Details";
-                $state.go('app.inbound.RevceivePo.CN');
+            if (aData['credit_number'] && aData['credit_date']) {
+              var msg = aData['credit_number'] + "- File Ready To Download"
+              vm.service.alert_msg(msg).then(function(msg) {
+                if (msg == "true") {
+                  var sendData = {
+                    'credit_id': aData['id']
+                  }
+                  Service.apiCall("download_credit_note_po_data/", "POST", sendData, true).then(function(data) {
+                    if(data.message) {
+                      let srcpdf = vm.host+data.data.data[0]
+                      var mywindow = window.open(srcpdf, 'height=400,width=600');
+                      mywindow.focus();
+                      $timeout(function(){
+                        mywindow.print();
+                        mywindow.close();
+                      }, 3000);
+                      return true;
+                    }
+                  });
+                }
+              });
+            } else {
+              var dataDict = {
+                'po_id': aData['po_id'],
+                'prefix': aData['prefix'],
+                'receipt': aData['receipt_no']
               }
-            });
+              vm.service.apiCall('get_credit_note_po_data/', 'POST', dataDict).then(function(data){
+                if(data.message) {
+                  vm.grn_details_keys = ['PO Number', 'GRN Number', 'Supplier ID', 'Supplier Name', 'Order Date']
+                  vm.model_data = data.data;
+                  vm.selected_id = aData.id
+                  vm.model_data['GRN Number'] = aData.grn_number
+                  vm.model_data['PO Number'] = aData.po_number
+                  vm.model_data['Order Date'] = aData.po_date
+                  vm.model_data['invoice_number'] = aData.invoice_number
+                  vm.model_data['invoice_date'] = aData.invoice_date
+                  vm.model_data['invoice_value'] = aData.invoice_value
+                  vm.model_data['invoice_quantity'] = aData.invoice_qty
+                  vm.model_data['challan_number'] = aData.challan_number
+                  vm.model_data['challan_date'] = aData.challan_date
+                  vm.title = "Credit Note Details";
+                  $state.go('app.inbound.RevceivePo.CN');
+                }
+              });
+            }
           });
         });
         return nRow;
@@ -75,7 +103,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtInstance = {};
     vm.reloadData = reloadData;
     function reloadData () {
-      vm.dtInstance.reloadData();
+      if (vm.completed) {
+        vm.dtInstance.DataTable.context[0].ajax.data.search1 = 'completed';
+        vm.dtInstance.reloadData();
+      } else {
+        vm.dtInstance.DataTable.context[0].ajax.data.search1 = '';
+        vm.dtInstance.reloadData();
+      }
     };
 
     vm.excel = excel;
@@ -102,6 +136,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     vm.firstReload = function() {
+      vm.model_data = {};
+      vm.reloadData();
+    }
+    vm.change_datatable = function() {
       vm.model_data = {};
       vm.reloadData();
     }

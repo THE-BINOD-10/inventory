@@ -4361,7 +4361,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
 def make_credit_note(request, user, purchase_order, seller_receipt_id):
     inv_qty = int(request.POST.get('invoice_quantity', 0))
     inv_value = float(request.POST.get('invoice_value', 0))
-    total_grn_qty = int(request.POST.get('grn_quantity', 0))
+    if request.POST.get('grn_quantity', 0) == 'undefined':
+        total_grn_qty = 0
+    else:
+        total_grn_qty = int(request.POST.get('grn_quantity', 0))
     if inv_qty > total_grn_qty:
         credit_quantity = inv_qty - total_grn_qty
         credit_note = {
@@ -11799,16 +11802,20 @@ def grn_extra_fields(user):
 
 @csrf_exempt
 def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
-    lis = ['id','id', 'creation_date', 'invoice_quantity', 'id', 'quantity', 'invoice_value']
+    stat = 1
+    if filters.get('search_1', '') == 'completed':
+        stat = 0
+    lis = ['id', 'id','id', 'creation_date', 'invoice_quantity', 'id', 'quantity', 'invoice_value', 'credit_number', 'credit_date']
     order_data = lis[col_num]
-    if order_term == 'desc':
+    if order_term == 'asc':
         order_data = '-%s' % order_data
-    if order_term:
-        master_data = POCreditNote.objects.filter(user_id=user.id, status=1).order_by(order_data).distinct()
+    else:
+        order_data = '%s' % order_data
+    master_data = POCreditNote.objects.filter(user_id=user.id, status=stat).order_by(order_data).distinct()
     if search_term:
         master_data = POCreditNote.objects.filter(
-            Q(po_number__icontains=search_term) | Q(receipt_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term)\
-            | Q(invoice_value__icontains=search_term) | Q(quantity__icontains=search_term), user_id=user.id, status=1).order_by(order_data).distinct()
+            Q(po_number__icontains=search_term) | Q(receipt_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term) | Q(id__icontains=search_term)\
+            | Q(invoice_value__icontains=search_term) | Q(quantity__icontains=search_term)| Q(credit_number__icontains=search_term), user_id=user.id, status=stat).order_by(order_data).distinct()
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -11831,10 +11838,15 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
             grn_number = "%s/%s" %(po_number, data.receipt_number)
             po_date = get_local_date(user, purchase_order_data.creation_date, True)
             po_date = po_date.strftime("%d %b, %Y")
+            credit_date = data.credit_date
+            if credit_date:
+                credit_date = data.credit_date.strftime("%d %b, %Y")
         temp_data['aaData'].append({
                             'po_number': po_number,
                             'grn_number': grn_number,
                             'po_date': po_date,
+                            'credit_number': data.credit_number,
+                            'credit_date': credit_date,
                             'invoice_qty': data.invoice_quantity,
                             'grn_qty': int(grn_qty),
                             'credit_qty': data.quantity,
@@ -11892,7 +11904,7 @@ def save_credit_note_po_data(request, user=''):
     credit_date = request.POST.get('credit_date', '')
     credit_files = request.FILES.get('credit_files', '')
     if not credit_number or not credit_date or not credit_id or not credit_files:
-        return HttpResponse("Purchase Order Inputs are Missing")
+        return HttpResponse("Please fill * fields")
     if credit_date:
         credit_date = datetime.datetime.strptime(credit_date, "%m/%d/%Y").date()
     purchase_credit = POCreditNote.objects.filter(id=credit_id)
@@ -11903,3 +11915,17 @@ def save_credit_note_po_data(request, user=''):
         if credit_files:
             upload_master_file(request, user, purchase_credit[0].id, 'PO_CREDIT_FILE', master_file=credit_files)
     return HttpResponse('success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_credit_note_po_data(request, user=''):
+    sku_data = []
+    credit_id = request.POST.get('credit_id', '')
+    if not credit_id:
+        return HttpResponse("Input Parameter Missing")
+    pdf_obj = MasterDocs.objects.filter(master_id__in = credit_id, master_type='PO_CREDIT_FILE')
+    if pdf_obj:
+        images = list(pdf_obj.values_list('uploaded_file', flat=True))
+        sku_data.extend(images)
+    return HttpResponse(json.dumps({'data': sku_data}))

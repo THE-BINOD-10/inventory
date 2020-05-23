@@ -571,7 +571,9 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions', 'RaiseActualPR': 'get_actual_pr_suggestions',
+    'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
+    'RaiseActualPR': 'get_actual_pr_suggestions',
+    'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -917,7 +919,17 @@ def pr_request(request):
 
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
-    sub_users = get_sub_users(parentUser)
+    admin_user = None
+    if parentUser.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        userQs = UserGroups.objects.filter(user=parentUser)
+        if userQs.exists:
+            parentCompany = userQs[0].company_id
+            admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+            admin_user = admin_userQs[0].user
+    if admin_user:
+        sub_users = get_sub_users(admin_user)
+    else:
+        sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
         login(request, reqSubUser)
@@ -11284,6 +11296,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                     'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
         if supplier_sku:
             resultMap['sku_supplier_price'] = supplier_sku[0].price
+            resultMap['sku_supplier_moq'] = supplier_sku[0].moq
         result_data.append(resultMap)
 
         return result_data

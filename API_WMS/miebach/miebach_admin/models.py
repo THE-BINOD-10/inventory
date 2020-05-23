@@ -524,10 +524,29 @@ class OpenPO(models.Model):
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
 
+
+@reversion.register()
+class GenericEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    sender = models.ForeignKey(User, related_name='enquirySender')
+    receiver = models.ForeignKey(User, related_name='enquiryReceiver')
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    enquiry = models.TextField(default='')
+    response = models.TextField(default='')
+    status = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GENERIC_ENQUIRY'
+
+
 @reversion.register()
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')

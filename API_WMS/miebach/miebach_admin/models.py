@@ -3792,6 +3792,15 @@ class StockTransferSummary(models.Model):
         db_table = 'STOCK_TRANSFER_SUMMARY'
         index_together = (('stock_transfer',))
 
+class NetsuiteIdMapping(models.Model):
+    external_id = models.CharField(max_length=64, default='')
+    internal_id = models.CharField(max_length=64, default='')
+    type_name = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'NETSUITE_ID_MAPPING'
 
 @reversion.register()
 class Discrepancy(models.Model):

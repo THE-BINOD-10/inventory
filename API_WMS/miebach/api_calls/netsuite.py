@@ -60,7 +60,7 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         # invitem.taxtype = data.product_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
-        # invitem.purchaseunit = sku_attr_dict.get('Purchase UOM', '')
+        invitem.purchaseunit = data.measurement_type
         invitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
@@ -121,9 +121,9 @@ def netsuite_update_create_service(data, user):
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
+        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)
         serviceitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)])
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp)])
         data_response = ns.upsert(serviceitem)
     except Exception as e:
         import traceback
@@ -199,17 +199,24 @@ def netsuite_create_po(po_data, user):
         ns = nc.raw_client
         item = []
         purorder = ns.PurchaseOrder()
-        purorder.entity = ns.RecordRef(internalId=136, type="vendor")
+        purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
         purorder.tranDate = po_data['po_date']
-        # purorder.dueDate = po_data['due_date']
+        purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
         purorder.tranid = po_data['po_number']
-        # purorder.memo = po_data['remarks']
+        purorder.memo = po_data['remarks']
+        # purorder.purchaseordertype = po_data['order_type']
+        # purorder.location = warehouse_id
+        # purorder.approvalstatus = 'approved'
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
+        # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
+        purorder.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']))
         for data in po_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'rate': data['unit_price']}
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
+                         'quantity':data['quantity'],
+                         'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp'])])}
             item.append(line_item)
         purorder.itemList = {'item':item}
         data_response = ns.upsert(purorder)
@@ -245,6 +252,7 @@ def netsuite_update_supplier(request, user=''):
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
 def netsuite_validate_supplier(request, supplier, user=''):
+    from rest_api.views.masters import *
     failed_status = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
@@ -267,13 +275,13 @@ def netsuite_validate_supplier(request, supplier, user=''):
             update_error_message(failed_status, 5024, error_message, '', 'supplierid')
 
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
-		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration',
+		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
-		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno'
+		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status'
 		                }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'status':1, 'po_exp_duration':0}
+        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
         data_dict = {}
         filter_dict = {'supplier_id': supplier_id }
         for key,val in supplier_dict.iteritems():
@@ -288,6 +296,11 @@ def netsuite_validate_supplier(request, supplier, user=''):
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
                     update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
+            if key == 'status':
+                status = supplier.get(val, 'active')
+                value = 1
+                if status.lower() != 'active':
+                    value = 0
             data_dict[key] = value
             # if supplier_master and value:
             #     setattr(supplier_master, key, value)

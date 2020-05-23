@@ -7156,18 +7156,21 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number):
     order_id = order_id
     po_number = po_number
     company_id = ''
-    due_date = ''
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]
     po_date = _purchase_order.creation_date
     po_date = po_date.isoformat()
-    # due_date =data_dict.get(delivery_date)
-    # due_date = due_date.isoformat()
+    due_date =data_dict.get('delivery_date', '')
+    supplier_id = _purchase_order.open_po.supplier.supplier_id
+    if due_date:
+        due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
+        due_date = due_date.isoformat()
     po_data = {'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
-                'remarks':_purchase_order.remarks, 'items':[]}
+                'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                'supplier_reference_id':_purchase_order.open_po.supplier.reference_id}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

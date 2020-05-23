@@ -2866,8 +2866,8 @@ def insert_sku(request, user=''):
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
-            if admin_user.get_username().lower() == 'metropolise':
-                netsuite_sku(sku_master, user, instanceName=instanceName)
+            # if admin_user.get_username().lower() == 'metropolis':
+            netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)
         # update master sku txt file

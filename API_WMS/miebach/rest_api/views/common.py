@@ -574,6 +574,7 @@ data_datatable = {  # masters
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
     'RaiseActualPR': 'get_actual_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
+    'CreditNote': 'get_credit_note_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -3890,7 +3891,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     total_invoice_amount = total_invoice
     if order_id:
-        order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+        order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id, order_type='order')
         if order_charge_obj.exists():
             total_order_qtys = OrderDetail.objects.filter(original_order_id = order_id,user = user.id ).values('sku__wms_code').annotate(total=F('quantity') * F('unit_price'))
             for quantity in total_order_qtys :
@@ -7428,12 +7429,13 @@ def update_ingram_order_dicts(orders, seller_obj, user=''):
                     seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
 
             order_charge = OrderCharges.objects.filter(order_id=order_obj.original_order_id, charge_name='Shipping Tax',
-                                                       user_id=order_det_dict['user'])
+                                                       user_id=order_det_dict['user'], order_type='order')
             if not order_charge:
                 order_charge_dict['order_id'] = order_obj.original_order_id
                 order_charge_dict['charge_name'] = 'Shipping Tax'
                 order_charge_dict['charge_amount'] = order['shipping_tax']
                 order_charge_dict['user_id'] = order_det_dict['user']
+                order_charge_dict['order_type'] = 'order'
                 OrderCharges.objects.create(**order_charge_dict)
 
         order_id_pick = order_obj.original_order_id.split('_')

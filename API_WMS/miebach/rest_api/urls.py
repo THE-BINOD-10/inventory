@@ -225,7 +225,9 @@ urlpatterns = [
     url(r'^submit_pending_enquiry/$', submit_pending_enquiry),
     url(r'^get_pr_preview_data/$', get_pr_preview_data),
     url(r'^send_pr_to_parent_store/$', send_pr_to_parent_store),
-
+    url(r'^get_credit_note_po_data/$',get_credit_note_po_data),
+    url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
+    url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
 
 
     # Production

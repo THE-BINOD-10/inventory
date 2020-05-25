@@ -3302,7 +3302,7 @@ def machine_excel_upload(request,open_sheet, user =''):
             machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)
 
             if not machine_dic:
-                if machine_data['status'] =='active':
+                if machine_data['status'] =='active' or 'Active':
                     machine_data['status'] = 1
                 else:
                     machine_data['status'] = 0
@@ -3311,17 +3311,24 @@ def machine_excel_upload(request,open_sheet, user =''):
             else:
                 final_machine = machine_dic[0]
                 update_dict = {}
-                update_dict['machine_code'] = final_machine.code
-                update_dict['machine_name'] = final_machine.name
-                update_dict['model_number'] = final.model_number
-                update_dict['serial_number'] = final.serial_number
+                update_dict['machine_code'] = final_machine.machine_code
+                update_dict['machine_name'] = machine_data['machine_name']
+                update_dict['model_number'] = machine_data['model_number']
+                serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])
+                if not serial_check:
+                    update_dict['serial_number'] = machine_data['serial_number']
+                else:
+                    if machine_data['serial_number'] == final_machine.serial_number:
+                        update_dict['serial_number'] = machine_data['serial_number']
+                    else:
+                        return HttpResponse("Serial Number Already exists for test code:"+final_machine.machine_code)
                 if final_machine.status == 'Active':
                     update_dict['status'] = 1
                 else:
                     update_dict['status'] = 0
                 final_machine_data = MachineMaster(**update_dict)
                 final_machine_data.save()
-        return HttpResponse('Success')
+    return HttpResponse('Success')
 @csrf_exempt
 @get_admin_user
 def location_upload(request, user=''):

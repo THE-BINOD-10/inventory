@@ -1497,6 +1497,7 @@ def update_machine_values(request, user=''):
     log.info('Update Machine request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_code = request.POST['machine_code']
+        serial_code = request.POST['serial_number']
         update_dict = {}
         for key, value in request.POST.items():
             if key == 'machine_name':
@@ -1514,16 +1515,23 @@ def update_machine_values(request, user=''):
                     update_dict['status'] = 0
         check_data = MachineMaster.objects.get(machine_code=data_code)
         if check_data:
+            if check_data.serial_number ==  update_dict['serial_number']:
+                check_data.serial_number = update_dict['serial_number']
+            else:
+                serial_check = MachineMaster.objects.filter(serial_number=update_dict['serial_number'])
+                if not serial_check:
+                    check_data.serial_number = update_dict['serial_number']
+                else:
+                    return HttpResponse('Serial Number Already Exists')
             check_data.machine_name = update_dict['machine_name']
             check_data.model_number = update_dict['model_number']
-            check_data.serial_number = update_dict['serial_number']
             check_data.brand = update_dict['brand']
             check_data.status = update_dict['status']
             check_data.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update Supplier Values failed for %s and params are %s and error statement is %s' % (
+        log.info('Update Machine Values failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Machine Failed')
     return HttpResponse('Updated Successfully')
@@ -1554,11 +1562,16 @@ def insert_machine(request, user=''):
         if check_code.exists():
             return HttpResponse(status_msg)
         else:
-             MachineMaster.objects.get_or_create(user=user,**data_dict)
+            serial_check = MachineMaster.objects.filter(serial_number=data_dict['serial_number'])
+            if not serial_check:
+                MachineMaster.objects.get_or_create(user=user,**data_dict)
+                status_msg = "Success"
+            else:
+                status_msg = "Serial Number Already Exists"
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Add New Supplier failed for %s and params are %s and error statement is %s' % (
+        log.info('Add New Machine failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         status_msg = 'Add Machine Failed'
     return HttpResponse("Success")

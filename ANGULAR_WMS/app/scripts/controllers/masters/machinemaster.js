@@ -134,12 +134,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       if ("Add Machine" == vm.title) {
         vm.machine('insert_machine/');
-         vm.service.refresh(vm.dtInstance);
-          vm.close();
+//         vm.service.refresh(vm.dtInstance);
           vm.reloadData();
+          vm.close();
       } else {
         vm.machine('update_machine_values/');
         $state.go('app.masters.MachineMaster');
+        vm.service.showNoty("Updated Successfully")
       }
     }
     // else {

@@ -27,27 +27,27 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Test Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update" ng-required="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Test Name * </label>
-                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256">
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" ng-required="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Department Type </label>
-                <input type="text" name="department_type" class="form-control" ng-model="showCase.model_data.sku_data.department_type" maxlength="256">
+                <label class="control-label"> Department Type *</label>
+                <input type="text" name="department_type" class="form-control" ng-model="showCase.model_data.sku_data.department_type" maxlength="256" ng-required="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Test Type </label>
+                <label class="control-label"> Test Type *</label>
                 <input type="text" name="test_type" class="form-control"
                 ng-model="showCase.model_data.sku_data.test_type"
-                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-required="true">
               </div>
             </div>
 <!--            <div class="col-md-4 col-sm-6 col-xs-6">-->
@@ -135,11 +135,11 @@
 <!--            </div>-->
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Status </label>
+                <label class="control-label"> Status *</label>
                   <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-selected="qc == showCase.model_data.sku_data.status">
                 </select>
 
-                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="status" class="form-control" value="{{showCase.model_data.sku_data.status}}" readonly>
+                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="status" class="form-control" value="{{showCase.model_data.sku_data.status}}" readonly ng-required="true">
               </div>
             </div>
 <!--            <div class="col-md-4 col-sm-6 col-xs-6">-->

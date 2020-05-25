@@ -89,6 +89,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.close = function() {
       $state.go('app.masters.MachineMaster');
+      vm.reloadData();
       }
 
 //  vm.get_supplier_master_data = function() {
@@ -144,6 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.machine('insert_machine/');
          vm.service.refresh(vm.dtInstance);
           vm.close();
+          vm.reloadData();
       } else {
         vm.machine('update_machine_values/');
         $state.go('app.masters.MachineMaster');

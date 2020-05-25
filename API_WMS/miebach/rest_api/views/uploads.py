@@ -1920,13 +1920,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_data.save()
             if instanceName == ServiceMaster:
                 response = netsuite_update_create_service(sku_data, user)
-                print("ServiceMaster", response)
             elif instanceName == AssetMaster:
                 response = netsuite_update_create_assetmaster(sku_data, user)
-                print("AssetMaster", response)
             elif instanceName == OtherItemsMaster:
                 response = netsuite_update_create_otheritem_master(sku_data, user)
-                print("OtherItemsMaster", response)
             else:
                 data= netsuite_update_create_sku(sku_data, attr_dict, user)
             all_sku_masters.append(sku_data)

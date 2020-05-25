@@ -1,0 +1,54 @@
+<div id="page-pop" class="modal fade in over-x">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
+      <div class="modal-content">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <h4 class="modal-title pull-left">{{showCase.title}}</h4>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
+            </div>
+          </div>
+          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Sender </label>
+                <input type="text" ng-model="showCase.model_data.sender" name="sender" class="form-control" ng-readonly="true"> 
+              </div>
+              <input type="text" name="data-id" ng-model="showCase.model_data.id" class="hide">
+            </div>
+            <div class="col-md-4 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Receiver </label>
+                <input type="text" ng-model="showCase.model_data.receiver" name="receiver" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-8">
+              <div class="form-group">
+                <label class="control-label"> Enquiry </label>
+                <input type="text" ng-model="showCase.model_data.enquiry" name="enquiry" class="form-control" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-8">
+              <div class="form-group">
+                <label class="control-label"> Response </label>
+                <input type="text" ng-model="showCase.model_data.response" name="response" class="form-control">
+              </div>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
+        </div>
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
+          <button type="submit" class="btn pop pop-green" 
+          ng-click="showCase.submit_enquiry(showCase.model_data.id, showCase.model_data.response)">Submit</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

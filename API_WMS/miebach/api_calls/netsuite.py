@@ -231,9 +231,11 @@ def netsuite_update_create_service(data, user):
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
 
         serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
-                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.service_start_date.isoformat()),
+                                                      # ns.DateCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)
                                                       ])
         data_response = ns.upsert(serviceitem)
     except Exception as e:
@@ -336,11 +338,11 @@ def netsuite_create_grn(user, grn_data):
         item = []
         grnrec = ns.ItemReceipt()
         grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        grnrec.tranDate = '2020-05-22T10:47:05+05:30'
+        grnrec.tranDate = '2020-05-25T10:47:05+05:30'
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
         for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),'orderLine':1,
             'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
@@ -366,18 +368,19 @@ def netsuite_create_po(po_data, user):
         purorder = ns.PurchaseOrder()
         purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
         purorder.tranDate = po_data['po_date']
-        purorder.dueDate = po_data['due_date']
+        if po_data['due_date']:
+            purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
         purorder.tranid = po_data['po_number']
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
         # purorder.location = warehouse_id
-        # purorder.approvalstatus = 'approved'
+        purorder.approvalstatus = ns.RecordRef(internalId=2)
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-        purorder.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']))
+        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id'])])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
@@ -406,14 +409,19 @@ def netsuite_create_pr(pr_data, user):
         purreq.tranDate = pr_data['pr_date']
         purreq.tranid = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
-        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type'])])
+        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=ns.RecordRef(internalId=11))
+                                                     ])
         for data in pr_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['price'],
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 
+                        # 'rate': data['price'],
                          'quantity':data['quantity']}
             item.append(line_item)
         purreq.itemList = {'purchaseRequisitionItem':item}
         purreq.externalId = pr_data['external_id']
-        ns.upsert(purreq)
+        data_response = ns.upsert(purreq)
+        data_response = json.dumps(data_response.__dict__)
+        data_response = json.loads(data_response)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

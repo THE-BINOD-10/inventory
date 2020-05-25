@@ -963,15 +963,19 @@ var app = angular.module('urbanApp')
           permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/outbound/pop_js/custom_order_details.js'
+              ]).then(function() {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() {
+                  'scripts/controllers/inbound/receive_po.js'
+                ])
+              }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/receive_po.js'
-                  ])
-                });
-              }]
+                    'scripts/controllers/inbound/credit_note.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Receive PO',
@@ -992,6 +996,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RevceivePo.qc_detail', {
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/grn_qc.html'
+          })
+          .state('app.inbound.RevceivePo.CN', {
+          url: '/CN',
+          templateUrl: 'views/inbound/toggle/credit_nt.html'
           })
 
         .state('app.inbound.QualityCheck', {

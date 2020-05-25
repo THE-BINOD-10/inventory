@@ -10631,7 +10631,7 @@ def get_debit_note_data(rtv_number, user):
             else:
                 data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
-        data_dict_item['discount'] = get_po.sku.discount_percentage
+        data_dict_item['discount'] = obj.seller_po_summary.discount_percent
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number
         data_dict_item['cgst'] = get_po.cgst_tax
         data_dict_item['sgst'] = get_po.sgst_tax

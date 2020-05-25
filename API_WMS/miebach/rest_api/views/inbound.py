@@ -2071,7 +2071,7 @@ def confirm_po(request, user=''):
                  'total_amt_in_words' : total_amt_in_words,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-    netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
+    # netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -2917,7 +2917,7 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['cgst_tax'] = cgst_tax
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
-        netsuite_pr(all_data, user, pr_number, existingPRObj)
+                netsuite_pr(user, existingPRObj)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2925,7 +2925,8 @@ def convert_pr_to_po(request, user=''):
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
 
-def netsuite_pr(all_data, user, pr_number, existingPRObj):
+def netsuite_pr(user, existingPRObj):
+    pr_number = existingPRObj.pr_number
     delivery_date = existingPRObj.delivery_date.isoformat()
     pr_date = existingPRObj.creation_date.isoformat()
     external_id = str(existingPRObj.prefix) + str(pr_number)
@@ -7136,6 +7137,7 @@ def confirm_add_po(request, sales_data='', user=''):
     product_category = ''
     is_purchase_request = request.POST.get('is_purchase_request', '')
     po_id = ''
+    prQs = None
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
         prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
@@ -7467,7 +7469,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan,
                      'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-        netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category)
+        netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -7496,11 +7498,15 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
     from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
     company_id = ''
+    pr_number = ''
+    if prQs.exists():
+        pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+        pr_number = pr_number_list[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]
@@ -7515,7 +7521,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category)
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category}
+                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
@@ -7814,7 +7820,7 @@ def confirm_po1(request, user=''):
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
                          'show_cess_tax': show_cess_tax, 'company_address': company_address,
                          'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-            netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
+            # netsuite_po(order_id, user, purchase_order, data_dict, po_reference)
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')
@@ -12432,7 +12438,7 @@ def confirm_central_po(request, user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', warehouse.id) == 'true':
-        data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
+            data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
             write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_prefix = ''
         if warehouse.userprofile:

@@ -338,11 +338,11 @@ def netsuite_create_grn(user, grn_data):
         item = []
         grnrec = ns.ItemReceipt()
         grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        grnrec.tranDate = '2020-05-22T10:47:05+05:30'
+        grnrec.tranDate = '2020-05-25T10:47:05+05:30'
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
         for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),'orderLine':1,
             'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
@@ -368,7 +368,8 @@ def netsuite_create_po(po_data, user):
         purorder = ns.PurchaseOrder()
         purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
         purorder.tranDate = po_data['po_date']
-        purorder.dueDate = po_data['due_date']
+        if po_data['due_date']:
+            purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
         purorder.tranid = po_data['po_number']
@@ -408,10 +409,12 @@ def netsuite_create_pr(pr_data, user):
         purreq.tranDate = pr_data['pr_date']
         purreq.tranid = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
-        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type']),
-                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1'])])
+        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=ns.RecordRef(internalId=11))
+                                                     ])
         for data in pr_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['price'],
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 
+                        # 'rate': data['price'],
                          'quantity':data['quantity']}
             item.append(line_item)
         purreq.itemList = {'purchaseRequisitionItem':item}

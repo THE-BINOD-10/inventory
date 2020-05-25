@@ -854,7 +854,7 @@ def get_sku_data(request, user=''):
         instanceName = ServiceMaster
     if request.GET.get('is_otheritem') == 'true':
         instanceName = OtherItemsMaster
-    
+
     data = get_or_none(instanceName, filter_params)
 
     filter_params = {'user': user.id}
@@ -1292,6 +1292,10 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = get_incremental(user, 'netsuite_external_id')
     if instanceName == ServiceMaster:
         response = netsuite_update_create_service(data, user)
+    elif instanceName == AssetMaster:
+        response = netsuite_update_create_assetmaster(data, user)
+    elif instanceName == OtherItemsMaster:
+        response = netsuite_update_create_otheritem_master(data, user)
     else:
         response = netsuite_update_create_sku(data, sku_attr_dict, user)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
@@ -2079,7 +2083,7 @@ def update_company_master(request, user=''):
         image_file = request.FILES.get('files-0', '')
         if image_file:
             company_image_saving(image_file, data, user)
-            
+
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue

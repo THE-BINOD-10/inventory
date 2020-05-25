@@ -1178,19 +1178,19 @@ def generated_pr_data(request, user=''):
     for rec in lineItems:
         sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
         search_params = {'sku__user': user.id}
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id, 
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
                                                 attribute_name='No.OfTests')
         if noOfTestsQs.exists():
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
-        ser_data.append({'fields': {'sku': {'wms_code': sku_code, 
+        ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'capacity': st_avail_qty+avail_qty,
                                             'intransit_quantity': intransitQty,
-                                            }, 
+                                            },
                                     'description': sku_desc,
                                     'order_quantity': qty, 'price': price,
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
@@ -1242,8 +1242,8 @@ def generated_actual_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id', 
-        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date', 
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
     ]
     validated_users = list(record[0].pending_prApprovals.values_list('validated_by', flat=True).order_by('level'))
@@ -1255,22 +1255,22 @@ def generated_actual_pr_data(request, user=''):
         if service_edate:
             service_edate = service_edate.strftime('%d-%m-%Y')
         search_params = {'sku__user': user.id}
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id, 
+        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
                                                 attribute_name='No.OfTests')
         if noOfTestsQs.exists():
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, 
+            skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
                                             'intransit_quantity': intransitQty,
-                                            }, 
+                                            },
                                     'description': sku_desc,
-                                    'order_quantity': qty, 
+                                    'order_quantity': qty,
                                     'price': price,
                                     'measurement_unit': uom,
                                     'no_of_tests': noOfTests,
@@ -2623,7 +2623,7 @@ def approve_pr(request, user=''):
             status = "This PO has been already %s. Further action cannot be made." %validation_status
             return HttpResponse(status)
     product_category = pendingPRObj.product_category
-    reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt, 
+    reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category)
     if currentUserEmailId not in validated_by:
         confObj = PurchaseApprovalConfig.objects.filter(user=pr_user, name=reqConfigName, level=pending_level)
@@ -2692,7 +2692,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         else:
             shipToAddress = ''
     else:
-        shipToAddress = firstEntryValues['ship_to'] 
+        shipToAddress = firstEntryValues['ship_to']
     purchaseMap = {
             'requested_user': request.user,
             'wh_user': user,
@@ -2849,7 +2849,7 @@ def convert_pr_to_po(request, user=''):
         orderStatus = 'saved'
         mailSub = 'po_created'
         poSuppliers, unMappedSkus = splitPRtoPO(all_data, user)
-        
+
         if unMappedSkus:
             return HttpResponse('No Vendors Mapping for SKUs: %s ' %(', '.join(unMappedSkus)))
 
@@ -2858,7 +2858,7 @@ def convert_pr_to_po(request, user=''):
             totalAmt, pendingPoObj = createPRObjandRertunOrderAmt(request, myDict, all_data, user, po_number,
                                         baseLevel, orderStatus=orderStatus, is_po_creation=True, skusInPO=skusInPO,
                                         supplier=supplier, convertPRtoPO=True)
-            pendingPoObj.pending_prs.add(existingPRObj)    
+            pendingPoObj.pending_prs.add(existingPRObj)
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
         suppliers = list(set(myDict['supplier']))
@@ -2957,8 +2957,8 @@ def netsuite_pr(all_data, user, pr_number, existingPRObj):
     external_id = str(existingPRObj.prefix) + str(pr_number)
     pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                'ship_to_address': existingPRObj.ship_to, 'external_id':external_id}
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id', 
-        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date', 
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
     ]
     lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
@@ -3096,7 +3096,7 @@ def add_pr(request, user=''):
         mailsList = []
         if is_actual_pr == 'true':
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
-            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR', 
+            reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category)
             if not reqConfigName:
                 pendingPRObj.final_status = 'approved'
@@ -3123,14 +3123,14 @@ def add_pr(request, user=''):
                     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
                     admin_user = admin_userQs[0].user
             if admin_user:
-                reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO', 
+                reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
                                                 product_category=product_category)
                 if not reqConfigName:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
                     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
-                                            pendingPRObj, master_type=master_type, forPO=True, 
+                                            pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
@@ -3138,7 +3138,7 @@ def add_pr(request, user=''):
                     pendingPRObj.final_status = 'approved'
                 else:
                     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
-                                            pendingPRObj, master_type=master_type, forPO=True, 
+                                            pendingPRObj, master_type=master_type, forPO=True,
                                             product_category=product_category)
             if mailsList:
                 for eachMail in mailsList:
@@ -5308,7 +5308,7 @@ def po_wise_check_sku(po_number, sku_code='', user='', sku_brand=''):
     check_po=False
     if(sku_code):
         check = False
-        #Checking sku first, if not present then checking ean Number 
+        #Checking sku first, if not present then checking ean Number
         sku_id = check_and_return_mapping_id(sku_code, '', user, check)
         if not sku_id:
             try:
@@ -5359,8 +5359,8 @@ def check_entities(template_id, string, po_reference, user,sku_brand):
                         sku_num=re.findall(str(row["regular_expression"]),string)[0]
                         sku_res=po_wise_check_sku(po_reference, sku_num, user, sku_brand)
                     elif(row["entity_type"]=="GTIN"):
-                        gtin_num=re.findall(str(row["regular_expression"]),string)[0]   
-                        sku_res=po_wise_check_sku(po_reference,gtin_num, user, sku_brand) 
+                        gtin_num=re.findall(str(row["regular_expression"]),string)[0]
+                        sku_res=po_wise_check_sku(po_reference,gtin_num, user, sku_brand)
                     elif(row["entity_type"]=="LOT"):
                         batch_no=re.findall(str(row["regular_expression"]),string)[0]
                     data={row["entity_type"]:re.findall(str(row["regular_expression"]),string)[0]}
@@ -5386,7 +5386,7 @@ def check_entities(template_id, string, po_reference, user,sku_brand):
         return {"status":True,"data":final_data}
     else:
         return {"status":False}
- 
+
 def check_barcode_scanner(string, sku_brands, po_reference, user):
     for sku_brand in sku_brands:
         if(sku_brand):

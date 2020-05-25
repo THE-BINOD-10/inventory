@@ -1008,7 +1008,8 @@ def get_adjust_filter_data(search_params, user, sub_user):
         if stop_index:
             adjustments = adjustments[start_index:stop_index]
         for data in adjustments:
-            quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            quantity = data.adjusted_quantity
             temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),

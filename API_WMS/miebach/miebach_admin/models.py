@@ -468,6 +468,8 @@ class OrderCharges(models.Model):
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
     charge_tax_value = models.FloatField(default = 0)
+    order_type = models.CharField(max_length=256, default='order')
+    extra_flag = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3822,3 +3824,23 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+
+
+class POCreditNote(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    invoice_value = models.FloatField(default=0)
+    invoice_quantity = models.FloatField(default=0)
+    receipt_number  = models.PositiveIntegerField(default=0)
+    po_number = models.CharField(max_length=32, default='')
+    po_prefix = models.CharField(max_length=32, default='')
+    credit_number = models.CharField(max_length=32, default='')
+    credit_date = models.DateField(blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_CREDIT_NOTE'
+        unique_together = ('user', 'po_number', 'po_prefix', 'receipt_number')

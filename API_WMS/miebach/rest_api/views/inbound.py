@@ -1744,6 +1744,7 @@ def switches(request, user=''):
                        'st_po_prefix':'st_po_prefix',
                        'supplier_sync': 'supplier_sync',
                        'enable_margin_price_check':'enable_margin_price_check',
+                       'receive_po_inv_value_qty_check':'receive_po_inv_value_qty_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -3587,7 +3588,7 @@ def update_putaway(request, user=''):
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
-                           'display_approval_button', 'invoice_value', 'overall_discount']
+                           'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -4809,6 +4810,25 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey
 
+def make_credit_note(request, user, purchase_order, seller_receipt_id):
+    inv_qty = int(request.POST.get('invoice_quantity', 0))
+    inv_value = float(request.POST.get('invoice_value', 0))
+    if request.POST.get('grn_quantity', 0) == 'undefined':
+        total_grn_qty = 0
+    else:
+        total_grn_qty = int(request.POST.get('grn_quantity', 0))
+    if inv_qty > total_grn_qty:
+        credit_quantity = inv_qty - total_grn_qty
+        credit_note = {
+                    'user_id': user.id,
+                    'po_number': purchase_order.order_id,
+                    'po_prefix': purchase_order.prefix,
+                    'invoice_value': inv_value,
+                    'invoice_quantity': inv_qty,
+                    'receipt_number': seller_receipt_id,
+                    'quantity': credit_quantity
+                }
+        POCreditNote.objects.create(**credit_note)
 
 def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='', data='', po_id=''):
     user_id = user.id
@@ -4894,6 +4914,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_address = user.userprofile.address
     seller_receipt_id = 0
     fmcg = False
+    credit_note_entry = get_misc_value('receive_po_inv_value_qty_check', user.id)
     if user.userprofile.industry_type == 'FMCG':
         fmcg = True
     if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
@@ -4909,6 +4930,7 @@ def confirm_grn(request, confirm_returns='', user=''):
         inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
             return HttpResponse(inv_status)
+    grn_other_charges = request.POST.get('other_charges', '')
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
@@ -4960,11 +4982,23 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
         if round_off_checkbox=='on':
             total_price = round_off_total
-
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
         else:
             btn_class = 'inb-qc'
+        if grn_other_charges:
+            all_other_charges = json.loads(grn_other_charges)
+            for charge in all_other_charges:
+                order_charge_dict = {}
+                order_charge_dict['order_id'] = get_po_reference(data)
+                order_charge_dict['order_type'] = 'po'
+                order_charge_dict['charge_amount'] = charge['amount']
+                order_charge_dict['charge_name'] = charge['name']
+                order_charge_dict['extra_flag'] = seller_receipt_id
+                order_charge_dict['user_id'] = user.id
+                OrderCharges.objects.create(**order_charge_dict)
+        if credit_note_entry == 'true':
+            make_credit_note(request, user, data, seller_receipt_id)
         if not status_msg or send_discrepencey:
             if not purchase_data:
                 return HttpResponse('Success')
@@ -4999,7 +5033,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
             grn_extra_fields_obj = grn_extra_fields(user)
             grn_extra_field_dict = {}
-            if grn_extra_fields_obj :
+            if grn_extra_fields_obj:
                 for field in grn_extra_fields_obj :
                     value = request.POST.get('grn_field_'+field ,'')
                     grn_extra_field_dict[field]= value
@@ -9585,7 +9619,7 @@ def supplier_invoice_data(request, user=''):
 
 @csrf_exempt
 def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
-			      filters):
+                  filters):
     ''' Supplier Invoice datatable code '''
 
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -12379,7 +12413,7 @@ def confirm_central_po(request, user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
         if get_misc_value('raise_po', warehouse.id) == 'true':
-	    data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
+        data_dict_po = {'contact_no': user_profile.wh_phone_number, 'contact_email': user.email, 'gst_no': user_profile.gst_number, 'supplier_name':purchase_order.supplier.name, 'billing_address': user_profile.address, 'shipping_address': user_profile.wh_address}
             write_and_mail_pdf(po_reference, rendered, request, warehouse, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         check_prefix = ''
         if warehouse.userprofile:
@@ -12489,3 +12523,133 @@ def grn_extra_fields(user):
     if not grn_field_obj == 'false':
         extra_grn_fields = grn_field_obj.split(',')
     return extra_grn_fields
+
+@csrf_exempt
+def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
+    stat = 1
+    if filters.get('search_1', '') == 'completed':
+        stat = 0
+    lis = ['id', 'id','id', 'creation_date', 'invoice_quantity', 'id', 'quantity', 'invoice_value', 'credit_number', 'credit_date']
+    order_data = lis[col_num]
+    if order_term == 'asc':
+        order_data = '-%s' % order_data
+    else:
+        order_data = '%s' % order_data
+    master_data = POCreditNote.objects.filter(user_id=user.id, status=stat).order_by(order_data).distinct()
+    if search_term:
+        master_data = POCreditNote.objects.filter(
+            Q(po_number__icontains=search_term) | Q(receipt_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term) | Q(id__icontains=search_term)\
+            | Q(invoice_value__icontains=search_term) | Q(quantity__icontains=search_term)| Q(credit_number__icontains=search_term), user_id=user.id, status=stat).order_by(order_data).distinct()
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index:stop_index]:
+        grn_qty, challan_date, challan_number, invoice_number, invoice_date = 0, '', '', '', ''
+        purchase_order_data = PurchaseOrder.objects.filter(order_id=data.po_number, open_po__sku__user=user.id, prefix= data.po_prefix)
+        if purchase_order_data.exists():
+            purchase_ids = list(purchase_order_data.values_list('id', flat=True))
+            seller_po_data = SellerPOSummary.objects.filter(purchase_order__id__in = purchase_ids, receipt_number=data.receipt_number)
+            if seller_po_data:
+                grn_qty = seller_po_data.aggregate(grn_qt=Sum('quantity'))['grn_qt']
+                other_data = seller_po_data.values('invoice_number', 'invoice_date', 'challan_date', 'challan_number')[0]
+                invoice_number = other_data.get('invoice_number', '')
+                challan_number = other_data.get('challan_number', '')
+                if other_data.get('challan_date', ''):
+                    challan_date = other_data.get('challan_date').strftime("%d %b, %Y")
+                if other_data.get('invoice_date', ''):
+                    invoice_date = other_data.get('invoice_date').strftime("%d %b, %Y")
+            purchase_order_data = purchase_order_data[0]
+            po_number = get_po_reference(purchase_order_data)
+            grn_number = "%s/%s" %(po_number, data.receipt_number)
+            po_date = get_local_date(user, purchase_order_data.creation_date, True)
+            po_date = po_date.strftime("%d %b, %Y")
+            credit_date = data.credit_date
+            if credit_date:
+                credit_date = data.credit_date.strftime("%d %b, %Y")
+        temp_data['aaData'].append({
+                            'po_number': po_number,
+                            'grn_number': grn_number,
+                            'po_date': po_date,
+                            'credit_number': data.credit_number,
+                            'credit_date': credit_date,
+                            'invoice_qty': data.invoice_quantity,
+                            'grn_qty': int(grn_qty),
+                            'credit_qty': data.quantity,
+                            'invoice_value': data.invoice_value,
+                            'po_id': data.po_number,
+                            'prefix': data.po_prefix,
+                            'invoice_number': invoice_number,
+                            'challan_number': challan_number,
+                            'challan_date': challan_date,
+                            'invoice_date': invoice_date,
+                            'receipt_no': data.receipt_number,
+                            'id': data.id
+                            })
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_credit_note_po_data(request, user=''):
+    sku_data = []
+    po_order_id = request.POST.get('po_id', '')
+    po_prefix = request.POST.get('prefix', '')
+    receipt_number = request.POST.get('receipt', '')
+    if not po_order_id or not po_prefix or not receipt_number:
+        return HttpResponse("Purchase Order Inputs are missing")
+    purchase_order_data = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id, prefix=po_prefix)
+    if purchase_order_data.exists():
+        for order in purchase_order_data:
+            grn_qt = 0
+            order_data = get_purchase_order_data(order)
+            datum = SellerPOSummary.objects.filter(purchase_order__id = order.id, receipt_number=receipt_number)
+            if datum.exists():
+                grn_qt = int(datum[0].quantity)
+            supplier_id = order_data['supplier_id']
+            supplier_name = order_data['supplier_name']
+            sku_dat = {
+                    'wms_code': order_data['wms_code'],
+                    'title': order_data['sku_desc'],
+                    'brand': order_data['sku_brand'],
+                    'unit': order_data['unit'],
+                    'po_quantity': order_data['order_quantity'],
+                    'grn_qt': grn_qt,
+                    'price': order_data['price'],
+                    'mrp': order_data['mrp']
+                    }
+            sku_data.append(sku_dat)
+    return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_credit_note_po_data(request, user=''):
+    sku_data = []
+    credit_id = request.POST.get('credit_id', '')
+    credit_number = request.POST.get('credit_number', '')
+    credit_date = request.POST.get('credit_date', '')
+    credit_files = request.FILES.get('credit_files', '')
+    if not credit_number or not credit_date or not credit_id or not credit_files:
+        return HttpResponse("Please fill * fields")
+    if credit_date:
+        credit_date = datetime.datetime.strptime(credit_date, "%m/%d/%Y").date()
+    purchase_credit = POCreditNote.objects.filter(id=credit_id)
+    if purchase_credit.exists():
+        purchase_credit.update(status=0)
+        purchase_credit.update(credit_number=credit_number)
+        purchase_credit.update(credit_date=credit_date)
+        if credit_files:
+            upload_master_file(request, user, purchase_credit[0].id, 'PO_CREDIT_FILE', master_file=credit_files)
+    return HttpResponse('success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_credit_note_po_data(request, user=''):
+    sku_data = []
+    credit_id = request.POST.get('credit_id', '')
+    if not credit_id:
+        return HttpResponse("Input Parameter Missing")
+    pdf_obj = MasterDocs.objects.filter(master_id__in = credit_id, master_type='PO_CREDIT_FILE')
+    if pdf_obj:
+        images = list(pdf_obj.values_list('uploaded_file', flat=True))
+        sku_data.extend(images)
+    return HttpResponse(json.dumps({'data': sku_data}))

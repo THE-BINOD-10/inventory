@@ -117,23 +117,34 @@
 
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
               <div class="form-group">
-                <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user'|| showCase.permissions.mandate_invoice_number">*</span></label>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number" required>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number">
+                <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check">
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
               <div class="form-group">
-                <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number">*</span></label>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number" required readonly>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'&& !showCase.permissions.mandate_invoice_number "readonly>
+                <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required readonly>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check && !showCase.permissions.receive_po_inv_value_qty_check">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
                 <input class="form-control" ng-readonly="showCase.invoice_readonly_option" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
-                <!-- <input class="form-control" ng-if="showCase.invoice_readonly == 'True'" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" readonly> -->
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Value *</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Quantity *</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_quantity" type="text" ng-class="service.get_decimal_perm()" name="invoice_quantity" required>
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
@@ -411,6 +422,26 @@
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>
+          </div>
+          <div class="row mr10 ml10 mb10">
+            <div class="col-md-12">
+              <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0})">Add Other Charges(+)</a>
+            </div>
+            <div class="col-md-12">
+              <div class="row mt20" ng-repeat="charge in showCase.model_data.other_charges">
+                <div class="col-md-3 col-sm-4 col-xs-6">
+                  Charge Name :
+                  <input type="text" class="form-control" placeholder="Enter Charge Name *" ng-model="charge.name" required>
+                </div>
+                <div class="col-md-2 col-sm-2 col-xs-3">
+                  Amount:
+                  <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.amount" ng-change="showCase.update_grn_total(charge, 'add')" decimal-number>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-2">
+                  <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.other_charges.splice($index, 1);showCase.update_grn_total(charge, 'remove');"></i>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-4">

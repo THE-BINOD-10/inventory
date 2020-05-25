@@ -58,6 +58,7 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         invitem.upc = data.ean_number
         invitem.isinactive = data.status
         invitem.itemtype = data.batch_based
+        invitem.purchaseunit = data.measurement_type
         # invitem.taxtype = data.product_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
@@ -96,6 +97,7 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
             skuitem.vendorname = sku_master_data.sku_brand
             skuitem.upc = sku_master_data.ean_number
             skuitem.isinactive = sku_master_data.status
+            skuitem.purchaseunit = sku_master_data.measurement_type
             skuitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
@@ -222,6 +224,7 @@ def netsuite_update_create_service(data, user):
         serviceitem.department = data.sku_class
         serviceitem.isinactive = data.status
         serviceitem.cost = data.cost_price
+        serviceitem.purchaseunit = data.measurement_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
@@ -254,6 +257,7 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.department = data.sku_class
         assetitem.isinactive = data.status
         assetitem.cost = data.cost_price
+        assetitem.purchaseunit = data.measurement_type
         assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
@@ -281,6 +285,7 @@ def netsuite_update_create_otheritem_master(data, user):
         otheritem.department = data.sku_class
         otheritem.isinactive = data.status
         otheritem.cost = data.cost_price
+        otheritem.purchaseunit = data.measurement_type
         otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),

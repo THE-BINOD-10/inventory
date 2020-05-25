@@ -49,9 +49,24 @@ def get_filtered_params(filters, data_list):
 def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR'}
     if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-        pr_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-        filtersMap['pending_pr__wh_user__in'] = pr_users
-        filtersMap['pending_pr__final_status'] = 'approved'
+        if user.userprofile.warehouse_type == 'SUB_STORE':
+            pr_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+            filtersMap['pending_pr__wh_user__in'] = pr_users
+            filtersMap['pending_pr__final_status'] = 'approved'
+        else:
+            pr_users = UserGroups.objects.filter(admin_user_id=user.id)
+            pr_user_ids = []
+            all_prIds = []
+            for pr_user in pr_users:
+                if pr_user.user.userprofile.warehouse_type == 'DEPT':
+                    prIds = PendingPR.objects.filter(wh_user=pr_user.user_id, final_status='approved').values_list('id', flat=True)
+                    
+                    all_prIds.extend(prIds)
+                elif pr_user.user.userprofile.warehouse_type == 'SUB_STORE':
+                    subStoreDepts = UserGroups.objects.filter(admin_user_id=pr_user.user_id).values_list('user_id', flat=True)
+                    prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='SentToStore')
+                    all_prIds.extend(prIds)
+            filtersMap['pending_pr_id__in'] = all_prIds
     elif request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -2834,17 +2849,6 @@ def convert_pr_to_po(request, user=''):
     try:
         log.info("PR Convertion for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         myDict = dict(request.POST.iterlists())
-        # if myDict.get('is_actual_pr'):
-        #     is_actual_pr = myDict.get('is_actual_pr')[0]
-        # else:
-        #     is_actual_pr = 'false'
-        # if myDict.get('pr_id'):
-        #     pr_numbers = map(int, myDict.get('pr_id')[0].split(', '))
-        # else:
-        #     return HttpResponse("No PR Number Found")
-        # existingPRQs = PendingPR.objects.filter(id__in=pr_numbers)
-        # if not existingPRQs.exists():
-        #     return HttpResponse("No PR found with the given PR Number")
         baseLevel = 'level0'
         orderStatus = 'saved'
         suppliers = list(set(myDict['supplier']))
@@ -2942,16 +2946,54 @@ def convert_pr_to_po(request, user=''):
 @login_required
 @get_admin_user
 def send_pr_to_parent_store(request, user=''):
-    # myDict = dict(request.POST.iterlists())
-    # for i in range(myDict.get('sku_code')):
-    prIds = json.loads(request.POST.get('prIds'))
-    skuPrIdsMap = {'SKU1': [50, 54]}
-    for sku, prIds in skuPrIdsMap.items():
-        for prId in prIds:
-            pendingPrObj = PendingPR.objects.get(id=prId)
-            lineItem = PendingLineItems.objects.filter(sku__sku_code=sku, pending_pr_id=prId)
+    skuQtyMap = {}
+    skuPrIdsMap = {}
+    prIdSkusMap = {}
+    myDict = dict(request.POST.iterlists())
+    for i in range(0, len(myDict['sku_code'])):
+        sku_code = myDict['sku_code'][i]
+        quantity = myDict['quantity'][i]
+        pr_ids = myDict['pr_id'][i].split(', ')
+        skuQtyMap[sku_code] = quantity
+        skuPrIdsMap.setdefault(sku_code, []).append(pr_ids)
+        for pr_id in pr_ids:
+            prIdSkusMap.setdefault(pr_id, []).append(sku_code)
 
-    return HttpResponse('Added Successfully')
+    for prId, skus in prIdSkusMap.items():
+        prObj = PendingPR.objects.get(id=prId)
+        newPrMap = {
+            'pr_number': prObj.pr_number,
+            'sub_pr_number': prObj.sub_pr_number + 1,
+            'prefix': prObj.prefix,
+            'requested_user': prObj.requested_user,
+            'wh_user': prObj.wh_user,
+            'product_category': prObj.product_category,
+            'priority_type': prObj.priority_type,
+            'delivery_date': prObj.delivery_date,
+            'ship_to': prObj.ship_to,
+            'pending_level': prObj.pending_level,
+            'final_status': 'SentToStore',
+            'remarks': prObj.remarks
+        }
+        newPrObj = PendingPR.objects.create(**newPrMap)
+        lineItems = PendingLineItems.objects.filter(sku__sku_code__in=skus, pending_pr_id=prId)
+        for lineItem in lineItems:
+            lineItemMap = {
+                'pending_pr_id': newPrObj.id,
+                'purchase_type': 'PR',
+                'sku': lineItem.sku,
+                'quantity': lineItem.quantity,
+                'price': lineItem.price,
+                'measurement_unit': lineItem.measurement_unit,
+                'sgst_tax': lineItem.sgst_tax,
+                'cgst_tax': lineItem.cgst_tax,
+                'igst_tax': lineItem.igst_tax,
+                'utgst_tax': lineItem.utgst_tax,
+            }
+            PendingLineItems.objects.create(**lineItemMap)
+
+
+    return HttpResponse('Sent To Parent Store Successfully')
 
 
 @csrf_exempt

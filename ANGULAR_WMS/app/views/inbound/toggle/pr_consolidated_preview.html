@@ -88,9 +88,12 @@
              </table>
           </div>
         </div>
-        <div class="row mt20">
-          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.convert_pr_to_po(form)">
-            <i class="ti-printer mr5"></i>Proceed
+        <div class="row mb10">
+          <button type="button" class="btn btn-success pull-left ml15" ng-click="showCase.send_to_parent_store(form)">
+            Send To Parent Store
+          </button>
+          <button type="button" class="btn btn-danger pull-right mr15" ng-click="showCase.convert_pr_to_po(form)">
+            Proceed
           </button>
         </div>
       </div>

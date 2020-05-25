@@ -224,6 +224,7 @@ urlpatterns = [
     url(r'^get_pending_enquiry/$', get_pending_enquiry),
     url(r'^submit_pending_enquiry/$', submit_pending_enquiry),
     url(r'^get_pr_preview_data/$', get_pr_preview_data),
+    url(r'^send_pr_to_parent_store/$', send_pr_to_parent_store),
 
 
 

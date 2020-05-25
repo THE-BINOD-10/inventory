@@ -2194,7 +2194,7 @@ def print_descrepancy_note(request, user=''):
         for obj in discrepancy_objects:
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
-                filter_params = {'purchase_order_id': obj.purchase_order.id}
+                filter_params = {'purchase_order__order_id': obj.purchase_order.order_id, 'purchase_order__open_po__sku__user': user.id}
                 if obj.receipt_number:
                     filter_params['receipt_number'] = obj.receipt_number
                 seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
@@ -2208,11 +2208,13 @@ def print_descrepancy_note(request, user=''):
                 if not updated_discrepancy:
                     updated_discrepancy=True
                     invoice_number, invoice_date = '', ''
+                    order_date = obj.purchase_order.creation_date
                     if seller_po_summary.exists():
                         invoice_number = seller_po_summary[0].invoice_number
                         invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                        order_date = seller_po_summary[0].creation_date
                     supplier = obj.purchase_order.open_po.supplier
-                    order_date = get_local_date(request.user, obj.purchase_order.creation_date)
+                    order_date = get_local_date(request.user, order_date)
                     order_date = datetime.datetime.strftime(
                         datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
                     report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,

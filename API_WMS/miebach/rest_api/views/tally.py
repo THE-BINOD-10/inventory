@@ -175,7 +175,7 @@ class TallyAPI:
                 party_ledger_tax_dict['name'] = vat_obj.ledger_name
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
 
-            order_charges_obj = OrderCharges.objects.filter(user=self.user_id, order_id=key_value)
+            order_charges_obj = OrderCharges.objects.filter(user=self.user_id, order_id=key_value, order_type='order')
             for amt in order_charges_obj:
                 party_ledger_tax_dict = {}
                 party_ledger_tax_dict['is_deemeed_positive'] = True

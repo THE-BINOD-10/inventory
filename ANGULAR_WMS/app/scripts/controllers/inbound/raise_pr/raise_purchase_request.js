@@ -245,13 +245,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PR';
-          vm.pr_number = aData['PR Number']
+          // vm.pr_number = aData['PR Number']
           vm.validated_by = aData['To Be Approved By']
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
           vm.convertPoFlag = data.data.convertPoFlag
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
+            $state.go('app.inbound.RaisePr.ConvertPRtoPO');
+          } else if (aData['Validation Status'] == 'Senttostore'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
@@ -491,27 +493,104 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
     }
 
-    vm.convert_pr_to_po = function(form, validation_type) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      if (vm.is_actual_pr){
-        elem.push({name:'is_actual_pr', value:true})
+    vm.customSelectAll = function(allSelected){
+      angular.forEach(vm.preview_data.data, function(cbox) {
+        allSelected?cbox.checkbox=true:cbox.checkbox=false;
+      })      
+    }
+
+    vm.getColor = function(data){
+      if (data.moq > data.quantity){
+        return "label label-danger"
+      } else {
+        return "label label-success"
       }
-      if (vm.pr_number){
-        elem.push({name:'pr_number', value:vm.pr_number})
-      }
-      if (vm.requested_user){
-        elem.push({name:'requested_user', value:vm.requested_user})
-      }
-      vm.service.apiCall('convert_pr_to_po/', 'POST', elem, true).then(function(data){
-        if(data.message){
-          if(data.data == 'Converted PR to PO Successfully') {
+    }
+
+    vm.pr_to_po_preview = function(){
+      vm.bt_disable = true;
+      var prIds = [];
+
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
+          prIds.push(temp['_aData']["PR Id"]);
+        }
+        if(Object.keys(vm.selected).length-1 == parseInt(key)){
+          var data_dict = {
+            'prIds': JSON.stringify(prIds)
+          };
+          if(prIds.length > 0){
+            vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
+              if(data.message){
+                vm.preview_data = data.data;
+                for(var i = 0; i < vm.preview_data.data.length; i++) {
+                  vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i].supplier_id + ":" + vm.preview_data.data[i].supplier_name;
+                }
+                $state.go("app.inbound.RaisePr.PRemptyPreview");
+              }
+            });
+          } else {
+            vm.bt_disable = false;
+          }
+        }
+      });
+    }
+
+    vm.send_to_parent_store = function(form) {
+      var selectedItems = [];
+      angular.forEach(vm.preview_data.data, function(eachLineItem){
+        if (eachLineItem.checkbox){
+          if (eachLineItem.moq > eachLineItem.quantity){
+            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+          };
+        }
+      });      
+      vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
+      if(data.message){
+          if(data.data == 'Sent To Parent Store Successfully') {
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
             vm.service.pop_msg(data.data);
           }
+        }
+      })
+    }
+
+    vm.convert_pr_to_po = function(form) {
+      var selectedItems = [];
+      var alertMsg = "";
+      angular.forEach(vm.preview_data.data, function(eachLineItem){
+        if (eachLineItem.checkbox){
+          if (eachLineItem.moq > eachLineItem.quantity){
+            alertMsg = alertMsg + " " + eachLineItem.sku_code 
+          } else {
+            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+            selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+          };
+        }
+      });
+      var finalAlerMsg = '';
+      if (alertMsg) {
+        finalAlerMsg = alertMsg+" - Can't be processed";
+      }
+      vm.service.alert_msg(finalAlerMsg).then(function(msg) {
+        if (msg == "true") {
+          vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
+          if(data.message){
+              if(data.data == 'Converted PR to PO Successfully') {
+                vm.close();
+                vm.service.refresh(vm.dtInstance);
+              } else {
+                vm.service.pop_msg(data.data);
+              }
+            }
+          })
         }
       })
     }

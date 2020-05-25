@@ -880,6 +880,10 @@ var app = angular.module('urbanApp')
           url: '/ConverPRtoPO',
           templateUrl: 'views/inbound/toggle/convert_pr_to_po.html'
           })
+          .state('app.inbound.RaisePr.PRemptyPreview', {
+          url: '/ConverPRtoPO',
+          templateUrl: 'views/inbound/toggle/pr_consolidated_preview.html'
+          })
 
         .state('app.inbound.RaisePo', {
           url: '/RaisePO',
@@ -904,6 +908,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_pending_purchase_order.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_po_enquiries.js'
                   ])
                 });
               }]
@@ -940,6 +948,14 @@ var app = angular.module('urbanApp')
           url: '/SavedPendingPO',
           templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
           })
+          // .state('app.inbound.RaisePo.pendingPOEnquiries', {
+          // url: '/pendingPOEnquiries',
+          // templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
+          // })
+          .state('app.inbound.RaisePo.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
+          })
 
 
         .state('app.inbound.RevceivePo', {
@@ -947,15 +963,19 @@ var app = angular.module('urbanApp')
           permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/outbound/pop_js/custom_order_details.js'
+              ]).then(function() {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() {
+                  'scripts/controllers/inbound/receive_po.js'
+                ])
+              }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/receive_po.js'
-                  ])
-                });
-              }]
+                    'scripts/controllers/inbound/credit_note.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Receive PO',
@@ -976,6 +996,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RevceivePo.qc_detail', {
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/grn_qc.html'
+          })
+          .state('app.inbound.RevceivePo.CN', {
+          url: '/CN',
+          templateUrl: 'views/inbound/toggle/credit_nt.html'
           })
 
         .state('app.inbound.QualityCheck', {

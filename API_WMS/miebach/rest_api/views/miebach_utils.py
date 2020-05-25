@@ -560,7 +560,7 @@ STOCK_TRANSFER_GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_d
                         {'label': 'WareHouse Name', 'name': 'sister_warehouse', 'type': 'select'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ['GRN Number', 'Warehouse ID', 'Warehouse Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['PO Number', 'WareHouse ID', 'WareHouse Name', 'Order Quantity', 'Received Quantity'],
+            'mk_dt_headers': ['GRN Number', 'Warehouse ID', 'Warehouse Name', 'Order Quantity', 'Received Quantity'],
             'dt_url': 'get_st_po_filter', 'excel_name': 'st_goods_receipt', 'print_url': '',
             }
 
@@ -623,12 +623,12 @@ SKU_WISE_ST_GRN_DICT = {'filters' : [
                        "SGST", "IGST", "Margin %", "Margin", "Post-Tax Received Value", "Invoiced Unit Rate",
                        "Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
                        "Challan Date", "Remarks", "Updated User", "GST NO", "LR-NUMBER"],
-        'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+        'mk_dt_headers': [ "Received Date", "PO Date", "GRN Number", "Warehouse ID", "Warehouse Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Sub Category",
                            "Manufacturer","Searchable","Bundle",
                            "Received Qty", "Unit Rate", "MRP","Weight", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
-                           "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
-                            "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Margin %",
+                           "IGST(%)", "CESS(%)", "CGST",
+                            "SGST", "IGST", "CESS", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
                            "Challan Number", "Challan Date", "Remarks", "Updated User", "GST NO", "LR-NUMBER"],
         'dt_url': 'get_sku_wise_st_po_filter', 'excel_name': 'sku_wise_st_goods_receipt', 'print_url': '',
@@ -4208,6 +4208,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
                      'purchase_order__stpurchaseorder__open_st__cgst_tax',
                      'purchase_order__stpurchaseorder__open_st__sgst_tax',
                      'purchase_order__stpurchaseorder__open_st__igst_tax',
+                     'purchase_order__stpurchaseorder__open_st__cess_tax',
                      'batch_detail__weight',
                      'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                      'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
@@ -4368,9 +4369,11 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
                             ('CGST(%)', data['purchase_order__stpurchaseorder__open_st__cgst_tax']),
                             ('SGST(%)', data['purchase_order__stpurchaseorder__open_st__sgst_tax']),
                             ('IGST(%)', data['purchase_order__stpurchaseorder__open_st__igst_tax']),
+                            ('CESS(%)', data['purchase_order__stpurchaseorder__open_st__cess_tax']),
                             ('CGST', truncate_float((amount/100)* data['purchase_order__stpurchaseorder__open_st__cgst_tax'], 2)),
                             ('SGST', truncate_float((amount/100)* data['purchase_order__stpurchaseorder__open_st__sgst_tax'], 2)),
                             ('IGST', truncate_float((amount/100)* data['purchase_order__stpurchaseorder__open_st__igst_tax'], 2)),
+                            ('CESS', truncate_float((amount/100)* data['purchase_order__stpurchaseorder__open_st__cess_tax'], 2)),
                             ('Post-Tax Received Value', post_amount),
                             ('Margin %', data['seller_po__margin_percent']),
                             ('Margin', margin_price),
@@ -4386,6 +4389,7 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
                             ('receipt_no', 'receipt_no'),
                             ('Remarks', remarks),
                             ('Weight', data['batch_detail__weight']),
+                            ('MRP', mrp),
                             ('Updated User', updated_user_name),
                             ('GST NO', gst_num),
                             ('LR-NUMBER', lr_detail_no)))
@@ -9166,8 +9170,8 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
                         'picklist__stock__batch_detail__manufactured_date','picklist__stock__batch_detail__expiry_date')
                     if batch_data.exists():
                         batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
-                        expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
-                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
+                        expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
 
                     ord_dict = OrderedDict(
                         (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
@@ -10017,14 +10021,14 @@ def stock_rec_damaged_amount(stock_rec_obj):
         field_qty = getattr(stock_rec_obj, '%s_quantity' % field_name)
         field_amount = getattr(stock_rec_obj, '%s_amount' % field_name)
         damaged_amount_dict[field_name] = 0
-        if damaged_qty and field_amount:
+        if damaged_qty and field_amount and field_qty:
             damaged_amount_dict[field_name] = (field_amount/field_qty) * damaged_qty
     return damaged_amount_dict
 
 def get_stock_reconciliation_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, get_utc_start_date
     temp_data = copy.deepcopy(AJAX_DATA)
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'sku__sku_code', 'sku__sku_desc', 'mrp', 'weight', 'sku__sku_code',
            'sku__sku_brand', 'sku__sku_category', 'sku__sub_category', 'sku__sku_code', 'sku__sku_code',
            'opening_quantity', 'opening_avg_rate', 'opening_amount', 'opening_qty_damaged', 'opening_qty_damaged',
@@ -10047,11 +10051,12 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         stop_index = start_index + search_params.get('length', 0)
     else:
         stop_index = None
-    search_parameters = {}
+    search_parameters = OrderedDict()
+    search_parameters['sku__user'] = user.id
     if 'sku_code' in search_params:
         if search_params['sku_code']:
             search_parameters['sku__sku_code'] = search_params['sku_code']
-    search_parameters['sku_id__in'] = sku_master_ids
+    #search_parameters['sku_id__in'] = sku_master_ids
     if 'sku_category' in search_params:
         if search_params['sku_category']:
             search_parameters['sku__sku_category'] = search_params['sku_category']
@@ -10080,34 +10085,65 @@ def get_stock_reconciliation_report_data(search_params, user, sub_user):
         if 'bundle' in search_params:
             search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
-    search_parameters['sku__user'] = user.id
     stock_rec_objs = StockReconciliation.objects.filter(**search_parameters).order_by(order_data)
     temp_data['recordsTotal'] = stock_rec_objs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         stock_rec_objs = stock_rec_objs[start_index:stop_index]
-    for stock_rec_obj in stock_rec_objs:
+    counter = 0
+    if not stop_index:
+        manufacturer_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                           attribute_name='Manufacturer').values_list(
+        'sku_id', 'attribute_value'))
+        searchable_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                           attribute_name='Searchable').values_list(
+        'sku_id', 'attribute_value'))
+        bundle_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                        attribute_name='Bundle').values_list('sku_id', 'attribute_value'))
+        sheet_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                        attribute_name='Sheet').values_list('sku_id', 'attribute_value'))
+        vendor_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                        attribute_name='Vendor').values_list('sku_id', 'attribute_value'))
+        sub_cat_dict = dict(SKUAttributes.objects.filter(sku__user=user.id,
+                                                        attribute_name='Sub Category Type').values_list('sku_id', 'attribute_value'))
+    for stock_rec_obj in stock_rec_objs.iterator():
+        counter += 1
         creation_date = stock_rec_obj.creation_date
         if creation_date.strftime('%H') in ['23']:
             creation_date = creation_date - datetime.timedelta(1)
         creation_date = get_local_date(user, creation_date, send_date=True).strftime('%d %b %Y')
         sku = stock_rec_obj.sku
-        sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
-                                                                              'Sheet', 'Vendor', 'Searchable', 'Bundle']).\
-                                                values_list('attribute_name', 'attribute_value'))
+        manufacturer, searchable, bundle, sub_cat, vendor, sheet = '', '', '', '', '', ''
+        if not stop_index:
+            manufacturer = manufacturer_dict.get(sku.id, '')
+            searchable = searchable_dict.get(sku.id, '')
+            bundle = bundle_dict.get(sku.id, '')
+            sheet = sheet_dict.get(sku.id, '')
+            vendor = vendor_dict.get(sku.id, '')
+            sub_cat = sub_cat_dict.get(sku.id, '')
+        else:
+            sku_attr_data = dict(sku.skuattributes_set.filter(attribute_name__in=['Manufacturer', 'Sub Category Type',
+                                                                                  'Sheet', 'Vendor', 'Searchable', 'Bundle']).\
+                                                    values_list('attribute_name', 'attribute_value'))
+            manufacturer = sku_attr_data.get('Manufacturer', '')
+            searchable = sku_attr_data.get('Searchable', '')
+            bundle = sku_attr_data.get('Bundle', '')
+            sheet = sku_attr_data.get('Sheet', '')
+            vendor = sku_attr_data.get('Vendor', '')
+            sub_cat = sku_attr_data.get('Sub Category Type', '')
         damaged_amount_dict = stock_rec_damaged_amount(stock_rec_obj)
         temp_data['aaData'].append(OrderedDict(( ('Created Date', creation_date),
                                                  ('SKU Code', sku.sku_code), ('SKU Desc', sku.sku_desc),
                                                  ('MRP', stock_rec_obj.mrp), ('Weight', stock_rec_obj.weight),
-                                                 ('Vendor Name', sku_attr_data.get('Vendor', '')),
+                                                 ('Vendor Name', vendor),
                                                  ('Brand', sku.sku_brand),
                                                  ('Category', sku.sku_category),
                                                  ('Sub Category', sku.sub_category),
-                                                 ('Sub Category Type', sku_attr_data.get('Sub Category Type', '')),
-                                                 ('Manufacturer', sku_attr_data.get('Manufacturer', '')),
-                                                 ('Searchable', sku_attr_data.get('Searchable', '')),
-                                                 ('Bundle', sku_attr_data.get('Bundle', '')),
-                                                 ('Sheet', sku_attr_data.get('Sheet', '')),
+                                                 ('Sub Category Type', sub_cat),
+                                                 ('Manufacturer', manufacturer),
+                                                 ('Searchable', searchable),
+                                                 ('Bundle', bundle),
+                                                 ('Sheet', sheet),
                                                  ('Opening Qty',  stock_rec_obj.opening_quantity),
                                                  ('Opening Avg Rate', "%.2f" % stock_rec_obj.opening_avg_rate),
                                                  ('Opening Amount After Tax', "%.2f" % stock_rec_obj.opening_amount),

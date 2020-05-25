@@ -206,8 +206,7 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Return Quantity</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Discrepancy Reason</th>
                     <th>Total</th>
-                    <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
-
+                    <th ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''" class="plus"></th>
                     <th class="detail"></th>
                   <tr>
                 </thead>
@@ -334,7 +333,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
 
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
@@ -404,7 +403,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>
@@ -412,7 +411,7 @@
               </table>
             </div>
           </div>
-          <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type=='Services' || showCase.product_type=='Assets'">
+          <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type">
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>

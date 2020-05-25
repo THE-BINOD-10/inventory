@@ -253,6 +253,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
+          } else if (aData['Validation Status'] == 'Senttostore'){
+            $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
             $state.go('app.inbound.RaisePr.SavedPurchaseRequest');
@@ -535,11 +537,30 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+    vm.send_to_parent_store = function(form) {
+      var selectedItems = [];
+      angular.forEach(vm.preview_data.data, function(eachLineItem){
+        if (eachLineItem.checkbox){
+          if (eachLineItem.moq > eachLineItem.quantity){
+            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+          };
+        }
+      });      
+      vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
+      if(data.message){
+          if(data.data == 'Sent To Parent Store Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      })
+    }
+
     vm.convert_pr_to_po = function(form) {
-      // var elem = angular.element($('form'));
-      // elem = elem[0];
-      // elem = $(elem).serializeArray();
-      // elem.push({name:'is_actual_pr', value:true})
       var selectedItems = [];
       var alertMsg = "";
       angular.forEach(vm.preview_data.data, function(eachLineItem){
@@ -554,7 +575,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           };
         }
       });
-      vm.service.alert_msg(alertMsg+" - Can't be processed").then(function(msg) {
+      var finalAlerMsg = '';
+      if (alertMsg) {
+        finalAlerMsg = alertMsg+" - Can't be processed";
+      }
+      vm.service.alert_msg(finalAlerMsg).then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
           if(data.message){

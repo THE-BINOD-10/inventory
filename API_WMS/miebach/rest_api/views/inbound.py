@@ -2842,7 +2842,6 @@ def convert_pr_to_po(request, user=''):
         #     pr_numbers = map(int, myDict.get('pr_id')[0].split(', '))
         # else:
         #     return HttpResponse("No PR Number Found")
-        import pdb; pdb.set_trace()
         # existingPRQs = PendingPR.objects.filter(id__in=pr_numbers)
         # if not existingPRQs.exists():
         #     return HttpResponse("No PR found with the given PR Number")
@@ -2890,7 +2889,7 @@ def convert_pr_to_po(request, user=''):
             pendingPoObj = PendingPO.objects.create(**purchaseMap)
             for existingPRObj in existingPRObjs:
                 pendingPoObj.pending_prs.add(existingPRObj)
-                # existingPRObj.final_status='pr_converted_to_po'
+                existingPRObj.final_status='pr_converted_to_po'
                 existingPRObj.save()
 
             for sku_code in all_skus:

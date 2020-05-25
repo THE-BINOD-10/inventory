@@ -12,7 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.service = Service;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type
-
+  vm.reloadData = reloadData;
   vm.filters = {'datatable': 'MachineMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
     .withOption('ajax', {
@@ -92,15 +92,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.reloadData();
       }
 
-//  vm.get_supplier_master_data = function() {
-//
-//    vm.service.apiCall("get_supplier_master_data/").then(function(data){
-//      if(data.message) {
-//        vm.all_taxes = data.data.tax_data;
-//      }
-//    });
-//  }
-//  vm.get_supplier_master_data();
 
   vm.add = function() {
 
@@ -173,7 +164,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return deferred.promise();
     }
-
+     function reloadData () {
+        vm.dtInstance.reloadData();
+    };
 	//upload file
 	vm.uploadFile = function(elem) {
 

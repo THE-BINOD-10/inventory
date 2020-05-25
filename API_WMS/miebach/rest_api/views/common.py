@@ -10088,7 +10088,6 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
 
 
 def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
-    import pdb;pdb.set_trace()
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))

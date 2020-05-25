@@ -300,20 +300,13 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
 
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    if search_term:
-        if search_term.lower() in search_dict:
-            search_terms = search_dict[search_term.lower()]
-            master_data = MachineMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
-                order_data)
-        # else:
-        #     master_data = MachineMaster.objects.filter(
-        #         Q(supplier_id__icontains=search_term) | Q(name__icontains=search_term) | Q(
-        #             address__icontains=search_term) | Q(
-        #             phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
-        #         **search_params).order_by(order_data)
-
-    else:
-        master_data = MachineMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+    # if search_term:
+    #     if search_term.lower() in search_dict:
+    #         search_terms = search_dict[search_term.lower()]
+    #         master_data = MachineMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+    #             order_data)
+    # else:
+    master_data = MachineMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
 
     filter_dict = {}
     filter_dict['user_id'] = user.id
@@ -324,27 +317,9 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     for data in master_data[start_index: stop_index]:
-        # uploads_list = []
-        # secondary_email_ids = ''
-        # uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__) \
-        #     .values_list('uploaded_file', flat=True)
-        # if uploads_obj:
-        #     uploads_list = [(i, i.split("/")[-1]) for i in uploads_obj]
         status = 'Inactive'
         if data.status:
             status = 'Active'
-        #
-        # login_created = False
-        # user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
-        # username = ""
-        # if user_role_mapping:
-        #     login_created = True
-        #     username = user_role_mapping[0].user.username
-        # master_email = master_email_map.filter(master_id=data.id)
-        # if master_email:
-        #     secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
-        # if data.phone_number:
-        #     data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(
             OrderedDict((('id', data.id), ('machine_name', data.machine_name), ('machine_code', data.machine_code),
                          ('model_number', data.model_number),('serial_number', data.serial_number),
@@ -2986,7 +2961,6 @@ def insert_sku(request, user=''):
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-            import pdb;pdb.set_trace()
             sku_master = instanceName(**data_dict)
             sku_master.save()
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}

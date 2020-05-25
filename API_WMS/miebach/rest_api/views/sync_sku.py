@@ -60,7 +60,6 @@ def create_update_sku(all_skus, all_users):
     from rest_api.views.masters import check_update_size_type
     dump_sku_codes = []
     wh_type = ''
-    import pdb;pdb.set_trace()
     if all_skus:
         user_profile = UserProfile.objects.filter(user_id=all_skus[0].user)
         if user_profile:

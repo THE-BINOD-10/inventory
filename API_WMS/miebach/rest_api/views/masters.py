@@ -854,7 +854,7 @@ def get_sku_data(request, user=''):
         instanceName = ServiceMaster
     if request.GET.get('is_otheritem') == 'true':
         instanceName = OtherItemsMaster
-    
+
     data = get_or_none(instanceName, filter_params)
 
     filter_params = {'user': user.id}
@@ -2083,7 +2083,7 @@ def update_company_master(request, user=''):
         image_file = request.FILES.get('files-0', '')
         if image_file:
             company_image_saving(image_file, data, user)
-            
+
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -2870,7 +2870,7 @@ def insert_sku(request, user=''):
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
-            # if admin_user.get_username().lower() == 'metropolise':
+            # if admin_user.get_username().lower() == 'metropolis':
             netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)

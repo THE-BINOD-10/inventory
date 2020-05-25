@@ -1456,7 +1456,7 @@ def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fna
         return f_name
 
 @csrf_exempt
-def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={}, 
+def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
                         is_asset=False, is_service=False):
     sku_data = []
     wms_data = []

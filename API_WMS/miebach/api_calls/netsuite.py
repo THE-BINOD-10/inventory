@@ -36,12 +36,13 @@ NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999
 
 def connect_tba():
     nc = NetSuiteConnection(
-      account=NS_ACCOUNT, 
-      consumer_key=NS_CONSUMER_KEY, 
-      consumer_secret=NS_CONSUMER_SECRET,                   
-      token_key=NS_TOKEN_KEY, 
+      account=NS_ACCOUNT,
+      consumer_key=NS_CONSUMER_KEY,
+      consumer_secret=NS_CONSUMER_SECRET,
+      token_key=NS_TOKEN_KEY,
       token_secret=NS_TOKEN_SECRET)
     return nc
+
 def netsuite_update_create_sku(data, sku_attr_dict, user):
     data_response = {}
     try:
@@ -57,10 +58,11 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         invitem.upc = data.ean_number
         invitem.isinactive = data.status
         invitem.itemtype = data.batch_based
+        invitem.purchaseunit = data.measurement_type
         # invitem.taxtype = data.product_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
-        # invitem.purchaseunit = sku_attr_dict.get('Purchase UOM', '')
+        invitem.purchaseunit = data.measurement_type
         invitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
@@ -77,14 +79,15 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         log.info('Update/Create sku data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
-def netsuite_sku_bulk_create(model_obj, data_objs):
-    # print("Bult SKU create", model_obj, data_objs)
+def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
     data_response = {}
     try:
         nc = connect_tba()
         ns = nc.raw_client
         list_skuitems=[]
-        for sku_master_data in data_objs:
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             skuitem= ns.InventoryItem()
             skuitem.taxSchedule = ns.RecordRef(internalId=1)
             skuitem.itemId = sku_master_data.sku_code
@@ -94,8 +97,112 @@ def netsuite_sku_bulk_create(model_obj, data_objs):
             skuitem.vendorname = sku_master_data.sku_brand
             skuitem.upc = sku_master_data.ean_number
             skuitem.isinactive = sku_master_data.status
+            skuitem.purchaseunit = sku_master_data.measurement_type
+            skuitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=sku_attr_dict.get('No. of Test', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=sku_attr_dict.get('No. of flex', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=sku_master_data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)])
             list_skuitems.append(skuitem)
         data_response =  ns.upsertList(list_skuitems)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create sku data failed , error was %s' % (str(e)))
+    return data_response
+
+def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        list_serviceitems=[]
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            serviceitem = ns.ServicePurchaseItem()
+            serviceitem.taxSchedule = ns.RecordRef(internalId=1)
+            serviceitem.itemId = sku_master_data.sku_code
+            serviceitem.externalId = sku_master_data.sku_code
+            serviceitem.displayName = sku_master_data.sku_desc
+            serviceitem.itemType = sku_master_data.sku_type
+            serviceitem.vendorname = sku_master_data.sku_brand
+            serviceitem.upc = sku_master_data.ean_number
+            serviceitem.isinactive = sku_master_data.status
+            serviceitem.cost = sku_master_data.cost_price
+            serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      ])
+            list_serviceitems.append(serviceitem)
+        data_response =  ns.upsertList(list_serviceitems)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create sku data failed , error was %s' % (str(e)))
+    return data_response
+
+def netsuite_asset_master_bulk_create(model_obj,  sku_key_map, new_skus):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        list_assetitems=[]
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            assetitem= ns.NonInventoryPurchaseItem()
+            assetitem.taxSchedule = ns.RecordRef(internalId=1)
+            assetitem.itemId = sku_master_data.sku_code
+            assetitem.externalId = sku_master_data.sku_code
+            assetitem.displayName = sku_master_data.sku_desc
+            assetitem.itemType = sku_master_data.sku_type
+            assetitem.vendorname = sku_master_data.sku_brand
+            assetitem.upc = sku_master_data.ean_number
+            assetitem.isinactive = sku_master_data.status
+            assetitem.cost = sku_master_data.cost_price
+            assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      ])
+            list_assetitems.append(assetitem)
+        data_response =  ns.upsertList(list_assetitems)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create sku data failed , error was %s' % (str(e)))
+    return data_response
+
+def netsuite_otheritem_master_bulk_create(model_obj,  sku_key_map, new_skus):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        list_otheritems=[]
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            otheritem = ns.NonInventoryPurchaseItem()
+            otheritem.taxSchedule = ns.RecordRef(internalId=1)
+            otheritem.itemId = sku_master_data.sku_code
+            otheritem.externalId = sku_master_data.sku_code
+            otheritem.displayName = sku_master_data.sku_desc
+            otheritem.itemType = sku_master_data.sku_type
+            otheritem.vendorname = sku_master_data.sku_brand
+            otheritem.department = sku_master_data.sku_class
+            otheritem.isinactive = sku_master_data.status
+            otheritem.cost = sku_master_data.cost_price
+            otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      ])
+            list_otheritems.append(otheritem)
+        data_response =  ns.upsertList(list_otheritems)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -117,13 +224,17 @@ def netsuite_update_create_service(data, user):
         serviceitem.department = data.sku_class
         serviceitem.isinactive = data.status
         serviceitem.cost = data.cost_price
+        serviceitem.purchaseunit = data.measurement_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
-        serviceitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)])
+
+        serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      ])
         data_response = ns.upsert(serviceitem)
     except Exception as e:
         import traceback
@@ -131,9 +242,63 @@ def netsuite_update_create_service(data, user):
         log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
+def netsuite_update_create_assetmaster(data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        assetitem = ns.NonInventoryPurchaseItem()
+        assetitem.taxSchedule = ns.RecordRef(internalId=1)
+        assetitem.itemId = data.sku_code
+        assetitem.externalId = data.sku_code
+        assetitem.displayName = data.sku_desc
+        assetitem.itemType = data.sku_type
+        assetitem.vendorname = data.sku_brand
+        assetitem.department = data.sku_class
+        assetitem.isinactive = data.status
+        assetitem.cost = data.cost_price
+        assetitem.purchaseunit = data.measurement_type
+        assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      ])
+        data_response = ns.upsert(assetitem)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
+
+def netsuite_update_create_otheritem_master(data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        otheritem = ns.NonInventoryPurchaseItem()
+        otheritem.taxSchedule = ns.RecordRef(internalId=1)
+        otheritem.itemId = data.sku_code
+        otheritem.externalId = data.sku_code
+        otheritem.displayName = data.sku_desc
+        otheritem.itemType = data.sku_type
+        otheritem.vendorname = data.sku_brand
+        otheritem.department = data.sku_class
+        otheritem.isinactive = data.status
+        otheritem.cost = data.cost_price
+        otheritem.purchaseunit = data.measurement_type
+        otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      ])
+        data_response = ns.upsert(otheritem)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+    return data_response
 
 def netsuite_update_create_rtv(rtv_data, user):
-    print("RTV", rtv_data, user)
     data_response = {}
     try:
         nc = connect_tba()
@@ -175,7 +340,7 @@ def netsuite_create_grn(user, grn_data):
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
         for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
             'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
@@ -199,17 +364,24 @@ def netsuite_create_po(po_data, user):
         ns = nc.raw_client
         item = []
         purorder = ns.PurchaseOrder()
-        purorder.entity = ns.RecordRef(internalId=136, type="vendor")
+        purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
         purorder.tranDate = po_data['po_date']
-        # purorder.dueDate = po_data['due_date']
+        purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
         purorder.tranid = po_data['po_number']
-        # purorder.memo = po_data['remarks']
+        purorder.memo = po_data['remarks']
+        # purorder.purchaseordertype = po_data['order_type']
+        # purorder.location = warehouse_id
+        # purorder.approvalstatus = 'approved'
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
+        # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
+        purorder.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']))
         for data in po_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'rate': data['unit_price']}
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
+                         'quantity':data['quantity'],
+                         'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp'])])}
             item.append(line_item)
         purorder.itemList = {'item':item}
         data_response = ns.upsert(purorder)
@@ -220,6 +392,32 @@ def netsuite_create_po(po_data, user):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Create PurchaseOrder data failed and error was %s' % (str(e)))
+    return data_response
+def netsuite_create_pr(pr_data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        item = []
+        purreq = ns.PurchaseRequisition()
+        # purreq.entity = ns.RecordRef(internalId=6)
+        # purreq.memo = "Webservice PR"
+        # purreq.approvalStatus = ns.RecordRef(internalId=2)
+        purreq.tranDate = pr_data['pr_date']
+        purreq.tranid = pr_data['pr_number']
+        purreq.tranDate = pr_data['pr_date']
+        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type'])])
+        for data in pr_data['items']:
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['price'],
+                         'quantity':data['quantity']}
+            item.append(line_item)
+        purreq.itemList = {'purchaseRequisitionItem':item}
+        purreq.externalId = pr_data['external_id']
+        ns.upsert(purreq)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
     return data_response
 
 @login_required
@@ -245,6 +443,7 @@ def netsuite_update_supplier(request, user=''):
     return HttpResponse(json.dumps(message), status=message.get('status', 200))
 
 def netsuite_validate_supplier(request, supplier, user=''):
+    from rest_api.views.masters import *
     failed_status = OrderedDict()
     sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
     sister_whs1.append(user.username)
@@ -267,13 +466,13 @@ def netsuite_validate_supplier(request, supplier, user=''):
             update_error_message(failed_status, 5024, error_message, '', 'supplierid')
 
         supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
-		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration',
+		                 'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
-		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno'
+		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status'
 		                }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'status':1, 'po_exp_duration':0}
+        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
         data_dict = {}
         filter_dict = {'supplier_id': supplier_id }
         for key,val in supplier_dict.iteritems():
@@ -288,6 +487,11 @@ def netsuite_validate_supplier(request, supplier, user=''):
             if key == 'email_id' and value:
                 if validate_supplier_email(value):
                     update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
+            if key == 'status':
+                status = supplier.get(val, 'active')
+                value = 1
+                if status.lower() != 'active':
+                    value = 0
             data_dict[key] = value
             # if supplier_master and value:
             #     setattr(supplier_master, key, value)

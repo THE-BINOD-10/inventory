@@ -2955,8 +2955,14 @@ def netsuite_pr(all_data, user, pr_number, existingPRObj):
     delivery_date = existingPRObj.delivery_date.isoformat()
     pr_date = existingPRObj.creation_date.isoformat()
     external_id = str(existingPRObj.prefix) + str(pr_number)
+    prApprQs = existingPRObj.pending_prApprovals
+    approval1 = ''
+    allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
+    if allApproavls:
+        approval1 = allApproavls[0]
+
     pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-               'ship_to_address': existingPRObj.ship_to, 'external_id':external_id}
+               'ship_to_address': existingPRObj.ship_to, 'external_id':external_id, 'approval1':approval1}
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
         'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
@@ -7082,6 +7088,7 @@ def confirm_add_po(request, sales_data='', user=''):
     supplier_mapping = get_misc_value('supplier_mapping', user.id)
     po_creation_date = ''
     delivery_date = ''
+    product_category = ''
     is_purchase_request = request.POST.get('is_purchase_request', '')
     po_id = ''
     if is_purchase_request == 'true':
@@ -7093,6 +7100,7 @@ def confirm_add_po(request, sales_data='', user=''):
             po_id = prObj.po_number
             po_order_id = prObj.po_number
             delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
+            product_category = prObj.product_category
 
     if not po_id:
         if not sales_data:
@@ -7414,7 +7422,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan,
                      'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-        netsuite_po(order_id, user, purchase_order, data_dict, po_number)
+        netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -7443,7 +7451,7 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category):
     from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
@@ -7462,7 +7470,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number):
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id}
+                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

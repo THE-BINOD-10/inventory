@@ -231,9 +231,11 @@ def netsuite_update_create_service(data, user):
         # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
 
         serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
-                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
+                                                      # ns.DateCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
+                                                      # ns.DateCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)
                                                       ])
         data_response = ns.upsert(serviceitem)
     except Exception as e:
@@ -373,11 +375,11 @@ def netsuite_create_po(po_data, user):
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
         # purorder.location = warehouse_id
-        # purorder.approvalstatus = 'approved'
+        purorder.approvalstatus = ns.RecordRef(internalId=2)
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-        purorder.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']))
+        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id'])])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
@@ -406,7 +408,8 @@ def netsuite_create_pr(pr_data, user):
         purreq.tranDate = pr_data['pr_date']
         purreq.tranid = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
-        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type'])])
+        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type']),
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1'])])
         for data in pr_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['price'],
                          'quantity':data['quantity']}

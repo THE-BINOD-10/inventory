@@ -656,21 +656,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         wh_details = dict(warehouses.values_list('user_id','user__username'))
         users = wh_details.keys()
     results, order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = get_filtered_purchase_order_ids(request, users, search_term, filters, col_num, order_term)
-
-    '''for result in results:
-        suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user=user.id).exclude(
-            status__in=['location-assigned', 'confirmed-putaway'])
-        if not suppliers:
-            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result, open_st__sku__user=user.id).values_list(
-                'po_id', flat=True)
-            suppliers = PurchaseOrder.objects.filter(id__in=st_order_ids)
-        if not suppliers:
-            rw_ids = RWPurchase.objects.filter(purchase_order__order_id=result, rwo__vendor__user=user.id). \
-                values_list('purchase_order_id', flat=True)
-            suppliers = PurchaseOrder.objects.filter(id__in=rw_ids)
-        for supplier in suppliers[:1]:
-            data.append(supplier)'''
-
     temp_data['recordsTotal'] = len(results)
     temp_data['recordsFiltered'] = len(results)
     oneassist_condition = get_misc_value('dispatch_qc_check', user.id)
@@ -743,6 +728,11 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                             .values_list('quantity',flat=True)))
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
+        productType = ''
+        if supplier.open_po:
+            pending_po = PendingPO.objects.filter(open_po_id=supplier.open_po.id, requested_user_id=user.id)
+            if pending_po.exists():
+                productType = pending_po[0].product_category
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
@@ -750,17 +740,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Warehouse', warehouse),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
-                                      ('Discrepancy Qty', discrepency_qty),
+                                      ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix'])
                                       )))
     temp_data['aaData'] = data_list
-    #sort_col = lis[col_num]
-
-    #if order_term == 'asc':
-    #    data_list = sorted(data_list, key=itemgetter(sort_col))
-    #else:
-    #    data_list = sorted(data_list, key=itemgetter(sort_col), reverse=True)
-    #temp_data['aaData'] = list(chain(temp_data['aaData'], data_list[start_index:stop_index]))
 
 
 @csrf_exempt

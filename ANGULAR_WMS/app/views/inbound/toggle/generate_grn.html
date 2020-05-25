@@ -29,12 +29,15 @@
                 <div class="col-xs-4"><b>{{showCase.grn_details[model_name]}}</b></div>
                 <div class="col-xs-8">: {{showCase.model_data[model_name]}}</div>
               </div>
+              <div class="row" ng-if="showCase.product_type">
+                <div class="col-xs-4"><b>Product Category</b></div>
+                <div class="col-xs-8">: {{showCase.product_type}}</div>
+              </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
                 ng-click="showCase.gen_barcode()">Generate Barcodes</button>
             </div>
-
 			<div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
 			  <p style="float:right">DC Level GRN :
 			  <label class="switch switch-sm square mt5">
@@ -178,7 +181,10 @@
               <hr>
             </div>
           </div>
-          <div class="row">
+          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets'" >
+            <div ng-include="'views/inbound/toggle/GRN/grn_services_assets.html'"></div>
+          </div>
+          <div class="row" ng-hide="showCase.product_type=='Services' || showCase.product_type=='Assets'">
             <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
@@ -197,7 +203,6 @@
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type !='FMCG'">GRN Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
-
                     <!--<th ng-if="showCase.industry_type=='FMCG'">MRP</th>-->
                     <th>MRP</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Weight</th>
@@ -212,8 +217,7 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Return Quantity</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Discrepancy Reason</th>
                     <th>Total</th>
-                    <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
-
+                    <th ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''" class="plus"></th>
                     <th class="detail"></th>
                   <tr>
                 </thead>
@@ -340,7 +344,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
 
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
@@ -410,7 +414,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>
@@ -418,7 +422,7 @@
               </table>
             </div>
           </div>
-          <div class="row" ng-hide="showCase.permissions.use_imei">
+          <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type">
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>

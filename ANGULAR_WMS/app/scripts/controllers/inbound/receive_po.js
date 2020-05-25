@@ -128,10 +128,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }else {
       vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
     }
-    if (vm.industry_type == 'FMCG')
-        {
-            vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
-        }
+    if (vm.industry_type == 'FMCG') {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+    }
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'))
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -194,6 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.main_sr_number = ''
                 }
+                vm.product_type = aData['Product Category'];
                 vm.warehouse = aData['Warehouse']
                 var dataDict = {
                   'supplier_id': aData['DT_RowId'],

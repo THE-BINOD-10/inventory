@@ -2295,7 +2295,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
     if inv_obj:
         inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
+        inv_obj.adjusted_quantity = inv_obj.adjusted_quantity + quantity
         inv_obj.save()
         dat = inv_obj
     else:

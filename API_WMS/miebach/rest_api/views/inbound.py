@@ -2797,6 +2797,7 @@ def convert_pr_to_po(request, user=''):
             pendingPoObj.pending_prs.add(existingPRObj)    
         existingPRObj.final_status='pr_converted_to_po'
         existingPRObj.save()
+        netsuite_pr(all_data, user, pr_number, existingPRObj)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2804,6 +2805,23 @@ def convert_pr_to_po(request, user=''):
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
 
+def netsuite_pr(all_data, user, pr_number, existingPRObj):
+    delivery_date = existingPRObj.delivery_date.isoformat()
+    pr_date = existingPRObj.creation_date.isoformat()
+    external_id = str(existingPRObj.prefix) + str(pr_number)
+    pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
+               'ship_to_address': existingPRObj.ship_to, 'external_id':external_id}
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id', 
+        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date', 
+        'sku__servicemaster__service_end_date',
+    ]
+    lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
+    for rec in lineItems:
+        sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
+        item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
+        pr_data['items'].append(item)
+
+    response = netsuite_create_pr(pr_data, user)
 
 @csrf_exempt
 @login_required

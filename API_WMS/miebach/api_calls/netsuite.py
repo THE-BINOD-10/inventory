@@ -228,6 +228,32 @@ def netsuite_create_po(po_data, user):
         log.debug(traceback.format_exc())
         log.info('Create PurchaseOrder data failed and error was %s' % (str(e)))
     return data_response
+def netsuite_create_pr(pr_data, user):
+    data_response = {}
+    try:
+        nc = connect_tba()
+        ns = nc.raw_client
+        item = []
+        purreq = ns.PurchaseRequisition()
+        # purreq.entity = ns.RecordRef(internalId=6)
+        # purreq.memo = "Webservice PR"
+        # purreq.approvalStatus = ns.RecordRef(internalId=2)
+        purreq.tranDate = pr_data['pr_date']
+        purreq.tranid = pr_data['pr_number']
+        purreq.tranDate = pr_data['pr_date']
+        purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_type'])])
+        for data in pr_data['items']:
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['price'],
+                         'quantity':data['quantity']}
+            item.append(line_item)
+        purreq.itemList = {'purchaseRequisitionItem':item}
+        purreq.externalId = pr_data['external_id']
+        ns.upsert(purreq)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
+    return data_response
 
 @login_required
 @get_admin_user

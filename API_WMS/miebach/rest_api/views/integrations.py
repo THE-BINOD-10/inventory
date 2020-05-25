@@ -2167,6 +2167,118 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         str(user.username), str(orders), str(e)))
     return insert_status, failed_status.values(), final_data_dict
 
+def check_and_update_payment(payment_info, order_details, user):
+    NOW = datetime.datetime.now()
+    original_order_id = order_details[0].original_order_id
+    payment_summary = PaymentSummary.objects.filter(order__user=user.id, order__original_order_id = original_order_id)
+    payment_date = payment_info.get('payment_date', '')
+    if payment_date:
+        payment_date = parser.parse(payment_date)
+    else:
+        payment_date = NOW
+    transaction_id = payment_info.get('transaction_id', '')
+    paid_amount = payment_info.get('paid_amount',  0)
+    method_of_payment = payment_info.get('method', '')
+    payment_mode = payment_info.get('payment_mode', '')
+    payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+    payment_dict['aux_info'] = json.dumps(payment_info)
+    if payment_summary.exists():
+        payment_ids = list(payment_summary.values_list('payment_info', flat=True))
+        if payment_ids:
+            payment_obj = PaymentInfo.objects.filter(id__in=payment_ids)
+            payment_dict['payment_mode'] = payment_info.get('payment_mode', payment_obj[0].payment_mode)
+            payment_date = payment_info.get('payment_date', '')
+            if payment_date:
+                payment_date = parser.parse(payment_date)
+                payment_dict['payment_date'] = payment_date
+            payment_dict['transaction_id'] = payment_info.get('transaction_id',  payment_obj[0].transaction_id)
+            payment_dict['paid_amount'] = payment_info.get('paid_amount',  payment_obj[0].paid_amount)
+            payment_dict['method_of_payment'] = payment_info.get('method',  payment_obj[0].method_of_payment)
+            payment_obj.update(**payment_dict)
+    else:
+        for order in order_details:
+            payment_id = get_incremental(user, "payment_summary", 1)
+            payment = PaymentInfo.objects.create(**payment_dict)
+            PaymentSummary.objects.create(order_id=order.id, payment_id=payment_id, payment_info=payment)
+
+def cancel_order(order_details, original_order_id, user):
+    admin_user = get_admin(user)
+    order_detail_ids = order_details.values_list('id', flat=True)
+    seller_orders = list(
+        SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED',
+                                   status=1). \
+        values_list('order_id', flat=True))
+    order_detail_ids = list(order_detail_ids)
+    IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    picklists = Picklist.objects.filter(order_id__in=order_detail_ids, order__user=user.id)
+    if seller_orders:
+        OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
+        SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
+        order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
+    if order_detail_ids and not picklists:
+        for order_detail_id in order_detail_ids:
+            order_obj = OrderDetail.objects.get(id=order_detail_id)
+            order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
+            if order_obj.original_quantity == order_obj.cancelled_quantity:
+                order_obj.status = 3
+            elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
+                order_obj.status = 2
+            else:
+                order_obj.status = 0
+            order_obj.save()
+            if admin_user:
+                OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+
+def validate_update_order(request_data, user='', company_name=''):
+    search_params = {'user': user.id}
+    sister_whs = []
+    original_order_id = ''
+    status = ''
+    failed_status = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data.has_key('order_id'):
+        original_order_id = str(request_data['order_id'])
+    else:
+        error_message = 'Order ID required'
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    if request_data.has_key('warehouse'):
+        warehouse = request_data['warehouse']
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            error_message = 'Invalid Warehouse Name'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    search_params = {'user': user.id}
+    if request_data.has_key('sku_code'):
+        search_params['sku__sku_code'] = request_data['sku_code']
+    if request_data.has_key('status'):
+        status = request_data['status'].lower()
+    # else:
+    #     error_message = 'Please mention status'
+    #     update_error_message(failed_status, 5024, error_message, original_order_id)
+    if not failed_status:
+        order_details = OrderDetail.objects.filter(original_order_id=original_order_id, **search_params)
+        if order_details:
+            if request_data.has_key('payment_status'):
+                payment_status = request_data.get('payment_status')
+                if payment_status.lower() == 'paid':
+                    for order in order_details:
+                        invoice_amount = order.invoice_amount
+                        order.payment_received = invoice_amount
+                        order.save()
+            if request_data.has_key('payment_info'):
+                payment_info = request_data['payment_info']
+                check_and_update_payment(payment_info, order_details, user)
+            if status == 'cancel':
+                cancel_order(order_details, original_order_id,user)
+        else:
+            error_message = 'Please check the data'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    return failed_status.values()
+
 def validate_create_orders(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
@@ -2389,7 +2501,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         if not tax and igst_tax:
                             tax = igst_tax
                         if order_create and not invoice_amount:
-                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            amt = (float(order_details['quantity']) * order_details['unit_price']) -\
+                                  order_summary_dict['discount']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
 
                         if order.has_key('payment_status'):

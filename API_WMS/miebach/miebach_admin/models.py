@@ -726,6 +726,7 @@ class BatchDetail(models.Model):
     ean_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    batch_ref = models.CharField(max_length=100, default='')
 
     class Meta:
         db_table = 'BATCH_DETAIL'
@@ -1589,6 +1590,7 @@ class STPurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'ST_PURCHASE_ORDER'
+        index_together = ('open_st', 'po')
 
     def __unicode__(self):
         return str(self.po_id)

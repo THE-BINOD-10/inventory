@@ -173,6 +173,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       return nRow;
     }
 
+  $scope.getkeys = function (event) {
+        let key = event.keyCode;
+        if (event.altKey && event.which == 78) { // alt + n  enter key
+          let index= (vm.model_data.data.length)-1
+          vm.update_data(index, true, true)
+          $('input[name="wms_code"]').trigger('focus');
+        }
+    }
   $(document).on('keydown', 'input.detectTab', function(e) {
     var keyCode = e.keyCode || e.which;
 

@@ -586,7 +586,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.save_sku = function(){
       var that = vm;
-      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
           vm.display_approval_button && Object.keys(vm.model_data.uploaded_file_dict).length == 0) {
         if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
           colFilters.showNoty("Uploading file is mandatory");
@@ -705,7 +705,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
-        if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
             Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
@@ -838,7 +838,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
         angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0) {
+          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
             status = true;
           }
         });
@@ -993,6 +993,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                   // vm.sku_list_1.push(sku.wms_code);
                   if(vm.field == sku.wms_code){
+                      sku.batch_ref = field
                     // $timeout(function() {
                       //vm.sort_items = [];
                       //vm.sort_items.push(vm.model_data.data[i]);

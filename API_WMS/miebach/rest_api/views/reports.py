@@ -46,7 +46,7 @@ def get_report_data(request, user=''):
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
-    elif report_name in ['order_summary_report', 'po_report', 'open_order_report', 'stock_cover_report']:
+    elif report_name in ['order_summary_report', 'po_report', 'open_order_report', 'stock_cover_report', 'open_po_aprroval_report', 'aprroval_po_summary_report', 'aprroval_po_detail_report']:
         if report_name == 'order_summary_report':
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)
@@ -271,6 +271,16 @@ def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_order_summary_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_approval_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_po_approval_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 
 @csrf_exempt
@@ -2206,7 +2216,7 @@ def print_descrepancy_note(request, user=''):
                         price = seller_po_obj.batch_detail.buy_price
                         mrp = seller_po_obj.batch_detail.mrp
                 if not updated_discrepancy:
-                    updated_discrepancy=True
+                    updated_discrepancy = True
                     invoice_number, invoice_date = '', ''
                     order_date = obj.purchase_order.creation_date
                     if seller_po_summary.exists():
@@ -2217,6 +2227,10 @@ def print_descrepancy_note(request, user=''):
                     order_date = get_local_date(request.user, order_date)
                     order_date = datetime.datetime.strftime(
                         datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    if not invoice_number and obj.new_data:
+                        data_dict = json.loads(obj.new_data)
+                        invoice_number = data_dict.get('invoice_number', '')
+                        invoice_date = data_dict.get('invoice_date', '')
                     report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
                                         'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
                                         'company_name': profile.company_name, 'company_address': profile.address,
@@ -2451,3 +2465,22 @@ def print_credit_note_report(request, user=''):
 
     return render(request, 'templates/toggle/sales_return_print.html',
                   {'show_data_invoice': return_sales_print})
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_approval_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_approval_summary_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_approval_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_approval_detail_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

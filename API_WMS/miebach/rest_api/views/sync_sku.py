@@ -60,6 +60,7 @@ def create_update_sku(all_skus, all_users):
     from rest_api.views.masters import check_update_size_type
     dump_sku_codes = []
     wh_type = ''
+    import pdb;pdb.set_trace()
     if all_skus:
         user_profile = UserProfile.objects.filter(user_id=all_skus[0].user)
         if user_profile:
@@ -107,6 +108,13 @@ def create_update_sku(all_skus, all_users):
             except:
                 pass
             try:
+                if sku.testmaster:
+                    instanceName = TestMaster
+                    update_sku_dict['test_type'] = sku.testmaster.test_type
+                    update_sku_dict['department_type'] = sku.testmaster.department_type
+            except:
+                pass
+            try:
                 if sku.servicemaster:
                     instanceName = ServiceMaster
                     update_sku_dict['asset_code'] = sku.servicemaster.asset_code
@@ -120,7 +128,7 @@ def create_update_sku(all_skus, all_users):
                                  'relation_type': sku.relation_type,
                                  'creation_date': datetime.datetime.now().date(),
                                  'updation_date': datetime.datetime.now().date()})
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and sku.sku_code.upper() not in exist_skus:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster'] and sku.sku_code.upper() not in exist_skus:
                 new_sku_dict['user'] = user
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code

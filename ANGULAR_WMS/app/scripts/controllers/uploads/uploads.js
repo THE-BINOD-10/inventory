@@ -46,6 +46,26 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_servicemaster"
                  }, {
+                   title: "Machine Master Download/ Upload",
+                   download: "Download Machine Form",
+                   upload: "Upload Machine Form",
+                   durl: "machine_form/",
+                   uurl: "machine_upload/",
+                   dparam: "download-machine-file",
+                   value: "",
+                   show: true,
+                   perm: "add_machinemaster"
+                 }, {
+                   title: "Test Master Download/ Upload",
+                   download: "Download Test Form",
+                   upload: "Upload Test Form",
+                   durl: "test_form/",
+                   uurl: "test_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_testmaster"
+                 }, {
                    title: "OtherItems Master Download/ Upload",
                    download: "Download OtherItems Form",
                    upload: "Upload OtherItems Form",

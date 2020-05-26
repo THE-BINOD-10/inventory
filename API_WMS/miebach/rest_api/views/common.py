@@ -11592,9 +11592,14 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
+        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id)
+        if seller_po_summary_obj.exists():
+            grn_price = seller_po_summary_obj[0].price
+        if not grn_price:
+            grn_price = purchase_data['price']
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
-                            'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
+                            'unit_price': grn_price, 'receipt_type': receipt_type}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
             stock_dict = stock_dict[0]

@@ -800,6 +800,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
+        if (vm.product_type) {
+          elem.push({'name':'product_category', 'value': vm.product_type})
+        }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {
             var elem_dict = {'name':'imei_qc_details', 'value': JSON.stringify(vm.collect_imei_details)}

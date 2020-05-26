@@ -4241,6 +4241,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     invoice_number = request.POST.get('invoice_number', '')
     dc_level_grn = request.POST.get('dc_level_grn', '')
     round_off_checkbox = request.POST.get('round_off', '')
+    product_category = request.POST.get('product_category', '')
     round_off_total = request.POST.get('round_off_total', 0) if round_off_checkbox=='on' else 0
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
     challan_number = request.POST.get('dc_number', '')
@@ -4480,7 +4481,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
+        if product_category in ['Services', 'Assets']:
+            auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'])
+            if int(purchase_data['order_quantity']) == int(data.received_quantity):
+                data.status = 'confirmed-putaway'
+            else:
+                data.status = 'grn-generated'
+            data.save()
+        else:
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),

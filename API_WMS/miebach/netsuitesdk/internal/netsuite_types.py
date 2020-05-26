@@ -89,7 +89,8 @@ COMPLEX_TYPES = {
         'VendorPayment',
         'PurchaseOrder',
         'PurchaseRequisition',
-        'ItemReceipt'
+        'ItemReceipt',
+        'VendorReturnAuthorization'
     ],
 }
 

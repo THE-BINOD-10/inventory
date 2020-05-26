@@ -306,17 +306,25 @@ def netsuite_update_create_rtv(rtv_data, user):
         nc = connect_tba()
         ns = nc.raw_client
         rtvitem = ns.VendorReturnAuthorization()
-        rtvitem.entity = rtv_data["supplier_name"]
-        rtvitem.tranid = rtv_data["invoice_num"]
-        rtvitem.date = rtv_data["date_of_issue_of_original_invoice"]
-        rtvitem.createdfrom = rtv_data["grn_no"]
-        rtvitem.location = ns.RecordRef(internalId=108)
+        rtvitem.entity = str(rtv_data["supplier_name"])
+        rtvitem.tranid = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+        rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
+        rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
+        # rtvitem.location = ns.RecordRef(internalId=108)
         item = []
         for data in rtv_data['item_details']:
-            line_item = {'item': ns.RecordRef(externalId='001-001'), 'description': data['sku_desc']}
+            line_item = {
+            'item': ns.RecordRef(externalId=data['sku_code']),
+            'orderLine': 1,
+            'quantity': data['order_qty'],
+            'location': ns.RecordRef(internalId=108),
+            # 'itemReceive': True
+            # 'item': ns.RecordRef(externalId='001-001'),
+            'description': data['sku_desc']
+            }
             item.append(line_item)
         rtvitem.itemList = {'item':item}
-        purorder.externalId = rtv_data['grn_number']
+        rtvitem.externalId = rtv_data['grn_no']
         rtvitem.quantity = rtv_data["total_qty"]
         rtvitem.amount = rtv_data["total_without_discount"]
         rtvitem.memo= rtv_data["return_reason"]
@@ -338,12 +346,14 @@ def netsuite_create_grn(user, grn_data):
         item = []
         grnrec = ns.ItemReceipt()
         grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        grnrec.tranDate = '2020-05-25T10:47:05+05:30'
+        # grnrec.tranDate = '2020-05-25T10:47:05+05:30'
+        grnrec.tranDate = grn_data["grn_date"]
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
         for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),'orderLine':1,
-            'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
+            line_item = {
+            'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': 1,
+            'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
         grnrec.externalId = grn_data['grn_number']
@@ -366,7 +376,8 @@ def netsuite_create_po(po_data, user):
         ns = nc.raw_client
         item = []
         purorder = ns.PurchaseOrder()
-        purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
+        # purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
+        purorder.entity = ns.RecordRef(internalId=136,type="vendor")
         purorder.tranDate = po_data['po_date']
         if po_data['due_date']:
             purorder.dueDate = po_data['due_date']
@@ -413,7 +424,7 @@ def netsuite_create_pr(pr_data, user):
                                                      ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=ns.RecordRef(internalId=11))
                                                      ])
         for data in pr_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'],
                         # 'rate': data['price'],
                          'quantity':data['quantity']}
             item.append(line_item)

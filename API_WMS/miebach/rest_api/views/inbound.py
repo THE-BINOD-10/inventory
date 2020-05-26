@@ -7515,7 +7515,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     pr_number = ''
     if prQs.exists():
         pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-        pr_number = pr_number_list[0]
+        if pr_number_list:
+            pr_number = pr_number_list[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]

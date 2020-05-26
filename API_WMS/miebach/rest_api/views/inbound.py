@@ -2898,7 +2898,7 @@ def convert_pr_to_po(request, user=''):
                 'ship_to': shipToAddress,
                 'pending_level': baseLevel,
                 'final_status': orderStatus,
-                'product_category': 'Kits&Consumables'
+                'product_category': existingPRObjs[0].product_category,
             }
             purchaseMap['po_number'] = po_id
             user_profile = UserProfile.objects.filter(user_id=user.id)
@@ -3048,7 +3048,6 @@ def send_pr_to_parent_store(request, user=''):
 @login_required
 @get_admin_user
 def get_pr_preview_data(request, user=''):
-    skuPrIdsMap = {'SKU1': [50, 54]}
     # myDict = dict(request.POST.iterlists())
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
@@ -7552,9 +7551,14 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     po_number = po_number
     company_id = ''
     pr_number = ''
+    approval1 = ''
     if prQs:
         pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
         pr_number = pr_number_list[0]
+        prApprQs = prQs[0].pending_poApprovals
+        validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+        if validated_users:
+            approval1 = validated_users[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]
@@ -7569,7 +7573,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number}
+                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
+                'approval1':approval1}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

@@ -1009,7 +1009,7 @@ def asset_form(request, user=''):
 def test_form(request, user=''):
     test_file = request.GET['download-sku-file']
     if test_file:
-        return error_file_download(sku_file)
+        return error_file_download(test_file)
     headers = copy.deepcopy(TEST_MASTER_HEADERS)
     wb, ws = get_work_sheet('tests', headers)
     return xls_to_response(wb, '%s.tests_form.xls' % str(user.username))
@@ -3300,7 +3300,6 @@ def machine_excel_upload(request,open_sheet, user =''):
                 machine_data[index_dict[col_idx]] = cell_data
 
             machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)
-
             if not machine_dic:
                 if machine_data['status'] =='active' or 'Active':
                     machine_data['status'] = 1
@@ -3308,27 +3307,28 @@ def machine_excel_upload(request,open_sheet, user =''):
                     machine_data['status'] = 0
                 final_machine_dict = MachineMaster(user=user,**machine_data)
                 final_machine_dict.save()
+                status_msg = "Success"
             else:
-                final_machine = machine_dic[0]
-                update_dict = {}
-                update_dict['machine_code'] = final_machine.machine_code
-                update_dict['machine_name'] = machine_data['machine_name']
-                update_dict['model_number'] = machine_data['model_number']
+                machine_dic[0].machine_code = machine_dic[0].serial_number = machine_data['serial_number']
+                machine_dic[0].machine_name = machine_data['machine_name']
+                machine_dic[0].brand = machine_data['brand']
                 serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])
                 if not serial_check:
-                    update_dict['serial_number'] = machine_data['serial_number']
+                    machine_dic[0].serial_number = machine_data['serial_number']
                 else:
-                    if machine_data['serial_number'] == final_machine.serial_number:
-                        update_dict['serial_number'] = machine_data['serial_number']
+                    if machine_data['serial_number'] == machine_dic[0].serial_number:
+                        machine_dic[0].serial_number = machine_data['serial_number']
                     else:
-                        return HttpResponse("Serial Number Already exists for test code:"+final_machine.machine_code)
-                if final_machine.status == 'Active':
-                    update_dict['status'] = 1
+                        status_msg = "Serial Number already exists"
+                        break;
+                if machine_data['status'] == 'Active' or "active" or 1:
+                    machine_dic[0].status = 1
                 else:
-                    update_dict['status'] = 0
-                final_machine_data = MachineMaster(**update_dict)
-                final_machine_data.save()
-    return HttpResponse('Success')
+                    machine_dic[0].status = 0
+                machine_dic[0].save()
+                status_msg = "Success"
+    return HttpResponse(status_msg)
+
 @csrf_exempt
 @get_admin_user
 def location_upload(request, user=''):

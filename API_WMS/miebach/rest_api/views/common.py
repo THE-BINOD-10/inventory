@@ -2295,7 +2295,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
     if inv_obj:
         inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
+        inv_obj.adjusted_quantity = inv_obj.adjusted_quantity + quantity
         inv_obj.save()
         dat = inv_obj
     else:
@@ -2450,9 +2450,18 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                     batch_dict['buy_price'] = batch_obj.buy_price
                     batch_dict['tax_percent'] = batch_obj.tax_percent
                     add_ean_weight_to_batch_detail(sku[0], batch_dict)
+                else:
+                    latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id,).\
+                                                        exclude(batch_detail__isnull=True)
+                    if latest_batch.exists():
+                        batch_obj = latest_batch.latest('id').batch_detail
+                        batch_dict['buy_price'] = batch_obj.buy_price
+                        batch_dict['tax_percent'] = batch_obj.tax_percent
+                        add_ean_weight_to_batch_detail(sku[0], batch_dict)
+       
                 if price:
                     batch_dict['buy_price'] = price
-                elif not (price and batch_dict.get('buy_price', 0)):
+                elif not (price or batch_dict.get('buy_price', 0)):
                     batch_dict['buy_price'] = sku[0].cost_price
                 if batch_dict.keys():
                     batch_obj = BatchDetail.objects.create(**batch_dict)

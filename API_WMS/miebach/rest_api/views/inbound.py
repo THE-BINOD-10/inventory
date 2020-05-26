@@ -7554,7 +7554,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     approval1 = ''
     if prQs:
         pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-        pr_number = pr_number_list[0]
+        if pr_number_list:
+            pr_number = pr_number_list[0]
         prApprQs = prQs[0].pending_poApprovals
         validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
         if validated_users:

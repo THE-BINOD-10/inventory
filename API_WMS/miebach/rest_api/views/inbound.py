@@ -316,8 +316,28 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
 
 @csrf_exempt
 def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')
+    itemVals = ['supplier__supplier_id', 'product_category', 'final_status', 'pending_level', 
+                'requested_user__first_name', 'wh_user__first_name', 'po_number', 'supplier__name',
+                'creation_date', 'delivery_date', 'prefix']
+    enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')    
     for enqObj in enqQs:
+        master_id = enqObj.master_id
+        master_type = enqObj.master_type
+        if master_type == 'pendingPO':
+            model_name = PendingPO
+        elif master_type == 'pendingPR':
+            model_name = PendingPR
+        else:
+            continue
+        itemDetQs = model_name.objects.filter(id=master_id)
+        if itemDetQs.exists():
+            itemDets = model_name.objects.filter(id=master_id).values(*itemVals)[0]
+        else:
+            continue
+        po_date = itemDets['creation_date'].strftime('%d-%m-%Y')
+        po_delivery_date = itemDets['delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(po_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
         sender = enqObj.sender.email
         receiver = request.user.email
         enquiry = enqObj.enquiry
@@ -325,6 +345,14 @@ def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, sea
         response = enqObj.response
         enquiryDict = OrderedDict((
                                 ('id', enqObj.id),
+                                ('PO Number', po_reference),
+                                ('Product Category', itemDets['product_category']),
+                                ('Supplier ID', itemDets['supplier__supplier_id']),
+                                ('Supplier Name', itemDets['supplier__name']),
+                                ('PO Created Date', po_date),
+                                ('PO Delivery Date', po_delivery_date),
+                                ('PO Raise By', itemDets['requested_user__first_name']),
+                                ('Validation Status', itemDets['final_status'].title()),
                                 ('Enquiry From', sender), 
                                 ('Enquiry To', receiver), 
                                 ('Enquiry Text', enquiry),

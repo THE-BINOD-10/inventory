@@ -8,6 +8,7 @@
     </div>
     <div class="panel-footer">
         <button type="button" ng-if="showCase.user_type != 'distributor'"
+                ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'"
                 class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable"
                 ng-click="showCase.move_to('cancel_poc')">Cancel POC</button>
         <button type="button" ng-if="showCase.user_type != 'distributor' && showCase.industry_type != 'FMCG'"

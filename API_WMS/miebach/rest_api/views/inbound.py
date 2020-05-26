@@ -744,10 +744,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         productType = ''
-        if supplier.open_po:
-            pending_po = PendingPO.objects.filter(open_po_id=supplier.open_po.id, requested_user_id=user.id)
-            if pending_po.exists():
-                productType = pending_po[0].product_category
+        if supplier.open_po.pendingpos.values_list('product_category', flat=True):
+            productType = supplier.open_po.pendingpos.values_list('product_category', flat=True)[0]
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),

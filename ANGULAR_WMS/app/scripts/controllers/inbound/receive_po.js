@@ -46,7 +46,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       })
     }
-    console.log(vm.receive_po_mandatory_fields);
     //default values
     if(!vm.permissions.grn_scan_option) {
       vm.permissions.grn_scan_option = "sku_serial_scan";
@@ -239,7 +238,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 //                        sku['discount_percentage'] = 0;
 //                      });
 //                    });
-
+                    vm.model_data.other_charges = [];
                     console.log('MRP is: '+vm.model_data.data[0][0].buy_price);
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
@@ -603,17 +602,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = submit;
     function submit(form) {
       if (form.$valid) {
-
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
-
+        // var abs_inv_qty = vm.absOfInvValueTotal(vm.model_data.invoice_quantity, vm.skus_total_amount);
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
-
           vm.save_sku();
         } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
-
           colFilters.showNoty("Your entered invoice value and total value does not match");
         } else {
-
           vm.save_sku();
         }
       } else {
@@ -664,7 +659,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.absOfInvValueTotal = function(inv_value, total_value){
-
       return Math.abs(inv_value - total_value);
     }
   vm.scanned_wms =[]
@@ -724,7 +718,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
     }
 
-
+    vm.absOfInvQty = function(){
+      var inv_match_qty = 0;
+      vm.total_grn_quantity = 0;
+      angular.forEach(vm.model_data.data, function(record, index){
+        if (record[0].value){
+          inv_match_qty += parseInt(record[0].value);
+        }
+        if (index+1 == vm.model_data.data.length) {
+          if (inv_match_qty == parseInt(vm.model_data.invoice_quantity) && (parseInt(vm.model_data.invoice_value) == vm.model_data.round_off_total)) {
+            vm.total_grn_quantity = inv_match_qty;
+            vm.confirm_grn_api()
+          } else {
+            var temp_str = "Invoice "
+            if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
+              temp_str = temp_str + " - Quantity"
+            }
+            if (parseInt(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+              temp_str = temp_str + " - Value"
+            }
+            vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+              if (msg == "true") {
+                vm.total_grn_quantity = inv_match_qty;
+                vm.confirm_grn_api()
+              }
+            })
+          }
+        }
+      })
+    }
     vm.absOfQtyTolerence = function(inv_value, total_value){
       return Math.abs(1.1*inv_value);
     }
@@ -734,13 +756,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.html = "";
     vm.confirm_grn = function(form) {
-      // var data = [];
-      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
-      // data.push({name: 'mrp', value: form.mrp.$viewValue});
-      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
-      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
-      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
-      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
         if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
             Object.keys(vm.model_data.uploaded_file_dict).length == 0){
@@ -757,30 +772,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
-
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
-
           if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
-
             vm.confirm_grn_api();
           } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
-
             colFilters.showNoty("Your entered invoice value and total value does not match");
           }
         } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
-
           colFilters.showNoty("Please Fill The Invoice Value Field");
+        } else if (vm.permissions.receive_po_inv_value_qty_check  && !vm.model_data.dc_level_grn) {
+          vm.absOfInvQty();
         } else {
-
           vm.confirm_grn_api();
         }
       } else {
-        colFilters.showNoty("Fill Required Fields");
+        colFilters.showNoty("Fill Required * Fields");
       }
     }
 
     vm.confirm_grn_api = function(){
-
       if(check_receive()){
         var that = vm;
         var elem = angular.element($('form'));
@@ -795,13 +805,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         elem = $(elem).serializeArray();
         var form_data = new FormData();
-        console.log(form_data);
         var files = $(".grn-form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
         if (vm.product_type) {
           elem.push({'name':'product_category', 'value': vm.product_type})
+        }
+        if (vm.model_data.other_charges.length > 0) {
+          elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
+        }
+        if (vm.permissions.receive_po_inv_value_qty_check) {
+          elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
         }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {
@@ -2609,24 +2624,46 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.skus_total_amount = totals;
       //$('.totals').text('Totals: ' + totals);
       vm.model_data.round_off_total = (Math.round(totals * 100) / 100) - overall_discount;
+      vm.update_grn_total('', 'add');
     }
 
     vm.pull_cls = "pull-right";
     vm.margin_cls = {marginRight: '50px'};
-    vm.round_off_effects = function(key){
 
+    vm.round_off_effects = function(key){
       vm.pull_cls = key ? 'pull-left' : 'pull-right';
       vm.margin_cls = key ? {marginRight: '0px'} : {marginRight: '50px'};
     }
 
     vm.singleDecimalVal = function(value, field, inIndex, outIndex){
-
       if (Number(value)) {
-
         vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
       }
     }
-
+  vm.update_grn_total = function(charges, type){
+    if (typeof(vm.model_data.other_charges) != 'undefined') {
+      if (charges) {
+        if (!charges.amount) {
+          charges.amount = 0;
+        }
+      }
+      if (type == 'add'){
+        var overall_discount = 0;
+        if(vm.model_data.overall_discount) {
+          overall_discount = vm.model_data.overall_discount;
+        }
+        var temp_roundoff_total = (Math.round(vm.skus_total_amount * 100) / 100) - overall_discount;
+        vm.model_data.round_off_total = temp_roundoff_total;
+        if (vm.model_data.other_charges.length > 0) {
+          angular.forEach(vm.model_data.other_charges, function(charge) {
+            vm.model_data.round_off_total += parseInt(charge.amount);
+          })
+        }
+      } else if (type == 'remove') {
+        vm.model_data.round_off_total -= parseInt(charges.amount);
+      }
+    }
+  }
   vm.check_mrp_buy_price = function(event, data, index, parent_index) {
     var sku_row_data = {};
     angular.copy(data.data[parent_index][index], sku_row_data);

@@ -13,7 +13,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from miebach_admin.choices import *
 from common import *
-from masters import create_network_supplier
+from masters import *
 from miebach_utils import *
 from django.core import serializers
 import csv
@@ -21,7 +21,6 @@ from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from inbound_common_operations import *
-
 
 
 log = init_logger('logs/uploads.log')
@@ -1457,7 +1456,7 @@ def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fna
         return f_name
 
 @csrf_exempt
-def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={}, 
+def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
                         is_asset=False, is_service=False):
     sku_data = []
     wms_data = []
@@ -1688,6 +1687,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         is_asset=False, is_service=False, is_item=False):
     from masters import check_update_size_type
     from masters import check_update_hot_release
+    from api_calls.netsuite import netsuite_update_create_sku
+    from api_calls.netsuite import netsuite_sku_bulk_create
+    from api_calls.netsuite import netsuite_update_create_service, netsuite_update_create_assetmaster, netsuite_update_create_otheritem_master
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: str(d['zone']).upper(), zone_master)
@@ -1905,7 +1907,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
@@ -1917,6 +1918,14 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_data.save()
         if sku_data:
             sku_data.save()
+            if instanceName == ServiceMaster:
+                response = netsuite_update_create_service(sku_data, user)
+            elif instanceName == AssetMaster:
+                response = netsuite_update_create_assetmaster(sku_data, user)
+            elif instanceName == OtherItemsMaster:
+                response = netsuite_update_create_otheritem_master(sku_data, user)
+            else:
+                data= netsuite_update_create_sku(sku_data, attr_dict, user)
             all_sku_masters.append(sku_data)
             if _size_type:
                 check_update_size_type(sku_data, _size_type)
@@ -1958,7 +1967,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             #sku_master.save()
             #all_sku_masters.append(sku_master)
             #sku_data = sku_master
-
     if new_skus:
         new_ean_objs = []
         new_sku_objs = map(lambda d: d['sku_obj'], new_skus.values())
@@ -1967,6 +1975,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))
         sku_key_map = OrderedDict(new_sku_master.values_list('sku_code', 'id'))
+        res= netsuite_sku_bulk_create(instanceName, sku_key_map, new_skus)
         for sku_code, sku_id in sku_key_map.items():
             sku_data = SKUMaster.objects.get(id=sku_id)
             if new_skus[sku_code].get('size_type', ''):

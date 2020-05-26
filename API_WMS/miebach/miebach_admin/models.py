@@ -288,6 +288,8 @@ class SupplierMaster(models.Model):
     account_holder_name = models.CharField(max_length=256, default='')
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
+    reference_id = models.CharField(max_length=64, default='')
+    payment_terms = models.CharField(max_length=24, default='')
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')
@@ -466,6 +468,8 @@ class OrderCharges(models.Model):
     charge_name = models.CharField(max_length=128, default='')
     charge_amount = models.FloatField(default=0)
     charge_tax_value = models.FloatField(default = 0)
+    order_type = models.CharField(max_length=256, default='order')
+    extra_flag = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -524,10 +528,29 @@ class OpenPO(models.Model):
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
 
+
+@reversion.register()
+class GenericEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    sender = models.ForeignKey(User, related_name='enquirySender')
+    receiver = models.ForeignKey(User, related_name='enquiryReceiver')
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    enquiry = models.TextField(default='')
+    response = models.TextField(default='')
+    status = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GENERIC_ENQUIRY'
+
+
 @reversion.register()
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
+    sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
@@ -3773,6 +3796,15 @@ class StockTransferSummary(models.Model):
         db_table = 'STOCK_TRANSFER_SUMMARY'
         index_together = (('stock_transfer',))
 
+class NetsuiteIdMapping(models.Model):
+    external_id = models.CharField(max_length=64, default='')
+    internal_id = models.CharField(max_length=64, default='')
+    type_name = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'NETSUITE_ID_MAPPING'
 
 @reversion.register()
 class Discrepancy(models.Model):
@@ -3792,3 +3824,23 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+
+
+class POCreditNote(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    invoice_value = models.FloatField(default=0)
+    invoice_quantity = models.FloatField(default=0)
+    receipt_number  = models.PositiveIntegerField(default=0)
+    po_number = models.CharField(max_length=32, default='')
+    po_prefix = models.CharField(max_length=32, default='')
+    credit_number = models.CharField(max_length=32, default='')
+    credit_date = models.DateField(blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_CREDIT_NOTE'
+        unique_together = ('user', 'po_number', 'po_prefix', 'receipt_number')

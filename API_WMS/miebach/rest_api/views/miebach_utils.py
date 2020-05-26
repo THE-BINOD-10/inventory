@@ -1457,20 +1457,20 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
-ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Tax Type', 
-               'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone', 
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Tax Type',
+               'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']
 
-SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type', 
-               'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone', 
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type',
+               'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                'Asset Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
 
-OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type', 
-               'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone', 
+OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type',
+               'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-               ]               
+               ]
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Manufacture Date(YYYY-MM-DD)', 'Expiry date(YYYY-MM-DD)', 'Batch Number', 'MRP', 'Weight', 'Buy Price', 'Reason']
@@ -1847,7 +1847,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 20),
                              ('sale_through', 21), ('color', 22), ('ean_number', 23), ('load_unit_handle', 24),
                              ('hsn_code', 25),
-                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30), 
+                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29), ('block_options', 30),
                              ('batch_based', 31),('status', 32)
                              ))
 
@@ -2696,6 +2696,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'tax_master_sync': 'tax_master_sync',
                         'supplier_sync': 'supplier_sync',
                         'enable_margin_price_check':'enable_margin_price_check',
+                        'receive_po_inv_value_qty_check':'receive_po_inv_value_qty_check',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -5801,7 +5802,7 @@ def get_order_summary_data(search_params, user, sub_user):
         unit_price = "%.2f" % unit_price
 
         #otherordercharges
-        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'])
+        order_charges_obj = OrderCharges.objects.filter(user=user.id,order_id = data['original_order_id'], order_type='order')
         if order_charges_obj.exists():
             total_charge_amount = order_charges_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
             total_charge_tax = order_charges_obj.aggregate(Sum('charge_tax_value'))['charge_tax_value__sum']

@@ -62,6 +62,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'st_po_prefix': false,
                     'supplier_sync': false,
                     'enable_margin_price_check':false,
+                    'receive_po_inv_value_qty_check': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -104,14 +105,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      110: 'allow_partial_picklist',
                      111: 'po_or_pr_edit_permission_approver',
                      112: 'stock_auto_receive',
-                     118: 'attributes_sync',
-                     119: 'tax_master_sync',
                      113:'discrepency_prefix',
                      114: 'auto_generate_receive_qty',
                      115: 'st_po_prefix',
                      116: 'display_parts_allocation',
                      117: 'supplier_sync',
                      118:'enable_margin_price_check',
+                     119: 'receive_po_inv_value_qty_check',
+                     120: 'attributes_sync',
+                     121: 'tax_master_sync',
                      }
 
   vm.check_box_data = [
@@ -706,14 +708,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
    {
    name: "Sync User Attributes b/n Users",
    model_name: "attributes_sync",
-   param_no: 118,
+   param_no: 120,
    class_name: "fa fa-server",
    display: true
    },
    {
    name: "Sync Tax Master b/n Users",
    model_name: "tax_master_sync",
-   param_no: 119,
+   param_no: 121,
    class_name: "fa fa-server",
    display: true
    },
@@ -737,7 +739,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     param_no: 118,
     class_name: "fa fa-server",
     display: true
-    }
+  },
+  {
+    name: "Mandate Invoice Value & Invoice Quantity In GRN",
+    model_name: "receive_po_inv_value_qty_check",
+    param_no: 119,
+    class_name: "fa fa-server",
+    display: true
+  },
 ]
 
   vm.empty = {};
@@ -1095,7 +1104,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         })
       })
     } else {
-      var empty_dict = {'name': '', 'product_category': '', 'min_Amt': 0, 'max_Amt': '', 
+      var empty_dict = {'name': '', 'product_category': '', 'min_Amt': 0, 'max_Amt': '',
                         'mail_id': {'level0': ""}, 'remove': 0};
       if (prConfigData.length != 0) {
         var check_last_record = prConfigData[prConfigData.length -1]

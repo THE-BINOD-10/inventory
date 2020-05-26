@@ -64,7 +64,7 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                     all_prIds.extend(prIds)
                 elif pr_user.user.userprofile.warehouse_type == 'SUB_STORE':
                     subStoreDepts = UserGroups.objects.filter(admin_user_id=pr_user.user_id).values_list('user_id', flat=True)
-                    prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='SentToStore')
+                    prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='store_sent')
                     all_prIds.extend(prIds)
             filtersMap['pending_pr_id__in'] = all_prIds
     elif request.user.id != user.id:
@@ -101,7 +101,8 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
-        'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id']
+        'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
+        'pending_pr__sub_pr_number']
 
     results = PendingLineItems.objects.filter(**filtersMap).exclude(pending_pr__final_status='pr_converted_to_po').values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -158,9 +159,13 @@ def get_actual_pr_suggestions(start_index, stop_index, temp_data, search_term, o
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                     pr_user=pr_user, level=result['pending_pr__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+        if result['pending_pr__sub_pr_number']:
+            pr_number = "%s/%s" % (result['pending_pr__pr_number'], result['pending_pr__sub_pr_number'])
+        else:
+            pr_number = result['pending_pr__pr_number']
         temp_data['aaData'].append(OrderedDict((
-                                                ('PR Id', result['pending_pr_id']),
-                                                ('PR Number', result['pending_pr__pr_number']),
+                                                ('Purchase Id', result['pending_pr_id']),
+                                                ('PR Number', pr_number),
                                                 ('Product Category', product_category),
                                                 ('Priority Type', result['pending_pr__priority_type']),
                                                 ('Total Quantity', result['total_qty']),
@@ -220,9 +225,8 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__requested_user__username', 'pending_po__po_number',
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
-                    'pending_po__prefix', 'pending_po__delivery_date',
-                    'pending_po__wh_user',
-                    'pending_po__product_category']
+                    'pending_po__prefix', 'pending_po__delivery_date','pending_po__wh_user',
+                    'pending_po__product_category', 'pending_po_id']
 
     results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
@@ -290,6 +294,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                         pr_user=wh_user, level=result['pending_po__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         temp_data['aaData'].append(OrderedDict((
+                                                ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
                                                 ('PR No', approvedPRs),
@@ -316,8 +321,28 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
 
 @csrf_exempt
 def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    itemVals = ['supplier__supplier_id', 'product_category', 'final_status', 'pending_level',
+                'requested_user__first_name', 'wh_user__first_name', 'po_number', 'supplier__name',
+                'creation_date', 'delivery_date', 'prefix']
     enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')
     for enqObj in enqQs:
+        master_id = enqObj.master_id
+        master_type = enqObj.master_type
+        if master_type == 'pendingPO':
+            model_name = PendingPO
+        elif master_type == 'pendingPR':
+            model_name = PendingPR
+        else:
+            continue
+        itemDetQs = model_name.objects.filter(id=master_id)
+        if itemDetQs.exists():
+            itemDets = model_name.objects.filter(id=master_id).values(*itemVals)[0]
+        else:
+            continue
+        po_date = itemDets['creation_date'].strftime('%d-%m-%Y')
+        po_delivery_date = itemDets['delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(po_date).split(' ')[0].replace('-', '')
+        po_reference = '%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
         sender = enqObj.sender.email
         receiver = request.user.email
         enquiry = enqObj.enquiry
@@ -325,6 +350,14 @@ def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, sea
         response = enqObj.response
         enquiryDict = OrderedDict((
                                 ('id', enqObj.id),
+                                ('PO Number', po_reference),
+                                ('Product Category', itemDets['product_category']),
+                                ('Supplier ID', itemDets['supplier__supplier_id']),
+                                ('Supplier Name', itemDets['supplier__name']),
+                                ('PO Created Date', po_date),
+                                ('PO Delivery Date', po_delivery_date),
+                                ('PO Raise By', itemDets['requested_user__first_name']),
+                                ('Validation Status', itemDets['final_status'].title()),
                                 ('Enquiry From', sender),
                                 ('Enquiry To', receiver),
                                 ('Enquiry Text', enquiry),
@@ -1131,12 +1164,12 @@ def generated_po_data(request, user=''):
 @login_required
 @get_admin_user
 def generated_pr_data(request, user=''):
-    pr_number = request.POST.get('pr_number', '')
+    pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
     requestedUserId = User.objects.get(username=requested_user).id
     pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     supplier_id = request.POST.get('supplier_id', '')
-    record = PendingPO.objects.filter(requested_user__username=requested_user, po_number=pr_number)
+    record = PendingPO.objects.filter(requested_user__username=requested_user, id=pr_number)
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -1208,11 +1241,11 @@ def generated_pr_data(request, user=''):
 @login_required
 @get_admin_user
 def generated_actual_pr_data(request, user=''):
-    pr_number = request.POST.get('pr_number', '')
+    pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
     requestedUserId = User.objects.get(username=requested_user).id
     pr_user = get_warehouse_user_from_sub_user(requestedUserId)
-    record = PendingPR.objects.filter(requested_user__username=requested_user, pr_number=pr_number)
+    record = PendingPR.objects.filter(requested_user__username=requested_user, id=pr_number)
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -2970,36 +3003,42 @@ def send_pr_to_parent_store(request, user=''):
 
     for prId, skus in prIdSkusMap.items():
         prObj = PendingPR.objects.get(id=prId)
-        newPrMap = {
-            'pr_number': prObj.pr_number,
-            'sub_pr_number': prObj.sub_pr_number + 1,
-            'prefix': prObj.prefix,
-            'requested_user': prObj.requested_user,
-            'wh_user': prObj.wh_user,
-            'product_category': prObj.product_category,
-            'priority_type': prObj.priority_type,
-            'delivery_date': prObj.delivery_date,
-            'ship_to': prObj.ship_to,
-            'pending_level': prObj.pending_level,
-            'final_status': 'SentToStore',
-            'remarks': prObj.remarks
-        }
-        newPrObj = PendingPR.objects.create(**newPrMap)
-        lineItems = PendingLineItems.objects.filter(sku__sku_code__in=skus, pending_pr_id=prId)
-        for lineItem in lineItems:
-            lineItemMap = {
-                'pending_pr_id': newPrObj.id,
-                'purchase_type': 'PR',
-                'sku': lineItem.sku,
-                'quantity': lineItem.quantity,
-                'price': lineItem.price,
-                'measurement_unit': lineItem.measurement_unit,
-                'sgst_tax': lineItem.sgst_tax,
-                'cgst_tax': lineItem.cgst_tax,
-                'igst_tax': lineItem.igst_tax,
-                'utgst_tax': lineItem.utgst_tax,
+        existingLineItems = PendingLineItems.objects.filter(pending_pr_id=prId)
+        if existingLineItems.count() == len(skus):
+            prObj.final_status = 'store_sent'
+            prObj.save()
+        else:
+            newPrMap = {
+                'pr_number': prObj.pr_number,
+                'sub_pr_number': prObj.sub_pr_number + 1,
+                'prefix': prObj.prefix,
+                'requested_user': prObj.requested_user,
+                'wh_user': prObj.wh_user,
+                'product_category': prObj.product_category,
+                'priority_type': prObj.priority_type,
+                'delivery_date': prObj.delivery_date,
+                'ship_to': prObj.ship_to,
+                'pending_level': prObj.pending_level,
+                'final_status': 'store_sent',
+                'remarks': prObj.remarks
             }
-            PendingLineItems.objects.create(**lineItemMap)
+            newPrObj = PendingPR.objects.create(**newPrMap)
+            lineItems = existingLineItems.filter(sku__sku_code__in=skus)
+            for lineItem in lineItems:
+                lineItemMap = {
+                    'pending_pr_id': newPrObj.id,
+                    'purchase_type': 'PR',
+                    'sku': lineItem.sku,
+                    'quantity': lineItem.quantity,
+                    'price': lineItem.price,
+                    'measurement_unit': lineItem.measurement_unit,
+                    'sgst_tax': lineItem.sgst_tax,
+                    'cgst_tax': lineItem.cgst_tax,
+                    'igst_tax': lineItem.igst_tax,
+                    'utgst_tax': lineItem.utgst_tax,
+                }
+                PendingLineItems.objects.create(**lineItemMap)
+            lineItems.delete()
 
 
     return HttpResponse('Sent To Parent Store Successfully')
@@ -3229,7 +3268,7 @@ def cancel_pr(request, user=''):
     filtersMap = {'wh_user': user.id}
     if is_actual_pr == 'true':
         model_name = PendingPR
-        filtersMap['pr_number'] = pr_number
+        filtersMap['id'] = pr_number
     else:
         model_name = PendingPO
         filtersMap['po_number'] = pr_number
@@ -4570,6 +4609,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     invoice_number = request.POST.get('invoice_number', '')
     dc_level_grn = request.POST.get('dc_level_grn', '')
     round_off_checkbox = request.POST.get('round_off', '')
+    product_category = request.POST.get('product_category', '')
     round_off_total = request.POST.get('round_off_total', 0) if round_off_checkbox=='on' else 0
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
     challan_number = request.POST.get('dc_number', '')
@@ -4809,7 +4849,15 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             continue
         else:
             is_putaway = 'true'
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
+        if product_category in ['Services', 'Assets']:
+            auto_putaway_stock_detail(user, purchase_data, data, temp_dict['received_quantity'], purchase_data['order_type'])
+            if int(purchase_data['order_quantity']) == int(data.received_quantity):
+                data.status = 'confirmed-putaway'
+            else:
+                data.status = 'grn-generated'
+            data.save()
+        else:
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True,
                          batch_dict=batch_dict)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),

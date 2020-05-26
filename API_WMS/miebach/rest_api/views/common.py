@@ -887,7 +887,7 @@ def pr_request(request):
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
                         'pending_pr__requested_user__username', 'pending_pr__pr_number',
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
-                        'pending_pr__delivery_date']
+                        'pending_pr__delivery_date', 'pending_pr_id']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -897,6 +897,7 @@ def pr_request(request):
                     'pending_level': 'pending_pr__pending_level',
                     'remarks': 'pending_pr__remarks',
                     'delivery_date': 'pending_pr__delivery_date',
+                    'purchase_id': 'pending_pr_id'
                 }
         purchase_type = 'PR'
     else:
@@ -905,7 +906,8 @@ def pr_request(request):
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
-                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name']
+                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 
+                        'pending_po__supplier__name', 'pending_po_id']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -915,6 +917,7 @@ def pr_request(request):
                     'pending_level': 'pending_po__pending_level',
                     'remarks': 'pending_po__remarks',
                     'delivery_date': 'pending_po__delivery_date',
+                    'purchase_id': 'pending_po_id'
                 }
         purchase_type = 'PO'
 
@@ -986,6 +989,7 @@ def pr_request(request):
         pending_level = result[fieldsMap['pending_level']]
         final_status = result[fieldsMap['final_status']]
         purchase_number = result[fieldsMap['purchase_number']]
+        purchase_id = result[fieldsMap['purchase_id']]
         if pending_level != 'level0':
             prev_level = 'level' + str(int(pending_level.replace('level', '')) - 1)
             prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
@@ -1005,6 +1009,7 @@ def pr_request(request):
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
+                                                ('Purchase Id', purchase_id),
                                                 ('PR Number', purchase_number),
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
@@ -4671,6 +4676,8 @@ def search_wms_data(request, user=''):
         instanceName = AssetMaster
     elif product_type == 'Services':
         instanceName = ServiceMaster
+    elif product_type == 'OtherItems':
+        instanceName = OtherItemsMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     search_key = request.GET.get('q', '')
     total_data = []
@@ -11607,9 +11614,14 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
+        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id)
+        if seller_po_summary_obj.exists():
+            grn_price = seller_po_summary_obj[0].price
+        if not grn_price:
+            grn_price = purchase_data['price']
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
-                            'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
+                            'unit_price': grn_price, 'receipt_type': receipt_type}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
             stock_dict = stock_dict[0]

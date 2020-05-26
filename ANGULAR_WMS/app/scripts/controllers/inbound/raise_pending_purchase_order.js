@@ -84,7 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         $scope.$apply(function() {
           vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
-          var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'], 
+          var data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], 
                       pending_level:aData['LevelToBeApproved']};
           vm.dynamic_route(aData);
         });
@@ -143,7 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
-      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
@@ -266,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -524,9 +524,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
+      if (vm.pr_number){
+        elem.push({name:'pr_number', value:vm.pr_number})
+      }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
@@ -691,7 +691,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["PR Number"]});
+          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
           data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
         }
       });

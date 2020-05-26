@@ -110,7 +110,7 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create sku data failed , error was %s' % (str(e)))
+        log.info('Create Bulk sku data failed , error was %s' % (str(e)))
     return data_response
 
 def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
@@ -269,7 +269,7 @@ def netsuite_update_create_assetmaster(data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Update/Create AssetMaster data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
 def netsuite_update_create_otheritem_master(data, user):
@@ -297,7 +297,7 @@ def netsuite_update_create_otheritem_master(data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Update/Create OtherItem data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
 def netsuite_update_create_rtv(rtv_data, user):
@@ -335,7 +335,7 @@ def netsuite_update_create_rtv(rtv_data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_number"]), str(e)))
+        log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
     return data_response
 
 def netsuite_create_grn(user, grn_data):
@@ -350,9 +350,9 @@ def netsuite_create_grn(user, grn_data):
         grnrec.tranDate = grn_data["grn_date"]
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
-        for data in grn_data['items']:
+        for idx, data in enumerate(grn_data['items']):
             line_item = {
-            'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': 1,
+            'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
             'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
@@ -365,7 +365,7 @@ def netsuite_create_grn(user, grn_data):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create GRN data failed for %s and error was %s' % (str('001-001'), str(e)))
+        log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
     return data_response
 
 
@@ -376,8 +376,8 @@ def netsuite_create_po(po_data, user):
         ns = nc.raw_client
         item = []
         purorder = ns.PurchaseOrder()
-        # purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
-        purorder.entity = ns.RecordRef(internalId=136,type="vendor")
+        purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
+        # purorder.entity = ns.RecordRef(internalId=136,type="vendor")
         purorder.tranDate = po_data['po_date']
         if po_data['due_date']:
             purorder.dueDate = po_data['due_date']

@@ -143,7 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
-      var p_data = {requested_user: aData['Requested User'], pr_number:aData['PR Number']};
+      var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
@@ -253,7 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
-          } else if (aData['Validation Status'] == 'Senttostore'){
+          } else if (aData['Validation Status'] == 'Store_sent'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
@@ -292,7 +292,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -377,6 +377,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else if (product_category == 'Assets'){
         vm.model_data.data.push({"fields": emptylineItems});
       } else if(product_category == 'Services'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'OtherItems'){
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }
@@ -514,7 +516,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          prIds.push(temp['_aData']["PR Id"]);
+          prIds.push(temp['_aData']["Purchase Id"]);
         }
         if(Object.keys(vm.selected).length-1 == parseInt(key)){
           var data_dict = {
@@ -575,24 +577,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           };
         }
       });
+      if (selectedItems.length == 0){
+        vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
+      }
       var finalAlerMsg = '';
       if (alertMsg) {
         finalAlerMsg = alertMsg+" - Can't be processed";
       }
-      vm.service.alert_msg(finalAlerMsg).then(function(msg) {
-        if (msg == "true") {
-          vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
-          if(data.message){
-              if(data.data == 'Converted PR to PO Successfully') {
-                vm.close();
-                vm.service.refresh(vm.dtInstance);
-              } else {
-                vm.service.pop_msg(data.data);
+      if (selectedItems.length > 0){
+        vm.service.alert_msg(finalAlerMsg).then(function(msg) {
+          if (msg == "true") {
+            vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
+            if(data.message){
+                if(data.data == 'Converted PR to PO Successfully') {
+                  vm.close();
+                  vm.service.refresh(vm.dtInstance);
+                } else {
+                  vm.service.pop_msg(data.data);
+                }
               }
-            }
-          })
-        }
-      })
+            })
+          }
+        })
+      }
     }
 
     vm.print_pending_po = function(form, validation_type) {
@@ -812,7 +819,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          data.push({name: 'pr_number', value: temp['_aData']["PR Number"]});
+          data.push({name: 'pr_number', value: temp['_aData']["Purchase Id"]});
           data.push({name: 'supplier_id', value:temp['_aData']['Supplier ID']});
           data.push({name: 'is_actual_pr', value:true});
         }

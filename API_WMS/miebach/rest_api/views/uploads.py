@@ -2924,10 +2924,10 @@ def supplier_sku_upload(request, user=''):
             return HttpResponse('Invalid File')
 
         mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
+        if user.userprofile.warehouse_level != 0:
+            del mapping['Warehouse']        
         headers = mapping.keys()
         file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
-        if user.userprofile.warehouse_level != 0:
-            del headers['Warehouse']
         for col_idx in range(0, open_sheet.ncols):
             cell_data = open_sheet.cell(0, col_idx).value
             if headers[col_idx] != cell_data:

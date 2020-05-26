@@ -292,7 +292,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -377,6 +377,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else if (product_category == 'Assets'){
         vm.model_data.data.push({"fields": emptylineItems});
       } else if(product_category == 'Services'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'OtherItems'){
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }

@@ -4676,6 +4676,8 @@ def search_wms_data(request, user=''):
         instanceName = AssetMaster
     elif product_type == 'Services':
         instanceName = ServiceMaster
+    elif product_type == 'OtherItems':
+        instanceName = OtherItemsMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     search_key = request.GET.get('q', '')
     total_data = []

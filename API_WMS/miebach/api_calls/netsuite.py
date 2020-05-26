@@ -375,12 +375,22 @@ def netsuite_create_po(po_data, user):
         purorder.tranid = po_data['po_number']
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
+        if po_data['product_category'] == 'Services':
+            product_list_id = 2
+        elif po_data['product_category'] == 'Assets':
+            product_list_id = 1
+        else:
+            product_list_id = 3
+
         # purorder.location = warehouse_id
         purorder.approvalstatus = ns.RecordRef(internalId=2)
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id'])])
+        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id)])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
@@ -410,7 +420,7 @@ def netsuite_create_pr(pr_data, user):
         purreq.tranid = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
         purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
-                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=ns.RecordRef(internalId=11))
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1'])
                                                      ])
         for data in pr_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 

@@ -7185,7 +7185,7 @@ def confirm_add_po(request, sales_data='', user=''):
     product_category = ''
     is_purchase_request = request.POST.get('is_purchase_request', '')
     po_id = ''
-    prQs = None
+    prQs = ''
     if is_purchase_request == 'true':
         pr_number = int(request.POST.get('pr_number'))
         prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
@@ -7552,9 +7552,14 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     po_number = po_number
     company_id = ''
     pr_number = ''
-    if prQs.exists():
+    approval1 = ''
+    if prQs:
         pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
         pr_number = pr_number_list[0]
+        prApprQs = prQs[0].pending_poApprovals
+        validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+        if validated_users:
+            approval1 = validated_users[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]
@@ -7569,7 +7574,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number}
+                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
+                'approval1':approval1}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

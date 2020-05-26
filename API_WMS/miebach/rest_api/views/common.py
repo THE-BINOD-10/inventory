@@ -1942,11 +1942,11 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
         else:
             for col_idx in range(0, open_sheet.ncols):
                 # print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 4 and 'xlsx' in f_name:
-                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
-                else:
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
+                #if col_idx == 4 and 'xlsx' in f_name:
+                #    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
+                #    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
+                #else:
+                ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
 
             index_data = index_status.get(row_idx, '')
             if index_data:

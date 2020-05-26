@@ -2898,7 +2898,7 @@ def convert_pr_to_po(request, user=''):
                 'ship_to': shipToAddress,
                 'pending_level': baseLevel,
                 'final_status': orderStatus,
-                'product_category': 'Kits&Consumables'
+                'product_category': existingPRObjs[0].product_category,
             }
             purchaseMap['po_number'] = po_id
             user_profile = UserProfile.objects.filter(user_id=user.id)
@@ -3048,7 +3048,6 @@ def send_pr_to_parent_store(request, user=''):
 @login_required
 @get_admin_user
 def get_pr_preview_data(request, user=''):
-    skuPrIdsMap = {'SKU1': [50, 54]}
     # myDict = dict(request.POST.iterlists())
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}

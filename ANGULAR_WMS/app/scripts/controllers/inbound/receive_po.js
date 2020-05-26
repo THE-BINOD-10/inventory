@@ -809,11 +809,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
         });
+        if (vm.product_type) {
+          elem.push({'name':'product_category', 'value': vm.product_type})
+        }
         if (vm.model_data.other_charges.length > 0) {
           elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
         }
         if (vm.permissions.receive_po_inv_value_qty_check) {
-          elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity}); 
+          elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
         }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {

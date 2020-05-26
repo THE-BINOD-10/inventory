@@ -57,13 +57,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $scope.$apply(function() {
         vm.model_data = {};
         angular.extend(vm.model_data, aData);
-        if (vm.model_data.ep_supplier == 1) {
-          vm.model_data.ep_supplier = 'yes'
-        }else if (vm.model_data.ep_supplier == 0) {
-          vm.model_data.ep_supplier = 'no'
-        }else{
-          vm.model_data.ep_supplier = ''
-        }
         vm.update = true;
         vm.message = "";
         vm.title = "Update Machine";
@@ -114,18 +107,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if(data.message) {
 
-        if (data.data == 'New Machine Added' || data.data == 'Updated Successfully')  {
-          if (data.data == 'New Machine Added' && Service.is_came_from_raise_po) {
-            vm.service.searched_sup_code = vm.model_data.id;
+        if (data.data == 'Success')  {
+            vm.reloadData();
+            vm.service.showNoty("New Machine added")
             $state.go('app.masters.MachineMaster');
-          } else {
-            vm.service.refresh(vm.dtInstance);
-            vm.close();
-          }
-        } else {
-
-          vm.service.pop_msg(data.data);
         }
+        else if (data.data == 'Updated Successfully'){
+            vm.reloadData();
+            vm.service.showNoty("Updated Successfully")
+            $state.go('app.masters.MachineMaster');
+        }
+        else{
+          vm.service.pop_msg(data.data)
+          }
       }
     });
   }
@@ -134,18 +128,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       if ("Add Machine" == vm.title) {
         vm.machine('insert_machine/');
-//         vm.service.refresh(vm.dtInstance);
-          vm.reloadData();
-          vm.close();
       } else {
         vm.machine('update_machine_values/');
-        $state.go('app.masters.MachineMaster');
-        vm.service.showNoty("Updated Successfully")
       }
     }
-    // else {
-    //   vm.service.pop_msg('Please fill required fields OR Check Percentage Value 0 - 100');
-    // }
   }
 
   //read files

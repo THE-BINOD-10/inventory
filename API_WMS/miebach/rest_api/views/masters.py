@@ -1557,10 +1557,10 @@ def insert_machine(request, user=''):
             data_dict['status'] = 0
         #data_dict['user__id'] = user.id
         # data = filter_or_none(MachineMaster, {'machine_code': data_dict['machine_code'], 'user': user.id})
-        status_msg = 'Machine Code Exists'
+
         check_code = MachineMaster.objects.filter(machine_code=data_dict['machine_code'], user=user.id)
         if check_code.exists():
-            return HttpResponse(status_msg)
+            status_msg = 'Machine Code Exists'
         else:
             serial_check = MachineMaster.objects.filter(serial_number=data_dict['serial_number'])
             if not serial_check:
@@ -1573,8 +1573,9 @@ def insert_machine(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Add New Machine failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
-        status_msg = 'Add Machine Failed'
-    return HttpResponse("Success")
+        status_msg = "Update Machine Failed"
+        return HttpResponse(status_msg)
+    return HttpResponse(status_msg)
 
 @csrf_exempt
 @login_required

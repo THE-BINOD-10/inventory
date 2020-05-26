@@ -3037,6 +3037,7 @@ def send_pr_to_parent_store(request, user=''):
                     'utgst_tax': lineItem.utgst_tax,
                 }
                 PendingLineItems.objects.create(**lineItemMap)
+            lineItems.delete()
 
 
     return HttpResponse('Sent To Parent Store Successfully')

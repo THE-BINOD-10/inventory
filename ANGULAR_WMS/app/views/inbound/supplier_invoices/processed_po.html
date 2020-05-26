@@ -10,7 +10,7 @@
     <div class="panel-footer">
         <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right"
 				ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_po_challan')">Move to PO Challan</button>
-        <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20"
+        <button type="button" ng-if="showCase.user_type != 'distributor'" ng-show="showCase.user_type == 'marketplace_user' && showCase.industry_type == 'FMCG'" class="btn btn-primary pull-right mr20"
 				ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_inv')">Move to Invoice</button>
     </div>
 </div>

@@ -10102,6 +10102,7 @@ def generate_supplier_invoice(request, user=''):
     result_data = {}
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
+    all_challan_numbers = []
     try:
         true, false = ["true", "false"]
         req_data = request.GET.get('data', '')
@@ -10154,7 +10155,6 @@ def generate_supplier_invoice(request, user=''):
                                    "total_tax_words": ''
 
                                   })
-
                     result_data["challan_date"] = seller_summary[0].challan_date
                     result_data["challan_date"] = result_data["challan_date"].strftime("%m/%d/%Y") if result_data["challan_date"] else ''
                     #result_data["data"] = []
@@ -10267,8 +10267,11 @@ def generate_supplier_invoice(request, user=''):
                     result_data["total_tax"] += tot_tax
                     result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
                                                   "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
+                if result_data.get('challan_no', ''):
+                    all_challan_numbers.append(result_data['challan_no'])
         result_data['data'] = sku_grouping_dict.values()
-
+        if len(all_challan_numbers) > 0:
+            result_data['challan_no'] = ', '.join(all_challan_numbers)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

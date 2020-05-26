@@ -1907,9 +1907,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster'] and not sku_data:
+        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
@@ -1947,7 +1947,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
 
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
@@ -2924,10 +2924,10 @@ def supplier_sku_upload(request, user=''):
             return HttpResponse('Invalid File')
 
         mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
+        if user.userprofile.warehouse_level != 0:
+            del mapping['Warehouse']        
         headers = mapping.keys()
         file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
-        if user.userprofile.warehouse_level != 0:
-            del headers['Warehouse']
         for col_idx in range(0, open_sheet.ncols):
             cell_data = open_sheet.cell(0, col_idx).value
             if headers[col_idx] != cell_data:

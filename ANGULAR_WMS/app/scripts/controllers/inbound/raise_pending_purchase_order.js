@@ -266,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'Others'];
+      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -524,9 +524,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
+      if (vm.pr_number){
+        elem.push({name:'pr_number', value:vm.pr_number})
+      }
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {

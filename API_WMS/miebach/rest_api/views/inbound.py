@@ -295,6 +295,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
+                                                ('PR Number', result['pending_po__po_number']),
                                                 ('PO Number', po_reference),
                                                 ('PR No', approvedPRs),
                                                 ('Product Category', product_category),

@@ -110,7 +110,7 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create sku data failed , error was %s' % (str(e)))
+        log.info('Create Bulk sku data failed , error was %s' % (str(e)))
     return data_response
 
 def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
@@ -269,7 +269,7 @@ def netsuite_update_create_assetmaster(data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Update/Create AssetMaster data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
 def netsuite_update_create_otheritem_master(data, user):
@@ -297,7 +297,7 @@ def netsuite_update_create_otheritem_master(data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update/Create service data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+        log.info('Update/Create OtherItem data failed for %s and error was %s' % (str(data.sku_code), str(e)))
     return data_response
 
 def netsuite_update_create_rtv(rtv_data, user):
@@ -306,17 +306,25 @@ def netsuite_update_create_rtv(rtv_data, user):
         nc = connect_tba()
         ns = nc.raw_client
         rtvitem = ns.VendorReturnAuthorization()
-        rtvitem.entity = rtv_data["supplier_name"]
-        rtvitem.tranid = rtv_data["invoice_num"]
-        rtvitem.date = rtv_data["date_of_issue_of_original_invoice"]
-        rtvitem.createdfrom = rtv_data["grn_no"]
-        rtvitem.location = ns.RecordRef(internalId=108)
+        rtvitem.entity = str(rtv_data["supplier_name"])
+        rtvitem.tranid = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+        rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
+        rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
+        # rtvitem.location = ns.RecordRef(internalId=108)
         item = []
         for data in rtv_data['item_details']:
-            line_item = {'item': ns.RecordRef(externalId='001-001'), 'description': data['sku_desc']}
+            line_item = {
+            'item': ns.RecordRef(externalId=data['sku_code']),
+            'orderLine': 1,
+            'quantity': data['order_qty'],
+            'location': ns.RecordRef(internalId=108),
+            # 'itemReceive': True
+            # 'item': ns.RecordRef(externalId='001-001'),
+            'description': data['sku_desc']
+            }
             item.append(line_item)
         rtvitem.itemList = {'item':item}
-        purorder.externalId = rtv_data['grn_number']
+        rtvitem.externalId = rtv_data['grn_no']
         rtvitem.quantity = rtv_data["total_qty"]
         rtvitem.amount = rtv_data["total_without_discount"]
         rtvitem.memo= rtv_data["return_reason"]
@@ -327,7 +335,7 @@ def netsuite_update_create_rtv(rtv_data, user):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_number"]), str(e)))
+        log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
     return data_response
 
 def netsuite_create_grn(user, grn_data):
@@ -338,12 +346,14 @@ def netsuite_create_grn(user, grn_data):
         item = []
         grnrec = ns.ItemReceipt()
         grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        grnrec.tranDate = '2020-05-25T10:47:05+05:30'
+        # grnrec.tranDate = '2020-05-25T10:47:05+05:30'
+        grnrec.tranDate = grn_data["grn_date"]
         grnrec.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
         # grnrec.itemList = {'item': [{'itemRecive': True, 'item': ns.RecordRef(internalId=35), 'orderLine': 1, 'quantity': 1, 'location': ns.RecordRef(internalId=10), 'customFieldList': ns.CustomFieldList(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value='2020-05-12T05:47:05+05:30')) }]}
-        for data in grn_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']),'orderLine':1,
-            'quantity': data['quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
+        for idx, data in enumerate(grn_data['items']):
+            line_item = {
+            'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+            'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
             item.append(line_item)
         grnrec.itemList = {'item':item}
         grnrec.externalId = grn_data['grn_number']
@@ -355,7 +365,7 @@ def netsuite_create_grn(user, grn_data):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create GRN data failed for %s and error was %s' % (str('001-001'), str(e)))
+        log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
     return data_response
 
 
@@ -367,6 +377,7 @@ def netsuite_create_po(po_data, user):
         item = []
         purorder = ns.PurchaseOrder()
         purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
+        # purorder.entity = ns.RecordRef(internalId=136,type="vendor")
         purorder.tranDate = po_data['po_date']
         if po_data['due_date']:
             purorder.dueDate = po_data['due_date']
@@ -375,12 +386,22 @@ def netsuite_create_po(po_data, user):
         purorder.tranid = po_data['po_number']
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
+        if po_data['product_category'] == 'Services':
+            product_list_id = 2
+        elif po_data['product_category'] == 'Assets':
+            product_list_id = 1
+        else:
+            product_list_id = 3
+
         # purorder.location = warehouse_id
         purorder.approvalstatus = ns.RecordRef(internalId=2)
         # purorder.subsidiary = '1'
         # purorder.department = po_data['user_id']
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id'])])
+        purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id)])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
@@ -410,10 +431,10 @@ def netsuite_create_pr(pr_data, user):
         purreq.tranid = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
         purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
-                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=ns.RecordRef(internalId=11))
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1'])
                                                      ])
         for data in pr_data['items']:
-            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 
+            line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'],
                         # 'rate': data['price'],
                          'quantity':data['quantity']}
             item.append(line_item)

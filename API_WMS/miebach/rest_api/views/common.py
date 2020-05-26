@@ -6029,32 +6029,47 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     return order_detail_objs
 
 
-def order_cancel_functionality(order_det_ids):
-    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+def order_cancel_functionality(order_det_ids, admin_user=''):
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids).exclude(status=3)
+    cancel_invoice_serial = ''
     for order_det in ord_det_qs:
-        if int(order_det.status) == 1:
+        order_det.cancelled_quantity = order_det.cancelled_quantity + order_det.quantity
+        if order_det.original_quantity == order_det.cancelled_quantity:
             order_det.status = 3
-            order_det.save()
+        elif order_det.shipmentinfo_set.filter().exists() and not order_det.picklist_set.filter(reserved_quantity__gt=0).exists():
+            order_det.status = 2
         else:
-            picklists = Picklist.objects.filter(order_id=order_det.id)
-            for picklist in picklists:
-                if picklist.picked_quantity <= 0:
-                    picklist.delete()
-                elif picklist.stock:
-                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-                                                                       picklist__order_id=order_det.id)
-                    if not cancel_location:
-                        CancelledLocation.objects.create(picklist_id=picklist.id,
-                                                         quantity=picklist.picked_quantity,
-                                                         location_id=picklist.stock.location_id,
-                                                         creation_date=datetime.datetime.now(), status=1)
-                        picklist.status = 'cancelled'
-                        picklist.save()
-                else:
+            order_det.status = 0
+        order_det.save()
+        picklists = Picklist.objects.filter(order_id=order_det.id)
+        if str(order_det.status) == '3':
+            seller_orders_summaries = SellerOrderSummary.objects.filter(order_id=order_det.id)
+            seller_orders_summaries.update(order_status_flag='cancelled')
+            if admin_user:
+                OrderFields.objects.filter(user=admin_user.id, original_order_id=order_det.original_order_id).delete()
+        for picklist in picklists:
+            if picklist.picked_quantity <= 0:
+                picklist.delete()
+            elif picklist.stock:
+                if not cancel_invoice_serial:
+                    cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
+                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+								   picklist__order_id=order_det.id)
+                if not cancel_location:
+                    CancelledLocation.objects.create(picklist_id=picklist.id,
+						     quantity=picklist.picked_quantity,
+						     location_id=picklist.stock.location_id,
+						     creation_date=datetime.datetime.now(), status=1,
+                            cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
+                    picklist.reserved_quantity = 0
                     picklist.save()
-            order_det.status = 3
-            order_det.save()
+                    PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
+            else:
+                picklist.status = 'cancelled'
+                picklist.reserved_quantity = 0
+                picklist.save()
+                PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
 
 
 @csrf_exempt

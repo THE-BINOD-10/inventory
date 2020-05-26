@@ -2203,32 +2203,24 @@ def check_and_update_payment(payment_info, order_details, user):
             PaymentSummary.objects.create(order_id=order.id, payment_id=payment_id, payment_info=payment)
 
 def cancel_order(order_details, original_order_id, user):
+    from rest_api.views.common import order_cancel_functionality
     admin_user = get_admin(user)
-    order_detail_ids = order_details.values_list('id', flat=True)
-    seller_orders = list(
-        SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED',
-                                   status=1). \
-        values_list('order_id', flat=True))
-    order_detail_ids = list(order_detail_ids)
+    order_detail_ids = list(order_details.values_list('id', flat=True))
     IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
-    picklists = Picklist.objects.filter(order_id__in=order_detail_ids, order__user=user.id)
-    if seller_orders:
-        OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
-        SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
-        order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
-    if order_detail_ids and not picklists:
-        for order_detail_id in order_detail_ids:
-            order_obj = OrderDetail.objects.get(id=order_detail_id)
-            order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
-            if order_obj.original_quantity == order_obj.cancelled_quantity:
-                order_obj.status = 3
-            elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
-                order_obj.status = 2
-            else:
-                order_obj.status = 0
-            order_obj.save()
-            if admin_user:
-                OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+    # if order_detail_ids and not picklists:
+    order_cancel_functionality(order_detail_ids, admin_user=admin_user)
+        # for order_detail_id in order_detail_ids:
+        #     order_obj = OrderDetail.objects.get(id=order_detail_id)
+        #     order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
+        #     if order_obj.original_quantity == order_obj.cancelled_quantity:
+        #         order_obj.status = 3
+        #     elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
+        #         order_obj.status = 2
+        #     else:
+        #         order_obj.status = 0
+        #     order_obj.save()
+        #     if admin_user:
+        #         OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
 
 
 def return_order(order_details, original_order_id, request, user, return_quantity=0, failed_status=''):

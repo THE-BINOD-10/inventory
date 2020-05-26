@@ -10569,7 +10569,11 @@ def get_invoice_shipment(start_index, stop_index, temp_data, search_term, order_
         user_dict['to_date'] = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
         user_dict['to_date'] = datetime.datetime.combine(user_dict['to_date'] + datetime.timedelta(1), datetime.time())
         user_filter['creation_date__lt'] = user_dict['to_date']
-    shiped_invoices = list(ShipmentInfo.objects.filter(order__user=user.id).values_list('invoice_number', flat=True))
+    #shiped_invoices = list(ShipmentInfo.objects.filter(order__user=user.id).values_list('invoice_number', flat=True))
+    shiped_invoices = list(ShipmentInfo.objects.filter(order__user=user.id).values('order_id').distinct().\
+                           annotate(ship_total=Sum('shipping_quantity'),
+                        ordered=Cast(Sum(F('order__original_quantity')-F('order__cancelled_quantity'))/Count('order_id'),output_field=FloatField())).\
+                           filter(ship_total__gte=F('ordered')).values_list('invoice_number', flat=True))
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(list(set(lis)), search_term)

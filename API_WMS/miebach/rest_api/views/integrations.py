@@ -2203,6 +2203,29 @@ def check_and_update_payment(payment_info, order_details, user):
             PaymentSummary.objects.create(order_id=order.id, payment_id=payment_id, payment_info=payment)
 
 def cancel_order(order_details, original_order_id, user):
+    from rest_api.views.common import order_cancel_functionality
+    admin_user = get_admin(user)
+    order_detail_ids = list(order_details.values_list('id', flat=True))
+    IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    # if order_detail_ids and not picklists:
+    order_cancel_functionality(order_detail_ids, admin_user=admin_user)
+        # for order_detail_id in order_detail_ids:
+        #     order_obj = OrderDetail.objects.get(id=order_detail_id)
+        #     order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
+        #     if order_obj.original_quantity == order_obj.cancelled_quantity:
+        #         order_obj.status = 3
+        #     elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
+        #         order_obj.status = 2
+        #     else:
+        #         order_obj.status = 0
+        #     order_obj.save()
+        #     if admin_user:
+        #         OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+
+
+def return_order(order_details, original_order_id, request, user, return_quantity=0, failed_status=''):
+    from rest_api.views.inbound import create_return_order, save_return_locations, returns_order_tracking
+    credit_note_number = ''
     admin_user = get_admin(user)
     order_detail_ids = order_details.values_list('id', flat=True)
     seller_orders = list(
@@ -2210,25 +2233,58 @@ def cancel_order(order_details, original_order_id, user):
                                    status=1). \
         values_list('order_id', flat=True))
     order_detail_ids = list(order_detail_ids)
-    IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    #IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
     picklists = Picklist.objects.filter(order_id__in=order_detail_ids, order__user=user.id)
     if seller_orders:
         OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
         SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
         order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
-    if order_detail_ids and not picklists:
-        for order_detail_id in order_detail_ids:
-            order_obj = OrderDetail.objects.get(id=order_detail_id)
-            order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
-            if order_obj.original_quantity == order_obj.cancelled_quantity:
-                order_obj.status = 3
-            elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
-                order_obj.status = 2
-            else:
-                order_obj.status = 0
-            order_obj.save()
-            if admin_user:
-                OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+    final_data = []
+    for order in order_details:
+        #order_quantity = order.original_quantity - order.cancelled_quantity
+        order_returned = OrderTracking.objects.filter(order_id=order.id, status='returned').aggregate(Sum('quantity'))['quantity__sum']
+        if not order_returned:
+            order_returned = 0
+        if get_permission(user, 'add_shipmentinfo'):
+            shipping_qty = ShipmentInfo.objects.filter(order_id=order.id).\
+                                                aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+        else:
+            shipping_qty = picklists.filter(order_id=order.id).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not return_quantity:
+            return_quantity = shipping_qty - order_returned
+        if not return_quantity:
+            continue
+        if return_quantity > (shipping_qty - order_returned):
+            error_message = "Return Quantity Exceeding the Shipping quantity for SKU %s" % str(order.sku.sku_code)
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+        final_data.append({"order": order, "return_quantity": return_quantity, "order_returned": order_returned})
+    updated_records = 0
+    if not failed_status:
+        for order_data in final_data:
+            return_quantity = order_data['return_quantity']
+            order = order_data['order']
+            order_quantity = order.original_quantity - order.cancelled_quantity
+            if str(order.status) == '4' or order_returned == order_quantity:
+                continue
+            if (order_returned + return_quantity) >= order_quantity:
+                order.status = 4
+            order.save()
+            data_dict = {'sku_code': order.sku.sku_code, 'return': return_quantity, 'damaged': 0, 'order_imei_id': '',
+                         'order_id': order.original_order_id, 'order_detail_id': order.id}
+            data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,
+                                                                                                credit_note_number)
+            order_returns = OrderReturns.objects.filter(id=data_dict['id'])
+            if not order_returns:
+                return HttpResponse("Failed")
+            order_returns = order_returns[0]
+            save_return_locations([order_returns], [], 0, request, user, locations='')
+            returns_order_tracking(order_returns, user, return_quantity, 'returned', imei='', invoice_no='')
+            updated_records += 1
+    if not updated_records:
+        error_message = "Record not found or returned already"
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    return failed_status
+
 
 def validate_update_order(request_data, user='', company_name=''):
     search_params = {'user': user.id}
@@ -2246,6 +2302,7 @@ def validate_update_order(request_data, user='', company_name=''):
         update_error_message(failed_status, 5024, error_message, original_order_id)
     if request_data.has_key('warehouse'):
         warehouse = request_data['warehouse']
+        sister_whs.append(user.username)
         if warehouse.lower() in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
@@ -2256,6 +2313,9 @@ def validate_update_order(request_data, user='', company_name=''):
         search_params['sku__sku_code'] = request_data['sku_code']
     if request_data.has_key('status'):
         status = request_data['status'].lower()
+    return_quantity = request_data.get('return_quantity', 0)
+
+
     # else:
     #     error_message = 'Please mention status'
     #     update_error_message(failed_status, 5024, error_message, original_order_id)
@@ -2274,6 +2334,9 @@ def validate_update_order(request_data, user='', company_name=''):
                 check_and_update_payment(payment_info, order_details, user)
             if status == 'cancel':
                 cancel_order(order_details, original_order_id,user)
+            elif status == 'return':
+                failed_status = return_order(order_details, original_order_id, request_data, user,
+                                       return_quantity=return_quantity, failed_status=failed_status)
         else:
             error_message = 'Please check the data'
             update_error_message(failed_status, 5024, error_message, original_order_id)

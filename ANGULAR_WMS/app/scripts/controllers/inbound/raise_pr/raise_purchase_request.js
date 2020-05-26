@@ -543,23 +543,27 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var selectedItems = [];
       angular.forEach(vm.preview_data.data, function(eachLineItem){
         if (eachLineItem.checkbox){
-          if (eachLineItem.moq > eachLineItem.quantity){
+          // if (eachLineItem.moq > eachLineItem.quantity){
             selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
             selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
             selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-          };
+          // };
         }
-      });      
-      vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
-      if(data.message){
-          if(data.data == 'Sent To Parent Store Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.pop_msg(data.data);
-          }
+      });   
+      vm.service.alert_msg("Sending Selected SKUS to Parent Store").then(function(msg) {
+        if (msg == "true") {
+          vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
+          if(data.message){
+              if(data.data == 'Sent To Parent Store Successfully') {
+                vm.close();
+                vm.service.refresh(vm.dtInstance);
+              } else {
+                vm.service.pop_msg(data.data);
+              }
+            }
+          });          
         }
-      })
+      });
     }
 
     vm.convert_pr_to_po = function(form) {

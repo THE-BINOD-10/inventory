@@ -2872,6 +2872,7 @@ def convert_pr_to_po(request, user=''):
         supplierSKUMapping = {}
         skuQtyMap = {}
         supplierPrIdsMap = {}
+        prIdSkusMap = {}
 
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
@@ -2881,6 +2882,8 @@ def convert_pr_to_po(request, user=''):
             supplierSKUMapping.setdefault(supplier, []).append(sku_code)
             skuQtyMap[sku_code] = quantity
             supplierPrIdsMap.setdefault(supplier, []).append(pr_ids)
+            for pr_id in pr_ids:
+                prIdSkusMap.setdefault(pr_id, []).append(sku_code)
 
         for supplier, all_skus in supplierSKUMapping.items():
             po_id = get_incremental(user, 'po', default_val=1)
@@ -2908,10 +2911,17 @@ def convert_pr_to_po(request, user=''):
                 supplyObj = SupplierMaster.objects.get(user=user.id, supplier_id=supplier)
                 purchaseMap['supplier_id'] = supplyObj.id
             pendingPoObj = PendingPO.objects.create(**purchaseMap)
+
             for existingPRObj in existingPRObjs:
                 pendingPoObj.pending_prs.add(existingPRObj)
-                existingPRObj.final_status='pr_converted_to_po'
-                existingPRObj.save()
+                eachPRLineItems = existingPRObj.pending_prlineItems.values_list('sku__sku_code', flat=True)
+                eachPRId = existingPRObj.id
+                convertingSkus = prIdSkusMap.get(str(eachPRId))
+                if convertingSkus == list(eachPRLineItems):
+                    existingPRObj.final_status='pr_converted_to_po'
+                    existingPRObj.save()
+                else:
+                    lineItemIds = existingPRObj.pending_prlineItems.filter(sku__sku_code__in=convertingSkus).delete()
 
             for sku_code in all_skus:
                 quantity = skuQtyMap[sku_code]

@@ -6458,6 +6458,8 @@ def get_stock_ledger_data(search_params, user, sub_user):
         if search_params['order_term'] == 'desc':
             order_data = "-%s" % order_data
         stock_stats = stock_stats.order_by(order_data)
+    else:
+        stock_stats = stock_stats.order_by(lis[0])
     temp_data['recordsTotal'] = stock_stats.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     data = []

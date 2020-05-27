@@ -140,6 +140,15 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
+                  <label class="control-label"> Currency Code</label>
+                  <select class="form-control" ng-model="showCase.model_data.currency_code" name="currency_code" required>
+                    <option value=""> None </option>
+                    <option ng-repeat="one in showCase.all_currency_codes" value="{{one}}" ng-selected="one == showCase.model_data.currency_code">{{one}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
                   <label class="control-label"> Days required to supply </label>
                   <input name="days_to_supply" type="text" class="form-control" ng-model="showCase.model_data.days_to_supply" quantity-number>
                 </div>

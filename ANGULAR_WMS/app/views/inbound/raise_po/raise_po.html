@@ -1,4 +1,4 @@
-<div class="panel" ng-controller="RaisePurchaseOrderCtrl as showCase">
+<div class="panel" ng-keydown="getkeys($event)"  ng-keypress="getkeys($event)" ng-controller="RaisePurchaseOrderCtrl as showCase">
   <div class="panel-header">
     <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Purchase Order</button>
     <div ng-include="'views/common/excel.html'"></div>

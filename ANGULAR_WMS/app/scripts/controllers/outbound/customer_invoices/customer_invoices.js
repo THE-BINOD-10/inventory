@@ -198,7 +198,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                                 console.log("true");
                               }
                               field_name = temp['check_field'];
-                              data.push(temp['id']);
+                              // data.push(temp['id']);
+                              data.push(temp['Invoice ID']);
                             }
                           });
                         }

@@ -1071,12 +1071,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               let mfg_displayDate;
               var copy_sku;
               for (var i = 0; i < vm.model_data.data.length; i++) {
-                if (keepGoing) 
+                if (keepGoing)
                 {
                   angular.forEach(vm.model_data.data[i], function (sku, index) {
-                    if (vm.field === sku.wms_code) 
+                    if (vm.field === sku.wms_code)
                     {
-                      if (data.data.status === "barcode_confirmed") 
+                      if (data.data.status === "barcode_confirmed")
                       {
                         angular.forEach(data.data.barcode_data, function (barcode) {
                           if (Object.keys(barcode).length === 2) {
@@ -1130,6 +1130,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                           sku.exp_date = expiry_displayDate;
                           keepGoing = false;
                         }
+
+              /*for(var i=0; i<vm.model_data.data.length; i++) {
+
+                angular.forEach(vm.model_data.data[i], function(sku){
+
+                  // vm.sku_list_1.push(sku.wms_code);
+                  if(vm.field == sku.wms_code){
+                      sku.batch_ref = field
+                    // $timeout(function() {
+                      //vm.sort_items = [];
+                      //vm.sort_items.push(vm.model_data.data[i]);
+                      if(i != 0) {
+                        var temp_dict = [];
+                        angular.copy(vm.model_data.data[0], temp_dict);
+                        angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
+                        angular.copy(temp_dict, vm.model_data.data[i]);
+                      */
                       }
                       else if(sku.batch_no=='' && data.data.status==="confirmed")
                       {
@@ -1155,7 +1172,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
               }
-              if (copy_sku) 
+              if (copy_sku)
               {
                 if (data.data.status === "confirmed" && temp_count === 0) {
                   copy_sku["value"] = 0;
@@ -1236,7 +1253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                           else {
                             if(Number(sku["value"])==0){
                               vm.model_data.data.shift()
-                            } 
+                            }
                             Service.showNoty("Received Quantity Equal To PO Quantity");
                             t_value=false;
                           }
@@ -2826,7 +2843,7 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
       for (var i = 0; i <vm.model_data.data.length; i++) {
           angular.forEach(vm.model_data.data[i], function (sku, index) {
             if(check_wms_code){
-              if ($ctrl.model_data.map_sku_code=== sku.wms_code) 
+              if ($ctrl.model_data.map_sku_code=== sku.wms_code)
               {
                 sku.value=Number(sku.value)+1;
                 sku.batch_ref=$ctrl.model_data.scanned_val;
@@ -2838,7 +2855,7 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
             }
           })
       }
-      
+
       var data = {ean_number: $ctrl.model_data.scanned_val, map_sku_code: $ctrl.model_data.map_sku_code};
 
       Service.apiCall("map_ean_sku_code/", "GET", data).then(function(data) {

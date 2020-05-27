@@ -351,6 +351,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 # ('markdown_percentage', data.markdown_percentage),
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
+                                                ('currency_code', data.currency_code),
                                                 )))
 
 
@@ -1241,7 +1242,7 @@ def delete_bom_data(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_master_data(request, user=''):
-    return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
+    return HttpResponse(json.dumps({'tax_data': TAX_VALUES, 'currency_codes': CURRENCY_CODES}))
 
 
 def validate_supplier_email(email):
@@ -4298,7 +4299,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('account_holder_name', data.account_holder_name),
                                                 ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
-                                                ('secondary_email_id', secondary_email_ids)
+                                                ('secondary_email_id', secondary_email_ids),
+                                                ('currency_code', data.currency_code)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -4315,7 +4317,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID',
+    'Currency Code']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

@@ -71,8 +71,9 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.RecordRef(internalId=502)),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.RecordRef(internalId=1))])
+                                                      ns.StringCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.RecordRef(internalId=6)),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.RecordRef(internalId=1)),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.RecordRef(internalId=1))])
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life)])
         data_response = ns.upsert(invitem)
         data_response = json.dumps(data_response.__dict__)
@@ -435,7 +436,7 @@ def netsuite_create_pr(pr_data, user):
         for data in pr_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'],
                         # 'rate': data['price'],
-                         'quantity':data['quantity']}
+                         'quantity':data['quantity'], 'location':ns.RecordRef(internalId=108)}
             item.append(line_item)
         purreq.itemList = {'purchaseRequisitionItem':item}
         purreq.externalId = pr_data['pr_number']

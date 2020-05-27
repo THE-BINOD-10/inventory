@@ -2721,6 +2721,8 @@ def approve_pr(request, user=''):
                             remarks, purchase_type=purchase_type)
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
+        if purchase_type == 'PR':
+            netsuite_pr(user, PRQs)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
@@ -2996,7 +2998,7 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['cgst_tax'] = cgst_tax
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
-                netsuite_pr(user, existingPRObj)
+                # netsuite_pr(user, existingPRObj)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3004,30 +3006,32 @@ def convert_pr_to_po(request, user=''):
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
 
-def netsuite_pr(user, existingPRObj):
-    pr_number = existingPRObj.pr_number
-    delivery_date = existingPRObj.delivery_date.isoformat()
-    pr_date = existingPRObj.creation_date.isoformat()
-    external_id = str(existingPRObj.prefix) + str(pr_number)
-    prApprQs = existingPRObj.pending_prApprovals
-    approval1 = ''
-    allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
-    if allApproavls:
-        approval1 = allApproavls[0]
+def netsuite_pr(user, PRQs):
+    for existingPRObj in PRQs:
+        pr_number = existingPRObj.pr_number
+        delivery_date = existingPRObj.delivery_date.isoformat()
+        pr_date = existingPRObj.creation_date.isoformat()
+        # external_id = str(existingPRObj.prefix) + str(pr_number)
+        prApprQs = existingPRObj.pending_prApprovals
+        requested_by = existingPRObj.requested_user.first_name
+        approval1 = ''
+        allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
+        if allApproavls:
+            approval1 = allApproavls[0]
 
-    pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-               'ship_to_address': existingPRObj.ship_to, 'external_id':external_id, 'approval1':approval1}
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
-        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date',
-    ]
-    lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
-    for rec in lineItems:
-        sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
-        item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
-        pr_data['items'].append(item)
+        pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
+                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by}
+        lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+            'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
+            'sku__servicemaster__service_end_date',
+        ]
+        lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
+        for rec in lineItems:
+            sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
+            item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
+            pr_data['items'].append(item)
 
-    response = netsuite_create_pr(pr_data, user)
+        response = netsuite_create_pr(pr_data, user)
 
 
 @csrf_exempt

@@ -955,6 +955,10 @@ def pr_request(request):
 
     # requested_user = parentUser
     purchase_number = prApprObj.purchase_number
+    if purchase_type == 'PO':
+        purchase_data_id = prApprObj.pending_po_id
+    else:
+        purchase_data_id = prApprObj.pending_pr_id
     response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
     #Data Table Data
     temp_data = {'aaData':[]}
@@ -1027,6 +1031,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
+                                                ('id', purchase_data_id),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
@@ -1965,17 +1970,20 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+                cell_data = open_sheet.cell(row_idx, col_idx).value
+                if isinstance(cell_data, unicode):
+                    cell_data = unicodedata.normalize('NFKD', cell_data).encode('ascii', 'ignore')
+                ws1.write(row_idx, col_idx, str(cell_data), header_style)
             ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:
             for col_idx in range(0, open_sheet.ncols):
                 # print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 4 and 'xlsx' in f_name:
-                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
-                else:
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
+                #if col_idx == 4 and 'xlsx' in f_name:
+                #    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
+                #    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
+                #else:
+                ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
 
             index_data = index_status.get(row_idx, '')
             if index_data:
@@ -2324,7 +2332,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
     if inv_obj:
         inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
+        inv_obj.adjusted_quantity = inv_obj.adjusted_quantity + quantity
         inv_obj.save()
         dat = inv_obj
     else:
@@ -2479,9 +2487,18 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                     batch_dict['buy_price'] = batch_obj.buy_price
                     batch_dict['tax_percent'] = batch_obj.tax_percent
                     add_ean_weight_to_batch_detail(sku[0], batch_dict)
+                else:
+                    latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id,).\
+                                                        exclude(batch_detail__isnull=True)
+                    if latest_batch.exists():
+                        batch_obj = latest_batch.latest('id').batch_detail
+                        batch_dict['buy_price'] = batch_obj.buy_price
+                        batch_dict['tax_percent'] = batch_obj.tax_percent
+                        add_ean_weight_to_batch_detail(sku[0], batch_dict)
+       
                 if price:
                     batch_dict['buy_price'] = price
-                elif not (price and batch_dict.get('buy_price', 0)):
+                elif not (price or batch_dict.get('buy_price', 0)):
                     batch_dict['buy_price'] = sku[0].cost_price
                 if batch_dict.keys():
                     batch_obj = BatchDetail.objects.create(**batch_dict)
@@ -4730,7 +4747,7 @@ def search_makemodel_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='sku_attribute_grouping_key', attribute_value=type).\
         values_list('sku_id', flat=True))
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id, id__in=sku_ids)
@@ -5933,6 +5950,71 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                                     'openpr_qty': openpr_qty}))
 
 
+def sku_level_stock_data(request, user):
+    sku_code = request.GET.get('sku_code')
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = sku_code
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return {'status': 0, 'message': 'Invalid Location'}
+        search_params['location__location'] = request.GET.get('location')
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
+
+    po_search_params = {'open_po__sku__user': user.id,
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        intransitQty = poOrderedQty - poReceivedQty
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return {'status': 1, 'available_quantity': 0,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+        return {'status': 0, 'message': 'No Stock Found'}
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return {'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_warehouse_level_data(request, user=''):
+    warehouses = request.GET.get('all_users', '')
+    warehouses = json.loads(warehouses)
+    all_users = User.objects.filter(username__in=warehouses)
+    data_dict = {}
+    for user in all_users:
+        data = sku_level_stock_data(request, user)
+        if data['status']:
+            data_dict[user.username] = {
+                                        'available_quantity': data['available_quantity'],
+                                        'intransit_quantity': data['intransit_quantity'],
+                                        'skuPack_quantity': data['skuPack_quantity'],
+                                        'order_qty': 0
+                                        }
+    return HttpResponse(json.dumps(data_dict, cls=DjangoJSONEncoder))
+
+
+
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
@@ -6070,32 +6152,47 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     return order_detail_objs
 
 
-def order_cancel_functionality(order_det_ids):
-    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+def order_cancel_functionality(order_det_ids, admin_user=''):
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids).exclude(status=3)
+    cancel_invoice_serial = ''
     for order_det in ord_det_qs:
-        if int(order_det.status) == 1:
+        order_det.cancelled_quantity = order_det.cancelled_quantity + order_det.quantity
+        if order_det.original_quantity == order_det.cancelled_quantity:
             order_det.status = 3
-            order_det.save()
+        elif order_det.shipmentinfo_set.filter().exists() and not order_det.picklist_set.filter(reserved_quantity__gt=0).exists():
+            order_det.status = 2
         else:
-            picklists = Picklist.objects.filter(order_id=order_det.id)
-            for picklist in picklists:
-                if picklist.picked_quantity <= 0:
-                    picklist.delete()
-                elif picklist.stock:
-                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-                                                                       picklist__order_id=order_det.id)
-                    if not cancel_location:
-                        CancelledLocation.objects.create(picklist_id=picklist.id,
-                                                         quantity=picklist.picked_quantity,
-                                                         location_id=picklist.stock.location_id,
-                                                         creation_date=datetime.datetime.now(), status=1)
-                        picklist.status = 'cancelled'
-                        picklist.save()
-                else:
+            order_det.status = 0
+        order_det.save()
+        picklists = Picklist.objects.filter(order_id=order_det.id)
+        if str(order_det.status) == '3':
+            seller_orders_summaries = SellerOrderSummary.objects.filter(order_id=order_det.id)
+            seller_orders_summaries.update(order_status_flag='cancelled')
+            if admin_user:
+                OrderFields.objects.filter(user=admin_user.id, original_order_id=order_det.original_order_id).delete()
+        for picklist in picklists:
+            if picklist.picked_quantity <= 0:
+                picklist.delete()
+            elif picklist.stock:
+                if not cancel_invoice_serial:
+                    cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
+                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+								   picklist__order_id=order_det.id)
+                if not cancel_location:
+                    CancelledLocation.objects.create(picklist_id=picklist.id,
+						     quantity=picklist.picked_quantity,
+						     location_id=picklist.stock.location_id,
+						     creation_date=datetime.datetime.now(), status=1,
+                            cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
+                    picklist.reserved_quantity = 0
                     picklist.save()
-            order_det.status = 3
-            order_det.save()
+                    PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
+            else:
+                picklist.status = 'cancelled'
+                picklist.reserved_quantity = 0
+                picklist.save()
+                PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
 
 
 @csrf_exempt
@@ -9518,8 +9615,7 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight','batch_ref')[0]
-        # batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date', 'weight', 'batch_ref')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:

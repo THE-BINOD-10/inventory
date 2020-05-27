@@ -2,10 +2,43 @@
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
-  <div class="layout-body">
+  <div class="layout-body" data-ng-controller="ConfigCtrl as showCase">
     <tabset class="box-tab">
-      <tab heading="Configurations">
-        <div ng-include="'views/configurations/common_configurations.html'"></div>
+      <tab heading="General">
+        <div ng-include="'views/configurations/general_configurations.html'"></div>
+      </tab>
+      <tab heading="Masters">
+        <div ng-include="'views/configurations/masters_configurations.html'"></div>
+      </tab>
+      <tab heading="Inbound">
+        <div ng-include="'views/configurations/inbound_configurations.html'"></div>
+      </tab>
+      <tab heading="Outbound">
+        <div ng-include="'views/configurations/outbound_configurations.html'"></div>
+      </tab>
+      <tab heading="Production">
+        <div ng-include="'views/configurations/production_configurations.html'"></div>
+      </tab>
+      <tab heading="Stock Locator">
+        <div ng-include="'views/configurations/stock_locater_configurations.html'"></div>
+      </tab>
+      <tab heading="Payments">
+        <div ng-include="'views/configurations/payments_configurations.html'"></div>
+      </tab>
+      <tab heading="B2B">
+        <div ng-include="'views/configurations/b2b_configurations.html'"></div>
+      </tab>
+      <tab heading="POS">
+        <div ng-include="'views/configurations/pos_configurations.html'"></div>
+      </tab>
+      <tab heading="Reports">
+        <div ng-include="'views/configurations/reports_configurations.html'"></div>
+      </tab>
+      <tab heading="Notifications">
+        <div ng-include="'views/configurations/notifications_configurations.html'"></div>
+      </tab>
+      <tab heading="Tally">
+        <div ng-include="'views/configurations/tally_configurations.html'"></div>
       </tab>
       <tab heading="BarCodeConfigurations" ng-show="show_tab('add_barcodebrandmappingmaster')">
         <div ng-include="'views/configurations/barcode_configurations.html'"></div>

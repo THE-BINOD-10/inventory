@@ -80,7 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.filter_enable = true;
 
   var empty_data = {id: "", name: "", email_id: "", address: "", phone_number: "", status: "Active",
-                    create_login: false, login_created: false};
+                    create_login: false, login_created: false, currency_code: ""};
   vm.status_data = ["Inactive", "Active"];
   vm.title = "Add Supplier";
   vm.update = false;
@@ -106,6 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall("get_supplier_master_data/").then(function(data){
       if(data.message) {
         vm.all_taxes = data.data.tax_data;
+        vm.all_currency_codes = data.data.currency_codes;
       }
     });
   }

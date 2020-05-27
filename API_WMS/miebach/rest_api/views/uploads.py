@@ -2377,6 +2377,9 @@ def validate_supplier_form(open_sheet, user_id):
             elif key == 'account_number':
                 if not len(str(cell_data)) < 20:
                     index_status.setdefault(row_idx, set()).add('Account Number has limit of 19')
+            elif key == 'currency_code':
+                if cell_data and cell_data not in CURRENCY_CODES:
+                    index_status.setdefault(row_idx, set()).add('Invalid Currency Code')
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):

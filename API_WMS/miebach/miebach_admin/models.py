@@ -289,9 +289,10 @@ class SupplierMaster(models.Model):
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
     reference_id = models.CharField(max_length=64, default='')
-    payment_terms = models.CharField(max_length=24, default='')
+    payment_terms = models.CharField(max_length=256, default='')
+    subsidiary = models.CharField(max_length=64, default='')
+    place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
-
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')

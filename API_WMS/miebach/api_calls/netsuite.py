@@ -49,7 +49,7 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
         nc = connect_tba()
         ns = nc.raw_client
         invitem = ns.InventoryItem()
-        invitem.taxSchedule = ns.RecordRef(internalId=1)
+        # invitem.taxSchedule = ns.RecordRef(internalId=1)
         invitem.itemId = data.sku_code
         invitem.externalId = data.sku_code
         invitem.displayName = data.sku_desc
@@ -69,7 +69,12 @@ def netsuite_update_create_sku(data, sku_attr_dict, user):
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)])
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.RecordRef(internalId=6)),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.RecordRef(internalId=1)),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.RecordRef(internalId=1))])
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life)])
         data_response = ns.upsert(invitem)
         data_response = json.dumps(data_response.__dict__)
         data_response = json.loads(data_response)
@@ -89,7 +94,6 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             skuitem= ns.InventoryItem()
-            skuitem.taxSchedule = ns.RecordRef(internalId=1)
             skuitem.itemId = sku_master_data.sku_code
             skuitem.externalId = sku_master_data.sku_code
             skuitem.displayName = sku_master_data.sku_desc
@@ -123,7 +127,6 @@ def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             serviceitem = ns.ServicePurchaseItem()
-            serviceitem.taxSchedule = ns.RecordRef(internalId=1)
             serviceitem.itemId = sku_master_data.sku_code
             serviceitem.externalId = sku_master_data.sku_code
             serviceitem.displayName = sku_master_data.sku_desc
@@ -133,9 +136,11 @@ def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
             serviceitem.isinactive = sku_master_data.status
             serviceitem.cost = sku_master_data.cost_price
             serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
-                                                    #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=sku_master_data.sku_category),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=sku_master_data.mrp),
+                                                      # ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=sku_master_data.service_start_date.isoformat()),
+                                                      # ns.DateCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=sku_master_data.service_end_date.isoformat()),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=sku_master_data.sub_category)
                                                       ])
             list_serviceitems.append(serviceitem)
         data_response =  ns.upsertList(list_serviceitems)
@@ -155,7 +160,6 @@ def netsuite_asset_master_bulk_create(model_obj,  sku_key_map, new_skus):
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             assetitem= ns.NonInventoryPurchaseItem()
-            assetitem.taxSchedule = ns.RecordRef(internalId=1)
             assetitem.itemId = sku_master_data.sku_code
             assetitem.externalId = sku_master_data.sku_code
             assetitem.displayName = sku_master_data.sku_desc
@@ -165,9 +169,9 @@ def netsuite_asset_master_bulk_create(model_obj,  sku_key_map, new_skus):
             assetitem.isinactive = sku_master_data.status
             assetitem.cost = sku_master_data.cost_price
             assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=sku_master_data.sku_category),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=sku_master_data.sub_category)
                                                       ])
             list_assetitems.append(assetitem)
         data_response =  ns.upsertList(list_assetitems)
@@ -187,7 +191,6 @@ def netsuite_otheritem_master_bulk_create(model_obj,  sku_key_map, new_skus):
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             otheritem = ns.NonInventoryPurchaseItem()
-            otheritem.taxSchedule = ns.RecordRef(internalId=1)
             otheritem.itemId = sku_master_data.sku_code
             otheritem.externalId = sku_master_data.sku_code
             otheritem.displayName = sku_master_data.sku_desc
@@ -197,9 +200,9 @@ def netsuite_otheritem_master_bulk_create(model_obj,  sku_key_map, new_skus):
             otheritem.isinactive = sku_master_data.status
             otheritem.cost = sku_master_data.cost_price
             otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.RecordRef(internalId=2)),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=ns.RecordRef(internalId=3))
                                                       ])
             list_otheritems.append(otheritem)
         data_response =  ns.upsertList(list_otheritems)
@@ -215,7 +218,6 @@ def netsuite_update_create_service(data, user):
         nc = connect_tba()
         ns = nc.raw_client
         serviceitem = ns.ServicePurchaseItem()
-        serviceitem.taxSchedule = ns.RecordRef(internalId=1)
         serviceitem.itemId = data.sku_code
         serviceitem.externalId = data.sku_code
         serviceitem.displayName = data.sku_desc
@@ -226,16 +228,14 @@ def netsuite_update_create_service(data, user):
         serviceitem.cost = data.cost_price
         serviceitem.purchaseunit = data.measurement_type
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
-        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
-        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_startdate', value=data.service_start_date.isoformat()),
-        # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category)
 
         serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.service_start_date.isoformat()),
                                                       # ns.DateCustomFieldRef(scriptId='custitem_mhl_item_enddate', value=data.service_end_date.isoformat()),
-                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicesubcategory', value=data.sub_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
                                                       ])
         data_response = ns.upsert(serviceitem)
     except Exception as e:
@@ -250,7 +250,7 @@ def netsuite_update_create_assetmaster(data, user):
         nc = connect_tba()
         ns = nc.raw_client
         assetitem = ns.NonInventoryPurchaseItem()
-        assetitem.taxSchedule = ns.RecordRef(internalId=1)
+        # assetitem.taxSchedule = ns.RecordRef(internalId=1)
         assetitem.itemId = data.sku_code
         assetitem.externalId = data.sku_code
         assetitem.displayName = data.sku_desc
@@ -260,10 +260,9 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.isinactive = data.status
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
-        assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+        assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.RecordRef(internalId=2)),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
-                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
+                                                      # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=data.sub_category)
                                                       ])
         data_response = ns.upsert(assetitem)
     except Exception as e:
@@ -278,7 +277,7 @@ def netsuite_update_create_otheritem_master(data, user):
         nc = connect_tba()
         ns = nc.raw_client
         otheritem = ns.NonInventoryPurchaseItem()
-        otheritem.taxSchedule = ns.RecordRef(internalId=1)
+        # otheritem.taxSchedule = ns.RecordRef(internalId=1)
         otheritem.itemId = data.sku_code
         otheritem.externalId = data.sku_code
         otheritem.displayName = data.sku_desc
@@ -377,13 +376,12 @@ def netsuite_create_po(po_data, user):
         item = []
         purorder = ns.PurchaseOrder()
         purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
-        # purorder.entity = ns.RecordRef(internalId=136,type="vendor")
         purorder.tranDate = po_data['po_date']
         if po_data['due_date']:
             purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
-        purorder.tranid = po_data['po_number']
+        purorder.tranId = po_data['po_number']
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
         if po_data['product_category'] == 'Services':
@@ -401,7 +399,8 @@ def netsuite_create_po(po_data, user):
         purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
-                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id)])
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.RecordRef(internalId=28))])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
@@ -428,18 +427,20 @@ def netsuite_create_pr(pr_data, user):
         # purreq.memo = "Webservice PR"
         # purreq.approvalStatus = ns.RecordRef(internalId=2)
         purreq.tranDate = pr_data['pr_date']
-        purreq.tranid = pr_data['pr_number']
+        purreq.tranId = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
+        purreq.subsidiary = ns.RecordRef(internalId=16)
         purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
-                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1'])
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
+                                                     ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
                                                      ])
         for data in pr_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'],
                         # 'rate': data['price'],
-                         'quantity':data['quantity']}
+                         'quantity':data['quantity'], 'location':ns.RecordRef(internalId=108)}
             item.append(line_item)
         purreq.itemList = {'purchaseRequisitionItem':item}
-        purreq.externalId = pr_data['external_id']
+        purreq.externalId = pr_data['pr_number']
         data_response = ns.upsert(purreq)
         data_response = json.dumps(data_response.__dict__)
         data_response = json.loads(data_response)
@@ -499,40 +500,60 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
-		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status'
+		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
+                         'payment_terms':'paymentterms', 'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply'
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
         data_dict = {}
-        filter_dict = {'supplier_id': supplier_id }
-        for key,val in supplier_dict.iteritems():
-            value = supplier.get(val, '')
-            if key in number_field.keys():
-            	value = supplier.get(val, 0)
-                try:
-                    value = float(value)
-                except:
-                    error_message = '%s is Number field' % val
-                    update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
-            if key == 'email_id' and value:
-                if validate_supplier_email(value):
-                    update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
-            if key == 'status':
-                status = supplier.get(val, 'active')
-                value = 1
-                if status.lower() != 'active':
-                    value = 0
-            data_dict[key] = value
-            # if supplier_master and value:
-            #     setattr(supplier_master, key, value)
-        secondary_email_id = supplier.get('secondaryemailid', '')
-        if secondary_email_id:
-            secondary_email_id = secondary_email_id.split(',')
-            for mail in secondary_email_id:
-                if validate_supplier_email(mail):
-                    update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
-        if not failed_status:
-            master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
-            log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
+        supplier_count = 0
+        gst_check = []
+        for address in supplier['addresses']:
+            if supplier_count and address['gstno'] not in gst_check:
+                supplier_id = supplier_id+'-'+str(supplier_count)
+            filter_dict = {'supplier_id': supplier_id }
+            for key,val in supplier_dict.iteritems():
+                value = supplier.get(val, '')
+                if key in number_field.keys():
+                    value = supplier.get(val, 0)
+                    try:
+                        value = float(value)
+                    except:
+                        error_message = '%s is Number field' % val
+                        update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
+                if key == 'email_id' and value:
+                    if validate_supplier_email(value):
+                        update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
+                if key == 'status':
+                    status = supplier.get(val, 'active')
+                    value = 1
+                    if status.lower() != 'active':
+                        value = 0
+                if key == 'address':
+                    value = address.get('address', '')
+                if key == 'state':
+                    value = address.get('state', '')
+                if key == 'city':
+                    value = address.get('city', '')
+                if key == 'country':
+                    value = address.get('country', '')
+                if key == 'tin_number':
+                    value = address.get('gstno', '')
+                if key == 'place_of_supply':
+                    value = address.get('placeofsupply', '')
+                gst_check.append(address['gstno'])
+                data_dict[key] = value
+                # if supplier_master and value:
+                #     setattr(supplier_master, key, value)
+            secondary_email_id = supplier.get('secondaryemailid', '')
+            if secondary_email_id:
+                secondary_email_id = secondary_email_id.split(',')
+                for mail in secondary_email_id:
+                    if validate_supplier_email(mail):
+                        update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
+            if not failed_status:
+                master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+                supplier_count += 1 
+                log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
 
     except Exception as e:

@@ -381,7 +381,7 @@ def netsuite_create_po(po_data, user):
             purorder.dueDate = po_data['due_date']
         purorder.approvalStatus = ns.RecordRef(internalId=2)
         purorder.externalId = po_data['po_number']
-        purorder.tranid = po_data['po_number']
+        purorder.tranId = po_data['po_number']
         purorder.memo = po_data['remarks']
         # purorder.purchaseordertype = po_data['order_type']
         if po_data['product_category'] == 'Services':
@@ -427,8 +427,9 @@ def netsuite_create_pr(pr_data, user):
         # purreq.memo = "Webservice PR"
         # purreq.approvalStatus = ns.RecordRef(internalId=2)
         purreq.tranDate = pr_data['pr_date']
-        purreq.tranid = pr_data['pr_number']
+        purreq.tranId = pr_data['pr_number']
         purreq.tranDate = pr_data['pr_date']
+        purreq.subsidiary = ns.RecordRef(internalId=16)
         purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
                                                      ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
                                                      ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])

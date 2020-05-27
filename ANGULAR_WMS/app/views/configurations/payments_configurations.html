@@ -1,0 +1,42 @@
+<div class="page-layout">
+    <div class="layout-body">
+        <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
+            <div class="panel">
+                <div class="panel-body">
+                    <div class="row col-md-12" style="padding-bottom: 15px">
+                        <div class="col-md-5 col-sm-8 col-xs-12">
+                            <i class="fa fa-tags fa-15px pull-left" style="line-height: 34px;"></i>
+                            <strong style="line-height: 34px;" class="pull-left ml20"> Payment Bank Option </strong>
+                        </div>
+                        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
+                            <input id="order_statuses" class="bank_option_fields" type="text"
+                                value="{{showCase.model_data.bank_option_fields}}" ui-jq="tagsInput" />
+                        </div>
+                        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_bank_option_fields()"
+                                class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+                        </div>
+                    </div>
+                    <div class="row col-md-12" style="padding-bottom: 15px"
+                        ng-repeat="config in showCase.payments_check_box_data" ng-if="config.display">
+                        <div class="col-md-5 col-sm-8 col-xs-12">
+                            <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>
+                            <strong style="line-height: 34px;" class="pull-left ml20">{{config.name}}</strong>
+                        </div>
+                        <div class="col-md-2 col-sm-4 col-xs-4">
+                            <label class="switch switch-sm square mt5">
+                                <div>
+                                    <input type="checkbox" ng-model="showCase.model_data[config.model_name]"
+                                        ng-change="showCase.switches(showCase.model_data[config.model_name], config.param_no)">
+                                    <span>
+                                        <i class="handle"></i>
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

@@ -113,6 +113,10 @@ VENDOR_DATA = {'vendor_id': '', 'name': '', 'address': '', 'phone_number': '', '
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
+MACHINE_MASTER_DATA = {'master_code': '','master_name': '',
+                       'model_number': '', 'serial_number': '',
+                       'brand': '','status': 1,'creation_date':NOW}
+
 SUPPLIER_DATA = {'supplier_id': '', 'name': '', 'address': '', 'phone_number': '', 'email_id': '',
                  'status': 1, 'tax_type': '', 'po_exp_duration': 0,
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
@@ -1423,7 +1427,7 @@ ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
 
 TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type', 'Status']
 
-MACHINE_MASTER_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Number', 'Brand', 'Status']
+MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Number', 'Brand', 'Status']
 
 SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type', 
                'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone', 
@@ -2502,6 +2506,7 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict((('supplier_id', 0), ('name', 1), ('address'
                                      ))
 MACHINE_MASTER_EXCEL_FIELDS = OrderedDict((('machine_code',0), ('machine_name',1),('model_number',2),
                                             ('serial_number',3),('brand',4),('status',5)))
+
 STATUS_DICT = {1: True, 0: False}
 
 PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']

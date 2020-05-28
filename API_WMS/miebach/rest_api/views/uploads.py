@@ -1009,10 +1009,10 @@ def asset_form(request, user=''):
 def test_form(request, user=''):
     test_file = request.GET['download-sku-file']
     if test_file:
-        return error_file_download(test_file)
+        return error_file_download(sku_file)
     headers = copy.deepcopy(TEST_MASTER_HEADERS)
-    wb, ws = get_work_sheet('tests', headers)
-    return xls_to_response(wb, '%s.tests_form.xls' % str(user.username))
+    wb, ws = get_work_sheet('test', headers)
+    return xls_to_response(wb, '%s.test_form.xls' % str(user.username))
 
 @csrf_exempt
 @get_admin_user
@@ -1968,7 +1968,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 
             if ean_numbers:
                 update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
-
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
 
@@ -2785,58 +2784,6 @@ def supplier_upload(request, user=''):
 
     return HttpResponse('Success')
 
-# @csrf_exempt
-# def validate_machine_form(open_sheet, user_id):
-#     index_status = {}
-#     supplier_ids = []
-#     mapping_dict = copy.deepcopy(MACHINE_MASTER_EXCEL_FIELDS)
-#     user = User.objects.get(id = user_id)
-#     messages_dict = {'machine_code': 'Machine Code', 'machine_name': 'Machine Name',
-#                      'serial_number': 'Serial Number', 'model_number': 'Model Number',
-#                      'status': 'Status', 'brand': 'Brand'}
-#     number_str_fields = ['machine_code', 'machine_name', 'serial_number', 'model_number',
-#                          'status', 'brand']
-#     for row_idx in range(0, open_sheet.nrows):
-#         for key, value in mapping_dict.iteritems():
-#             if key == 'machine_code':
-#                 if isinstance(cell_data, (int, float)):
-#                     cell_data = str(int(cell_data))
-#                 if cell_data:
-#                     machine_master = MachineMaster.objects.filter(supplier_id=machine_code, user=user.id)
-#                     if machine_master:
-#                         index_status.setdefault(row_idx, set()).add('Machine Code Already exists')
-#                 # if cell_data and cell_data in supplier_ids:
-#                 #     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
-#                 #     for index, data in enumerate(supplier_ids):
-#                 #         if data == cell_data:
-#                 #             index_status.setdefault(index + 1, set()).add('Duplicate Supplier ID')
-#                 # supplier_ids.append(cell_data)
-#
-#             elif key == 'machine_name':
-#                 if not cell_data:
-#                     index_status.setdefault(row_idx, set()).add('Missing Machine Name')
-#             elif key == 'model_number':
-#                 if cell_data:
-#                     index_status.setdefault(row_idx, set()).add('Enter Model Number')
-#             elif key == 'serial_number':
-#                 if cell_data:
-#                     index_status.setdefault(row_idx, set()).add('Enter Serial Number')
-#             elif key == 'brand':
-#                 if not len(str(cell_data)) < 20:
-#                     index_status.setdefault(row_idx, set()).add('Enter the brand')
-#             elif key == 'status':
-#                 if cell_data:
-#                     if not isinstance(cell_data, (int, float)):
-#                         index_status.setdefault(row_idx, set()).add("enter the status")
-#
-#     if not index_status:
-#         return 'Success'
-#     machine_master_headers = copy.deepcopy(MACHINE_MASTER_HEADERS)
-#     f_name = '%s.supplier_form.xls' % user_id
-#     write_error_file(f_name, index_status, open_sheet, machine_master_headers, 'Machine')
-#     return f_name
-
-
 @csrf_exempt
 def validate_vendor_form(open_sheet, user_id):
     index_status = {}
@@ -3212,38 +3159,66 @@ def validate_location_form(open_sheet, user):
     return f_name
 
 @csrf_exempt
-def validate_machine_form(open_sheet, user):
-    machine_data = []
+def validate_machine_form(open_sheet, user_id):
     index_status = {}
-    header_data = open_sheet.cell(0, 0).value
-    # if header_data != 'Zone':
-    #     return 'Invalid File'
+    machine_codes = []
+    mapping_dict = copy.deepcopy(MACHINE_MASTER_EXCEL_FIELDS)
+    user = User.objects.get(id=user_id)
+    messages_dict = {'machine_code': 'Machine Code', 'machine_name': 'Machine Name',
+                     'model_number': 'Model Number', 'serial_number': 'Serial Number',
+                     'brand': 'Brand', 'status': 'Status'}
+    number_str_fields = ['machine_code', 'machine_name', 'model_number', 'serial_number', 'brand']
+    for row_idx in range(0, open_sheet.nrows):
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            if row_idx == 0:
+                if open_sheet.cell(row_idx, 0).value != 'Machine Code':
+                    return 'Invalid File'
+                break
 
-    for row_idx in range(1, open_sheet.nrows):
-        for col_idx in range(0, len(MACHINE_MASTER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-
-            validation_dict = {0: 'Machine Code', 1: 'Machine Name', 2:'Model Number', 3:'Serial Number',4:'Brand'}
-            if col_idx in validation_dict:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Missing %s' % validation_dict[col_idx])
-                    break
-
-                value = validation_dict[col_idx]
-                # index_status = alphanum_validation(cell_data, value, index_status, row_idx)
-
-            if col_idx == 1:
-                if cell_data in machine_data:
+            if key == 'machine_code':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if cell_data:
+                    machine_master = MachineMaster.objects.filter(machine_code=cell_data, user=user.id)
+                    if machine_master:
+                        index_status.setdefault(row_idx, set()).add('Machine Code Already exists')
+                if cell_data in machine_codes:
                     index_status.setdefault(row_idx, set()).add('Duplicate Machine Code')
-                for index, location in enumerate(machine_data):
-                    if location == cell_data:
-                        index_status.setdefault(index + 1, set()).add('Duplicate Machine Code')
+                    for index, data in enumerate(machine_codes):
+                        if data == cell_data:
+                            index_status.setdefault(index + 1, set()).add('Duplicate Machine Code')
+                machine_codes.append(cell_data)
 
-                machine_data.append(cell_data)
+            elif key == 'serial_number':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if cell_data:
+                    machine_master = MachineMaster.objects.filter(serial_number=cell_data, user=user.id)
+                    if machine_master:
+                        index_status.setdefault(row_idx, set()).add('Serial Number Already exists')
+                if cell_data and cell_data in machine_codes:
+                    index_status.setdefault(row_idx, set()).add('Serial Number Already exists')
+                    for index, data in enumerate(machine_codes):
+                        if data == cell_data:
+                            index_status.setdefault(index + 1, set()).add('Serial Number Already exists')
+                machine_codes.append(cell_data)
+
+            elif key == 'machine_name':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Machine Name')
+            elif key == 'brand':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Brand')
+            elif key == 'model_number':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Model Number')
+
     if not index_status:
         return 'Success'
+    machine_headers = copy.deepcopy(MACHINE_HEADERS)
     f_name = '%s.machine_form.xls' % user
-    write_error_file(f_name, index_status, open_sheet, MACHINE_MASTER_HEADERS, 'Issues')
+    write_error_file(f_name, index_status, open_sheet, machine_headers, 'Machine')
     return f_name
 
 
@@ -3289,44 +3264,44 @@ def process_location(request, open_sheet, user):
 def machine_excel_upload(request,open_sheet, user =''):
     for row_idx in range(1, open_sheet.nrows):
         machine_data = copy.deepcopy(MACHINE_DATA)
-        for col_idx in range(0, len(MACHINE_MASTER_HEADERS)):
+        # for col_idx in range(0, len(MACHINE_MASTER_HEADERS)):
 
-            index_dict = {0: 'machine_code', 1: 'machine_name', 2: 'model_number', 3: 'serial_number', 4: 'brand', 5:'status'}
+        index_dict = {0: 'machine_code', 1: 'machine_name', 2: 'model_number', 3: 'serial_number', 4: 'brand', 5:'status'}
 
-            for col_idx in index_dict:
-                cell_data = str(open_sheet.cell(row_idx, col_idx).value)
-                if cell_data.endswith('.0'):
-                    cell_data = cell_data.replace('.0', '')
-                machine_data[index_dict[col_idx]] = cell_data
+        for col_idx in index_dict:
+            cell_data = str(open_sheet.cell(row_idx, col_idx).value)
+            if cell_data.endswith('.0'):
+                cell_data = cell_data.replace('.0', '')
+            machine_data[index_dict[col_idx]] = cell_data
 
-            machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)
-            if not machine_dic:
-                if machine_data['status'] =='active' or 'Active':
-                    machine_data['status'] = 1
-                else:
-                    machine_data['status'] = 0
-                final_machine_dict = MachineMaster(user=user,**machine_data)
-                final_machine_dict.save()
-                status_msg = "Success"
+        machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)
+        if not machine_dic:
+            if machine_data['status'] =='active' or 'Active':
+                machine_data['status'] = 1
             else:
-                machine_dic[0].machine_code = machine_dic[0].serial_number = machine_data['serial_number']
-                machine_dic[0].machine_name = machine_data['machine_name']
-                machine_dic[0].brand = machine_data['brand']
-                serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])
-                if not serial_check:
+                machine_data['status'] = 0
+            final_machine_dict = MachineMaster(user=user,**machine_data)
+            final_machine_dict.save()
+            status_msg = "Success"
+        else:
+            machine_dic[0].machine_code = machine_dic[0].serial_number = machine_data['serial_number']
+            machine_dic[0].machine_name = machine_data['machine_name']
+            machine_dic[0].brand = machine_data['brand']
+            serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])
+            if not serial_check:
+                machine_dic[0].serial_number = machine_data['serial_number']
+            else:
+                if machine_data['serial_number'] == machine_dic[0].serial_number:
                     machine_dic[0].serial_number = machine_data['serial_number']
                 else:
-                    if machine_data['serial_number'] == machine_dic[0].serial_number:
-                        machine_dic[0].serial_number = machine_data['serial_number']
-                    else:
-                        status_msg = "Serial Number already exists"
-                        break;
-                if machine_data['status'] == 'Active' or "active" or 1:
-                    machine_dic[0].status = 1
-                else:
-                    machine_dic[0].status = 0
-                machine_dic[0].save()
-                status_msg = "Success"
+                    status_msg = "Serial Number already exists"
+                    break;
+            if machine_data['status'] == 'Active' or "active" or 1:
+                machine_dic[0].status = 1
+            else:
+                machine_dic[0].status = 0
+            machine_dic[0].save()
+            status_msg = "Success"
     return HttpResponse(status_msg)
 
 @csrf_exempt

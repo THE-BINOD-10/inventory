@@ -3024,6 +3024,7 @@ def convert_pr_to_po(request, user=''):
     return HttpResponse("Converted PR to PO Successfully")
 
 def netsuite_pr(user, PRQs):
+    pr_datas = []
     for existingPRObj in PRQs:
         pr_number = existingPRObj.pr_number
         delivery_date = existingPRObj.delivery_date.isoformat()
@@ -3047,8 +3048,9 @@ def netsuite_pr(user, PRQs):
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
             item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
             pr_data['items'].append(item)
+        pr_datas.append(pr_data)
 
-        response = netsuite_create_pr(pr_data, user)
+    response = netsuite_create_pr(pr_datas, user)
 
 
 @csrf_exempt

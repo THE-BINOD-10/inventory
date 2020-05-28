@@ -10,6 +10,7 @@ COMPLEX_TYPES = {
         'GetAllResult',
         'Passport',
         'RecordList',
+        'ListOrRecordRef',
         'RecordRef',
         'SearchResult',
         'SearchStringField',

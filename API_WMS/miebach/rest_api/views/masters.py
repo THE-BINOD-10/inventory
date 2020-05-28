@@ -759,6 +759,7 @@ def get_company_master(start_index, stop_index, temp_data, search_term, order_te
                                                 ('cin_number', data.cin_number),
                                                 ('pan_number', data.pan_number),
                                                 ('address', data.address),
+                                                ('reference_id', data.reference_id),
                                                 ('DT_RowClass', 'results'))))
 
 
@@ -2452,7 +2453,7 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id}
     return HttpResponse(json.dumps({'data': data}))
 
 

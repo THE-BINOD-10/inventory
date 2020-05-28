@@ -43,7 +43,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var empty_data = {"id":"", "company_name":"", 
                       "email_id":"", "phone_number":"", "logo":"",
                       "city":"", "state":"", "country":"", "pincode":"", "gstin_number":"",
-                      "cin_number":"", "pan_number":"", "address":""};
+                      "cin_number":"", "pan_number":"", "address":"", "reference_id": ""};
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
 

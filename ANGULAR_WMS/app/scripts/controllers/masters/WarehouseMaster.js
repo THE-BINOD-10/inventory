@@ -49,7 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var empty_data = {"username":"","first_name":"", "last_name":"", "phone_number":"", "email":"",
                       "country":"", "state":"", "city":"", "address":"", "pin_code":"", "company_id": "",
-                      "warehouse_level": vm.warehouse_level + 1}
+                      "warehouse_level": vm.warehouse_level + 1, "reference_id": ""}
 
     function reloadData () {
         vm.dtInstance.reloadData();

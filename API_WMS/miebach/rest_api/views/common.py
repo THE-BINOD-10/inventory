@@ -572,7 +572,7 @@ data_datatable = {  # masters
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
-    'RaiseActualPR': 'get_actual_pr_suggestions',
+    'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
     # production
@@ -1014,7 +1014,7 @@ def pr_request(request):
                 last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', purchase_id),
-                                                ('PR Number', purchase_number),
+                                                ('PR Number', po_reference),
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),

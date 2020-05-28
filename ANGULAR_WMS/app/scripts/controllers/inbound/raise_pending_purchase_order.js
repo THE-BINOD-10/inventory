@@ -223,6 +223,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
           vm.model_data['pr_number'] = aData['PR Number'];
+          vm.model_data['purchase_id'] = aData['Purchase Id']
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PO';
@@ -546,12 +547,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }
-      if (vm.model_data.pr_number){
-        elem.push({name:'pr_number', value:vm.model_data.pr_number})
-      }
+      // if (vm.model_data.pr_number){
+      //   elem.push({name:'pr_number', value:vm.model_data.pr_number})
+      // }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
       }
@@ -1091,7 +1093,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_purchase_request){
         elem.push({name:'is_purchase_request', value:true})
       }
-      if (Object.keys(vm.final_send_sku_dict).length > 0 && vm.permissions.central_admin_level_po) {
+      if (vm.permissions.central_admin_level_po && Object.keys(vm.final_send_sku_dict).length > 0 ) {
         elem.push({name:'ship_to', value:''});
         elem.push({name:'location_sku_data', value:JSON.stringify(vm.final_send_sku_dict)});
       }

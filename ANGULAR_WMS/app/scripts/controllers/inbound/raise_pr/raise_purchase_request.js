@@ -23,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.multi_level_system = vm.user_profile.multi_level_system;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.filters = {'datatable': 'RaiseActualPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -56,7 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
-                    "PR Created Date", "Department",
+                    "PR Created Date", "Department", "Department Type",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -249,6 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
           vm.model_data['pr_number'] = aData['PR Number'];
+          vm.model_data['purchase_id'] = aData['Purchase Id']
           // vm.model_data.seller_type = vm.model_data.dedicated_seller;
           vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
           vm.title = 'Validate PR';
@@ -454,9 +455,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (is_resubmitted == 'true'){
             elem.push({name:'is_resubmitted', value:true})
           }
-          if (vm.pr_number){
-            elem.push({name:'pr_number', value:vm.pr_number})
-          }
+          // if (vm.pr_number){
+          //   // elem.push({name:'pr_number', value:vm.pr_number})
+          // }
           var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
           if (type == 'save'){
             confirm_api ? vm.update_raise_pr() : '';
@@ -470,12 +471,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
-      if (vm.pr_number){
-        elem.push({name:'pr_number', value:vm.pr_number})
-      }
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
       }

@@ -261,7 +261,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
-          } else if (aData['Validation Status'] == 'Store_sent'){
+          } else if (aData['Validation Status'] == 'Store_Sent'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;

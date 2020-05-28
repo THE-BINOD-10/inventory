@@ -99,6 +99,7 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
             skuitem.externalId = sku_master_data.sku_code
             skuitem.displayName = sku_master_data.sku_desc
             skuitem.itemType = sku_master_data.sku_type
+            skuitem.includeChildren = 'Y'
             skuitem.vendorname = sku_master_data.sku_brand
             skuitem.upc = sku_master_data.ean_number
             skuitem.isinactive = sku_master_data.status
@@ -108,6 +109,7 @@ def netsuite_sku_bulk_create(model_obj,  sku_key_map, new_skus):
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=sku_attr_dict.get('Conversion Factor', '')),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=sku_master_data.sku_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=sku_master_data.mrp),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=sku_master_data.sub_category)])
             list_skuitems.append(skuitem)
@@ -136,7 +138,9 @@ def netsuite_service_master_bulk_create(model_obj,  sku_key_map, new_skus):
             serviceitem.upc = sku_master_data.ean_number
             serviceitem.isinactive = sku_master_data.status
             serviceitem.cost = sku_master_data.cost_price
+            serviceitem.includeChildren = 'Y'
             serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                               ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=sku_master_data.sku_category),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=sku_master_data.mrp),
                                                       # ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=sku_master_data.service_start_date.isoformat()),
@@ -169,7 +173,9 @@ def netsuite_asset_master_bulk_create(model_obj,  sku_key_map, new_skus):
             assetitem.upc = sku_master_data.ean_number
             assetitem.isinactive = sku_master_data.status
             assetitem.cost = sku_master_data.cost_price
+            assetitem.includeChildren = 'Y'
             assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                           ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=sku_master_data.sku_category),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=sku_master_data.sub_category)
@@ -200,7 +206,9 @@ def netsuite_otheritem_master_bulk_create(model_obj,  sku_key_map, new_skus):
             otheritem.department = sku_master_data.sku_class
             otheritem.isinactive = sku_master_data.status
             otheritem.cost = sku_master_data.cost_price
+            otheritem.includeChildren = 'Y'
             otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=sku_master_data.sku_class),
+                                                            ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.RecordRef(internalId=2)),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=ns.RecordRef(internalId=3))
@@ -228,6 +236,7 @@ def netsuite_update_create_service(data, user):
         serviceitem.isinactive = data.status
         serviceitem.cost = data.cost_price
         serviceitem.purchaseunit = data.measurement_type
+        serviceitem.includeChildren = 'Y'
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
 
         serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
@@ -260,6 +269,7 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.department = data.sku_class
         #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         assetitem.isinactive = data.status
+        assetitem.includeChildren = 'Y'
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
         assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.RecordRef(internalId=2)),
@@ -291,6 +301,7 @@ def netsuite_update_create_otheritem_master(data, user):
         otheritem.department = data.sku_class
         #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         otheritem.isinactive = data.status
+        otheritem.includeChildren = 'Y'
         otheritem.cost = data.cost_price
         otheritem.purchaseunit = data.measurement_type
         otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),

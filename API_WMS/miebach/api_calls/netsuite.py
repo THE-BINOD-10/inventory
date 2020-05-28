@@ -255,12 +255,16 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.externalId = data.sku_code
         assetitem.displayName = data.sku_desc
         assetitem.itemType = data.sku_type
-        assetitem.vendorname = data.sku_brand
+        assetitem.vendorName = data.sku_brand
         assetitem.department = data.sku_class
+        #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         assetitem.isinactive = data.status
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
         assetitem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.RecordRef(internalId=2)),
+                                                        ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.sku_group),
+                                                        ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
+                                                        ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetsubcategory', value=data.sub_category)
                                                       ])
@@ -282,13 +286,16 @@ def netsuite_update_create_otheritem_master(data, user):
         otheritem.externalId = data.sku_code
         otheritem.displayName = data.sku_desc
         otheritem.itemType = data.sku_type
-        otheritem.vendorname = data.sku_brand
+        otheritem.vendorName = data.sku_brand
         otheritem.department = data.sku_class
+        #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         otheritem.isinactive = data.status
         otheritem.cost = data.cost_price
         otheritem.purchaseunit = data.measurement_type
         otheritem.customFieldList = ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=data.sku_category),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
+                                                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.sku_group),
                                                     #   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
                                                       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
                                                       ])
@@ -552,7 +559,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
-                supplier_count += 1 
+                supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
 

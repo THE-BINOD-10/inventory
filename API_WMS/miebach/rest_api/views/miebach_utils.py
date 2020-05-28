@@ -1643,7 +1643,7 @@ CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 
 
 COMPANY_DATA = {'id':0, 'address': '', 'phone_number': '', 'email_id': '', 'company_name':'',
                 'city':'', 'state':'', 'country':'', 'pincode':'', 'gstin_number':'', 'cin_number':'',
-                'pan_number':''}
+                'pan_number':'', 'reference_id': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
 
@@ -1705,7 +1705,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '',
-                      'company_id': 0}
+                      'company_id': 0, 'reference_id': ''}
 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),

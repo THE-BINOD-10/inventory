@@ -65,6 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'receive_po_inv_value_qty_check': false,
                     'central_admin_level_po': false,
                     'sku_attribute_grouping_key': '',
+                    'pending_pr_prefix': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -116,6 +117,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      1119: 'receive_po_inv_value_qty_check',
                      1120: 'attributes_sync',
                      1121: 'tax_master_sync',
+                     1122: 'pending_pr_prefix',
                      119: 'central_admin_level_po',
                      120: 'sku_attribute_grouping_key',
                      }

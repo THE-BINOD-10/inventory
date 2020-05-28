@@ -257,7 +257,7 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.itemType = data.sku_type
         assetitem.vendorName = data.sku_brand
         assetitem.department = data.sku_class
-        assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
+        #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         assetitem.isinactive = data.status
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
@@ -288,6 +288,7 @@ def netsuite_update_create_otheritem_master(data, user):
         otheritem.itemType = data.sku_type
         otheritem.vendorName = data.sku_brand
         otheritem.department = data.sku_class
+        #assetitem.parent = ns.RecordRef(externalId=data['sku_code'])
         otheritem.isinactive = data.status
         otheritem.cost = data.cost_price
         otheritem.purchaseunit = data.measurement_type

@@ -608,7 +608,11 @@ def generate_po_qty_dict(purchase_ord_qty):
         return temp_dict
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term):
-    sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
+    company_name =user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True, all_prod_catgs=all_prod_catgs)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
                            'order_id','order_id']
@@ -732,6 +736,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     order_type = 'Vendor Receipt'
                 if supplier.open_po and supplier.open_po.order_type == 'SP':
                     order_type = 'Sample Order'
+                # import pdb; pdb.set_trace()
                 if str(user.username) != str(parent_user.username) and str(parent_po_prefix) == str(supplier.prefix):
                     order_type = 'Central Order'
         elif result['rwpurchase__rwo__vendor__user']:
@@ -794,8 +799,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         productType = ''
-        if supplier.open_po.pendingpos.values_list('product_category', flat=True):
-            productType = supplier.open_po.pendingpos.values_list('product_category', flat=True)[0]
+        productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
+        if productQs.exists():
+            productType = productQs[0]
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
@@ -3486,7 +3492,11 @@ def get_supplier_data(request, user=''):
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         warehouse = request.GET['warehouse']
         user = User.objects.get(username=warehouse)
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    company_name =user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     temp = get_misc_value('pallet_switch', user.id)
     payment_received = 0
     order_ids = []
@@ -3644,7 +3654,7 @@ def get_supplier_data(request, user=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'],
+                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -11127,7 +11137,11 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
                                                 ('DT_RowClass', 'results'))))
 
 def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    company_name = user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     search_params = {}
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
@@ -12771,6 +12785,7 @@ def get_credit_note_po_data(request, user=''):
     if not po_order_id or not po_prefix or not receipt_number:
         return HttpResponse("Purchase Order Inputs are missing")
     purchase_order_data = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id, prefix=po_prefix)
+    grn_total_price = 0
     if purchase_order_data.exists():
         for order in purchase_order_data:
             grn_qt = 0
@@ -12780,6 +12795,9 @@ def get_credit_note_po_data(request, user=''):
                 grn_qt = int(datum[0].quantity)
             supplier_id = order_data['supplier_id']
             supplier_name = order_data['supplier_name']
+            total_tax = order_data['sgst_tax'] + order_data['cess_tax'] + order_data['igst_tax'] + order_data['cgst_tax'] + order_data['utgst_tax'] + order_data['apmc_tax']
+            grn_price = order_data['price'] + order_data['price'] * (total_tax)/100
+            grn_total_price += grn_price
             sku_dat = {
                     'wms_code': order_data['wms_code'],
                     'title': order_data['sku_desc'],
@@ -12788,10 +12806,12 @@ def get_credit_note_po_data(request, user=''):
                     'po_quantity': order_data['order_quantity'],
                     'grn_qt': grn_qt,
                     'price': order_data['price'],
+                    'grn_price': grn_price,
+                    'tax': total_tax,
                     'mrp': order_data['mrp']
                     }
             sku_data.append(sku_dat)
-    return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name}))
+    return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': grn_total_price}))
 
 @csrf_exempt
 @login_required

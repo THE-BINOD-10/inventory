@@ -3115,17 +3115,13 @@ def send_pr_to_parent_store(request, user=''):
 @login_required
 @get_admin_user
 def get_pr_preview_data(request, user=''):
-    # myDict = dict(request.POST.iterlists())
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
     prQs = PendingPR.objects.filter(id__in=prIds)
-    # lineItemVals = ['sku__sku_code', 'quantity']
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
     lineItems = lineItemsQs.values_list('sku__sku_code', 'sku__sku_desc').annotate(Sum('quantity'))
     skuPrNumsMap = {}
-    skuSupMapping = {}
     skuPrIdsMap = {}
-    unMappedSkus = []
     for lineItem in lineItemsQs:
          skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.pr_number))
          skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
@@ -3133,44 +3129,48 @@ def get_pr_preview_data(request, user=''):
     for lineItem in lineItems:
         sku_code, sku_desc, quantity = lineItem
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
-        supplierId = ''
-        supplierMapping = SKUSupplier.objects.filter(sku__sku_code=sku_code, sku__user=user.id)
-        if supplierMapping.exists():
-            supplierId = supplierMapping[0].supplier.supplier_id
-            skuTaxes = get_supplier_sku_price_values(supplierMapping[0].supplier.id, sku_code, user)
-            if skuTaxes:
-                skuTaxVal = skuTaxes[0]
-                taxes = skuTaxVal['taxes']
-                if taxes:
-                    sgst_tax = taxes[0]['sgst_tax']
-                    cgst_tax = taxes[0]['cgst_tax']
-                    igst_tax = taxes[0]['igst_tax']
-                if skuTaxVal.get('sku_supplier_price', ''):
-                    price = skuTaxVal.get('sku_supplier_price', '')
-                else:
-                    price = skuTaxVal['mrp']
-                if skuTaxVal.get('sku_supplier_moq', ''):
-                    moq = skuTaxVal['sku_supplier_moq']
-                tax = sgst_tax + cgst_tax + igst_tax
-                amount = quantity * price
-                total = amount + (amount * (tax/100))
-            skuSupMapping.setdefault(sku_code, []).append(supplierId)
-
-        preview_data['data'].append(OrderedDict((
-                ('pr_id', ', '.join(skuPrIdsMap[sku_code])),
-                ('supplier_id', supplierId),
-                ('supplier_name', supplierId),
-                ('pr_number', ','.join(skuPrNumsMap[sku_code])),
-                ('sku_code', sku_code),
-                ('sku_desc', sku_desc),
-                ('quantity', quantity),
-                ('moq', moq),
-                ('unit_price', price),
-                ('amount', amount),
-                ('tax', tax),
-                ('total', total),
-                ('checkbox', False)
-            )))
+        supplierId = ''; supplierName = ''
+        supplierDetailsMap = {}
+        
+        reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc, 
+                      'quantity': quantity, 'checkbox': False, 
+                      'pr_id': ', '.join(skuPrIdsMap[sku_code]),
+                      'pr_number': ','.join(skuPrNumsMap[sku_code]),
+                      'supplierDetails': {}}
+        supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+                                sku__user=user.id).order_by('preference')
+        if supplierMappings.exists():
+            for supplierMapping in supplierMappings:
+                supplierId = supplierMapping.supplier.supplier_id
+                supplierName = supplierMapping.supplier.name
+                skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.id, sku_code, user)
+                if skuTaxes:
+                    skuTaxVal = skuTaxes[0]
+                    taxes = skuTaxVal['taxes']
+                    if taxes:
+                        sgst_tax = taxes[0]['sgst_tax']
+                        cgst_tax = taxes[0]['cgst_tax']
+                        igst_tax = taxes[0]['igst_tax']
+                    if skuTaxVal.get('sku_supplier_price', ''):
+                        price = skuTaxVal.get('sku_supplier_price', '')
+                    else:
+                        price = skuTaxVal['mrp']
+                    if skuTaxVal.get('sku_supplier_moq', ''):
+                        moq = skuTaxVal['sku_supplier_moq']
+                    tax = sgst_tax + cgst_tax + igst_tax
+                    amount = quantity * price
+                    total = amount + (amount * (tax/100))
+                    supplier_id_name = '%s:%s' %(supplierId, supplierName)
+                supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId, 
+                                                          'supplier_name': supplierName,
+                                                          'moq': moq,
+                                                          'unit_price': price,
+                                                          'amount': amount,
+                                                          'tax': tax,
+                                                          'total': total
+                                                          }
+            reqLineMap['supplierDetails'] = supplierDetailsMap
+        preview_data['data'].append(reqLineMap)
     return HttpResponse(json.dumps(preview_data))
 
 

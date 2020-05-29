@@ -522,11 +522,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.pr_to_po_preview = function(){
       vm.bt_disable = true;
       var prIds = [];
+      var firstDeptType = ''
 
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          prIds.push(temp['_aData']["Purchase Id"]);
+          if (firstDeptType.length == 0){
+            firstDeptType = temp['_aData']['Department Type'];
+            prIds.push(temp['_aData']["Purchase Id"]);
+          } else {
+            if (firstDeptType != temp['_aData']['Department Type']) {
+              vm.service.showNoty("Same Department PRs can be consolidated");
+              prIds = [];
+            } else {
+              prIds.push(temp['_aData']["Purchase Id"]);
+            }
+          }
         }
         if(Object.keys(vm.selected).length-1 == parseInt(key)){
           var data_dict = {

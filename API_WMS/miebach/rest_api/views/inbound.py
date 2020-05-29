@@ -2637,7 +2637,7 @@ def approve_pr(request, user=''):
     log.info("Approve PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     urlPath = request.META.get('HTTP_ORIGIN')
     status = 'Approved Failed'
-    # pr_number = request.POST.get('pr_number', '')
+    full_pr_number = request.POST.get('pr_number', '')
     purchase_id = request.POST.get('purchase_id', '')
     validation_type = request.POST.get('validation_type', '')
     validated_by = request.POST.get('validated_by', '')
@@ -2735,7 +2735,7 @@ def approve_pr(request, user=''):
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
         if purchase_type == 'PR':
-            netsuite_pr(user, PRQs)
+            netsuite_pr(user, PRQs, full_pr_number)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
@@ -3023,7 +3023,7 @@ def convert_pr_to_po(request, user=''):
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
 
-def netsuite_pr(user, PRQs):
+def netsuite_pr(user, PRQs, full_pr_number):
     pr_datas = []
     for existingPRObj in PRQs:
         pr_number = existingPRObj.pr_number
@@ -3038,7 +3038,7 @@ def netsuite_pr(user, PRQs):
             approval1 = allApproavls[0]
 
         pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by}
+                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
             'sku__servicemaster__service_end_date',
@@ -7632,11 +7632,21 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     po_number = po_number
     company_id = ''
     pr_number = ''
+    full_pr_number = ''
     approval1 = ''
     if prQs:
         pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+        pr_obj= prQs[0].pending_prs.all()[0]
         if pr_number_list:
             pr_number = pr_number_list[0]
+        pr_id = pr_obj.id
+        pr_prefix = pr_obj.prefix
+        pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+        pr_date = pr_created_date.strftime('%d-%m-%Y')
+        dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+        if pr_number_list:
+            pr_number = pr_number_list[0]
+            full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
         prApprQs = prQs[0].pending_poApprovals
         validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
         if validated_users:
@@ -7656,7 +7666,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                 'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                'approval1':approval1}
+                'approval1':approval1, 'full_pr_number':full_pr_number}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

@@ -341,7 +341,7 @@ def netsuite_update_create_rtv(rtv_data, user):
             }
             item.append(line_item)
         rtvitem.itemList = {'item':item}
-        rtvitem.externalId = rtv_data['grn_no']
+        rtvitem.externalId = rtv_data['rtv_number']
         rtvitem.quantity = rtv_data["total_qty"]
         rtvitem.amount = rtv_data["total_without_discount"]
         rtvitem.memo= rtv_data["return_reason"]

@@ -325,7 +325,7 @@ def netsuite_update_create_rtv(rtv_data, user):
         ns = nc.raw_client
         rtvitem = ns.VendorReturnAuthorization()
         rtvitem.entity = str(rtv_data["supplier_name"])
-        rtvitem.tranid = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+        rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
         rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
         rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
         # rtvitem.location = ns.RecordRef(internalId=108)

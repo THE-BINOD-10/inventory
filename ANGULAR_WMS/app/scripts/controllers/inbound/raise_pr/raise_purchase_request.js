@@ -549,6 +549,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+    vm.getFirstSupplier = function(data){
+      vm.getsupBasedPriceDetails(Object.keys(data.supplierDetails)[0], data)
+      return Object.keys(data.supplierDetails)[0];
+
+    }
     vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
       var supDetails = sup_data.supplierDetails[supplier_id_name];
       sup_data.moq = supDetails.moq;

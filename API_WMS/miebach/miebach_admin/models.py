@@ -1195,6 +1195,7 @@ class CompanyMaster(models.Model):
     pan_number = models.CharField(max_length=64, default='', blank=True)
     logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
     parent = models.ForeignKey("self", blank=True, null=True)
+    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1243,6 +1244,7 @@ class UserProfile(models.Model):
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'

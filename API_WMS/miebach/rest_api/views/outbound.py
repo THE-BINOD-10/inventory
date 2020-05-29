@@ -5139,7 +5139,6 @@ def insert_order_data(request, user=''):
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master, extra_order_fields = construct_order_data_dict(
                 request, i, order_data, myDict, all_sku_codes, custom_order)
-            import pdb; pdb.set_trace()
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
             order_summary_dict['invoice_type'] = invoice_type

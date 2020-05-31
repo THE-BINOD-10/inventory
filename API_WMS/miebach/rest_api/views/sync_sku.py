@@ -109,6 +109,8 @@ def create_update_sku(all_skus, all_users):
             try:
                 if sku.testmaster:
                     instanceName = TestMaster
+                    update_sku_dict['test_code'] = sku.testmaster.test_code
+                    update_sku_dict['test_name'] = sku.testmaster.test_name
                     update_sku_dict['test_type'] = sku.testmaster.test_type
                     update_sku_dict['department_type'] = sku.testmaster.department_type
             except:

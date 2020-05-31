@@ -3817,5 +3817,6 @@ class TestMaster(SKUMaster):
     test_name = models.CharField(max_length=128)
     test_type = models.CharField(max_length=128)
     department_type = models.CharField(max_length=128)
+
     class Meta:
         db_table = 'TEST_MASTER'

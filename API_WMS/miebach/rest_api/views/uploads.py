@@ -1009,7 +1009,7 @@ def asset_form(request, user=''):
 def test_form(request, user=''):
     test_file = request.GET['download-sku-file']
     if test_file:
-        return error_file_download(sku_file)
+        return error_file_download(test_file)
     headers = copy.deepcopy(TEST_MASTER_HEADERS)
     wb, ws = get_work_sheet('test', headers)
     return xls_to_response(wb, '%s.test_form.xls' % str(user.username))
@@ -1525,6 +1525,32 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
+            elif key == 'test_code' and is_test:
+                data_set = wms_data
+                data_type = 'WMS'
+                sku_code = cell_data
+                if isinstance(cell_data, float):
+                    sku_code = str(int(cell_data))
+                if sku_code in upload_file_skus:
+                    index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
+                else:
+                    upload_file_skus.append(sku_code)
+                # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Code missing')
+            if key == 'test_name' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Name missing')
+            elif key == 'test_type' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Type missing')
+            elif key == 'department_type' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Department Type missing')
+            elif key == 'status' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('status missing')
+
             elif key == 'sku_group':
                 if cell_data:
                     sku_groups = SKUGroups.objects.filter(group__iexact=cell_data, user=user.id)
@@ -3175,22 +3201,7 @@ def validate_machine_form(open_sheet, user_id):
                 if open_sheet.cell(row_idx, 0).value != 'Machine Code':
                     return 'Invalid File'
                 break
-
-            if key == 'machine_code':
-                if isinstance(cell_data, (int, float)):
-                    cell_data = str(int(cell_data))
-                if cell_data:
-                    machine_master = MachineMaster.objects.filter(machine_code=cell_data, user=user.id)
-                    if machine_master:
-                        index_status.setdefault(row_idx, set()).add('Machine Code Already exists')
-                if cell_data in machine_codes:
-                    index_status.setdefault(row_idx, set()).add('Duplicate Machine Code')
-                    for index, data in enumerate(machine_codes):
-                        if data == cell_data:
-                            index_status.setdefault(index + 1, set()).add('Duplicate Machine Code')
-                machine_codes.append(cell_data)
-
-            elif key == 'serial_number':
+            if key == 'serial_number':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data:
@@ -3203,16 +3214,26 @@ def validate_machine_form(open_sheet, user_id):
                         if data == cell_data:
                             index_status.setdefault(index + 1, set()).add('Serial Number Already exists')
                 machine_codes.append(cell_data)
-
+            elif key == 'machine_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Machine Code is Missing')
+                else:
+                    machine_codes.append(cell_data)
             elif key == 'machine_name':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Machine Name')
+                else:
+                    machine_codes.append(cell_data)
             elif key == 'brand':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Brand')
+                else:
+                    machine_codes.append(cell_data)
             elif key == 'model_number':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Model Number')
+                else:
+                    machine_codes.append(cell_data)
 
     if not index_status:
         return 'Success'
@@ -3284,7 +3305,7 @@ def machine_excel_upload(request,open_sheet, user =''):
             final_machine_dict.save()
             status_msg = "Success"
         else:
-            machine_dic[0].machine_code = machine_dic[0].serial_number = machine_data['serial_number']
+            machine_dic[0].machine_code = machine_dic[0].machine_code = machine_data['machine_code']
             machine_dic[0].machine_name = machine_data['machine_name']
             machine_dic[0].brand = machine_data['brand']
             serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])

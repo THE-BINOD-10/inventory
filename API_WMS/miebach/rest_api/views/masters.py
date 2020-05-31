@@ -246,6 +246,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             sku_type = data.item_type
         elif instanceName == TestMaster:
             sku_type = data.test_type
+            wms_code = data.test_code
+            sku_desc = data.test_name
         else:
             sku_type = data.sku_type
         temp_data['aaData'].append(OrderedDict(
@@ -287,6 +289,7 @@ def get_location_data(request, user=''):
 
 
 def get_machine_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['machine_code', 'machine_name', 'department_type', 'test_type', 'status']
     search_dict = {'active': 1, 'inactive': 0},
     order_data = MACHINE_MASTER_HEADERS.values()[col_num]
     search_params = get_filtered_params(filters, MACHINE_MASTER_HEADERS.values())
@@ -297,16 +300,16 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
             search_params["status__icontains"] = 0
         else:
             search_params["status__icontains"] = "none"
+    lis = ['machine_code', 'machine_name', 'department_type', 'test_type', 'status']
 
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    # if search_term:
-    #     if search_term.lower() in search_dict:
-    #         search_terms = search_dict[search_term.lower()]
-    #         master_data = MachineMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
-    #             order_data)
-    # else:
-    master_data = MachineMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    if search_term:
+        master_data = MachineMaster.objects.filter(Q(machine_code__icontains=search_term)|Q(machine_name__icontains=search_term) |
+                                                   Q(model_number__icontains=search_term)|Q(serial_number__icontains=search_term), user=user.id).order_by(order_data)
+    else:
+        master_data = MachineMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
 
     filter_dict = {}
     filter_dict['user_id'] = user.id
@@ -994,6 +997,8 @@ def get_sku_data(request, user=''):
     elif instanceName == OtherItemsMaster:
         sku_data['item_type'] = data.item_type
     elif instanceName == TestMaster:
+        sku_data['test_code'] = data.test_code
+        sku_data['test_name'] = data.test_name
         sku_data['department_type'] =data.department_type
         sku_data['test_type'] = data.test_type
 
@@ -1576,6 +1581,7 @@ def insert_machine(request, user=''):
         status_msg = "Update Machine Failed"
         return HttpResponse(status_msg)
     return HttpResponse(status_msg)
+
 
 @csrf_exempt
 @login_required
@@ -2888,8 +2894,14 @@ def insert_sku(request, user=''):
     reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
-        wms = request.POST['wms_code']
-        description = request.POST['sku_desc']
+        if request.POST.get('is_test') == 'true':
+            wms = request.POST['test_code']
+        else:
+            wms = request.POST['wms_code']
+        if request.POST.get('is_test') == 'true':
+            description = request.POST['test_name']
+        else:
+            description = request.POST['sku_desc']
         zone = request.POST.get('zone_id','')
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
@@ -2969,6 +2981,10 @@ def insert_sku(request, user=''):
                             value = None
                     data_dict[key] = value
 
+
+            if request.POST['is_test'] == 'true':
+                data_dict['wms_code'] = data_dict['test_code']
+                data_dict['sku_desc'] = data_dict['test_name']
             data_dict['sku_code'] = data_dict['wms_code']
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
@@ -3017,7 +3033,10 @@ def insert_sku(request, user=''):
         log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                str(request.POST.dict()),
                                                                                                str(e)))
-        status_msg = 'Insert SKU Failed'
+        if request.POST.get('is_test') == 'true':
+            status_msg = 'Insert Test Failed'
+        else:
+            status_msg = 'Insert SKU Failed'
 
     return HttpResponse(status_msg)
 

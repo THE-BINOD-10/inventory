@@ -1809,7 +1809,7 @@ OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Descr
                                   ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                   ('HSN Code', 'hsn_code'), ('Status', 'status')
                                 ))
-TEST_COMMON_MAPPING  = OrderedDict((('Test Code', 'wms_code'), ('Test Name', 'sku_desc'),
+TEST_COMMON_MAPPING  = OrderedDict((('Test Code', 'test_code'), ('Test Name', 'test_name'),
                                   ('Test Type', 'test_type'), ('Department Type', 'department_type'),
                                     ('Status', 'status')))
 

@@ -4815,7 +4815,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 purchase_data['igst_tax'] = float(sku_row_tax_percent)
             else:
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
-                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2     
+                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
         if user.userprofile.industry_type != 'FMCG':
             if myDict['grn_price'][i]:
                 purchase_data['price']=myDict['grn_price'][i]
@@ -12910,13 +12910,18 @@ def save_credit_note_po_data(request, user=''):
         purchase_credit.update(credit_date=credit_date)
         if credit_files:
             upload_master_file(request, user, purchase_credit[0].id, 'PO_CREDIT_FILE', master_file=credit_files)
-    netsuite_save_credit_note_po_data(request.POST, user)
+        netsuite_save_credit_note_po_data(request.POST, purchase_credit[0].id,request.META['HTTP_HOST'], user)
     return HttpResponse('success')
 
-def netsuite_save_credit_note_po_data(credit_note_req_data, user=""):
+def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,meta_url, user="" ):
     import dateutil.parser as parser
     from api_calls.netsuite import netsuite_create_grn
     import datetime
+    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
+    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
+    url=""
+    if(static_url):
+        url="https://"+str(meta_url)+"/"+static_url[len(static_url)-1]
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
     grn_no = credit_note_req_data.get('grn_no', '')
@@ -12934,7 +12939,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, user=""):
      "credit_note_approve": True,
      "grn_number": grn_no,
      "invoice_date":invoice_date,
-     "invoice_no":invoice_number
+     "invoice_no":invoice_number,
+     "url":url
      }
     response = netsuite_create_grn(user, grn_data)
     return response

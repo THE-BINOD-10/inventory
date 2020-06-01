@@ -382,7 +382,7 @@ def netsuite_create_grn(user, grn_data):
             grnrec.createdFrom = ns.RecordRef(externalId=grn_data['grn_number'].split("/")[0])
             custom_field_list=[
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="https://api.stockone.in/static/master_docs/GRN_1/3.pdf"),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["url"]),
                 ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]),
                 ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"])

@@ -94,6 +94,7 @@
                     <th>GRN Qty</th>
                     <th>UOM</th>
                     <th>Unit Price</th>
+                    <th>Buy Price</th>
                     <th>MRP</th>
                     <th>Tax(%)</th>
                   <tr>
@@ -108,8 +109,9 @@
                     <td><input type="text" ng-model="data.grn_qt" class="form-control" disabled></td>
                     <td><input type="text" ng-model="data.unit" class="form-control detectTab" readonly></td>
                     <td><input type="text" ng-model="data.price" class="form-control" disabled></td>
-                    <td><input type="text" size="13" class="form-control"  ng-model="data.mrp" disabled></td>
-                    <td><input type="text" size="13" class="form-control"  ng-model="data.tax" disabled></td>
+                    <td><input type="text" class="form-control" ng-model="data.buy_price" disabled></td>
+                    <td><input type="text" class="form-control" ng-model="data.mrp" disabled></td>
+                    <td><input type="text" class="form-control" ng-model="data.tax" disabled></td>
                   </tr>
                 </tbody>
               </table>

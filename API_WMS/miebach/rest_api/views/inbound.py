@@ -736,7 +736,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                     order_type = 'Vendor Receipt'
                 if supplier.open_po and supplier.open_po.order_type == 'SP':
                     order_type = 'Sample Order'
-                # import pdb; pdb.set_trace()
                 if str(user.username) != str(parent_user.username) and str(parent_po_prefix) == str(supplier.prefix):
                     order_type = 'Central Order'
         elif result['rwpurchase__rwo__vendor__user']:
@@ -4816,7 +4815,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 purchase_data['igst_tax'] = float(sku_row_tax_percent)
             else:
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
-                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
+                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2     
         if user.userprofile.industry_type != 'FMCG':
             if myDict['grn_price'][i]:
                 purchase_data['price']=myDict['grn_price'][i]
@@ -4829,11 +4828,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 mrp = myDict['mrp'][i]
             except:
                 mrp = 0
-            cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+            if 'batch_no' in myDict.keys():
+                cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
                     purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
-
+            else:
+                cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+                    purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
+                    purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
@@ -4975,7 +4979,11 @@ def make_credit_note(request, user, purchase_order, seller_receipt_id):
         total_grn_qty = 0
     else:
         total_grn_qty = int(request.POST.get('grn_quantity', 0))
-    if inv_qty > total_grn_qty:
+    if request.POST.get('grn_total_amount', 0) == 'undefined':
+        total_grn_value = 0
+    else:
+        total_grn_value = int(request.POST.get('grn_total_amount', 0))
+    if inv_qty > total_grn_qty and inv_value > total_grn_value:
         credit_quantity = inv_qty - total_grn_qty
         credit_note = {
                     'user_id': user.id,
@@ -5072,6 +5080,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_address = user.userprofile.address
     seller_receipt_id = 0
     fmcg = False
+    po_product_category = request.POST.get('product_category', '')
     credit_note_entry = get_misc_value('receive_po_inv_value_qty_check', user.id)
     if user.userprofile.industry_type == 'FMCG':
         fmcg = True
@@ -5112,8 +5121,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-
-            if fmcg:
+            if fmcg and po_product_category not in ['Services', 'Assets']:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
                 if not value:
@@ -12787,18 +12795,26 @@ def get_credit_note_po_data(request, user=''):
         return HttpResponse("Purchase Order Inputs are missing")
     purchase_order_data = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id, prefix=po_prefix)
     grn_total_price = 0
+    order_receipt_mumber, order_po_number = '', ''
     if purchase_order_data.exists():
         for order in purchase_order_data:
             grn_qt = 0
+            temp_buy_price = 0
+            order_po_number = get_po_reference(order)
             order_data = get_purchase_order_data(order)
             datum = SellerPOSummary.objects.filter(purchase_order__id = order.id, receipt_number=receipt_number)
             if datum.exists():
+                total_tax = order_data['sgst_tax'] + order_data['cess_tax'] + order_data['igst_tax'] + order_data['cgst_tax'] + order_data['utgst_tax'] + order_data['apmc_tax']
                 grn_qt = int(datum[0].quantity)
+                order_receipt_mumber = datum[0].receipt_number
+                if datum[0].batch_detail:
+                    temp_buy_price = datum[0].batch_detail.buy_price
+                    grn_price = temp_buy_price + temp_buy_price * (total_tax)/100
+                else:
+                    grn_price = order_data['price'] + order_data['price'] * (total_tax)/100
+                grn_total_price += (grn_price * grn_qt)
             supplier_id = order_data['supplier_id']
             supplier_name = order_data['supplier_name']
-            total_tax = order_data['sgst_tax'] + order_data['cess_tax'] + order_data['igst_tax'] + order_data['cgst_tax'] + order_data['utgst_tax'] + order_data['apmc_tax']
-            grn_price = order_data['price'] + order_data['price'] * (total_tax)/100
-            grn_total_price += (grn_price * grn_qt)
             sku_dat = {
                     'wms_code': order_data['wms_code'],
                     'title': order_data['sku_desc'],
@@ -12809,9 +12825,14 @@ def get_credit_note_po_data(request, user=''):
                     'price': order_data['price'],
                     'grn_price': grn_price,
                     'tax': total_tax,
+                    'buy_price': temp_buy_price,
                     'mrp': order_data['mrp']
                     }
             sku_data.append(sku_dat)
+        other_charges = OrderCharges.objects.filter(order_id=order_po_number, order_type='po', extra_flag= order_receipt_mumber, user=user.id).values('extra_flag', 'order_id', 'order_type').annotate(total=Sum('charge_amount'))
+        if other_charges.exists():
+            other_charges = other_charges[0]['total']
+            grn_total_price = grn_total_price + other_charges
     return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': grn_total_price}))
 
 @csrf_exempt

@@ -2825,6 +2825,11 @@ def insert_sku(request, user=''):
                             value = 1
                         else:
                             value = 0
+                    elif key == 'batch_based':
+                        if value == 'Enable':
+                            value = 1
+                        else:
+                            value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
                     elif key == 'enable_serial_based':

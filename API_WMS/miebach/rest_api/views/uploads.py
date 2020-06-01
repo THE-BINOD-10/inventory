@@ -1528,14 +1528,16 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             elif key == 'test_code' and is_test:
                 data_set = wms_data
                 data_type = 'WMS'
-                sku_code = cell_data
+                test_code = cell_data
                 if isinstance(cell_data, float):
                     sku_code = str(int(cell_data))
-                if sku_code in upload_file_skus:
-                    index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
-                else:
-                    upload_file_skus.append(sku_code)
-                # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
+                    test_code = str(int(cell_data))
+                    check_test_master = TestMaster.objects.filter(test_code = cell_data)
+                    if check_test_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
+                    else:
+                        upload_file_skus.append(str(test_code))
+                    # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Test Code missing')
             if key == 'test_name' and is_test:
@@ -1965,7 +1967,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-
+        if is_test:
+            data_dict['wms_code'] = str(data_dict['test_code'])
+            data_dict['sku_desc'] = str(data_dict['test_name'])
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster']:
@@ -2002,6 +2006,13 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
+            if is_test:
+                data_dict['test_code'] = str(data_dict['test_code'])
+                data_dict['test_name'] = str(data_dict['test_name'])
+                data_dict['test_type'] = str(data_dict['test_type'])
+                data_dict['department_type'] = str(data_dict['department_type'])
+                data_dict['sku_code'] = data_dict['test_code']
+                data_dict['sku_desc'] = data_dict['test_name']
             sku_master = instanceName(**data_dict)
             #sku_master = SKUMaster(**data_dict)
             #new_skus.append(sku_master)

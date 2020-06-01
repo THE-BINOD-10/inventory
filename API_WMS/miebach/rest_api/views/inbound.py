@@ -12797,7 +12797,7 @@ def get_credit_note_po_data(request, user=''):
             supplier_name = order_data['supplier_name']
             total_tax = order_data['sgst_tax'] + order_data['cess_tax'] + order_data['igst_tax'] + order_data['cgst_tax'] + order_data['utgst_tax'] + order_data['apmc_tax']
             grn_price = order_data['price'] + order_data['price'] * (total_tax)/100
-            grn_total_price += grn_price
+            grn_total_price += (grn_price * grn_qt)
             sku_dat = {
                     'wms_code': order_data['wms_code'],
                     'title': order_data['sku_desc'],

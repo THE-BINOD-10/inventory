@@ -29,9 +29,13 @@
                   <label class="control-label"> {{model_name}} </label>
                   <input class="form-control" ng-model="showCase.model_data[model_name]" type="text" readonly>
                 </div>
+              </div>  
+              <div class="col-md-3 col-sm-3 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">GRN Price</label>
+                  <input ng-model="showCase.model_data['GRN Price']" class="form-control" type="text" readonly>
+                </div>
               </div>
-              <!-- <div class="col-md-2 col-sm-4 col-xs-4"><b>{{model_name}}</b></div>
-              <div class="col-md-6 col-sm-6 col-xs-6">: {{showCase.model_data[model_name]}}</div> -->
             </div>
             <div class="col-sm-12"><hr></div>
           </div>
@@ -70,12 +74,6 @@
               <div class="form-group">
                 <label class="control-label">DC Date </label>
                 <input ng-model="showCase.model_data.dc_date" class="form-control" type="text" readonly>
-              </div>
-            </div>
-            <div class="col-md-3 col-sm-3 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">GRN Price</label>
-                <input ng-model="showCase.model_data['GRN Price']" class="form-control" type="text" readonly>
               </div>
             </div>
           </div>

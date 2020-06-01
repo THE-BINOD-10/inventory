@@ -383,6 +383,74 @@ def get_pending_enquiry(request, user=''):
     enqQs = GenericEnquiry.objects.filter(id=genEnqId)
     if enqQs.exists():
         enqObj = enqQs[0]
+        pendingObjId = enqObj.master_id
+        pendingObjModel = enqObj.master_type
+        if pendingObjModel == 'pendingPO':
+            pendingObj = PendingPO.objects.get(id=pendingObjId)
+            lineItems = pendingObj.pending_polineItems.values()
+            total_data = []
+            ser_data = []
+            levelWiseRemarks = []
+            pr_delivery_date = ''
+            pr_created_date = ''
+            central_po_data = ''
+            validateFlag = 0
+            if pendingObj:
+                if pendingObj.delivery_date:
+                    pr_delivery_date = pendingObj.delivery_date.strftime('%d-%m-%Y')
+                pr_created_date = pendingObj.creation_date.strftime('%d-%m-%Y')
+                levelWiseRemarks.append({"level": 'creator', "validated_by": pendingObj.requested_user.email, "remarks": pendingObj.remarks})
+            prApprQs = pendingObj.pending_poApprovals
+            allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+            pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
+            if pendingLevelApprovers:
+                if request.user.email in pendingLevelApprovers[0]:
+                    validateFlag = 1
+            for eachRemark in allRemarks:
+                level, validated_by, remarks = eachRemark
+                levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+
+            # currentPOenquiries = GenericEnquiry.objects.filter(master_id=pendingObj.id, master_type='pendingPO')
+            # if currentPOenquiries.exists():
+            #     for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
+            #         sender, receiver, enquiry, response = eachEnq
+            #         enquiryRemarks.append({"sender":sender, "receiver": receiver,
+            #                     "enquiry": enquiry, "response": response
+            #             })
+
+            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+            validated_users.insert(0, pendingObj.requested_user.email)
+            lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+                            'cgst_tax', 'sgst_tax', 'igst_tax']
+            lineItems = pendingObj.pending_polineItems.values_list(*lineItemVals)
+            for rec in lineItems:
+                sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
+                search_params = {'sku__user': user.id}
+                noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
+                                                        attribute_name='No.OfTests')
+                if noOfTestsQs.exists():
+                    noOfTests = int(noOfTestsQs[0].attribute_value)
+                else:
+                    noOfTests = 0
+                stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+                    skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
+                                                            search_params, includeStoreStock=True)
+                ser_data.append({'fields': {'sku': {'wms_code': sku_code,
+                                                    'capacity': st_avail_qty+avail_qty,
+                                                    'intransit_quantity': intransitQty,
+                                                    },
+                                            'description': sku_desc,
+                                            'order_quantity': qty, 'price': price,
+                                            'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
+                                            'igst_tax': igst_tax,
+                                            'measurement_unit': uom,
+                                            }, 'pk': apprId})
+            po_data = {'supplier_id': pendingObj.supplier.supplier_id, 'supplier_name': pendingObj.supplier.name,
+                        'ship_to': pendingObj.ship_to, 'pr_delivery_date': pr_delivery_date,
+                        'pr_created_date': pr_created_date, 'warehouse': pendingObj.wh_user.first_name,
+                        'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
+                        'validateFlag': validateFlag, 'validated_users': validated_users}
+
         pendingEnqData.update({
                 'id': enqObj.id,
                 'sender': enqObj.sender.email,
@@ -391,6 +459,7 @@ def get_pending_enquiry(request, user=''):
                 'response': enqObj.response,
                 'status': enqObj.status
             })
+        pendingEnqData.update(po_data)
     return HttpResponse(json.dumps(pendingEnqData))
 
 @csrf_exempt

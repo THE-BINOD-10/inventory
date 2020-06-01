@@ -8,9 +8,6 @@
   .sidebar-panel{
     z-index: 1000;
   }
-  /* .ng-invalid-required {
-    border: 1px solid red;
-  } */
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
@@ -181,10 +178,13 @@
               <hr>
             </div>
           </div>
+          <div class="row" ng-if="showCase.product_type=='Kits&Consumables'">
+            <div ng-include="'views/inbound/toggle/GRN/kits_consumables.html'"></div>
+          </div>
           <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets'" >
             <div ng-include="'views/inbound/toggle/GRN/grn_services_assets.html'"></div>
           </div>
-          <div class="row" ng-hide="showCase.product_type=='Services' || showCase.product_type=='Assets'">
+          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables'">
             <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
@@ -217,7 +217,7 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Return Quantity</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Discrepancy Reason</th>
                     <th>Total</th>
-                    <th ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''" class="plus"></th>
+                    <th ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')" class="plus"></th>
                     <th class="detail"></th>
                   <tr>
                 </thead>
@@ -232,7 +232,6 @@
                              style="color:red;"
                       >
                       <input type="hidden" name="wrong_sku" value="{{data.wrong_sku}}">
-
                       <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" ng-if="data.is_new">
                       <input type="hidden" name="batch_ref" value="{{data.batch_ref}}">
                       <!-- out of elements start -->
@@ -344,7 +343,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
 
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
@@ -414,7 +413,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG') && showCase.product_type == ''"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>

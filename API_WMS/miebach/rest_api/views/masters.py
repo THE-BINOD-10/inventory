@@ -1218,6 +1218,11 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'batch_based':
+                if value.lower() == 'enable':
+                    value = 1
+                else:
+                    value = 0
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
             elif key == 'youtube_url':
@@ -2820,6 +2825,11 @@ def insert_sku(request, user=''):
                             value = 1
                         else:
                             value = 0
+                    elif key == 'batch_based':
+                        if value == 'Enable':
+                            value = 1
+                        else:
+                            value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
                     elif key == 'enable_serial_based':
@@ -2827,6 +2837,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
+                    elif key == 'batch_based':
+                        if value.lower() == 'enable':
+                            value = 1
+                        else:
+                            value = 0
                     elif key == 'block_options':
                         if value == '0':
                             value = 'PO'

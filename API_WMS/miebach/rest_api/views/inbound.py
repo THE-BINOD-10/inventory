@@ -608,7 +608,11 @@ def generate_po_qty_dict(purchase_ord_qty):
         return temp_dict
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term):
-    sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True)
+    company_name =user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True, all_prod_catgs=all_prod_catgs)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
                            'order_id','order_id']
@@ -794,8 +798,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
             warehouse = wh_details.get(result['open_po__sku__user'])
         productType = ''
-        if supplier.open_po.pendingpos.values_list('product_category', flat=True):
-            productType = supplier.open_po.pendingpos.values_list('product_category', flat=True)[0]
+        productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
+        if productQs.exists():
+            productType = productQs[0]
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
@@ -3486,7 +3491,11 @@ def get_supplier_data(request, user=''):
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         warehouse = request.GET['warehouse']
         user = User.objects.get(username=warehouse)
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    company_name =user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     temp = get_misc_value('pallet_switch', user.id)
     payment_received = 0
     order_ids = []
@@ -3644,7 +3653,7 @@ def get_supplier_data(request, user=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'],
+                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -4806,7 +4815,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 purchase_data['igst_tax'] = float(sku_row_tax_percent)
             else:
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
-                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
+                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2     
         if user.userprofile.industry_type != 'FMCG':
             if myDict['grn_price'][i]:
                 purchase_data['price']=myDict['grn_price'][i]
@@ -4819,11 +4828,16 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 mrp = myDict['mrp'][i]
             except:
                 mrp = 0
-            cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+            if 'batch_no' in myDict.keys():
+                cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
                     purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
-
+            else:
+                cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
+                    purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
+                    purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
@@ -4965,7 +4979,11 @@ def make_credit_note(request, user, purchase_order, seller_receipt_id):
         total_grn_qty = 0
     else:
         total_grn_qty = int(request.POST.get('grn_quantity', 0))
-    if inv_qty > total_grn_qty:
+    if request.POST.get('grn_total_amount', 0) == 'undefined':
+        total_grn_value = 0
+    else:
+        total_grn_value = int(request.POST.get('grn_total_amount', 0))
+    if inv_qty > total_grn_qty and inv_value > total_grn_value:
         credit_quantity = inv_qty - total_grn_qty
         credit_note = {
                     'user_id': user.id,
@@ -5062,6 +5080,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_address = user.userprofile.address
     seller_receipt_id = 0
     fmcg = False
+    po_product_category = request.POST.get('product_category', '')
     credit_note_entry = get_misc_value('receive_po_inv_value_qty_check', user.id)
     if user.userprofile.industry_type == 'FMCG':
         fmcg = True
@@ -5102,8 +5121,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-
-            if fmcg:
+            if fmcg and po_product_category not in ['Services', 'Assets']:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
                 if not value:
@@ -7663,22 +7681,23 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     full_pr_number = ''
     approval1 = ''
     if prQs:
-        pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-        pr_obj= prQs[0].pending_prs.all()[0]
-        if pr_number_list:
-            pr_number = pr_number_list[0]
-        pr_id = pr_obj.id
-        pr_prefix = pr_obj.prefix
-        pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
-        pr_date = pr_created_date.strftime('%d-%m-%Y')
-        dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-        if pr_number_list:
-            pr_number = pr_number_list[0]
-            full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
-        prApprQs = prQs[0].pending_poApprovals
-        validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-        if validated_users:
-            approval1 = validated_users[0]
+        if prQs[0].pending_prs.all():
+            pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+            pr_obj= prQs[0].pending_prs.all()[0]
+            if pr_number_list:
+                pr_number = pr_number_list[0]
+            pr_id = pr_obj.id
+            pr_prefix = pr_obj.prefix
+            pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+            pr_date = pr_created_date.strftime('%d-%m-%Y')
+            dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+            if pr_number_list:
+                pr_number = pr_number_list[0]
+                full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+            prApprQs = prQs[0].pending_poApprovals
+            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+            if validated_users:
+                approval1 = validated_users[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]
@@ -11181,7 +11200,11 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
                                                 ('DT_RowClass', 'results'))))
 
 def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    company_name = user_company_name(request.user)
+    all_prod_catgs = False
+    if company_name == 'Metropolis':
+        all_prod_catgs = True
+    sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     search_params = {}
     search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
@@ -12825,13 +12848,25 @@ def get_credit_note_po_data(request, user=''):
     if not po_order_id or not po_prefix or not receipt_number:
         return HttpResponse("Purchase Order Inputs are missing")
     purchase_order_data = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id, prefix=po_prefix)
+    grn_total_price = 0
+    order_receipt_mumber, order_po_number = '', ''
     if purchase_order_data.exists():
         for order in purchase_order_data:
             grn_qt = 0
+            temp_buy_price = 0
+            order_po_number = get_po_reference(order)
             order_data = get_purchase_order_data(order)
             datum = SellerPOSummary.objects.filter(purchase_order__id = order.id, receipt_number=receipt_number)
             if datum.exists():
+                total_tax = order_data['sgst_tax'] + order_data['cess_tax'] + order_data['igst_tax'] + order_data['cgst_tax'] + order_data['utgst_tax'] + order_data['apmc_tax']
                 grn_qt = int(datum[0].quantity)
+                order_receipt_mumber = datum[0].receipt_number
+                if datum[0].batch_detail:
+                    temp_buy_price = datum[0].batch_detail.buy_price
+                    grn_price = temp_buy_price + temp_buy_price * (total_tax)/100
+                else:
+                    grn_price = order_data['price'] + order_data['price'] * (total_tax)/100
+                grn_total_price += (grn_price * grn_qt)
             supplier_id = order_data['supplier_id']
             supplier_name = order_data['supplier_name']
             sku_dat = {
@@ -12842,10 +12877,17 @@ def get_credit_note_po_data(request, user=''):
                     'po_quantity': order_data['order_quantity'],
                     'grn_qt': grn_qt,
                     'price': order_data['price'],
+                    'grn_price': grn_price,
+                    'tax': total_tax,
+                    'buy_price': temp_buy_price,
                     'mrp': order_data['mrp']
                     }
             sku_data.append(sku_dat)
-    return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name}))
+        other_charges = OrderCharges.objects.filter(order_id=order_po_number, order_type='po', extra_flag= order_receipt_mumber, user=user.id).values('extra_flag', 'order_id', 'order_type').annotate(total=Sum('charge_amount'))
+        if other_charges.exists():
+            other_charges = other_charges[0]['total']
+            grn_total_price = grn_total_price + other_charges
+    return HttpResponse(json.dumps({'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': grn_total_price}))
 
 
 @csrf_exempt

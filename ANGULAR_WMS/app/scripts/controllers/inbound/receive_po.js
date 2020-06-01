@@ -817,6 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         if (vm.permissions.receive_po_inv_value_qty_check) {
           elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+          elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
         }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {
@@ -974,14 +975,41 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
 
     }
-
-    function pop_msg(msg) {
-      vm.message = msg;
-      $timeout(function () {
-        vm.message = "";
-      }, 2000);
-      vm.service.refresh(vm.dtInstance);
+    vm.price_request_button = function(price, buyprice){
+      if (parseInt(buyprice) > parseInt(price)){
+        return false;
+      } else {
+        return true;
+      }
     }
+
+    vm.price_request = function(supplier, sku, sku_desc, price, buyprice) {
+    var data = {'supplier': supplier, 'sku': sku, 'sku_desc': sku_desc, 'price': price, 'buyprice': buyprice}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/inbound/toggle/GRN/price_request.html',
+      controller: 'priceRequestCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return data;
+        }
+      }
+    });
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
+  }
+
+  function pop_msg(msg) {
+    vm.message = msg;
+    $timeout(function () {
+      vm.message = "";
+    }, 2000);
+    vm.service.refresh(vm.dtInstance);
+  }
 
     vm.receive_quantity_change = function(data) {
 
@@ -2968,3 +2996,14 @@ function receive_qcitems($scope, $http, $state, $timeout, Session, colFilters, S
 angular
   .module('urbanApp')
   .controller('receive_qcitems', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', '$rootScope', receive_qcitems]);
+
+angular.module('urbanApp').controller('priceRequestCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.grnData = items
+  console.log(items);
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+
+});

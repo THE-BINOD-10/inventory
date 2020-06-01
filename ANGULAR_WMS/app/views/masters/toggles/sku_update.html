@@ -226,10 +226,14 @@
                 <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.user_profile.industry_type=='FMCG'">
               <div class="form-group">
                 <label class="control-label"> Batch Based </label>
-                <input type="text" name="batch_based" class="form-control" ng-model="showCase.model_data.sku_data.batch_based">
+                <select class="form-control" name="batch_based" ng-model="showCase.model_data.sku_data.batch_based">
+                  <option ng-selected="showCase.model_data.sku_data.batch_based == 1" value="Enable">Enable</option>
+                  <option ng-selected="showCase.model_data.sku_data.batch_based == 0" value="Disable">Disable</option>
+                </select>
+                <!-- <input type="text" name="batch_based" class="form-control" ng-model="showCase.model_data.sku_data.batch_based"> -->
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

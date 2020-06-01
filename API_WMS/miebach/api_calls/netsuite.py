@@ -446,7 +446,7 @@ def netsuite_create_po(po_data, user):
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
                          'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                                                                ns.StringCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=po_data['pr_number'])])
+                                                                ns.StringCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=po_data['full_pr_number'])])
                          }
             item.append(line_item)
         purorder.itemList = {'item':item}
@@ -472,7 +472,7 @@ def netsuite_create_pr(pr_datas, user):
             # purreq.memo = "Webservice PR"
             # purreq.approvalStatus = ns.RecordRef(internalId=2)
             purreq.tranDate = pr_data['pr_date']
-            purreq.tranId = pr_data['pr_number']
+            purreq.tranId = pr_data['full_pr_number']
             purreq.tranDate = pr_data['pr_date']
             purreq.subsidiary = ns.RecordRef(internalId=16)
             purreq.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
@@ -486,7 +486,7 @@ def netsuite_create_pr(pr_datas, user):
                              'quantity':data['quantity'], 'location':ns.RecordRef(internalId=108)}
                 item.append(line_item)
             purreq.itemList = {'purchaseRequisitionItem':item}
-            purreq.externalId = pr_data['pr_number']
+            purreq.externalId = pr_data['full_pr_number']
             list_prs.append(purreq)
         data_response =  ns.upsertList(list_prs)
         data_response = json.dumps(data_response.__dict__)

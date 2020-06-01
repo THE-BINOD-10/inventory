@@ -427,7 +427,7 @@ def netsuite_create_po(po_data, user):
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],
                          'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                                                                ns.StringCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=po_data['full_pr_number'])])
+                                                                ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                          }
             item.append(line_item)
         purorder.itemList = {'item':item}

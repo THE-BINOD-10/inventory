@@ -1218,6 +1218,11 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'batch_based':
+                if value.lower() == 'enable':
+                    value = 1
+                else:
+                    value = 0
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
             elif key == 'youtube_url':

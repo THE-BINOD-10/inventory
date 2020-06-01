@@ -361,13 +361,12 @@ def netsuite_create_grn(user, grn_data):
         nc = connect_tba()
         ns = nc.raw_client
         item = []
-        import pdb; pdb.set_trace()
         if("po_challan" in grn_data):
             list_dc_items=[]
             for t_grn_data in grn_data["dc_data"]:
                 grnrec = ns.ItemReceipt()
+                grnrec.createdFrom = ns.RecordRef(externalId=t_grn_data['grn_number'].split("/")[0])
                 grnrec.customFieldList =  ns.CustomFieldList([
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65),
                                                             ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]),
                                                             # ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]),
                                                             # ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"])
@@ -375,19 +374,36 @@ def netsuite_create_grn(user, grn_data):
                 grnrec.externalId = t_grn_data['grn_number']
                 list_dc_items.append(grnrec)
             data_response =  ns.upsertList(list_dc_items)
+        elif("credit_note_approve" in grn_data):
+            grnrec = ns.ItemReceipt()
+            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['grn_number'].split("/")[0])
+            custom_field_list=[
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="https://api.stockone.in/static/master_docs/GRN_1/3.pdf"),
+                ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]),
+                ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"])
+            ]
+            grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            grnrec.externalId = grn_data['grn_number']
+            data_response = ns.upsert(grnrec)
+            data_response = json.dumps(data_response.__dict__)
+            data_response = json.loads(data_response)
         else:
             grnrec = ns.ItemReceipt()
             grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-            # grnrec.tranDate = '2020-05-25T10:47:05+05:30'
             grnrec.tranDate = grn_data["grn_date"]
             custom_field_list=[ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65),
-                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]),
-                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="api.stockone.in/static/master_docs/GRN_1/3.pdf"),
+                                                        # ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="api.stockone.in/static/master_docs/GRN_1/3.pdf"),
                                                         # ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"])
                                                         ]
-            if(grn_data["invoice_date"]):
-                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+            if((grn_data["invoice_quantity"]==grn_data["grn_qty"] and grn_data["invoice_value"]==grn_data["grn_value"]) or (grn_data["invoice_quantity"]==grn_data["grn_qty"] and grn_data["invoice_value"] < grn_data["grn_value"])):
+                if(grn_data["invoice_no"]):
+                    custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
+                if(grn_data["invoice_date"]):
+                    custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="https://api.stockone.in/static/master_docs/GRN_1/3.pdf"))
             if(grn_data["dc_date"]):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)

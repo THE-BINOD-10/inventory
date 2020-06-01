@@ -5220,7 +5220,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, po_reference)
+            import pdb; pdb.set_trace()
+            netsuite_grn(user, report_data_dict, po_reference, dc_level_grn)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -5255,13 +5256,33 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 # def confirm_qc_grn(request, user=''):
 
-def netsuite_grn(user, data_dict, po_number):
+def netsuite_grn(user, data_dict, po_number, dc_level_grn):
+    import pdb; pdb.set_trace()
     from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     grn_number = data_dict.get('po_number', '')
     Now = datetime.now().isoformat()
     po_data = data_dict['data'].values()[0]
-    grn_data = {'po_number':po_number, 'grn_number':grn_number, 'items':[],'grn_date':Now}
+    bill_no= data_dict.get("bill_no",'')
+    bill_date= data_dict.get("bill_date",'')
+    if(bill_date):
+        import dateutil.parser as parser
+        date = parser.parse(bill_date)
+        bill_date= date.isoformat()
+    if(dc_level_grn=="on"):
+        dc_number=bill_no
+        dc_date=bill_date
+        bill_no=''
+        bill_date=''
+    grn_data = {'po_number':po_number,
+                'grn_number':grn_number,
+                'items':[],
+                'grn_date': Now,
+                "invoice_no": bill_no,
+                "invoice_date": bill_date,
+                "dc_number":dc_number,
+                "dc_date" :dc_date
+     }
     for data in po_data:
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
@@ -10101,6 +10122,18 @@ def move_to_poc(request, user=''):
     if cancel_flag != 'true':
         chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
+        import pdb; pdb.set_trace()
+        from api_calls.netsuite import netsuite_create_grn
+        dc_data=[]
+        for data in req_data:
+            grn_info= {
+                        # 'po_number':po_number,
+                        'grn_number':"/".join(data["grn_no"]),
+                        "dc_date" : ''
+            }
+            dc_data.append(grn_info)
+        grn_data={"dc_data":dc_data, "po_challan": True, "dc_number": chn_no}
+        response = netsuite_create_grn(user, grn_data)
         seller_summary.update(challan_number=chn_no, order_status_flag=status_flag)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:

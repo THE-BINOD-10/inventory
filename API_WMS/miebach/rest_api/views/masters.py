@@ -2832,6 +2832,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
+                    elif key == 'batch_based':
+                        if value.lower() == 'enable':
+                            value = 1
+                        else:
+                            value = 0
                     elif key == 'block_options':
                         if value == '0':
                             value = 'PO'

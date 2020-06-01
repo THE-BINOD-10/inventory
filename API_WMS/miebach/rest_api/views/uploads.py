@@ -1529,15 +1529,15 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 data_set = wms_data
                 data_type = 'WMS'
                 test_code = cell_data
-                if isinstance(cell_data, float):
-                    sku_code = str(int(cell_data))
-                    test_code = str(int(cell_data))
-                    check_test_master = TestMaster.objects.filter(test_code = cell_data)
-                    if check_test_master.exists():
-                        index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
-                    else:
-                        upload_file_skus.append(str(test_code))
-                    # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
+                # if isinstance(cell_data, float):
+                #     sku_code = str(int(cell_data))
+                #     test_code = str(int(cell_data))
+                #     check_test_master = TestMaster.objects.filter(test_code = cell_data)
+                #     if check_test_master.exists():
+                #         index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
+                #     else:
+                #         upload_file_skus.append(str(test_code))
+                #     # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Test Code missing')
             if key == 'test_name' and is_test:
@@ -1739,7 +1739,6 @@ def get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file
     sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  sku_mapping)
     return sku_file_mapping
-
 
 def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
                         is_asset=False, is_service=False, is_item=False, is_test=False):
@@ -1970,6 +1969,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if is_test:
             data_dict['wms_code'] = str(data_dict['test_code'])
             data_dict['sku_desc'] = str(data_dict['test_name'])
+
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster']:
@@ -1977,6 +1977,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
+            if is_test:
+                check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
+                if check_sku_data:
+                    check_sku_data.delete()
             sku_data = instanceName(**data_dict)
             sku_data.save()
         if sku_data:
@@ -2013,6 +2017,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 data_dict['department_type'] = str(data_dict['department_type'])
                 data_dict['sku_code'] = data_dict['test_code']
                 data_dict['sku_desc'] = data_dict['test_name']
+                test_respone = validate_test_data(data_dict)
+                data_dict = test_reponse
             sku_master = instanceName(**data_dict)
             #sku_master = SKUMaster(**data_dict)
             #new_skus.append(sku_master)
@@ -3294,16 +3300,19 @@ def process_location(request, open_sheet, user):
             save_location_group(location.id, sku_group, user)
 
 def machine_excel_upload(request,open_sheet, user =''):
+    import pandas as pd
     for row_idx in range(1, open_sheet.nrows):
         machine_data = copy.deepcopy(MACHINE_DATA)
         # for col_idx in range(0, len(MACHINE_MASTER_HEADERS)):
 
         index_dict = {0: 'machine_code', 1: 'machine_name', 2: 'model_number', 3: 'serial_number', 4: 'brand', 5:'status'}
-
         for col_idx in index_dict:
             cell_data = str(open_sheet.cell(row_idx, col_idx).value)
             if cell_data.endswith('.0'):
                 cell_data = cell_data.replace('.0', '')
+            if index_dict[col_idx] == 'serial_number':
+                cell_data = pd.to_numeric(cell_data, errors="coerce")
+                cell_data = cell_data.astype(int)
             machine_data[index_dict[col_idx]] = cell_data
 
         machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)

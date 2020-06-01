@@ -7635,22 +7635,23 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     full_pr_number = ''
     approval1 = ''
     if prQs:
-        pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-        pr_obj= prQs[0].pending_prs.all()[0]
-        if pr_number_list:
-            pr_number = pr_number_list[0]
-        pr_id = pr_obj.id
-        pr_prefix = pr_obj.prefix
-        pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
-        pr_date = pr_created_date.strftime('%d-%m-%Y')
-        dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-        if pr_number_list:
-            pr_number = pr_number_list[0]
-            full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
-        prApprQs = prQs[0].pending_poApprovals
-        validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-        if validated_users:
-            approval1 = validated_users[0]
+        if prQs[0].pending_prs.all():
+            pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+            pr_obj= prQs[0].pending_prs.all()[0]
+            if pr_number_list:
+                pr_number = pr_number_list[0]
+            pr_id = pr_obj.id
+            pr_prefix = pr_obj.prefix
+            pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+            pr_date = pr_created_date.strftime('%d-%m-%Y')
+            dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+            if pr_number_list:
+                pr_number = pr_number_list[0]
+                full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+            prApprQs = prQs[0].pending_poApprovals
+            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+            if validated_users:
+                approval1 = validated_users[0]
     # company_id = get_company_id(user)
     purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
     _purchase_order = purchase_objs[0]

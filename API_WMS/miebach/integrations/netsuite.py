@@ -119,7 +119,7 @@ class netsuiteIntegration(object):
 
 
 
-  def netsuite_update_create_rtv(rtv_data, user):
+  def netsuite_update_create_rtv(rtv_data):
       data_response = {}
       try:
           ns = self.nc.raw_client
@@ -152,7 +152,7 @@ class netsuiteIntegration(object):
           log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
       return rtvitem
 
-    def netsuite_create_grn(user, grn_data):
+    def netsuite_create_grn(grn_data):
         data_response = {}
         try:
             ns = self.nc.raw_client
@@ -180,7 +180,7 @@ class netsuiteIntegration(object):
         return grnrec
 
 
-    def netsuite_create_po(po_data, user):
+    def netsuite_create_po(po_data):
         data_response = {}
         try:
             ns = self.nc.raw_client
@@ -234,7 +234,7 @@ class netsuiteIntegration(object):
             log.info('Create PurchaseOrder data failed and error was %s' % (str(e)))
         return purorder
 
-    def netsuite_create_pr(pr_data, user):
+    def netsuite_create_pr(pr_data):
         data_response = {}
         try:
             ns = self.nc.raw_client

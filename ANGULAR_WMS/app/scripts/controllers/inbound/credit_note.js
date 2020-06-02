@@ -98,7 +98,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -144,8 +144,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.reloadData();
     }
     vm.submit = function(form) {
-      if (!vm.model_data.credit_number || !vm.model_data.credit_date) {
+      if (!vm.model_data.credit_number || !vm.model_data.credit_date || !vm.model_data.credit_value) {
         Service.showNoty('Please Fill * Fields');
+      } else if ((parseInt(vm.model_data['GRN Price']) + parseInt(vm.model_data.credit_value)) != vm.model_data.invoice_value) {
+        Service.showNoty('Credit Note Value Does Not Match Difference Between Invoice Value & GRN Value');
       } else {
         var elem = angular.element($('form'));
         elem = elem[1];
@@ -159,13 +161,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
         });
+        form_data.append("grn_no", vm.model_data["GRN Number"]);
+        form_data.append("invoice_date", vm.model_data["invoice_date"]);
+        form_data.append("invoice_number", vm.model_data["invoice_number"]);
         vm.service.apiCall('save_credit_note_po_data/', 'POST', form_data, true, true).then(function(data){
           if (data.data == "success"){
             Service.showNoty(data.data);
             vm.close();
             vm.reloadData();
-          } else {
+          } else if ( data.data == 'Please fill * fields') {
             Service.showNoty(data.data);
+          } else {
+            Service.showNoty('Success');
+            vm.close();
+            vm.reloadData();
           }
         })
       }

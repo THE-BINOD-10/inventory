@@ -128,7 +128,7 @@ class SKUMaster(models.Model):
     enable_serial_based = models.IntegerField(default=0)
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
-    batch_based = models.CharField(max_length=32, default='')
+    batch_based = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

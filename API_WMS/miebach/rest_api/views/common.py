@@ -5060,14 +5060,20 @@ def get_group_data(request, user=''):
         json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms,
                                                        'View Order Statuses': statuses}}))
 
+def user_company_name(user):
+    company_name = ''
+    company_qs = UserGroups.objects.filter(user=user.id).values_list('company__company_name', flat=True)
+    if company_qs.exists():
+        company_name = company_qs[0]
+    return company_name
 
-def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster):
+def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_catgs=False):
     if not is_list:
         sku_master = instanceName.objects.filter(user=user.id)
     else:
         sku_master = instanceName.objects.filter(user__in=user)
 
-    if instanceName.__name__ == 'SKUMaster':
+    if instanceName.__name__ == 'SKUMaster' and not all_prod_catgs:
         sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
                         exclude(id__in=ServiceMaster.objects.all()). \
                         exclude(id__in=OtherItemsMaster.objects.all())

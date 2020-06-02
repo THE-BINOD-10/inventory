@@ -5,10 +5,6 @@
   .form-control{
     padding: 6px 6px;
   }
-  .modal-body{
-  overflow: scroll;
-  }
-
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
@@ -33,7 +29,6 @@
             <div class="form-group">
               <label class="control-label"> PO Number </label>
               <input type="text" ng-model="showCase.model_data.po_number" name="po_number" class="form-control" ng-readonly="true"> </div>
-              <!-- <input type="text" ng-model="showCase.model_data.pr_number" name="pr_number" class="hide"> </div> -->
               <input type="text" name="purchase_id" ng-model="showCase.model_data.purchase_id" class="hide" ng-if="showCase.update">
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
@@ -167,21 +162,6 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
-                    <!-- <td>
-                       <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                   <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length !== 0" ng-debounce size="12">
-                    </td> -->
-                    <!-- <td>
-                      <input type="text" ng-model="product.fields.apmc_tax" name="apmc_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-                    </td> -->
-                    <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-                      <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control detectTab"
-                             ng-readonly="showCase.default_status">
-                    </td> -->
-                    <!-- <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
-                      <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
-                    </td> -->
-
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
@@ -190,33 +170,34 @@
               </table>
             </div>
           </div>
-        <div class="row" style="padding-bottom:0px;">
-          <div class="col-md-6 col-sm-6">
+          <div class="row" style="padding-bottom:0px;">
+            <div class="col-md-6 col-sm-6">
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
+            </div>
+      		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
+      		  <div class="col-md-12 col-sm-12 col-xs-12">
+                    <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
+      		  </div>
+      		  </div>
+            <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
           </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+          <div class="row">
+            <div class="col-md-2 col-sm-2 col-xs-2" style="margin-top: 5px;">
+              <strong>Remarks :</strong>
+            </div>
+            <div class="col-md-10 col-sm-10 col-xs-10">
+              <textarea rows="5" class="form-control" cols="15" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+            </div>
           </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
-          </div>
-		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
-		  <div class="col-md-12 col-sm-12 col-xs-12">
-              <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
-		  </div>
-		  </div>
-        <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
-      </div>
-      <div class="col-md-12 col-sm-12 col-xs-12">
-        <div class="col-md-3 col-sm-3 col-xs-3" style="margin-top: 5px;">
-          <strong>Remarks :</strong>
-        </div>
-        <div class="col-md-9 col-sm-9 col-xs-9">
-          <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
-        </div>
-      </div>
-		</div>
+		    </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.send_back_to_pr(form)">Send To PR</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form, 'create')">Send For Approval</button>
         </div>
       </div>

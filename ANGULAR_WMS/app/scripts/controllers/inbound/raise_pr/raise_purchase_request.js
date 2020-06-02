@@ -261,7 +261,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
-          } else if (aData['Validation Status'] == 'Store_sent'){
+          } else if (aData['Validation Status'] == 'Store_Sent'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
@@ -390,6 +390,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }
+    
     vm.update_data = function (index, flag=true, plus=false, product_category='') {
       var emptylineItems = {}
       if (product_category == 'Kits&Consumables'){
@@ -521,11 +522,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.pr_to_po_preview = function(){
       vm.bt_disable = true;
       var prIds = [];
+      var firstDeptType = ''
 
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          prIds.push(temp['_aData']["Purchase Id"]);
+          if (firstDeptType.length == 0){
+            firstDeptType = temp['_aData']['Department Type'];
+            prIds.push(temp['_aData']["Purchase Id"]);
+          } else {
+            if (firstDeptType != temp['_aData']['Department Type']) {
+              vm.service.showNoty("Same Department PRs can be consolidated");
+              prIds = [];
+            } else {
+              prIds.push(temp['_aData']["Purchase Id"]);
+            }
+          }
         }
         if(Object.keys(vm.selected).length-1 == parseInt(key)){
           var data_dict = {
@@ -535,9 +547,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
               if(data.message){
                 vm.preview_data = data.data;
-                for(var i = 0; i < vm.preview_data.data.length; i++) {
-                  vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i].supplier_id + ":" + vm.preview_data.data[i].supplier_name;
-                }
+                // for(var i = 0; i < vm.preview_data.data.length; i++) {
+                //   vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i]['supplierDetails'][0].supplier_id + ":" + vm.preview_data.data[i]['supplierDetails'][0].supplier_name;
+                // }
                 $state.go("app.inbound.RaisePr.PRemptyPreview");
               }
             });
@@ -546,6 +558,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       });
+    }
+
+    vm.getFirstSupplier = function(data){
+      vm.getsupBasedPriceDetails(Object.keys(data.supplierDetails)[0], data)
+      return Object.keys(data.supplierDetails)[0];
+
+    }
+    vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
+      var supDetails = sup_data.supplierDetails[supplier_id_name];
+      sup_data.moq = supDetails.moq;
+      sup_data.tax = supDetails.tax;
+      sup_data.amount = supDetails.amount;
+      sup_data.unit_price = supDetails.unit_price;
+      sup_data.total = supDetails.total;
+      sup_data.supplier_id = supDetails.supplier_id;
     }
 
     vm.send_to_parent_store = function(form) {

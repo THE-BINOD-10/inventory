@@ -561,6 +561,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
+    vm.send_back_to_pr = function(form){
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})      
+      vm.service.apiCall('send_back_po_to_pr/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Sent Back Successfully') {
+            vm.data_id = '';
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
+        }
+      });
+    }
+
     vm.approve_pr = function(form, validation_type) {
       var elem = angular.element($('form'));
       elem = elem[0];

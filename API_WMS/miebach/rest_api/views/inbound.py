@@ -167,7 +167,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             pr_number = result['pending_pr__pr_number']
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-        full_pr_number = '%s%s_%s' % (result['pending_pr__prefix'], dateInPR, result['pending_pr__pr_number'])
+        full_pr_number = '%s%s_%s' % (result['pending_pr__prefix'], dateInPR, pr_number)
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_pr_id']),
                                                 # ('PR Number', pr_number),
@@ -235,7 +235,9 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__prefix', 'pending_po__delivery_date','pending_po__wh_user',
                     'pending_po__product_category', 'pending_po_id']
 
-    results = PendingLineItems.objects.filter(**filtersMap).values(*values_list).distinct().\
+    results = PendingLineItems.objects.filter(**filtersMap). \
+                exclude(pending_po__final_status='po_converted_back_to_pr'). \
+                values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pending_po__po_number__icontains=search_term) |
@@ -3175,8 +3177,6 @@ def send_pr_to_parent_store(request, user=''):
                 }
                 PendingLineItems.objects.create(**lineItemMap)
             lineItems.delete()
-
-
     return HttpResponse('Sent To Parent Store Successfully')
 
 
@@ -3242,6 +3242,62 @@ def get_pr_preview_data(request, user=''):
         preview_data['data'].append(reqLineMap)
     return HttpResponse(json.dumps(preview_data))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def send_back_po_to_pr(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    po_id = myDict.get('purchase_id')[0]
+    pendingPoObj = PendingPO.objects.get(id=po_id)
+    pr_ids = pendingPoObj.pending_prs.values_list('id', flat=True)
+    for each_pr in pr_ids:
+        prObj = PendingPR.objects.get(id=each_pr)
+        existingLineItems = PendingLineItems.objects.filter(pending_pr_id=each_pr)
+        poItems = pendingPoObj.pending_polineItems.values_list('sku__sku_code', flat=True)
+        prItems = prObj.pending_prlineItems.values_list('sku__sku_code', flat=True)
+        if poItems == prItems:
+            if prObj.final_status == 'pr_converted_to_po':
+                prObj.final_status = 'approved'
+                prObj.save()
+        else:
+            sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                                wh_user=prObj.wh_user).aggregate(Max('sub_pr_number'))
+            if sub_pr_number:
+                sub_pr_number = sub_pr_number['sub_pr_number__max']
+            newPrMap = {
+                'pr_number': prObj.pr_number,
+                'sub_pr_number': prObj.sub_pr_number + 1,
+                'prefix': prObj.prefix,
+                'requested_user': prObj.requested_user,
+                'wh_user': prObj.wh_user,
+                'product_category': prObj.product_category,
+                'priority_type': prObj.priority_type,
+                'delivery_date': prObj.delivery_date,
+                'ship_to': prObj.ship_to,
+                'pending_level': prObj.pending_level,
+                'final_status': 'approved',
+                'remarks': prObj.remarks
+            }
+            newPrObj = PendingPR.objects.create(**newPrMap)
+            lineItems = existingLineItems.filter(sku__sku_code__in=poItems)
+            for lineItem in lineItems:
+                lineItemMap = {
+                    'pending_pr_id': newPrObj.id,
+                    'purchase_type': 'PR',
+                    'sku': lineItem.sku,
+                    'quantity': lineItem.quantity,
+                    'price': lineItem.price,
+                    'measurement_unit': lineItem.measurement_unit,
+                    'sgst_tax': lineItem.sgst_tax,
+                    'cgst_tax': lineItem.cgst_tax,
+                    'igst_tax': lineItem.igst_tax,
+                    'utgst_tax': lineItem.utgst_tax,
+                }
+                PendingLineItems.objects.create(**lineItemMap)
+            lineItems.delete()
+    pendingPoObj.final_status = 'po_converted_back_to_pr'
+    pendingPoObj.save()
+    return HttpResponse("Sent Back Successfully")
 
 @csrf_exempt
 @login_required

@@ -19,6 +19,7 @@
                             ng-change="showCase.customSelectAll(showCase.allSelected)">
                   </th>
                   <!-- <th>Checkbox</th> -->
+
                   <th>Supplier Id/Name</th>
                   <th>PR Number</th>
                   <th>SKU Code</th>
@@ -33,56 +34,31 @@
               </thead>
               <tbody>
                 <tr ng-repeat="data in showCase.preview_data.data">
+                  <td> <input type="checkbox" ng-model="data.checkbox"> </td>
                   <td>
-                    <input type="checkbox" ng-model="data.checkbox">
-                  </td>
-                  <!-- <td>{{data.checkbox}}</td> -->
-                  <td>
-                    <select ui-select ng-model="data.supplier_id_name" class="form-control" name="supplier" style="width:auto;">
-                      <option ng-selected="data.supplier_id_name" value="{{data.supplier_id_name}}">{{data.supplier_id_name}}
+                    <select ui-select class="form-control" name="supplier" style="width:auto;"
+                    ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
+                    ng-model="data.supplier_id_name" 
+                    ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">
+                      <option ng-repeat="(supplier_id_name, details) in data.supplierDetails" 
+                      ng-selected="data.supplier_id_name==supplier_id_name"
+                      value="{{supplier_id_name}}">{{supplier_id_name}}
                       </option>
                     </select>
                   </td>
                   <td>
-                    <!-- <input class="form-control" ng-model="data.pr_number" type="text" name="pr_number"readonly> -->
                     {{data.pr_number}}
                     <input ng-hide="true" class="form-control" ng-model="data.pr_id" type="text" name="pr_id">
                   </td>
-                  <td>
-                    <!-- <input class="form-control" ng-model="data.sku_code" type="text" name="sku_code" readonly> -->
-
-                    <span ng-class="showCase.getColor(data)" >{{data.sku_code}}</span>
-                  </td>
-                  <td>
-                    <!-- <input class="form-control" ng-model="data.sku_desc" type="text" name="sku_desc" readonly> -->
-                    {{data.sku_desc}}
-                  </td>
-                  <td>
-                    <!-- <input class="form-control" ng-model="data.moq" type="text" name="moq" readonly> -->
-                    {{data.moq}}
-                  </td>
-                  <td>
-                    <!-- <input class="form-control" ng-model="data.quantity" type="text" name="quantity" readonly> -->
-                    {{data.quantity}}
-                  </td>
-                  <td>
-                    <!-- <input class="form-control" ng-model="data.unit_price" type="text" name="unit_price" readonly> -->
-                    {{data.unit_price}}
-                  </td>
-                  <td>
-
-                    <!-- <input class="form-control" ng-model="data.amount" type="text" name="amount" readonly> -->
-                    {{data.amount}}
-                  </td>
-                  <td>
-                    {{data.tax}}
-                    <!-- <input class="form-control" ng-model="data.tax" type="text" name="tax" readonly> -->
-                  </td>
-                  <td>
-                    {{data.total}}
-                    <!-- <input class="form-control" ng-model="data.total" type="text" name="total" readonly> -->
-                    
-                  </td>
+                  <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
+                  <td> {{data.sku_desc}} </td>
+                  <td> {{data.moq}} </td>
+                  <!-- <td> {{data.quantity}} </td> -->
+                  <td> <input type="text" ng-model="data.quantity" name="quantity"> </td>
+                  <td> {{data.unit_price}} </td>
+                  <td> {{data.amount}} </td>
+                  <td> {{data.tax}} </td>
+                  <td> {{data.total}} </td>
                  </tr>
                </tbody>
              </table>

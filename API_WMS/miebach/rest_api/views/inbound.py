@@ -681,7 +681,7 @@ def generate_po_qty_dict(purchase_ord_qty):
 def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num, order_term):
     company_name =user_company_name(request.user)
     all_prod_catgs = False
-    if company_name == 'Metropolis':
+    if 'metropolis' in company_name.lower():
         all_prod_catgs = True
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True, all_prod_catgs=all_prod_catgs)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
@@ -3618,7 +3618,7 @@ def get_supplier_data(request, user=''):
         user = User.objects.get(username=warehouse)
     company_name =user_company_name(request.user)
     all_prod_catgs = False
-    if company_name == 'Metropolis':
+    if 'metropolis' in company_name.lower():
         all_prod_catgs = True
     sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     temp = get_misc_value('pallet_switch', user.id)
@@ -11337,7 +11337,7 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
 def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     company_name = user_company_name(request.user)
     all_prod_catgs = False
-    if company_name == 'Metropolis':
+    if 'metropolis' in company_name.lower():
         all_prod_catgs = True
     sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     search_params = {}

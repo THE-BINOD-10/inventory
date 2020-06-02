@@ -456,17 +456,19 @@ def netsuite_create_po(po_data, user):
 
         # purorder.location = warehouse_id
         purorder.approvalstatus = ns.RecordRef(internalId=2)
-        # purorder.subsidiary = '1'
-        # purorder.department = po_data['user_id']
+        # purorder.subsidiary = ns.RecordRef(internalId=po_data['company_id'])
+        # purorder.department = ns.RecordRef(internalId=po_data['department_id'])
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
         purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                                                        ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=28))])
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_shiptoplantid', value=ns.ListOrRecordRef(internalId=po_data['store_id'])),
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['company_id'])),
+                                                        ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply']))])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
-                         'quantity':data['quantity'],
+                         'quantity':data['quantity'],'location':ns.RecordRef(internalId=108),
                          'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                                                                 ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                          }

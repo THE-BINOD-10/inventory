@@ -3106,6 +3106,9 @@ def netsuite_pr(user, PRQs, full_pr_number):
         delivery_date = existingPRObj.delivery_date.isoformat()
         pr_date = existingPRObj.creation_date.isoformat()
         # external_id = str(existingPRObj.prefix) + str(pr_number)
+        profile = UserProfile.objects.get(user=user.id)
+        store_id = profile.reference_id
+        company_id = profile.company.reference_id
         prApprQs = existingPRObj.pending_prApprovals
         requested_by = existingPRObj.requested_user.first_name
         approval1 = ''
@@ -3114,7 +3117,8 @@ def netsuite_pr(user, PRQs, full_pr_number):
             approval1 = allApproavls[0]
 
         pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
+                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number,
+                   'company_id':company_id}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
             'sku__servicemaster__service_end_date',
@@ -7810,11 +7814,17 @@ def confirm_add_po(request, sales_data='', user=''):
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
     from api_calls.netsuite import netsuite_create_po
     order_id = order_id
+    admin_user = get_admin(user)
     po_number = po_number
     company_id = ''
     pr_number = ''
     full_pr_number = ''
     approval1 = ''
+    profile = UserProfile.objects.get(user=user.id)
+    store_id = profile.reference_id
+    company_id = profile.company.reference_id
+    # admin_profile = UserProfile.objects.get(user=admin_user.id)
+    # department_id
     if prQs:
         if prQs[0].pending_prs.all():
             pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
@@ -7840,6 +7850,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     po_date = po_date.isoformat()
     due_date =data_dict.get('delivery_date', '')
     supplier_id = _purchase_order.open_po.supplier.supplier_id
+    place_of_supply = _purchase_order.open_po.supplier.place_of_supply
     if due_date:
         due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
         due_date = due_date.isoformat()
@@ -7848,7 +7859,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                 'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                'approval1':approval1, 'full_pr_number':full_pr_number}
+                'approval1':approval1, 'full_pr_number':full_pr_number, 'store_id': store_id, 'company_id':company_id, 'place_of_supply':place_of_supply}
     for purchase_order in purchase_objs:
         _open = purchase_order.open_po
         item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,

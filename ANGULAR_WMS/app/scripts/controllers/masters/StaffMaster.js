@@ -28,8 +28,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('staff_id').withTitle('Staff ID'),
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
+        DTColumnBuilder.newColumn('company').withTitle('Company'),
+        DTColumnBuilder.newColumn('plant').withTitle('Plant'),
+        DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
+        DTColumnBuilder.newColumn('department_id').withTitle('Department ID'),
+        DTColumnBuilder.newColumn('position').withTitle('Position'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
         DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
@@ -62,7 +66,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
-  var empty_data = {staff_id: "", name: "", email_id: "", phone_number: "", status: "", margin: 0};
+  var empty_data = {name: "", email_id: "", phone_number: "", status: "", margin: 0, company_id: '',
+                    plant: '', department_id: '', department_type: '', postion: ''};
   vm.model_data = {};
 
   vm.base = function() {
@@ -90,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.customer = function(url) {
 
     var send = {}
-    var send = $("form").serializeArray()
+    var send = $("form").serializeArray();
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {
         if(data.data == 'New Staff Added' || data.data == 'Updated Successfully') {
@@ -119,6 +124,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.pop_msg('Please fill required fields');
     }
   }
+
+  vm.company_list = [];
+  function get_company_list() {
+    vm.service.apiCall("get_company_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.company_list = data.data.company_list;
+      }
+    });
+  }
+  get_company_list();
 
 }
 

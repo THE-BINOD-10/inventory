@@ -799,7 +799,9 @@ def add_user(request, user=''):
             user_dict[key] = value
     user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
-    all_sub_users = get_sub_users(user)
+    import pdb;pdb.set_trace()
+    #all_sub_users = get_sub_users(user)
+    all_sub_users = get_company_sub_users(user)
     existing_emails = all_sub_users.values_list('email', flat=True)
     if user_dict.get('email', ''):
         if user_dict['email'] in existing_emails:
@@ -10683,6 +10685,16 @@ def get_sub_users(user):
     sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
     return sub_users
 
+def get_company_sub_users(user, company_id=''):
+    user_list = get_related_users(user.id, company_id=company_id)
+    sub_user_ids = []
+    for user_id in user_list:
+        sub_user_ids = sub_user_ids + list(AdminGroups.objects.get(user_id=user_id).\
+                                           group.user_set.filter().values_list('id', flat=True))
+    sub_users = User.objects.filter(id__in=sub_user_ids)
+    return sub_users
+
+
 def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
         for val_idx, val in enumerate(value):
@@ -11772,20 +11784,24 @@ def get_company_id(user, level=''):
     return company.id
 
 
-def get_related_users(user_id, level=0):
+def get_related_users(user_id, level=0, company_id=''):
     """ this function generates all users related to a user """
     user = User.objects.get(id=user_id)
-    company_id = get_company_id(user)
+    main_company_id = get_company_id(user)
     if not level:
-        user_groups = UserGroups.objects.filter(company_id=company_id)
+        user_groups = UserGroups.objects.filter(company_id=main_company_id)
     else:
         user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) |
-                                                Q(user__userprofile__warehouse_level=level), company_id=company_id)
+                                                Q(user__userprofile__warehouse_level=level), company_id=main_company_id)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     all_users = list(set(user_list1 + user_list2))
+    if company_id:
+        all_users = list(User.objects.filter(userprofile__company_id=company_id, id__in=all_users).\
+                    values_list('id', flat=True))
     log.info("all users %s" % all_users)
     return all_users
+
 
 def get_related_user_objs(user_id, level=0):
     user_ids = get_related_users(user_id, level=level)

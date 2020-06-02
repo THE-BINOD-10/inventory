@@ -12,17 +12,47 @@
               <div class="form-group">
                 <label class="control-label"> Staff Name * </label>
                 <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
-                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" ng-readonly="showCase.update" required> </div>
+                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Email </label>
-                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64"> </div>
+                <label class="control-label"> Company List </label>
+                <input ng-if="showCase.update" type="hidden" name="company_id" class="form-control" ng-model="showCase.model_data.company_id" value="{{showCase.model_data.company_id}}">
+                <input ng-if="showCase.update" type="text" name="company" class="form-control" ng-model="showCase.model_data.company" readonly>
+                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id">
+                  <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Email *</label>
+                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" ng-readonly="showCase.update" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Phone No. </label>
                 <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Plant </label>
+                <input name="plant" type="text" class="form-control" ng-model="showCase.model_data.plant" maxlength="64"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department Type </label>
+                <input name="department_type" type="text" class="form-control" ng-model="showCase.model_data.department_type" maxlength="64"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department ID </label>
+                <input name="department_id" type="text" class="form-control" ng-model="showCase.model_data.department_id" maxlength="64"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Position </label>
+                <input name="position" type="text" class="form-control" ng-model="showCase.model_data.position" maxlength="64"> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">

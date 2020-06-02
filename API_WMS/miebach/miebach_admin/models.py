@@ -1182,7 +1182,7 @@ class CustomerUserMapping(models.Model):
 
 class CompanyMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    company_name = models.CharField(max_length=32, default='')
+    company_name = models.CharField(max_length=128, default='')
     address = models.CharField(max_length=256, default='', blank=True)
     city = models.CharField(max_length=64, default='', blank=True)
     state = models.CharField(max_length=64, default='', blank=True)
@@ -3068,16 +3068,22 @@ class IntransitOrders(models.Model):
 
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    staff_name = models.CharField(max_length=256, default='')
-    phone_number = models.CharField(max_length=32)
+    staff_name = models.CharField(max_length=64, default='')
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    plant = models.CharField(max_length=64, default='')
+    department_type = models.CharField(max_length=64, default='')
+    department_id = models.CharField(max_length=64, default='')
+    position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32)
     status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'STAFF_MASTER'
-        unique_together = ('user', 'staff_name')
-        index_together = ('user', 'staff_name')
+        unique_together = ('company', 'email_id')
+        index_together = ('company', 'email_id')
 
 
 class MastersMapping(models.Model):

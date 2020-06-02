@@ -418,6 +418,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.populate_last_transaction('');
     }
 
+    vm.reset_model_data = function(product_category){
+      vm.model_data.data = [];
+      var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "sku": {"wms_code": "", "price":""}
+                          }
+      if (product_category == 'Kits&Consumables'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if (product_category == 'Assets'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'Services'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      } else if(product_category == 'OtherItems'){
+        vm.model_data.data.push({"fields": emptylineItems});
+      }
+    }
+
     vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
@@ -541,6 +559,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       }
+    }
+
+    vm.send_back_to_pr = function(form){
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})      
+      vm.service.apiCall('send_back_po_to_pr/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Sent Back Successfully') {
+            vm.data_id = '';
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
+        }
+      });
     }
 
     vm.approve_pr = function(form, validation_type) {

@@ -241,7 +241,8 @@ def netsuite_update_create_service(data, user):
         serviceitem.includeChildren = 'Y'
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
 
-        serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+        serviceitem.customFieldList = ns.CustomFieldList([ 
+                                                    # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
                                                       ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=2)),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
@@ -275,7 +276,8 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.includeChildren = 'Y'
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
-        assetitem.customFieldList = ns.CustomFieldList([ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=4)),
+        assetitem.customFieldList = ns.CustomFieldList([
+                                                        # ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.ListOrRecordRef(internalId=4)),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.sku_group),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)

@@ -2043,7 +2043,7 @@ def insert_customer_sku(request, user=''):
 @login_required
 @get_admin_user
 def insert_company_master(request, user=''):
-    log.info('Add New Conpany request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Add New Company request params for ' + user.username + ' is ' + str(request.POST.dict()))
     status_msg = 'Failed'
     try:
         company_id = request.POST['id']
@@ -2070,6 +2070,7 @@ def insert_company_master(request, user=''):
             status_msg = 'Added Successfully'
 
     except Exception as e:
+        status_msg = 'Failed'
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add New Company failed for %s and params are %s and error statement is %s' % (

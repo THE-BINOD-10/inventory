@@ -1182,7 +1182,7 @@ class CustomerUserMapping(models.Model):
 
 class CompanyMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    company_name = models.CharField(max_length=128, default='')
+    company_name = models.CharField(max_length=256, default='')
     address = models.CharField(max_length=256, default='', blank=True)
     city = models.CharField(max_length=64, default='', blank=True)
     state = models.CharField(max_length=64, default='', blank=True)

@@ -5303,7 +5303,7 @@ def netsuite_grn(user, data_dict, po_number, dc_level_grn, grn_params,seller_rec
             po_order_id = purchase_order_obj[0].order_id
             master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
                                                     master_type='GRN')
-            url="https://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     grn_data = {'po_number':po_number,
                 'grn_number':grn_number,
                 'items':[],
@@ -12920,10 +12920,10 @@ def save_credit_note_po_data(request, user=''):
         purchase_credit.update(credit_date=credit_date)
         if credit_files:
             upload_master_file(request, user, purchase_credit[0].id, 'PO_CREDIT_FILE', master_file=credit_files)
-        netsuite_save_credit_note_po_data(request.POST, purchase_credit[0].id,request.META['HTTP_HOST'], user)
+        netsuite_save_credit_note_po_data(request.POST, purchase_credit[0].id, request, user)
     return HttpResponse('success')
 
-def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,meta_url, user="" ):
+def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
     import dateutil.parser as parser
     from api_calls.netsuite import netsuite_create_grn
     import datetime
@@ -12931,7 +12931,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,meta_url,
     static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
     url=""
     if(static_url):
-        url="https://"+str(meta_url)+"/"+static_url[len(static_url)-1]
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[len(static_url)-1]
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
     grn_no = credit_note_req_data.get('grn_no', '')

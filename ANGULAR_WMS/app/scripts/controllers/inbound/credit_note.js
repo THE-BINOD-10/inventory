@@ -166,6 +166,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             Service.showNoty(data.data);
             vm.close();
             vm.reloadData();
+          } else if ( data.data == 'Please fill * fields') {
+            Service.showNoty(data.data);
           } else {
             Service.showNoty('Success');
             vm.close();

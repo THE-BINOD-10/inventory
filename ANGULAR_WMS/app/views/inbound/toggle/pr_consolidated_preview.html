@@ -36,7 +36,7 @@
                 <tr ng-repeat="data in showCase.preview_data.data">
                   <td> <input type="checkbox" ng-model="data.checkbox"> </td>
                   <td>
-                    <select ui-select class="form-control" name="supplier" style="width:auto;"
+                    <select ui-select class="form-control" name="supplier" style="width:140px;"
                     ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
                     ng-model="data.supplier_id_name" 
                     ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">

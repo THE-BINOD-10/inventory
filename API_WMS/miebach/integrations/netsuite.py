@@ -119,38 +119,38 @@ class netsuiteIntegration(object):
 
 
 
-  def netsuite_update_create_rtv(rtv_data):
-      data_response = {}
-      try:
-          ns = self.nc.raw_client
-          rtvitem = ns.VendorReturnAuthorization()
-          rtvitem.entity = str(rtv_data["supplier_name"])
-          rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
-          rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
-          rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
-          # rtvitem.location = ns.RecordRef(internalId=108)
-          item = []
-          for data in rtv_data['item_details']:
-              line_item = {
-              'item': ns.RecordRef(externalId=data['sku_code']),
-              'orderLine': 1,
-              'quantity': data['order_qty'],
-              'location': ns.RecordRef(internalId=108),
-              # 'itemReceive': True
-              'description': data['sku_desc']
-              }
-              item.append(line_item)
-          rtvitem.itemList = {'item':item}
-          rtvitem.externalId = rtv_data['rtv_number']
-          rtvitem.quantity = rtv_data["total_qty"]
-          rtvitem.amount = rtv_data["total_without_discount"]
-          rtvitem.memo= rtv_data["return_reason"]
+    def netsuite_update_create_rtv(rtv_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            rtvitem = ns.VendorReturnAuthorization()
+            rtvitem.entity = str(rtv_data["supplier_name"])
+            rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+            rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
+            rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
+            # rtvitem.location = ns.RecordRef(internalId=108)
+            item = []
+            for data in rtv_data['item_details']:
+                line_item = {
+                'item': ns.RecordRef(externalId=data['sku_code']),
+                'orderLine': 1,
+                'quantity': data['order_qty'],
+                'location': ns.RecordRef(internalId=108),
+                # 'itemReceive': True
+                'description': data['sku_desc']
+                }
+                item.append(line_item)
+            rtvitem.itemList = {'item':item}
+            rtvitem.externalId = rtv_data['rtv_number']
+            rtvitem.quantity = rtv_data["total_qty"]
+            rtvitem.amount = rtv_data["total_without_discount"]
+            rtvitem.memo= rtv_data["return_reason"]
 
-      except Exception as e:
-          import traceback
-          log.debug(traceback.format_exc())
-          log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
-      return rtvitem
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
+        return rtvitem
 
     def netsuite_create_grn(grn_data):
         data_response = {}

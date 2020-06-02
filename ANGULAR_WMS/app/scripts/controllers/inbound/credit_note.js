@@ -167,7 +167,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.close();
             vm.reloadData();
           } else {
-            Service.showNoty(data.data);
+            Service.showNoty('Success');
+            vm.close();
+            vm.reloadData();
           }
         })
       }

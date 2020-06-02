@@ -389,6 +389,8 @@ def netsuite_create_grn(user, grn_data):
                 ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"])
             ]
+            if(grn_data["vendor_url"]):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendor_url"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
             grnrec.externalId = grn_data['grn_number']
             data_response = ns.upsert(grnrec)

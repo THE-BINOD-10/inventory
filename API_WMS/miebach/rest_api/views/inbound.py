@@ -13063,16 +13063,24 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
     import dateutil.parser as parser
     from api_calls.netsuite import netsuite_create_grn
     import datetime
-    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
-    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
-    url=""
-    if(static_url):
-        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[len(static_url)-1]
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
     grn_no = credit_note_req_data.get('grn_no', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
+    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
+    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
+    url=""
+    if(static_url):
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[len(static_url)-1]
+    extra_flag= grn_no.split("/")[-1]
+    po_num=grn_no.split("/")[0]
+    po_order_id=po_num.split("_")[-1]
+    master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
+                                            master_type='GRN')
+    vendor_url=""
+    if master_docs_obj:
+        vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     if invoice_date:
         invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%m/%d/%Y')
         date=parser.parse(invoice_date)
@@ -13086,7 +13094,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
      "grn_number": grn_no,
      "invoice_date":invoice_date,
      "invoice_no":invoice_number,
-     "url":url
+     "url":url,
+     "vendor_url":vendor_url
      }
     response = netsuite_create_grn(user, grn_data)
     return response

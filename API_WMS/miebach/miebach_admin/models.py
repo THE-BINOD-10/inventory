@@ -645,6 +645,8 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     level  = models.CharField(max_length=64, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
+    plant = models.CharField(max_length=64, default='')
+    department_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

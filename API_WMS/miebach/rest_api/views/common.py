@@ -1069,6 +1069,8 @@ def add_update_pr_config(request,user=''):
                     'user': user,
                     'name': data['name'],
                     'product_category': data['product_category'],
+                    'plant': data.get('plant', ''),
+                    'department_type': data.get('department_type', ''),
                     'min_Amt': data['min_Amt'],
                     'max_Amt': data['max_Amt'],
                     'level': level,
@@ -1155,7 +1157,7 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     elif purchase_type == 'PR':
         master_type = 'actual_pr_approvals_conf_data'
     pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).order_by('creation_date')
-    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'min_Amt', 'max_Amt', 'level')
+    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
@@ -11960,3 +11962,18 @@ def internal_external_map(response, type_name=''):
     internal_id = response['__values__']['internalId']
     NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
                                          type_name=type_name)
+
+def get_subsidary_companies(company_id):
+    companies = CompanyMaster.objects.filter(parent_id=company_id)
+    return companies
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_department_list(request, user=''):
+    company_id = get_company_id(user)
+    companies = get_subsidary_companies(company_id)
+    company_ids = list(companies.values_list('id', flat=True))
+    department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).values_list('department_type', flat=True))
+    return HttpResponse(json.dumps({'department_list': department_list}))

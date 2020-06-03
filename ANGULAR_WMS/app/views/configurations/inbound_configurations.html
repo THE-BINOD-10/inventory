@@ -149,7 +149,7 @@
                     <div ng-if="showCase.pr_add_show">
                         <div class="row col-md-12" style="padding-bottom: 15px"
                             ng-repeat="datum in showCase.model_data.selected_pr_config_data">
-                            <div class="col-md-5 col-sm-8 col-xs-12">
+                            <div class="col-md-1 col-sm-3 col-xs-5">
                             </div>
                             <div class="col-md-1 col-sm-2 col-xs-3">
                                 <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name"
@@ -158,10 +158,26 @@
                             <div class="col-md-1 col-sm-1 col-xs-2">
                               <select class="form-control" ng-model="datum.product_category" 
                                     ng-disabled="showCase.pr_selected"
-                                    ng-change="showCase.getProdMaxValue(datum, 'pr_save')">
-                                <option value="">Select</option>
+                                    ng-change="showCase.col-sm-4getProdMaxValue(datum, 'pr_save')">
+                                <option value="">Product Category</option>
                                 <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
                                   ng-selected="datum.product_category == product_catg"> {{product_catg}}</option>
+                              </select>
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.plant"
+                                    ng-disabled="showCase.pr_selected">
+                                <option value=""> Plant </option>
+                                <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse}}"
+                                  ng-selected="datum.plant == warehouse"> {{warehouse}}</option>
+                              </select>
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.department_type"
+                                    ng-disabled="showCase.pr_selected">
+                                <option value="">Department Type</option>
+                                <option ng-repeat="department in showCase.department_list" value="{{department}}"
+                                  ng-selected="datum.department_type == department"> {{department}}</option>
                               </select>
                             </div>
                             <div class="col-md-1 col-sm-1 col-xs-2">
@@ -220,7 +236,7 @@
                     <div ng-if="showCase.actual_pr_add_show">
                         <div class="row col-md-12" style="padding-bottom: 15px"
                             ng-repeat="datum in showCase.model_data.selected_actual_pr_config_data">
-                            <div class="col-md-5 col-sm-8 col-xs-12">
+                            <div class="col-md-1 col-sm-3 col-xs-5">
                             </div>
                             <div class="col-md-1 col-sm-2 col-xs-3">
                                 <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name"
@@ -233,6 +249,22 @@
                                 <option value="">Select</option>
                                 <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
                                   ng-selected="datum.product_category == product_catg"> {{product_catg}}</option>
+                              </select>
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.plant"
+                                    ng-disabled="showCase.actual_pr_selected">
+                                <option value=""> Plant </option>
+                                <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse}}"
+                                  ng-selected="datum.plant == warehouse"> {{warehouse}}</option>
+                              </select>
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.department_type"
+                                    ng-disabled="showCase.actual_pr_selected">
+                                <option value="">Department Type</option>
+                                <option ng-repeat="department in showCase.department_list" value="{{department}}"
+                                  ng-selected="datum.department_type == department"> {{department}}</option>
                               </select>
                             </div>
                             <div class="col-md-1 col-sm-1 col-xs-2">

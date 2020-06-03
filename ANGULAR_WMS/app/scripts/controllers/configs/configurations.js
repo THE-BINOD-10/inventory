@@ -967,7 +967,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.add_empty_index('', 'save', 'pr_save');
       console.log(vm.model_data['selected_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_pr_config_data'];
-      var permGivenMails = vm.model_data['pr_permissive_emails'];
+      /*var permGivenMails = vm.model_data['pr_permissive_emails'];
       if (permGivenMails.length == 0){
         Service.showNoty("No Users have Change PO Permissions.")
       }
@@ -982,15 +982,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           });
         });
       }
-      console.log(notPresentEmails);
+      console.log(notPresentEmails);*/
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
       } else if (toBeUpdateData[0].min_Amt > (toBeUpdateData[0].max_Amt ? toBeUpdateData[0].max_Amt : 0)){
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
-      } else if (notPresentEmails.length != 0){
-          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
+      //} else if (notPresentEmails.length != 0){
+      //    Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
       } else {
         vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'pr_save'}).then(function(data){
           if(data.message) {
@@ -1037,7 +1037,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.add_empty_index('', 'save', 'actual_pr_save');
       console.log(vm.model_data['selected_actual_pr_config_data'])
       var toBeUpdateData = vm.model_data['selected_actual_pr_config_data'];
-      var permGivenMails = vm.model_data['actual_pr_permissive_emails'];
+      /*var permGivenMails = vm.model_data['actual_pr_permissive_emails'];
       if (permGivenMails.length == 0){
         Service.showNoty("No Users have Change PR Permissions.")
       }
@@ -1051,7 +1051,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             }
           });
         });
-      }
+      }*/
       if (!toBeUpdateData[0].name) {
         Service.showNoty('Enter Configuration name');
       } else if (!toBeUpdateData[0].product_category) {
@@ -1060,8 +1060,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         Service.showNoty('Min Amt Should not Exceed Max Amt');
       } else if (!toBeUpdateData[0]['mail_id']['level0']) {
         Service.showNoty('Email required !');
-      } else if (notPresentEmails.length != 0){
-          Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
+      //} else if (notPresentEmails.length != 0){
+      //    Service.showNoty("Change PR Permission needed for email ids:" + notPresentEmails);
       } else {
         vm.service.apiCall("add_update_pr_config/", "POST", {'data':JSON.stringify(toBeUpdateData), 'type': 'actual_pr_save'}).then(function(data){
           if(data.message) {
@@ -1336,6 +1336,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             var data_dict = {}
             data_dict['name'] = data.name;
             data_dict['product_category'] = data.product_category;
+            data_dict['plant'] = data.plant;
+            data_dict['department_type'] = data.department_type;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
@@ -1350,6 +1352,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             var data_dict = {}
             data_dict['name'] = data.name;
             data_dict['product_category'] = data.product_category;
+            data_dict['plant'] = data.plant;
+            data_dict['department_type'] = data.department_type;
             data_dict['min_Amt'] = data.min_Amt;
             data_dict['max_Amt'] = data.max_Amt;
             data_dict['mail_id'] = data.mail_id;
@@ -2423,5 +2427,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         console.log(data);
       })
   }
+
+  vm.warehouse_list = [];
+  vm.service.apiCall('get_warehouses_list/').then(function(data){
+    if(data.message) {
+      vm.warehouse_list = data.data.warehouses;
+      vm.warehouse_list = ['All'].concat(vm.warehouse_list);
+    }
+  });
+
+  vm.department_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_list = data.data.department_list;
+      vm.department_list = ['All'].concat(vm.department_list);
+    }
+  });
 
 }

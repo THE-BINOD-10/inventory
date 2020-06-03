@@ -55,6 +55,7 @@ urlpatterns = [
     url(r'^create_user/$', create_user),
     url(r'^get_supplier_list/$', get_supplier_list),
     url(r'^get_warehouse_list/$', get_warehouse_list),
+    url(r'^get_department_list/$', get_department_list),
     url(r'^search_customer_sku_mapping/$', search_customer_sku_mapping),
     url(r'^delete_bom_data/$', delete_bom_data),
     url(r'^delete_market_mapping/$', delete_market_mapping),

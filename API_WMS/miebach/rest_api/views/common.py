@@ -11814,10 +11814,11 @@ def get_related_user_objs(user_id, level=0):
     users = User.objects.filter(id__in=user_ids) 
     return users
 
-def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
+
+def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key, current_user=False):
     bulk_objs = []
     sync_switch = get_misc_value(sync_key, user.id)
-    if sync_switch == 'true':
+    if sync_switch == 'true' and not current_user:
         all_user_ids = get_related_users(user.id)
     else:
         all_user_ids = [user.id]
@@ -11909,9 +11910,9 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
     return 'Uploaded Successfully'
 
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False):
     supplier_sync = get_misc_value('supplier_sync', user.id)
-    if supplier_sync == 'true':
+    if supplier_sync == 'true' and not current_user:
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
@@ -11960,3 +11961,65 @@ def internal_external_map(response, type_name=''):
     internal_id = response['__values__']['internalId']
     NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
                                          type_name=type_name)
+
+
+def insert_admin_suppliers(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    for supplier in suppliers:
+        filter_dict = {'supplier_id': supplier.supplier_id}
+        data_dict = copy.deepcopy(supplier.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        secondary_email_id = list(MasterEmailMapping.objects.filter(user=admin_user.id, master_type='supplier',
+                                                            master_id=supplier.id).values_list('email_id', flat=True))
+        sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id, current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_sku_attributes(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    attributes = UserAttributes.objects.filter(user=admin_user.id)
+    for attribute in attributes:
+        filter_dict = {'attribute_name': attribute.attribute_name, 'attribute_model': attribute.attribute_model}
+        update_dict = {'attribute_type': attribute.attribute_type, 'status': 1}
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
+    return "Success"

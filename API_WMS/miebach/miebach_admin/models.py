@@ -293,6 +293,7 @@ class SupplierMaster(models.Model):
     subsidiary = models.CharField(max_length=64, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
+
     class Meta:
         db_table = 'SUPPLIER_MASTER'
         index_together = ('name', 'user')

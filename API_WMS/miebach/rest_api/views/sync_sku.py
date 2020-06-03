@@ -158,7 +158,7 @@ def create_update_sku(all_skus, all_users):
                 sku_obj, new_ean_objs, update_sku_obj = prepare_ean_bulk_data(sku_obj, ean_numbers, exist_ean_list,
                                                                         exist_sku_eans, new_ean_objs=new_ean_objs)
                 for attr_key, attr_val in attr_dict.iteritems():
-                    create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
                 sku_obj.save()
                 if size_type:
@@ -184,7 +184,7 @@ def create_update_sku(all_skus, all_users):
                 else:
                     sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
                 for attr_key, attr_val in new_sku_attr.iteritems():
-                    create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
             for new_sku_code, new_sku_size_type in new_sku_size_types.items():
                 if new_sku_code in code_obj_dict.keys():
@@ -200,6 +200,7 @@ def create_update_sku(all_skus, all_users):
         if create_sku_attrs:
             SKUAttributes.objects.bulk_create(create_sku_attrs)
 
+        insert_update_brands(User.objects.get(id=user))
         if dump_sku_codes and all_skus:
             dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 

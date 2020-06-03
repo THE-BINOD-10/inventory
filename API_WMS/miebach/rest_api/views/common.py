@@ -8242,7 +8242,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                if not (no_stock_switch or allow_partial_picklist):
                     stock_status.append(str(member.sku_code))
                     continue
 
@@ -9509,12 +9510,16 @@ def allocate_order_returns(user, sku_data, request):
 
 
 def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None,
-                               sku_attr_mapping=None, allow_multiple=False):
-    if not value == '':
+                               sku_attr_mapping=None, allow_multiple=False,remove_existing=False,
+                               remove_attr_ids=None):
+    if not value == '' or remove_existing:
         sku_attr_filter = {'sku_id': data.id, 'attribute_name': key}
         if allow_multiple:
             sku_attr_filter['attribute_value'] = value
         sku_attr_obj = SKUAttributes.objects.filter(**sku_attr_filter)
+        if remove_existing:
+            remove_attr_ids = list(chain(remove_attr_ids, list(sku_attr_obj.values_list('id', flat=True))))
+            sku_attr_obj = []
         if not sku_attr_obj and value:
             if not is_bulk_create:
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
@@ -9530,16 +9535,27 @@ def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sk
                     sku_attr_mapping.append(grp_key)
         elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
             sku_attr_obj.update(attribute_value=value)
-    return create_sku_attrs, sku_attr_mapping
+    return create_sku_attrs, sku_attr_mapping, remove_attr_ids
 
 
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
             continue
+        if ',' in value:
+            allow_multiple = True
+        else:
+            allow_multiple = False
         key = key.replace('attr_', '')
+        exist_attributes = list(SKUAttributes.objects.filter(sku_id=data.id,
+                                                                 attribute_name=key). \
+                                    values_list('attribute_value', flat=True))
+        rem_list = set(exist_attributes) - set(value.split(','))
+        if rem_list:
+            SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key,
+                                         attribute_value__in=rem_list).delete()
         for val in value.split(','):
-            update_sku_attributes_data(data, key, val, allow_multiple=True)
+            update_sku_attributes_data(data, key, val, allow_multiple=allow_multiple)
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):

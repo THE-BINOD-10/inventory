@@ -3459,6 +3459,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         if user_profile:
             data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)
+        order.po_number = get_po_reference(order)
         order.save()
         order.po_date = data['po_date']
         order.save()
@@ -5996,6 +5997,7 @@ def create_po_serial_mapping(final_data_dict, user):
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
                                'order_id': order_id, 'creation_date': NOW,'updation_date':NOW}
         purchase_order = PurchaseOrder(**purchase_order_dict)
+        purchase_order.po_number = get_po_reference(purchase_order)
         purchase_order.save()
         if lr_number:
             lr_details = LRDetail(lr_number=lr_number, quantity=quantity,

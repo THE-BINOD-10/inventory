@@ -670,6 +670,7 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
+    po_number = models.CharField(max_length=64, default='')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)

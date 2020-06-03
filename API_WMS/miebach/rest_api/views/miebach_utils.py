@@ -6660,7 +6660,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
 
-        order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
+        order_id = rtv[0].seller_po_summary.purchase_order.po_number #get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
         temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
                                     ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),

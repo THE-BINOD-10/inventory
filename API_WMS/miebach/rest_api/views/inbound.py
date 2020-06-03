@@ -818,8 +818,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                 stpurchaseorder__open_st__sku__user=result['stpurchaseorder__open_st__sku__user'], prefix=result['prefix'])[0]
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
-        po_reference = '%s%s_%s' % (
-        supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
+        po_reference = supplier.po_number
         _date = get_local_date(user, supplier.creation_date, True)
         _date = _date.strftime("%d %b, %Y")
         supplier_id_name = '%s/%s' % (str(xcode(order_data['supplier_id'])), str(xcode(order_data['supplier_name'])))
@@ -1035,8 +1034,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
 
-        po_reference = '%s%s_%s' % (
-        supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
+        po_reference = supplier.po_number
         temp_data['aaData'].append({'DT_RowId': supplier.order_id, 'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
                                     ' Order ID': supplier.order_id,
@@ -2098,6 +2096,7 @@ def confirm_po(request, user=''):
         if user_profile:
             data['prefix'] = user_profile[0].prefix
         order = PurchaseOrder(**data)
+        order.po_number = get_po_reference(order)
         order.save()
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
@@ -3681,8 +3680,7 @@ def get_supplier_data(request, user=''):
             exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']). \
             values_list('purchase_order_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
-    po_reference = '%s%s_%s' % (
-    purchase_orders[0].prefix, str(purchase_orders[0].creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_reference = purchase_orders[0].po_number
     orders = []
     order_data = {}
     for order in purchase_orders:
@@ -3922,7 +3920,7 @@ def update_putaway(request, user=''):
                 master_docs_obj.save()
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
-            po_reference = get_po_reference(po)
+            po_reference = po.po_number #get_po_reference(po)
             mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
             subject = 'GRN Approval request for PO: %s' % po_reference
             if send_admin_mail == 'true':
@@ -5285,7 +5283,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             all_other_charges = json.loads(grn_other_charges)
             for charge in all_other_charges:
                 order_charge_dict = {}
-                order_charge_dict['order_id'] = get_po_reference(data)
+                order_charge_dict['order_id'] = data.po_number #get_po_reference(data)
                 order_charge_dict['order_type'] = 'po'
                 order_charge_dict['charge_amount'] = charge['amount']
                 order_charge_dict['charge_name'] = charge['name']
@@ -6379,7 +6377,7 @@ def get_received_orders(request, user=''):
 
     data_list = data.values()
     data_list.sort(key=lambda x: x['fill_sequence'])
-    po_number = '%s%s_%s' % (order.prefix, str(order.po_date).split(' ')[0].replace('-', ''), order.order_id)
+    po_number = order.po_number
     return HttpResponse(
         json.dumps({'data': data_list, 'po_number': po_number, 'order_id': order_id, 'user': request.user.id,
                     'sku_total_quantities': sku_total_quantities}))
@@ -7617,6 +7615,7 @@ def confirm_add_po(request, sales_data='', user=''):
             #     data['updation_date'] = po_creation_date
 
             order = PurchaseOrder(**data)
+            order.po_number = get_po_reference(order)
             order.save()
             if po_creation_date:
                 PurchaseOrder.objects.filter(id=order.id).update(creation_date=po_creation_date, updation_date=po_creation_date)
@@ -7751,7 +7750,8 @@ def confirm_add_po(request, sales_data='', user=''):
             expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
         else:
             expiry_date = ''
-        po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        #po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        po_number = order.po_number
         profile = UserProfile.objects.get(user=user.id)
         company_name = profile.company.company_name
         title = 'Purchase Order'
@@ -8041,6 +8041,7 @@ def confirm_po1(request, user=''):
                 if user_profile:
                     data['prefix'] = user_profile[0].prefix
                 order = PurchaseOrder(**data)
+                order.po_number = get_po_reference(order)
                 order.save()
 
                 amount = float(purchase_order.order_quantity) * float(purchase_order.price)
@@ -8552,7 +8553,8 @@ def create_purchase_order(request, myDict, i, user='', exist_id=0):
         purchase_order = PurchaseOrder.objects.create(order_id=po_order_id, open_po_id=open_po.id,
                                     received_quantity=0, po_date=po_order[0].po_date,
                                     ship_to=po_order[0].ship_to, prefix=user.userprofile.prefix,
-                                    creation_date=datetime.datetime.now())
+                                    creation_date=datetime.datetime.now(),
+                                    po_number=po_order[0].po_number)
         #get_data = confirm_add_po(request, new_data)
         #get_data = get_data.content
         myDict['id'][i] = purchase_order.id
@@ -9689,7 +9691,7 @@ def get_po_segregation_data(request, user=''):
     if not segregations:
         return HttpResponse("No Data found")
 
-    po_reference = get_po_reference(segregations[0].purchase_order)
+    po_reference = segregations[0].purchase_order.po_number #get_po_reference(segregations[0].purchase_order)
     orders = []
     order_data = {}
     order_ids = []
@@ -9944,7 +9946,7 @@ def last_transaction_details(request, user=''):
         data_dict['supplier_name'] = data.open_po.supplier.name
         data_dict['received_quantity'] = data.received_quantity
         data_dict['price'] = data.open_po.price
-        data_dict['po_number'] = get_po_reference(data)
+        data_dict['po_number'] = data.po_number #get_po_reference(data)
         sku_wise_list.append(data_dict)
     for data in supplier_wise_obj[0:3]:
         supplier_data_dict = {}
@@ -9953,7 +9955,7 @@ def last_transaction_details(request, user=''):
         supplier_data_dict['supplier_name'] = data.open_po.supplier.name
         supplier_data_dict['received_quantity'] = data.received_quantity
         supplier_data_dict['price'] = data.open_po.price
-        supplier_data_dict['po_number'] = get_po_reference(data)
+        supplier_data_dict['po_number'] = data.po_number #get_po_reference(data)
         supplier_wise_list.append(supplier_data_dict)
     data_resp = {}
     data_resp['sku_wise_table_data'] = sku_wise_list
@@ -10149,7 +10151,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     for data in master_data[start_index:stop_index]:
 
         po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
-        grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
+        grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
@@ -10243,7 +10245,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     for data in master_data[start_index:stop_index]:
 
         po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
-        grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
+        grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
@@ -10732,6 +10734,7 @@ def update_poc(request, user=''):
                                      "status": seller_po_summary_obj[0].purchase_order.status,
                                      "open_po_id": open_po_obj.id}
                     purchase_order_obj = PurchaseOrder(**purchase_dict)
+                    purchase_order_obj.po_number = get_po_reference(purchase_order_obj)
                     purchase_order_obj.save()
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
@@ -10854,6 +10857,7 @@ def update_po_invoice(request, user=''):
                                      "status": seller_po_summary_obj[0].purchase_order.status,
                                      "open_po_id": open_po_obj.id}
                     purchase_order_obj = PurchaseOrder(**purchase_dict)
+                    purchase_order_obj.po_number = get_po_reference(purchase_order_obj)
                     purchase_order_obj.save()
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
@@ -11001,7 +11005,7 @@ def payment_supplier_invoice_data(request, user=''):
         seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
         purchase_order = seller_summary_obj[0].purchase_order
-        order_reference = get_po_reference(purchase_order)
+        order_reference = purchase_order.po_number #get_po_reference(purchase_order)
         invoice_date = seller_summary_obj.order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
         if not invoice_date:
             invoice_date = seller_summary_obj.order_by('updation_date')[0].updation_date
@@ -11432,7 +11436,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     for result in grouping_data.values()[start_index: stop_index]:
         rem_quantity = 0
         purchase_order = result['seller_summary_objs'][0].purchase_order
-        order_reference = get_po_reference(purchase_order)
+        order_reference = purchase_order.po_number
         open_po = purchase_order.open_po
         data_id = '%s:%s' % (purchase_order.order_id, result.get('invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
@@ -11487,7 +11491,7 @@ def get_po_putaway_summary(request, user=''):
     seller_summary_objs = SellerPOSummary.objects.filter(**summary_filter)
     if not seller_summary_objs:
         return HttpResponse("No Data found")
-    po_reference = get_po_reference(seller_summary_objs[0].purchase_order)
+    po_reference = seller_summary_objs[0].purchase_order.po_number #get_po_reference(seller_summary_objs[0].purchase_order)
     invoice_number = seller_summary_objs[0].invoice_number
     invoice_date = get_local_date(user, seller_summary_objs[0].creation_date, send_date=True).strftime("%d %b, %Y")
     if seller_summary_objs[0].invoice_date:
@@ -11656,7 +11660,7 @@ def get_debit_note_data(rtv_number, user):
         total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
         total_cess_value = total_cess_value + data_dict_item['cess_value']
         total_apmc_value = total_cess_value + data_dict_item['apmc_value']
-        data_dict['grn_no'] = get_po_reference(obj.seller_po_summary.purchase_order) + '/' + str(obj.seller_po_summary.receipt_number)
+        data_dict['grn_no'] = obj.seller_po_summary.purchase_order.po_number + '/' + str(obj.seller_po_summary.receipt_number)
         data_dict['item_details'].append(data_dict_item)
     data_dict['total_qty'] = total_qty
     data_dict['total_without_discount'] = total_without_discount
@@ -11928,7 +11932,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                                                            seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'],
                                                            seller_po_summary__challan_number=result['seller_po_summary__challan_number'])
         seller_summary = rtvs[0].seller_po_summary
-        order_reference = get_po_reference(seller_summary.purchase_order)
+        order_reference = seller_summary.purchase_order.po_number #get_po_reference(seller_summary.purchase_order)
         open_po = seller_summary.purchase_order.open_po
         data_id = '%s:%s' % (result['seller_po_summary__purchase_order__order_id'], result.get('seller_po_summary__invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
@@ -11980,7 +11984,7 @@ def get_saved_rtv_data(request, user=''):
     if not rtv_objs:
         return HttpResponse("No Data found")
     seller_summary = rtv_objs[0].seller_po_summary
-    po_reference = get_po_reference(seller_summary.purchase_order)
+    po_reference = seller_summary.purchase_order.po_number #get_po_reference(seller_summary.purchase_order)
     invoice_number = seller_summary.invoice_number
     invoice_date = get_local_date(user, seller_summary.creation_date, send_date=True).strftime("%d %b, %Y")
     if seller_summary.invoice_date:
@@ -12692,6 +12696,7 @@ def confirm_central_po(request, user=''):
             industry_type = user_profile.industry_type
             data['prefix'] = user_profile.prefix
             order = PurchaseOrder(**data)
+            order.po_number = get_po_reference(order)
             order.save()
             if value['sellers']:
                 for seller, seller_quan in value['sellers'].iteritems():
@@ -12892,7 +12897,7 @@ def download_grn_invoice_mapping(request, user=''):
             po_reference = invoice_date
             seller_po_sum = SellerPOSummary.objects.filter(**order)
             if seller_po_sum.exists():
-                po_reference = get_po_reference(seller_po_sum[0].purchase_order) + '_' + str(order['receipt_number'])
+                po_reference = seller_po_sum[0].purchase_order.po_number + '_' + str(order['receipt_number'])
             master_doc_objs['%s_%s.%s' % (supplier_name, po_reference, file_format)] = master_docs
             total_file_size += master_docs.uploaded_file.size
         if float(total_file_size/1024)/1024 > 50:
@@ -12956,7 +12961,7 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
                 if other_data.get('invoice_date', ''):
                     invoice_date = other_data.get('invoice_date').strftime("%d %b, %Y")
             purchase_order_data = purchase_order_data[0]
-            po_number = get_po_reference(purchase_order_data)
+            po_number = purchase_order_data.po_number #get_po_reference(purchase_order_data)
             grn_number = "%s/%s" %(po_number, data.receipt_number)
             po_date = get_local_date(user, purchase_order_data.creation_date, True)
             po_date = po_date.strftime("%d %b, %Y")
@@ -13000,7 +13005,7 @@ def get_credit_note_po_data(request, user=''):
         for order in purchase_order_data:
             grn_qt = 0
             temp_buy_price = 0
-            order_po_number = get_po_reference(order)
+            order_po_number = order.po_number #get_po_reference(order)
             order_data = get_purchase_order_data(order)
             datum = SellerPOSummary.objects.filter(purchase_order__id = order.id, receipt_number=receipt_number)
             if datum.exists():
@@ -13252,6 +13257,7 @@ def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_i
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
             order = PurchaseOrder(**data)
+            order.po_number = get_po_reference(order)
             order.save()
             if po_creation_date:
                 PurchaseOrder.objects.filter(id=order.id).update(creation_date=po_creation_date, updation_date=po_creation_date)

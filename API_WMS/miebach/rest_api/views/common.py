@@ -1944,10 +1944,13 @@ def auto_po(wms_codes, user):
                         if po_sub_user_prefix == 'true':
                             po_order_id = update_po_order_prefix(user_obj, po_order_id)
                         user_profile = UserProfile.objects.get(user_id=sku.user)
-                        PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                                     received_quantity=0, po_date=datetime.datetime.now(),
-                                                     prefix=user_profile.prefix,
-                                                     creation_date=datetime.datetime.now())
+                        new_po_dict = {'open_po_id': po.id, 'order_id': po_order_id, 'status': '',
+                                        'received_quantity': 0, 'po_date': datetime.datetime.now(),
+                                        'prefix': user_profile.prefix,
+                                        'creation_date': datetime.datetime.now()}
+                        new_po = PurchaseOrder(**new_po_dict)
+                        new_po.po_number = get_po_reference(new_po)
+                        new_po.save()
                         check_purchase_order_created(User.objects.get(id=user), po_order_id, user_profile.prefix)
             else:
                 automated_po = automated_po[0]
@@ -6230,7 +6233,8 @@ def check_labels(request, user=''):
 
 
 def get_po_reference(order):
-    po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    #po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    po_number = '%s%s' % (order.prefix, str(order.order_id).zfill(5))
     return po_number
 
 
@@ -6269,7 +6273,7 @@ def get_imei_data(request, user=''):
                 if not sku_details:
                     sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
                                    'image_url': sku.image_url}
-                imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
+                imei_data['po_details'] = {'po_number': purchase_order.po_number, #get_po_reference(purchase_order),
                                            'supplier_id': purchase_order.open_po.supplier_id,
                                            'supplier_name': purchase_order.open_po.supplier.name,
                                            'received_date': get_local_date(user, po_mapping.creation_date),
@@ -6776,7 +6780,7 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
 
                 if po_mapping[0].status == 1 and not order_imei_mapping:
                     if po_mapping[0].purchase_order:
-                        purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
+                        purchase_order_id = po_mapping[0].purchase_order.po_number #get_po_reference(po_mapping[0].purchase_order)
                         status = '%s is already mapped with purchase_order %s' % (str(imei), purchase_order_id)
                     elif po_mapping[0].job_order:
                         status = '%s is already mapped with job order %s' % (str(imei),
@@ -9246,6 +9250,7 @@ def create_order_pos(user, order_objs, admin_user=None):
             if user_profile:
                 purchase_data['prefix'] = user_profile.prefix
             order = PurchaseOrder(**purchase_data)
+            order.po_number = get_po_reference(order)
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
                                         creation_date=datetime.datetime.now())
@@ -10271,7 +10276,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
                                                    invoice_number=invoice_num,
                                                    purchase_order__open_po__supplier__supplier_id=supplier_id)
     if exist_inv_obj.exists():
-        status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
+        status = 'Invoice Number already Mapped to %s/%s' % (exist_inv_obj[0].purchase_order.po_number,
                                                              str(exist_inv_obj[0].receipt_number))
     return status
 
@@ -10762,6 +10767,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
+            po_order.po_number = get_po_reference(po_order)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
                                 'creation_date': datetime.datetime.now()}
@@ -10891,6 +10897,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
+            po_order.po_number = get_po_reference(po_order)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
                                 'creation_date': datetime.datetime.now()}

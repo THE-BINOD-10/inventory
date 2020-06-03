@@ -604,7 +604,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         else:
             status_var = 'Partially Received'
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
-                                                    ('PO Number', get_po_reference(po_obj)),
+                                                    ('PO Number', po_obj.po_number), #get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),

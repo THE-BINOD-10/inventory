@@ -1911,6 +1911,12 @@ def switches(request, user=''):
                 data[0].save()
             if toggle_field == 'sku_sync' and value == 'true':
                 insert_skus(user.id)
+            elif toggle_field == 'supplier_sync' and value == 'true':
+                insert_admin_suppliers(request, user)
+            elif toggle_field == 'tax_master_sync' and value == 'true':
+                insert_admin_tax_master(request, user)
+            elif toggle_field == 'attributes_sync' and value == 'true':
+                insert_admin_sku_attributes(request, user)
             elif toggle_field == 'increment_invoice' and value == 'true':
                 InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='',
                                                       defaults={'status': 1, 'prefix': '',

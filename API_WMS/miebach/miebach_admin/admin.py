@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-	GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster
+	GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations
 
 # Register your models here.
 
@@ -39,6 +39,7 @@ class CompanyMasterAdmin(admin.ModelAdmin):
     search_fields = ['company_name']
     list_display = ('company_name', 'creation_date', 'parent')
 
+admin.site.register(Integrations)
 admin.site.register(UserBrand)
 admin.site.register(Brands)
 admin.site.register(UserStages)

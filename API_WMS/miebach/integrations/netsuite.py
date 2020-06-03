@@ -32,11 +32,11 @@ log_err = init_logger('logs/netsuite_integration_errors.log')
 class netsuiteIntegration(object):
     def __init__(self, auth_dict):
         self.nc = NetSuiteConnection(
-          account=auth_dict.get('NS_ACCOUNT', None),
-          consumer_key=auth_dict.get('NS_CONSUMER_KEY'),
-          consumer_secret=auth_dict.get('NS_CONSUMER_SECRET'),
-          token_key=auth_dict.get('NS_TOKEN_KEY'),
-          token_secret=auth_dict.get('NS_TOKEN_SECRET'))
+          account=auth_dict.get('api_instance', None),
+          consumer_key=auth_dict.get('client_id'),
+          consumer_secret=auth_dict.get('secret'),
+          token_key=auth_dict.get('token_id'),
+          token_secret=auth_dict.get('token_secret'))
         
     def complete_transaction(self, records, is_list):
         ns = self.nc.raw_client
@@ -114,7 +114,7 @@ class netsuiteIntegration(object):
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Update/Create sku data failed for %s and error was %s' % (str(data.sku_code), str(e)))
+            log.info('Update/Create sku data failed for %s and error was %s' % (str(data.get('sku_code')), str(e)))
         return invitem
 
 

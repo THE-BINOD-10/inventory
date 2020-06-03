@@ -56,7 +56,7 @@ def get_all_skus(all_users):
 
 def create_update_sku(all_skus, all_users):
     """ creating SKU for other linked users """
-    from rest_api.views.common import get_misc_value, bulk_create_in_batches, prepare_ean_bulk_data, update_sku_attributes_data
+    from rest_api.views.common import get_misc_value, bulk_create_in_batches, prepare_ean_bulk_data, update_sku_attributes_data,insert_update_brands
     from rest_api.views.masters import check_update_size_type
     dump_sku_codes = []
     wh_type = ''

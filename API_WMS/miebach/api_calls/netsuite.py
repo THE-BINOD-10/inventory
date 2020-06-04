@@ -241,7 +241,7 @@ def netsuite_update_create_service(data, user):
         serviceitem.includeChildren = 'Y'
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
 
-        serviceitem.customFieldList = ns.CustomFieldList([ 
+        serviceitem.customFieldList = ns.CustomFieldList([
                                                     # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
                                                       ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=2)),
@@ -396,6 +396,25 @@ def netsuite_create_grn(user, grn_data):
             data_response = ns.upsert(grnrec)
             data_response = json.dumps(data_response.__dict__)
             data_response = json.loads(data_response)
+        elif("move_to_invoice" in grn_data):
+            list_invoice_items=[]
+            for t_grn_data in grn_data["invoice_data"]:
+                grnrec = ns.ItemReceipt()
+                grnrec.createdFrom = ns.RecordRef(externalId=t_grn_data['grn_number'].split("/")[0])
+                custom_field_list= []
+                if(grn_data["inv_receipt_date"]):
+                    custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
+                if(grn_data["credit_note"]=="false"):
+                    if(grn_data["invoice_number"]):
+                        custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_number"]))
+                    if(grn_data["invoice_date"]):
+                        custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+                    if grn_data["invoice_url"]:
+                        custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["invoice_url"]))
+                grnrec.customFieldList=ns.CustomFieldList(custom_field_list)
+                grnrec.externalId = t_grn_data['grn_number']
+                list_invoice_items.append(grnrec)
+            data_response =  ns.upsertList(list_invoice_items)
         else:
             grnrec = ns.ItemReceipt()
             grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
@@ -429,7 +448,7 @@ def netsuite_create_grn(user, grn_data):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
+        log.info('Create GRN data failed for and error was %s' % (str(e)))
     return data_response
 
 
@@ -467,7 +486,8 @@ def netsuite_create_po(po_data, user):
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
                                                         # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_shiptoplantid', value=ns.ListOrRecordRef(internalId=po_data['store_id'])),
                                                         # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['company_id'])),
-                                                        ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply']))])
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply']))
+                                                        ])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
                          'quantity':data['quantity'],'location':ns.RecordRef(internalId=108),

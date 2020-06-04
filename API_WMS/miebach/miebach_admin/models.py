@@ -2247,6 +2247,18 @@ class SellerPO(models.Model):
         return str(self.id)
 
 
+class POCreditNote(models.Model):
+    id = BigAutoField(primary_key=True)
+    credit_number = models.CharField(max_length=32, default='')
+    credit_date = models.DateField(blank=True, null=True)
+    credit_value = models.FloatField(default=0)
+    quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_CREDIT_NOTE'
+
 @reversion.register(follow=('batch_detail',))
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2257,6 +2269,7 @@ class SellerPOSummary(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
+    credit = models.ForeignKey(POCreditNote, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     challan_number = models.CharField(max_length=64, default='')
@@ -2269,6 +2282,11 @@ class SellerPOSummary(models.Model):
     overall_discount = models.FloatField(default=0)
     price = models.FloatField(default=0)
     remarks = models.CharField(max_length=64, default='')
+    invoice_value = models.FloatField(default=0)
+    invoice_quantity = models.FloatField(default=0)
+    invoice_receipt_date = models.DateField(blank=True, null=True)
+    credit_type = models.CharField(max_length=32, default='Invoice')
+    credit_status = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3830,23 +3848,3 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
-
-
-class POCreditNote(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
-    invoice_value = models.FloatField(default=0)
-    invoice_quantity = models.FloatField(default=0)
-    receipt_number  = models.PositiveIntegerField(default=0)
-    po_number = models.CharField(max_length=32, default='')
-    po_prefix = models.CharField(max_length=32, default='')
-    credit_number = models.CharField(max_length=32, default='')
-    credit_date = models.DateField(blank=True, null=True)
-    quantity = models.FloatField(default=0)
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PO_CREDIT_NOTE'
-        unique_together = ('user', 'po_number', 'po_prefix', 'receipt_number')

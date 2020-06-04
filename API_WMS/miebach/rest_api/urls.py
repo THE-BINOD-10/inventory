@@ -40,6 +40,7 @@ urlpatterns = [
     url(r'^insert_supplier_attribute/$', insert_supplier_attribute),
     url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
     url(r'^insert_mapping/$', insert_mapping),
+    url(r'^send_supplier_doa/$', send_supplier_doa),
     url(r'^insert_wh_mapping/$', insert_wh_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),

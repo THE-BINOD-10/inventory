@@ -184,6 +184,21 @@ class OtherItemsMaster(SKUMaster):
         db_table = 'OTHERITEMS_MASTER'
 
 
+class MastersDOA(models.Model):
+    id = BigAutoField(primary_key=True)
+    requested_user = models.ForeignKey(User, related_name="doa_requested_user")
+    wh_user = models.ForeignKey(User, related_name='doa_wh_user')
+    # model_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=256, default='')
+    json_data = models.TextField()
+    doa_status = models.CharField(max_length=64, default='pending')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)    
+
+    class Meta:
+        db_table = 'MASTERS_DOA'
+
+
 class EANNumbers(models.Model):
     id = BigAutoField(primary_key=True)
     ean_number = models.CharField(max_length=64, default='')

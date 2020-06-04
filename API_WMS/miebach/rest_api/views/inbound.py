@@ -3531,6 +3531,38 @@ def submit_pending_approval_enquiry(request, user=''):
             'status': 'pending'
         }
         GenericEnquiry.objects.create(**sendEnquiryMap)
+        
+        lineItems = pendingPurchaseObj.pending_polineItems
+        prefix = pendingPurchaseObj.prefix
+        po_number = pendingPurchaseObj.po_number
+
+        if lineItems.exists():
+            result = pendingPurchaseObj
+            dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
+            po_reference = '%s%s_%s' % (prefix, dateforPo, po_number)
+            creation_date = get_local_date(user, result.creation_date)
+            delivery_date = result.delivery_date.strftime('%d-%m-%Y')
+            requestedBy = result.requested_user.first_name
+            warehouseName = user.first_name
+            pendingLevel = result.pending_level
+            totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+            skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
+            line_sub_heading = "Line Items(Item with Qty)"
+            lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
+            body = "<p> Pending PO Details </p>  \
+            <p>PO Number: %s</p> \
+            <p>Order Value : %s </p> \
+            <p>Warehouse NAME : %s </p> \
+            <p>PO Raised By : %s </p> \
+            <p>PO Created Date: %s</p> \
+            <p>Need By Date : %s </p> \
+            <p>Pending Level : %s </p> \
+            <p>Enquiry : %s </p> \
+            <p>%s : %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy,
+                            creation_date, delivery_date, pendingLevel, enquiry_remarks,
+                            line_sub_heading, lineItemDetails)
+            subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)            
+            send_mail([enquiry_to], subject, body)
 
     return HttpResponse("Submitted Successfully")
 

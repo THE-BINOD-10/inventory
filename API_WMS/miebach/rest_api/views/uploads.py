@@ -9088,3 +9088,35 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
     if create_sku_attrs:
         SKUAttributes.objects.bulk_create(create_sku_attrs)
     return 'Success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_prefixes_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(USER_PREFIXES_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('User Prefixes', excel_headers)
+    return xls_to_response(wb, '%s.user_prefixes_form.xls' % str(user.id))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_prefixes_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_user_prefixes_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    return HttpResponse('Success')

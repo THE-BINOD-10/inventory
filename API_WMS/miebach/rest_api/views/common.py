@@ -328,12 +328,12 @@ def add_user_type_permissions(user_profile):
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
                      'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -6236,6 +6236,21 @@ def get_po_reference(order):
     #po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
     po_number = '%s%s' % (order.prefix, str(order.order_id).zfill(5))
     return po_number
+
+
+def get_full_pr_number_from_dict(pr_dict):
+    pr_number = '%s%s' % (pr_dict.get('prefix', ''), str(pr_dict.get('pr_number', '')).zfill(5))
+    return pr_number
+
+
+def get_full_po_number_from_dict(po_dict):
+    pr_number = '%s%s' % (po_dict.get('prefix', ''), str(po_dict.get('po_number', '')).zfill(5))
+    return pr_number
+
+
+def get_full_grn_number(user):
+    grn_number = '%s%s' % ('14-04402', str(get_incremental(user, "grn_number", 1)).zfill(5))
+    return grn_number
 
 
 @csrf_exempt

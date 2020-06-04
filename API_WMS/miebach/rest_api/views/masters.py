@@ -2459,7 +2459,8 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone, 'reference_id': user_profile.reference_id}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
     return HttpResponse(json.dumps({'data': data}))
 
 

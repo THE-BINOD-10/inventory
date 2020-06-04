@@ -102,7 +102,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
         'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
-        'pending_pr__sub_pr_number', 'pending_pr__prefix']
+        'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number']
 
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_pr__final_status='pr_converted_to_po'). \
@@ -167,7 +167,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             pr_number = result['pending_pr__pr_number']
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-        full_pr_number = '%s%s_%s' % (result['pending_pr__prefix'], dateInPR, pr_number)
+        full_pr_number = result['pending_pr__full_pr_number'] #'%s%s_%s' % (result['pending_pr__prefix'], dateInPR, pr_number)
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_pr_id']),
                                                 # ('PR Number', pr_number),
@@ -233,7 +233,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date','pending_po__wh_user',
-                    'pending_po__product_category', 'pending_po_id']
+                    'pending_po__product_category', 'pending_po_id', 'pending_po__full_po_number']
 
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_po__final_status='po_converted_back_to_pr'). \
@@ -269,7 +269,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
+        po_reference = result['pending_po__full_po_number'] #'%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
                                     result['total_amt'], purchase_type='PO')
@@ -332,7 +332,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
 def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     itemVals = ['supplier__supplier_id', 'product_category', 'final_status', 'pending_level',
                 'requested_user__first_name', 'wh_user__first_name', 'po_number', 'supplier__name',
-                'creation_date', 'delivery_date', 'prefix']
+                'creation_date', 'delivery_date', 'prefix', 'full_po_number']
     enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')
     for enqObj in enqQs:
         master_id = enqObj.master_id
@@ -351,7 +351,7 @@ def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, sea
         po_date = itemDets['creation_date'].strftime('%d-%m-%Y')
         po_delivery_date = itemDets['delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
+        po_reference = itemDets['full_po_number'] #'%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
         sender = enqObj.sender.email
         receiver = request.user.email
         enquiry = enqObj.enquiry
@@ -1911,12 +1911,6 @@ def switches(request, user=''):
                 data[0].save()
             if toggle_field == 'sku_sync' and value == 'true':
                 insert_skus(user.id)
-            elif toggle_field == 'supplier_sync' and value == 'true':
-                insert_admin_suppliers(request, user)
-            elif toggle_field == 'tax_master_sync' and value == 'true':
-                insert_admin_tax_master(request, user)
-            elif toggle_field == 'attributes_sync' and value == 'true':
-                insert_admin_sku_attributes(request, user)
             elif toggle_field == 'increment_invoice' and value == 'true':
                 InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='',
                                                       defaults={'status': 1, 'prefix': '',
@@ -2880,6 +2874,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         user_profile = UserProfile.objects.filter(user_id=user.id)
         if user_profile:
             purchaseMap['prefix'] = user_profile[0].prefix
+        purchaseMap['full_po_number'] = get_full_po_number_from_dict(purchaseMap)
+            
     else:
         model_name = PendingPR
         purchaseMap['pr_number'] = purchase_number
@@ -2892,6 +2888,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         if prefix == 'false':
             prefix = ''
         purchaseMap['prefix'] = prefix
+        purchaseMap['full_pr_number'] = get_full_pr_number_from_dict(purchaseMap)
+
 
     if myDict.get('purchase_id') and not convertPRtoPO:
         # pr_number = int(myDict.get('pr_number')[0])
@@ -4549,7 +4547,7 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
-                     batch_dict=None, po_type='po', update_mrp_on_grn='false'):
+                     batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
     try:
         if not receipt_id:
             return
@@ -4657,7 +4655,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                apmc_tax=apmc_tax,
                                                                                price=grn_price,
                                                                                overall_discount=overall_discount,
-                                                                               remarks = remarks)
+                                                                               remarks = remarks,
+                                                                               grn_number=grn_number)
             temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
                                     'remarks': remarks}
             if po_type == 'st':
@@ -4724,7 +4723,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                    price=grn_price,
                                                                                    apmc_tax=apmc_tax,
                                                                                    overall_discount=overall_discount,
-                                                                                   remarks = remarks)
+                                                                                   remarks = remarks,
+                                                                                   grn_number=grn_number)
                 seller_received_list.append(
                     {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                      'id': seller_po_summary.id, 'remarks': remarks})
@@ -4815,6 +4815,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     all_data = OrderedDict()
     po_new_data = OrderedDict()
     seller_receipt_id = 0
+    grn_number = 0
     po_data = []
     status_msg = ''
     data_dict = ''
@@ -5005,12 +5006,14 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                     seller_receipt_id = get_seller_receipt_id(data)
                 else:
                     seller_receipt_id = get_st_seller_receipt_id(data)
-
+            if not grn_number:
+                grn_number = get_full_grn_number(user)
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
                                                     dc_level_grn=dc_level_grn, round_off_total=round_off_total,
-                                                    batch_dict=batch_dict, po_type=po_type)
+                                                    batch_dict=batch_dict, po_type=po_type,
+                                                    grn_number=grn_number)
         if 'batch_no' in myDict.keys():
             batch_dict['receipt_number'] = seller_receipt_id
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)

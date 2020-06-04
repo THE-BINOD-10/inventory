@@ -1706,7 +1706,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '',
-                      'company_id': 0, 'reference_id': ''}
+                      'company_id': 0, 'reference_id': '', 'sap_code': '', 'stockone_code': ''}
 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
@@ -2829,6 +2829,12 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
                   'SLL', 'SOS', 'SPL*', 'SRD', 'STN', 'SVC', 'SYP', 'SZL', 'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY',
                   'TTD', 'TVD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VEF', 'VND', 'VUV', 'WST', 'XAF',
                   'XCD', 'XDR', 'XOF', 'XPF', 'YER', 'ZAR', 'ZMW', 'ZWD']
+
+USER_PREFIXES_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
+                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
+                                      ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
+                                      ('Invoice Prefix', 'invoice_prefix')
+                        ))
 
 def fn_timer(function):
     @wraps(function)

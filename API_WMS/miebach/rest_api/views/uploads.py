@@ -1933,13 +1933,19 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 hot_release = 1 if (hot_release == 'enable') else 0
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in attr_dict.iteritems():
-                if attributes[attr_key] == 'Multi Input':
-                    attr_vals = attr_val.split(',')
+                if attr_val:
+                    if attributes[attr_key] == 'Multi Input':
+                        attr_vals = attr_val.split(',')
+                        allow_multiple = True
+                    else:
+                        attr_vals = [attr_val]
+                        allow_multiple = False
                 else:
-                    attr_vals = [attr_val]
-                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
-                                                        create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping,
-                                                        allow_multiple=True)
+                    attr_vals = []
+                for attr_key_val in attr_vals:
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_key_val, is_bulk_create=True,
+                                                            create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping,
+                                                            allow_multiple=allow_multiple)
 
             if ean_numbers:
                 update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
@@ -1989,7 +1995,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     attr_vals = attr_val.split(',')
                 else:
                     attr_vals = [attr_val]
-                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
+                create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
                                            create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
 
             if new_skus[sku_code].get('ean_numbers', ''):
@@ -9070,7 +9076,7 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
                     continue
                 attr_dict[attr_names[attr_ind]] = temp_data[attr_ind]
             for attr_key, attr_val in attr_dict.items():
-                create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(final_data['sku_master'], attr_key,
+                create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(final_data['sku_master'], attr_key,
                                                                                 attr_val,
                                                                                 is_bulk_create=True,
                                                                                 create_sku_attrs=create_sku_attrs,

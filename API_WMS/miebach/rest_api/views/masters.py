@@ -2048,7 +2048,7 @@ def insert_customer_sku(request, user=''):
 @login_required
 @get_admin_user
 def insert_company_master(request, user=''):
-    log.info('Add New Conpany request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Add New Company request params for ' + user.username + ' is ' + str(request.POST.dict()))
     status_msg = 'Failed'
     try:
         company_id = request.POST['id']
@@ -2075,6 +2075,7 @@ def insert_company_master(request, user=''):
             status_msg = 'Added Successfully'
 
     except Exception as e:
+        status_msg = 'Failed'
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add New Company failed for %s and params are %s and error statement is %s' % (
@@ -2873,6 +2874,7 @@ def insert_sku(request, user=''):
 
             sku_master = instanceName(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
             if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
                 send_push_notification(contents, notified_users)
@@ -4586,7 +4588,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
-        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),

@@ -33,14 +33,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
     // vm.dtColumns = vm.service.build_colums(columns);
       vm.dtColumns = [
-        DTColumnBuilder.newColumn('id').withTitle('Credit ID'),
-        DTColumnBuilder.newColumn('po_number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('grn_number').withTitle('GRN Number'),
-        DTColumnBuilder.newColumn('po_date').withTitle('PO Date'),
+        DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('invoice_qty').withTitle('Invoice Quantity'),
         DTColumnBuilder.newColumn('grn_qty').withTitle('GRN Quantity'),
         DTColumnBuilder.newColumn('credit_qty').withTitle('Credit Quantity'),
         DTColumnBuilder.newColumn('invoice_value').withTitle('Invoice Value'),
+        DTColumnBuilder.newColumn('credit_type').withTitle('Credit Type'),
         DTColumnBuilder.newColumn('credit_number').withTitle('Credit Number'),
         DTColumnBuilder.newColumn('credit_date').withTitle('Credit Date'),
       ];
@@ -72,22 +70,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               });
             } else {
               var dataDict = {
-                'po_id': aData['po_id'],
-                'prefix': aData['prefix'],
-                'receipt': aData['receipt_no']
+                'invoice_number': aData['invoice_number'],
+                'id': aData['id']
               }
               vm.service.apiCall('get_credit_note_po_data/', 'POST', dataDict).then(function(data){
                 if(data.message) {
-                  vm.grn_details_keys = ['PO Number', 'GRN Number', 'Supplier ID', 'Supplier Name', 'Order Date']
+                  vm.grn_details_keys = ['Supplier ID', 'Supplier Name', 'Invoice Number', 'Invoice Date', 'Invoice Value', 'Invoice Quantity', 'GRN Price', 'GRN Quantity']
                   vm.model_data = data.data;
                   vm.selected_id = aData.id
                   vm.model_data['GRN Number'] = aData.grn_number
+                  vm.model_data['GRN Quantity'] = aData.grn_qty
                   vm.model_data['PO Number'] = aData.po_number
                   vm.model_data['Order Date'] = aData.po_date
-                  vm.model_data['invoice_number'] = aData.invoice_number
-                  vm.model_data['invoice_date'] = aData.invoice_date
-                  vm.model_data['invoice_value'] = aData.invoice_value
-                  vm.model_data['invoice_quantity'] = aData.invoice_qty
+                  vm.model_data['credit_quantity'] = aData.credit_qty
+                  vm.model_data['Invoice Number'] = aData.invoice_number
+                  vm.model_data['Invoice Date'] = aData.invoice_date
+                  vm.model_data['Invoice Value'] = aData.invoice_value
+                  vm.model_data['Invoice Quantity'] = aData.invoice_qty
                   vm.model_data['challan_number'] = aData.challan_number
                   vm.model_data['challan_date'] = aData.challan_date
                   vm.title = "Credit Note Details";
@@ -98,7 +97,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -146,7 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = function(form) {
       if (!vm.model_data.credit_number || !vm.model_data.credit_date || !vm.model_data.credit_value) {
         Service.showNoty('Please Fill * Fields');
-      } else if ((parseInt(vm.model_data['GRN Price']) + parseInt(vm.model_data.credit_value)) != vm.model_data.invoice_value) {
+      } else if ((parseInt(vm.model_data['GRN Price']) + parseInt(vm.model_data.credit_value)) != vm.model_data['Invoice Value']) {
         Service.showNoty('Credit Note Value Does Not Match Difference Between Invoice Value & GRN Value');
       } else {
         var elem = angular.element($('form'));
@@ -161,13 +160,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
         });
+        form_data.append("credit_quantity", vm.model_data["credit_quantity"]);
         vm.service.apiCall('save_credit_note_po_data/', 'POST', form_data, true, true).then(function(data){
           if (data.data == "success"){
             Service.showNoty(data.data);
             vm.close();
             vm.reloadData();
-          } else {
+          } else if ( data.data == 'Please fill * fields') {
             Service.showNoty(data.data);
+          } else {
+            Service.showNoty('Success');
+            vm.close();
+            vm.reloadData();
           }
         })
       }

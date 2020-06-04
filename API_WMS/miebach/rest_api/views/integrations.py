@@ -858,7 +858,8 @@ def update_cancelled(orders, user='', company_name=''):
 
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
-                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list):
+                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list,
+                             create_sku_attrs, sku_attr_mapping, remove_attr_ids):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -868,7 +869,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         error_message = 'SKU Code should not be empty'
         update_error_message(failed_status, 5022, error_message, sku_data[sku_mapping['sku_desc']],
                              field_key='sku_desc')
-        return sku_master, insert_status, new_ean_objs
+        return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
     if sku_ins.exists():
         sku_master = sku_ins[0]
@@ -1002,7 +1003,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             setattr(sku_master, key, value)
 
     if sku_code in sum(insert_status.values(), []):
-        return sku_master, insert_status, new_ean_objs
+        return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
     product_type = ''
     if taxes_dict :
         product_type_dict = {}
@@ -1078,11 +1079,16 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 error_message = 'Ascii code characters Value found'
                 update_error_message(failed_status, 5033, error_message, sku_code,
                                      field_key='sku_code')
-            column_vals = [str(sku_master.id), option['name'], option['value']]
-            update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
-            date_string = 'NOW(), NOW()'
-            mysql_query_to_file(load_file, 'SKU_ATTRIBUTES', columns,
-                                column_vals, date_string=date_string, update_string=update_string)
+            create_sku_attrs, sku_attr_mapping, remove_attr_ids = \
+                            update_sku_attributes_data(sku_master, option['name'], option['value'], is_bulk_create=True,
+                                       create_sku_attrs=create_sku_attrs,
+                                       sku_attr_mapping=sku_attr_mapping, allow_multiple=False, remove_existing=True,
+                                        remove_attr_ids=remove_attr_ids)
+            # column_vals = [str(sku_master.id), option['name'], option['value']]
+            # update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
+            # date_string = 'NOW(), NOW()'
+            # mysql_query_to_file(load_file, 'SKU_ATTRIBUTES', columns,
+            #                     column_vals, date_string=date_string, update_string=update_string)
             # sku_attributes = sku_master.skuattributes_set.filter(attribute_name=option['name'])
             # if sku_attributes.exists():
             #     sku_attributes = sku_attributes[0]
@@ -1141,7 +1147,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             pass
     if update_sku_obj:
         sku_master.save()
-    return sku_master, insert_status, new_ean_objs
+    return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
 
 
 def update_skus (skus, user='', company_name=''):
@@ -1149,6 +1155,9 @@ def update_skus (skus, user='', company_name=''):
     NOW = datetime.datetime.now()
     insert_status = {'SKUS Created': [], 'SKUS updated': []}
     failed_status = OrderedDict()
+    create_sku_attrs = []
+    sku_attr_mapping = []
+    remove_attr_ids = []
     try:
         token_user = user
         sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -1194,10 +1203,12 @@ def update_skus (skus, user='', company_name=''):
         exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                               only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
         for sku_data in skus:
-            sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
+            sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids = \
+                sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
                                                                  new_ean_objs, load_file, columns, exist_sku_eans,
-                                                                               exist_ean_list)
+                                                                exist_ean_list, create_sku_attrs, sku_attr_mapping,
+                                                                remove_attr_ids)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 exist_member_ids = list(SKURelation.objects.filter(parent_sku_id=sku_master.id, relation_type='combo').\
@@ -1248,10 +1259,15 @@ def update_skus (skus, user='', company_name=''):
                 log.debug(traceback.format_exc())
                 log.info("Ean Numbers update failed")
         insert_update_brands(user)
+        if remove_attr_ids:
+            SKUAttributes.objects.filter(id__in=remove_attr_ids).delete()
+        # Bulk Create SKU Attributes
+        if create_sku_attrs:
+            SKUAttributes.objects.bulk_create(create_sku_attrs)
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
-        load_by_file(load_file_path, 'SKU_ATTRIBUTES', columns)
+        #load_by_file(load_file_path, 'SKU_ATTRIBUTES', columns)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
             create_update_sku(all_sku_masters, all_users)
         return insert_status, failed_status.values()

@@ -963,6 +963,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
+      product.fields.type = item.type;
       product.fields.asset_code = item.asset_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;

@@ -4717,7 +4717,7 @@ def search_wms_data(request, user=''):
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': master_data.measurement_type,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'type': master_data.item_type,
                        'enable_serial_based': master_data.enable_serial_based}
         if instanceName == ServiceMaster:
             asset_code = master_data.asset_code
@@ -8242,7 +8242,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                if not (no_stock_switch or allow_partial_picklist):
                     stock_status.append(str(member.sku_code))
                     continue
 
@@ -9509,12 +9510,16 @@ def allocate_order_returns(user, sku_data, request):
 
 
 def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None,
-                               sku_attr_mapping=None, allow_multiple=False):
-    if not value == '':
+                               sku_attr_mapping=None, allow_multiple=False,remove_existing=False,
+                               remove_attr_ids=None):
+    if not value == '' or remove_existing:
         sku_attr_filter = {'sku_id': data.id, 'attribute_name': key}
         if allow_multiple:
             sku_attr_filter['attribute_value'] = value
         sku_attr_obj = SKUAttributes.objects.filter(**sku_attr_filter)
+        if remove_existing:
+            remove_attr_ids = list(chain(remove_attr_ids, list(sku_attr_obj.values_list('id', flat=True))))
+            sku_attr_obj = []
         if not sku_attr_obj and value:
             if not is_bulk_create:
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
@@ -9530,16 +9535,27 @@ def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sk
                     sku_attr_mapping.append(grp_key)
         elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
             sku_attr_obj.update(attribute_value=value)
-    return create_sku_attrs, sku_attr_mapping
+    return create_sku_attrs, sku_attr_mapping, remove_attr_ids
 
 
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
             continue
+        if ',' in value:
+            allow_multiple = True
+        else:
+            allow_multiple = False
         key = key.replace('attr_', '')
+        exist_attributes = list(SKUAttributes.objects.filter(sku_id=data.id,
+                                                                 attribute_name=key). \
+                                    values_list('attribute_value', flat=True))
+        rem_list = set(exist_attributes) - set(value.split(','))
+        if rem_list:
+            SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key,
+                                         attribute_value__in=rem_list).delete()
         for val in value.split(','):
-            update_sku_attributes_data(data, key, val, allow_multiple=True)
+            update_sku_attributes_data(data, key, val, allow_multiple=allow_multiple)
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
@@ -11798,10 +11814,11 @@ def get_related_user_objs(user_id, level=0):
     users = User.objects.filter(id__in=user_ids) 
     return users
 
-def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
+
+def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key, current_user=False):
     bulk_objs = []
     sync_switch = get_misc_value(sync_key, user.id)
-    if sync_switch == 'true':
+    if sync_switch == 'true' and not current_user:
         all_user_ids = get_related_users(user.id)
     else:
         all_user_ids = [user.id]
@@ -11893,9 +11910,9 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
     return 'Uploaded Successfully'
 
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False):
     supplier_sync = get_misc_value('supplier_sync', user.id)
-    if supplier_sync == 'true':
+    if supplier_sync == 'true' and not current_user:
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
@@ -11944,3 +11961,65 @@ def internal_external_map(response, type_name=''):
     internal_id = response['__values__']['internalId']
     NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
                                          type_name=type_name)
+
+
+def insert_admin_suppliers(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    for supplier in suppliers:
+        filter_dict = {'supplier_id': supplier.supplier_id}
+        data_dict = copy.deepcopy(supplier.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        secondary_email_id = list(MasterEmailMapping.objects.filter(user=admin_user.id, master_type='supplier',
+                                                            master_id=supplier.id).values_list('email_id', flat=True))
+        sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id, current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_sku_attributes(request, user):
+    admin_user = get_admin(user)
+    if admin_user.id == user.id:
+        return "Success"
+    attributes = UserAttributes.objects.filter(user=admin_user.id)
+    for attribute in attributes:
+        filter_dict = {'attribute_name': attribute.attribute_name, 'attribute_model': attribute.attribute_model}
+        update_dict = {'attribute_type': attribute.attribute_type, 'status': 1}
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
+    return "Success"

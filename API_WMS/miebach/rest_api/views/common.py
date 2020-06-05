@@ -4727,7 +4727,7 @@ def search_wms_data(request, user=''):
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': master_data.measurement_type,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'type': master_data.item_type,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests,
                        'enable_serial_based': master_data.enable_serial_based}
         if instanceName == ServiceMaster:
             asset_code = master_data.asset_code
@@ -4736,6 +4736,8 @@ def search_wms_data(request, user=''):
             data_dict.update({'asset_code': asset_code, 
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
+        elif instanceName == OtherItemsMaster:
+            data_dict['type'] =  master_data.item_type
         total_data.append(data_dict)
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),

@@ -577,12 +577,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
       var supDetails = sup_data.supplierDetails[supplier_id_name];
-      sup_data.moq = supDetails.moq;
-      sup_data.tax = supDetails.tax;
-      sup_data.amount = supDetails.amount;
-      sup_data.unit_price = supDetails.unit_price;
-      sup_data.total = supDetails.total;
-      sup_data.supplier_id = supDetails.supplier_id;
+      if (supDetails) {
+        sup_data.moq = supDetails.moq;
+        sup_data.tax = supDetails.tax;
+        sup_data.amount = supDetails.amount;
+        sup_data.unit_price = supDetails.unit_price;
+        sup_data.total = supDetails.total;
+        sup_data.supplier_id = supDetails.supplier_id;
+      }
     }
 
     vm.send_to_parent_store = function(form) {
@@ -612,9 +614,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
-    vm.move_to_sku_supplier = function (sku) {
+    vm.move_to_sku_supplier = function (sku, lineItem) {
       vm.display_vision = {'display': 'none'};
-      var data = {'sku_code': sku};
+      var data = {'sku_code': sku, };
       var modalInstance = $modal.open({
         templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
         controller: 'skuSupplierCtrl',
@@ -629,6 +631,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
       modalInstance.result.then(function (selectedItem) {
+        lineItem.is_doa_sent = true;
         vm.display_vision = {'display': 'block'};
         console.log(selectedItem);
       });

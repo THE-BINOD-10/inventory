@@ -3258,7 +3258,7 @@ def get_pr_preview_data(request, user=''):
                                 sku__user=user.id).order_by('preference')
         if not supplierMappings.exists():
             is_doa_sent = MastersDOA.objects.filter(doa_status='pending', 
-                    model_name='SKUSupplier', requested_user=request.user, 
+                    model_name='SKUSupplier', requested_user=user, 
                     json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
             if is_doa_sent.exists():
                 reqLineMap['is_doa_sent'] = True

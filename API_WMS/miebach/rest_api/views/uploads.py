@@ -9217,7 +9217,6 @@ def save_user_prefixes(data_list):
                 if exist_obj:
                     exist_obj.update(prefix=val)
                 else:
-                    prefix_dict['value'] = 1
                     prefix_dict['prefix'] = val
                     new_obj = UserPrefixes(**prefix_dict)
                     new_obj.save()

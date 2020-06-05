@@ -1,4 +1,4 @@
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision">
   <form name="form" role="form">
     <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
       <!-- Modal content-->
@@ -19,8 +19,8 @@
                             ng-change="showCase.customSelectAll(showCase.allSelected)">
                   </th>
                   <!-- <th>Checkbox</th> -->
-
                   <th>Supplier Id/Name</th>
+                  <th></th>
                   <th>PR Number</th>
                   <th>SKU Code</th>
                   <th>SKU Desc</th>
@@ -45,6 +45,10 @@
                       value="{{supplier_id_name}}">{{supplier_id_name}}
                       </option>
                     </select>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning" ng-if="data.supplier_id_name">+</span>
+                    <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(data.sku_code)" ng-if="!data.supplier_id_name" style="cursor: pointer;">+</span>
                   </td>
                   <td>
                     {{data.pr_number}}

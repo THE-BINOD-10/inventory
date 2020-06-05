@@ -1909,6 +1909,12 @@ def switches(request, user=''):
                 data[0].save()
             if toggle_field == 'sku_sync' and value == 'true':
                 insert_skus(user.id)
+            elif toggle_field == 'supplier_sync' and value == 'true':
+                insert_admin_suppliers(request, user)
+            elif toggle_field == 'tax_master_sync' and value == 'true':
+                insert_admin_tax_master(request, user)
+            elif toggle_field == 'attributes_sync' and value == 'true':
+                insert_admin_sku_attributes(request, user)
             elif toggle_field == 'increment_invoice' and value == 'true':
                 InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='',
                                                       defaults={'status': 1, 'prefix': '',
@@ -1953,10 +1959,6 @@ def confirm_po(request, user=''):
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
-    po_id = get_purchase_order_id(user)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
-    if po_sub_user_prefix == 'true':
-        po_id = update_po_order_prefix(request.user, po_id)
     terms_condition = request.POST.get('terms_condition', '')
     ids_dict = {}
     po_data = []
@@ -1971,6 +1973,10 @@ def confirm_po(request, user=''):
         ean_flag = True
     all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
 
+    sku_code = all_data.keys()[0]
+    po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+    if inc_status:
+        return HttpResponse("Prefix not defined")
     if industry_type == 'FMCG':
         table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -2084,17 +2090,13 @@ def confirm_po(request, user=''):
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id
         supplier = purchase_order.supplier_id
-        if supplier not in ids_dict:
-            po_id = po_id + 1
-            ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
-        data['order_id'] = ids_dict[supplier]
+        data['order_id'] = po_id
         data['ship_to'] = value['ship_to']
         user_profile = UserProfile.objects.filter(user_id=user.id)
-        if user_profile:
-            data['prefix'] = user_profile[0].prefix
+        data['prefix'] = prefix
+        data['po_number'] = full_po_number
         order = PurchaseOrder(**data)
-        order.po_number = get_po_reference(order)
         order.save()
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
@@ -2163,7 +2165,7 @@ def confirm_po(request, user=''):
     supplier_email_id.insert(0,supplier_email)
     supplier_email_id.extend(secondary_supplier_email)
     gstin_no = purchase_order.supplier.tin_number
-    order_id = ids_dict[supplier]
+    order_id = po_id
     order_date = get_local_date(request.user, order.creation_date)
     vendor_name = ''
     vendor_address = ''
@@ -2174,7 +2176,7 @@ def confirm_po(request, user=''):
         vendor_name = purchase_order.vendor.name
         vendor_telephone = purchase_order.vendor.phone_number
 
-    po_reference = '%s%s_%s' % (order.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+    po_reference = order.po_number
 
     profile = UserProfile.objects.get(user=user.id)
 
@@ -2214,9 +2216,6 @@ def confirm_po(request, user=''):
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
     user_profile = UserProfile.objects.filter(user_id=user.id)
-    check_prefix = ''
-    if user_profile:
-        check_prefix = user_profile[0].prefix
     check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -2602,6 +2601,7 @@ def generateHashCodeForMail(prObj, mailId):
 
 def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True, central_po_data=None):
     from mail_server import send_mail
+    subject = ''
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     filtersMap = {'wh_user': user.id}
@@ -2833,7 +2833,8 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
-def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, orderStatus='pending',
+def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, prefix, full_pr_number,
+                                 orderStatus='pending',
                                     prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False, central_po_data=None):
     firstEntryValues = all_data.values()[0]
     if not firstEntryValues['pr_delivery_date']:
@@ -2869,10 +2870,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
         purchaseMap['product_category'] = firstEntryValues['product_category']
-        user_profile = UserProfile.objects.filter(user_id=user.id)
-        if user_profile:
-            purchaseMap['prefix'] = user_profile[0].prefix
-        purchaseMap['full_po_number'] = get_full_po_number_from_dict(purchaseMap)
+        purchaseMap['prefix'] = prefix
+        purchaseMap['full_po_number'] = full_pr_number
             
     else:
         model_name = PendingPR
@@ -2882,11 +2881,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         filtersMap['pr_number'] = purchase_number
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
-        prefix = get_misc_value('pending_pr_prefix', user.id)
-        if prefix == 'false':
-            prefix = ''
         purchaseMap['prefix'] = prefix
-        purchaseMap['full_pr_number'] = get_full_pr_number_from_dict(purchaseMap)
+        purchaseMap['full_pr_number'] = full_pr_number
 
 
     if myDict.get('purchase_id') and not convertPRtoPO:
@@ -3018,7 +3014,11 @@ def convert_pr_to_po(request, user=''):
                 prIdSkusMap.setdefault(pr_id, []).append(sku_code)
 
         for supplier, all_skus in supplierSKUMapping.items():
-            po_id = get_incremental(user, 'po', default_val=1)
+            sku_code = all_skus[0]
+            po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix',
+                                                                                                  sku_code)
+            if inc_status:
+                return HttpResponse("Prefix not defined")
             shipments = user.useraddresses_set.filter(address_type='Shipment Address').values()
             if shipments.exists():
                 shipToAddress = shipments[0]['address']
@@ -3036,9 +3036,8 @@ def convert_pr_to_po(request, user=''):
                 'product_category': existingPRObjs[0].product_category,
             }
             purchaseMap['po_number'] = po_id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
-            if user_profile:
-                purchaseMap['prefix'] = user_profile[0].prefix
+            purchaseMap['prefix'] = prefix
+            purchaseMap['full_po_number'] = full_po_number
             if supplier:
                 supplyObj = SupplierMaster.objects.get(user=user.id, supplier_id=supplier)
                 purchaseMap['supplier_id'] = supplyObj.id
@@ -3315,9 +3314,14 @@ def add_pr(request, user=''):
     urlPath = request.META.get('HTTP_ORIGIN')
     try:
         reversion.set_user(request.user)
+        check_prefix = ''
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         central_po_data = ''
         myDict = dict(request.POST.iterlists())
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        product_category = 'Kits&Consumables'
+        if myDict.get('product_category'):
+            product_category = myDict.get('product_category')[0]
         is_resubmitted = False
         if myDict.get('is_resubmitted'):
             is_resubmitted = myDict.get('is_resubmitted')[0]
@@ -3334,16 +3338,27 @@ def add_pr(request, user=''):
         if myDict.get('purchase_id'):
             pr_id = myDict.get('purchase_id')[0]
             if is_actual_pr == 'true':
-                pr_number = PendingPR.objects.get(id=pr_id).pr_number
+                pend_pr = PendingPR.objects.get(id=pr_id)
+                pr_number = pend_pr.pr_number
+                prefix = pend_pr.prefix
+                full_pr_number = pend_pr.full_pr_number
             else:
-                pr_number = PendingPO.objects.get(id=pr_id).po_number
+                pend_po = PendingPO.objects.get(id=pr_id)
+                pr_number = pend_po.po_number
+                prefix = pend_po.prefix
+                full_pr_number = pend_po.full_po_number
             # pr_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':
-                pr_number = get_incremental(user, 'ActualPurchaseRequest')
+                sku_code = all_data.keys()[0]
+                pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'pr_prefix', sku_code)
+                if inc_status:
+                    return HttpResponse("Prefix not defined")
             else:
-                # pr_number = get_incremental(user, 'PurchaseRequest')
-                pr_number = get_incremental(user, 'po', default_val=1)
+                sku_code = all_data.keys()[0]
+                pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                if inc_status:
+                    return HttpResponse("Prefix not defined")
         if is_actual_pr == 'true':
             master_type = 'actual_pr_approvals_conf_data'
             mailSub = 'pr_created'
@@ -3351,15 +3366,12 @@ def add_pr(request, user=''):
         else:
             master_type = 'pr_approvals_conf_data'
             mailSub = 'po_created'
-        product_category = 'Kits&Consumables'
-        if myDict.get('product_category'):
-            product_category = myDict.get('product_category')[0]
 
-        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         mailsList = []
         if is_actual_pr == 'true':
-            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel)
+            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                                                                 prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category)
             if not reqConfigName:
@@ -3378,7 +3390,8 @@ def add_pr(request, user=''):
                         sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
             totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number,
-                                        baseLevel, is_po_creation=True, central_po_data=central_po_data)
+                                        baseLevel, prefix, full_pr_number, is_po_creation=True,
+                                                                 central_po_data=central_po_data)
             admin_user = None
             if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
                 userQs = UserGroups.objects.filter(user=user)
@@ -3432,6 +3445,7 @@ def save_pr(request, user=''):
             is_actual_pr = 'false'
             reversion.set_comment("SavePendingPO")
 
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         if myDict.get('purchase_id'):
             pr_id = myDict.get('purchase_id')[0]
             if is_actual_pr == 'true':
@@ -3440,21 +3454,29 @@ def save_pr(request, user=''):
                 purchase_number = PendingPO.objects.get(id=pr_id).po_number
         else:
             if is_actual_pr == 'true':
-                purchase_number = get_incremental(user, 'ActualPurchaseRequest')
+                sku_code = all_data.keys()[0]
+                purchase_number, prefix, full_purchase_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'pr_prefix', sku_code)
+                if inc_status:
+                    return HttpResponse("Prefix not defined")
+                #purchase_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
-                purchase_number = get_purchase_order_id(user)
+                sku_code = all_data.keys()[0]
+                purchase_number, prefix, full_purchase_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                if inc_status:
+                    return HttpResponse("Prefix not defined")
         supplier = myDict.get('supplier_id', '')
         if supplier:
             supplier = supplier[0]#SupplierMaster.objects.get(user=user.id, supplier_id=supplier[0]).id
 
-        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = 'level0'
         orderStatus = 'saved'
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel, orderStatus=orderStatus)
+            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
+                                         prefix, full_purchase_number, orderStatus=orderStatus)
         else:
             createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
-                    orderStatus=orderStatus, is_po_creation=True, supplier=supplier)
+                                         prefix, full_purchase_number, orderStatus=orderStatus, is_po_creation=True,
+                                         supplier=supplier)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5056,7 +5078,9 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 else:
                     seller_receipt_id = get_st_seller_receipt_id(data)
             if not grn_number:
-                grn_number = get_full_grn_number(user)
+                sku_code = SKUMaster.objects.filter(user=user.id, sku_code=myDict['wms_code'][i].upper())[0].sku_code
+                grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, 'grn_prefix',
+                                                                                                      sku_code)
             seller_received_list = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
@@ -5240,6 +5264,19 @@ def purchase_order_qc(user, sku_details, order_id, validation_status, wms_code='
                         dispatch_checklist.save()
 
 
+def validate_grn_wms(user, myDict):
+    status_msg = ''
+    for i in range(0, len(myDict['wms_code'])):
+        if myDict['wms_code'][i]:
+            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+            if not sku_master:
+                if not status_msg:
+                    status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
+                else:
+                    status_msg += ',' + myDict['wms_code'][i]
+    return status_msg
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -5296,6 +5333,9 @@ def confirm_grn(request, confirm_returns='', user=''):
         myDict = confirm_returns
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
+        wms_validation_status = validate_grn_wms(user, myDict)
+        if wms_validation_status:
+            return HttpResponse(wms_validation_status)
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
         for key, value in all_data.iteritems():
@@ -7468,40 +7508,43 @@ def confirm_add_po(request, sales_data='', user=''):
     is_purchase_request = request.POST.get('is_purchase_request', '')
     po_id = ''
     prQs = ''
-    if is_purchase_request == 'true':
-        pr_number = int(request.POST.get('pr_number'))
-        prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
-        if prQs:
-            prObj = prQs[0]
-            po_creation_date = prObj.creation_date
-            po_id = prObj.po_number
-            po_order_id = prObj.po_number
-            delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
-            product_category = prObj.product_category
-
-    if not po_id:
-        if not sales_data:
-            po_id = get_purchase_order_id(user)
-            if po_sub_user_prefix == 'true':
-                po_id = update_po_order_prefix(request.user, po_id)
-        else:
-            if sales_data['po_order_id'] == '':
-                po_id = get_purchase_order_id(user)
-                if po_sub_user_prefix == 'true':
-                    po_id = update_po_order_prefix(request.user, po_id)
-            else:
-                po_id = int(sales_data['po_order_id'])
-                po_order_id = int(sales_data['po_order_id'])
-    ids_dict = {}
-    po_data = []
-    total = 0
-    total_qty = 0
-    supplier_code = ''
-    if not sales_data:
-        myDict = dict(request.POST.iterlists())
-    else:
-        myDict = sales_data
+    check_prefix = ''
     try:
+        if is_purchase_request == 'true':
+            pr_number = int(request.POST.get('pr_number'))
+            prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
+            if prQs:
+                prObj = prQs[0]
+                po_creation_date = prObj.creation_date
+                po_id = prObj.po_number
+                full_po_number = prObj.full_po_number
+                prefix = prObj.prefix
+                delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
+                product_category = prObj.product_category
+        if not sales_data:
+            myDict = dict(request.POST.iterlists())
+        else:
+            myDict = sales_data
+        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
+        if not po_id:
+            if not sales_data:
+                sku_code = all_data.keys()[0]
+                po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                if inc_status:
+                    return HttpResponse("Prefix not defined")
+            else:
+                if sales_data['po_order_id'] == '':
+                    sku_code = all_data.keys()[0]
+                    po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                    if inc_status:
+                        return HttpResponse("Prefix not defined")
+                else:
+                    po_id = int(sales_data['po_order_id'])
+        ids_dict = {}
+        po_data = []
+        total = 0
+        total_qty = 0
+        supplier_code = ''
         log.info('Request params for Confirm Add Po for ' + user.username + ' is ' + str(myDict))
         user_profile = UserProfile.objects.filter(user_id=user.id)
         industry_type = user_profile[0].industry_type
@@ -7512,7 +7555,6 @@ def confirm_add_po(request, sales_data='', user=''):
             if ean_data[0].block_options == 'PO':
                 return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
-        all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         if industry_type == 'FMCG':
             table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -7617,22 +7659,14 @@ def confirm_add_po(request, sales_data='', user=''):
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id
             supplier = purchase_order.supplier_id
-            if supplier not in ids_dict and not po_order_id:
-                po_id = po_id + 1
-                ids_dict[supplier] = po_id
-            if po_order_id:
-                ids_dict[supplier] = po_id
             data['open_po_id'] = sup_id
-            data['order_id'] = ids_dict[supplier]
-            #data['ship_to'] = value['ship_to']
-            if user_profile:
-                data['prefix'] = user_profile[0].prefix
+            data['order_id'] = int(po_id)
+            data['prefix'] = prefix
+            data['po_number'] = full_po_number
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
-
             order = PurchaseOrder(**data)
-            order.po_number = get_po_reference(order)
             order.save()
             if po_creation_date:
                 PurchaseOrder.objects.filter(id=order.id).update(creation_date=po_creation_date, updation_date=po_creation_date)
@@ -7707,16 +7741,10 @@ def confirm_add_po(request, sales_data='', user=''):
                         order_id = get_order_id(actUserId)
                     createSalesOrderAtLevelOneWarehouse(user, po_suggestions, order_id)
             if sales_data and not status:
-                check_prefix = ''
-                if user_profile:
-                    check_prefix = user_profile[0].prefix
                 check_purchase_order_created(user, po_id, check_prefix)
                 return HttpResponse(str(order.id) + ',' + str(order.order_id))
         if status and not suggestion:
             user_profile = UserProfile.objects.filter(user_id=user.id)
-            check_prefix = ''
-            if user_profile:
-                check_prefix = user_profile[0].prefix
             check_purchase_order_created(user, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
@@ -7751,7 +7779,7 @@ def confirm_add_po(request, sales_data='', user=''):
             vendor_telephone = purchase_order.vendor.phone_number
         telephone = purchase_order.supplier.phone_number
         name = purchase_order.supplier.name
-        order_id = ids_dict[supplier]
+        order_id = po_id
         supplier_email = purchase_order.supplier.email_id
         secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
         supplier_email_id =[]
@@ -7816,9 +7844,6 @@ def confirm_add_po(request, sales_data='', user=''):
                 write_and_mail_pdf(po_number, rendered, request, user, supplier_email, phone_no, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
         user_profile = UserProfile.objects.filter(user_id=user.id)
-        check_prefix = ''
-        if user_profile:
-            check_prefix = user_profile[0].prefix
         check_purchase_order_created(user, po_id, check_prefix)
 
     except Exception as e:
@@ -7988,6 +8013,7 @@ def confirm_po1(request, user=''):
     industry_type = user.userprofile.industry_type
     show_cess_tax = False
     show_apmc_tax = False
+    check_prefix = ''
     for key, value in myDict.iteritems():
         for val in value:
             open_pos = OpenPO.objects.filter(supplier__supplier_id=val, status__in=['Manual', 'Automated', ''],
@@ -8040,18 +8066,17 @@ def confirm_po1(request, user=''):
                 data_id = purchase_order.id
                 supplier = purchase_order.supplier_id
                 if supplier not in ids_dict:
-                    po_id = get_purchase_order_id(user) + 1
-                    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
-                    if po_sub_user_prefix == 'true':
-                        po_id = update_po_order_prefix(request.user, po_id)
-                    ids_dict[supplier] = po_id
+                    sku_code = purchase_order.sku.sku_code
+                    po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                    if inc_status:
+                        return HttpResponse("Prefix not defined")
+                    ids_dict[supplier] = {'po_id': po_id, 'prefix': prefix, 'po_number': full_po_number}
                 data['open_po_id'] = data_id
-                data['order_id'] = ids_dict[supplier]
+                data['order_id'] = ids_dict[supplier]['po_id']
                 user_profile = UserProfile.objects.filter(user_id=user.id)
-                if user_profile:
-                    data['prefix'] = user_profile[0].prefix
+                data['prefix'] = ids_dict[supplier]['prefix']
+                data['po_number'] = ids_dict[supplier]['po_number']
                 order = PurchaseOrder(**data)
-                order.po_number = get_po_reference(order)
                 order.save()
 
                 amount = float(purchase_order.order_quantity) * float(purchase_order.price)
@@ -8131,13 +8156,13 @@ def confirm_po1(request, user=''):
                     vendor_telephone = purchase_orders[0].vendor.phone_number
                 terms_condition = purchase_orders[0].terms
             wh_telephone = user.userprofile.wh_phone_number
-            order_id = ids_dict[supplier]
+            order_id = ids_dict[supplier]['po_id']
             order_date = get_local_date(request.user, order.creation_date)
             vendor_name = ''
             vendor_address = ''
             vendor_telephone = ''
             profile = UserProfile.objects.get(user=user.id)
-            po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
+            po_reference = ids_dict[supplier]['po_number']
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
             if industry_type == 'FMCG':
                 table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
@@ -8181,9 +8206,6 @@ def confirm_po1(request, user=''):
                                    str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email_id, str(telephone), po_data, str(order_date).split(' ')[0], ean_flag=ean_flag, data_dict_po=data_dict_po, full_order_date=str(order_date))
     user_profile = UserProfile.objects.filter(user_id=user.id)
-    check_prefix = ''
-    if user_profile:
-        check_prefix = user_profile[0].prefix
     check_purchase_order_created(user, po_id, check_prefix)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -10729,9 +10751,9 @@ def update_poc(request, user=''):
                     purchase_dict = {"order_id": order_id, "received_quantity": quantity,
                                      "saved_quantity": 0, "po_date": datetime.datetime.now(),
                                      "status": seller_po_summary_obj[0].purchase_order.status,
-                                     "open_po_id": open_po_obj.id}
+                                     "open_po_id": open_po_obj.id, "prefix": seller_po_summary_obj[0].purchase_order.prefix,
+                                     "po_number": seller_po_summary_obj[0].purchase_order.po_number}
                     purchase_order_obj = PurchaseOrder(**purchase_dict)
-                    purchase_order_obj.po_number = get_po_reference(purchase_order_obj)
                     purchase_order_obj.save()
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
@@ -10852,9 +10874,10 @@ def update_po_invoice(request, user=''):
                     purchase_dict = {"order_id": order_id, "received_quantity": quantity,
                                      "saved_quantity": 0, "po_date": datetime.datetime.now(),
                                      "status": seller_po_summary_obj[0].purchase_order.status,
-                                     "open_po_id": open_po_obj.id}
+                                     "open_po_id": open_po_obj.id,
+                                     "prefix": seller_po_summary_obj[0].purchase_order.prefix,
+                                     "po_number": seller_po_summary_obj[0].purchase_order.po_number}
                     purchase_order_obj = PurchaseOrder(**purchase_dict)
-                    purchase_order_obj.po_number = get_po_reference(purchase_order_obj)
                     purchase_order_obj.save()
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
@@ -11399,14 +11422,15 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                             purchase_order__open_po__sku__user=user.id, **search_params). \
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                  'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
-                 'quantity', 'purchase_order__creation_date').order_by(order_data).distinct()
+                 'quantity', 'purchase_order__creation_date', 'grn_number').order_by(order_data).distinct()
 
     elif order_term:
         db_results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
                                             filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
-                   'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price').order_by(order_data).distinct()
+                   'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price',
+                    'grn_number').order_by(order_data).distinct()
 
     grouping_data = OrderedDict()
     for result in db_results:
@@ -11421,7 +11445,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 'invoice_date': result.invoice_date,
                                                 'challan_date': result.challan_date,
                                                 'total': 0, 'purchase_order_date': result.purchase_order.creation_date.date(),
-                                                'seller_summary_objs': []})
+                                                'seller_summary_objs': [],
+                                                'grn_number': result.grn_number })
         grouping_data[grouping_key]['total'] += result.quantity
         grouping_data[grouping_key]['seller_summary_objs'].append(result)
     temp_data['recordsTotal'] = len(grouping_data.keys())
@@ -11431,7 +11456,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     for result in grouping_data.values()[start_index: stop_index]:
         rem_quantity = 0
         purchase_order = result['seller_summary_objs'][0].purchase_order
-        order_reference = purchase_order.po_number
+        order_reference = result['grn_number']
         open_po = purchase_order.open_po
         data_id = '%s:%s' % (purchase_order.order_id, result.get('invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
@@ -11465,7 +11490,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id), ('prefix', result['prefix']),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Supplier Name', result['supplier_name']),
-                                                ('PO Number', order_reference), ('PO Date', po_date),
+                                                ('GRN Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
@@ -11488,6 +11513,7 @@ def get_po_putaway_summary(request, user=''):
         return HttpResponse("No Data found")
     po_reference = seller_summary_objs[0].purchase_order.po_number #get_po_reference(seller_summary_objs[0].purchase_order)
     invoice_number = seller_summary_objs[0].invoice_number
+    grn_number = seller_summary_objs[0].grn_number
     invoice_date = get_local_date(user, seller_summary_objs[0].creation_date, send_date=True).strftime("%d %b, %Y")
     if seller_summary_objs[0].invoice_date:
         invoice_date = seller_summary_objs[0].invoice_date.strftime("%d %b, %Y")
@@ -11545,7 +11571,8 @@ def get_po_putaway_summary(request, user=''):
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
                                     'remarks': remarks, 'seller_details': seller_details,
-                                    'invoice_number': invoice_number, 'invoice_date': invoice_date, 'rtv_reasons':rtv_reasons}))
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date,
+                                    'rtv_reasons':rtv_reasons, 'grn_number': grn_number}))
 
 def get_debit_note_data(rtv_number, user):
     return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
@@ -11655,7 +11682,7 @@ def get_debit_note_data(rtv_number, user):
         total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
         total_cess_value = total_cess_value + data_dict_item['cess_value']
         total_apmc_value = total_cess_value + data_dict_item['apmc_value']
-        data_dict['grn_no'] = obj.seller_po_summary.purchase_order.po_number + '/' + str(obj.seller_po_summary.receipt_number)
+        data_dict['grn_no'] = obj.seller_po_summary.grn_number #obj.seller_po_summary.purchase_order.po_number + '/' + str(obj.seller_po_summary.receipt_number)
         data_dict['item_details'].append(data_dict_item)
     data_dict['total_qty'] = total_qty
     data_dict['total_without_discount'] = total_without_discount
@@ -12589,17 +12616,13 @@ def confirm_central_po(request, user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     warehouse_name = request.POST.get('warehouse_name', '')
     warehouse = User.objects.get(username=warehouse_name)
-    po_id = get_purchase_order_id(warehouse)
-    po_sub_user_prefix = get_misc_value('po_sub_user_prefix', warehouse.id)
-    if po_sub_user_prefix == 'true':
-        po_id = update_po_order_prefix(request.user, po_id)
 
     ids_dict = {}
     po_data = []
     total = 0
     total_qty = 0
     supplier_code = ''
-
+    check_prefix = ''
     try:
         myDict = dict(request.POST.iterlists())
         create_log_message(log, request.user, user, 'Central PO', myDict)
@@ -12609,7 +12632,10 @@ def confirm_central_po(request, user=''):
             ean_flag = True
 
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
-
+        sku_code = all_data.keys()[0]
+        po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+        if inc_status:
+            return HttpResponse("Prefix not defined")
         exist_supplier_id = all_data.values()[0]['supplier_id']
         supplier_id = check_and_create_supplier_wh_mapping(user, warehouse, exist_supplier_id)
         user_profile = warehouse.userprofile
@@ -12680,18 +12706,18 @@ def confirm_central_po(request, user=''):
             purchase_order = data1
             sup_id = purchase_order.id
             supplier = purchase_order.supplier_id
-            if supplier not in ids_dict and not po_order_id:
-                po_id = po_id + 1
-                ids_dict[supplier] = po_id
-            if po_order_id:
-                ids_dict[supplier] = po_id
+            # if supplier not in ids_dict and not po_order_id:
+            #     po_id = po_id + 1
+            #     ids_dict[supplier] = po_id
+            # if po_order_id:
+            #     ids_dict[supplier] = po_id
             data['open_po_id'] = sup_id
-            data['order_id'] = ids_dict[supplier]
+            data['order_id'] = po_id
             #data['ship_to'] = value['ship_to']
             industry_type = user_profile.industry_type
-            data['prefix'] = user_profile.prefix
+            data['prefix'] = prefix
+            data['po_number'] = full_po_number
             order = PurchaseOrder(**data)
-            order.po_number = get_po_reference(order)
             order.save()
             if value['sellers']:
                 for seller, seller_quan in value['sellers'].iteritems():
@@ -12745,9 +12771,6 @@ def confirm_central_po(request, user=''):
             setattr(suggestion, 'status', 0)
             suggestion.save()
         if status and not suggestion:
-            check_prefix = ''
-            if warehouse.userprofile:
-                check_prefix = warehouse.userprofile.prefix
             check_purchase_order_created(warehouse, po_id, check_prefix)
             return HttpResponse(status)
         address = purchase_order.supplier.address
@@ -12774,7 +12797,7 @@ def confirm_central_po(request, user=''):
             expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
         else:
             expiry_date = ''
-        po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+        po_reference = order.po_number
         if industry_type == 'FMCG':
             table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
@@ -13000,8 +13023,8 @@ def get_credit_note_po_data(request, user=''):
                                 purchase_order__order_id=record['purchase_order__order_id'], purchase_order__prefix=record['purchase_order__prefix'])
             order_receipt_mumber, order_po_number = '', ''
             if purchase_order_data.exists():
-                po_number = get_po_reference(purchase_order_data[0].purchase_order)
-                grn_number = "%s/%s" %(po_number, purchase_order_data[0].receipt_number)
+                po_number = purchase_order_data[0].purchase_order.po_number #get_po_reference(purchase_order_data[0].purchase_order)
+                grn_number = purchase_order_data[0].grn_number#"%s/%s" %(po_number, purchase_order_data[0].receipt_number)
                 po_date = get_local_date(user, purchase_order_data[0].purchase_order.creation_date, True)
                 po_date = po_date.strftime("%d %b, %Y")
                 po_dict={
@@ -13105,6 +13128,8 @@ def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_i
             po_creation_date = prObj.creation_date
             po_id = prObj.po_number
             po_order_id = prObj.po_number
+            prefix = prObj.prefix
+            po_number = prObj.full_po_number
             delivery_date = prObj.delivery_date.strftime('%d-%m-%Y')
     ids_dict = {}
     po_data = []
@@ -13223,13 +13248,12 @@ def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_i
             data['open_po_id'] = sup_id
             data['order_id'] = po_id
             #data['ship_to'] = value['ship_to']
-            if user_profile:
-                data['prefix'] = po_prefix
+            data['prefix'] = prefix
+            data['po_number'] = po_number
             # if po_creation_date:  #Update is not happening when auto_add_now is enabled.
             #     data['creation_date'] = po_creation_date
             #     data['updation_date'] = po_creation_date
             order = PurchaseOrder(**data)
-            order.po_number = get_po_reference(order)
             order.save()
             if po_creation_date:
                 PurchaseOrder.objects.filter(id=order.id).update(creation_date=po_creation_date, updation_date=po_creation_date)

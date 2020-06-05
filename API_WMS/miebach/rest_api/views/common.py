@@ -1940,14 +1940,21 @@ def auto_po(wms_codes, user):
                         po.status = 0
                         po.save()
                         user_obj = User.objects.get(id=user)
-                        po_order_id = get_purchase_order_id(user_obj) + 1
-                        if po_sub_user_prefix == 'true':
-                            po_order_id = update_po_order_prefix(user_obj, po_order_id)
+                        sku_code = po.sku.sku_code
+                        po_order_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user,
+                                                                                                              'po_prefix',
+                                                                                                              sku_code)
+                        if inc_status:
+                            return HttpResponse("Prefix not defined")
+                        # po_order_id = get_purchase_order_id(user_obj) + 1
+                        # if po_sub_user_prefix == 'true':
+                        #     po_order_id = update_po_order_prefix(user_obj, po_order_id)
                         user_profile = UserProfile.objects.get(user_id=sku.user)
                         new_po_dict = {'open_po_id': po.id, 'order_id': po_order_id, 'status': '',
                                         'received_quantity': 0, 'po_date': datetime.datetime.now(),
-                                        'prefix': user_profile.prefix,
-                                        'creation_date': datetime.datetime.now()}
+                                        'prefix': prefix,
+                                        'creation_date': datetime.datetime.now(),
+                                       'po_number': full_po_number}
                         new_po = PurchaseOrder(**new_po_dict)
                         new_po.po_number = get_po_reference(new_po)
                         new_po.save()
@@ -4780,6 +4787,12 @@ def get_admin(user):
         admin_user = is_admin_exists[0].admin_user
     else:
         admin_user = user
+    return admin_user
+
+
+def get_company_admin_user(user):
+    company_id = get_company_id(user)
+    admin_user = UserProfile.objects.filter(warehouse_level=0, company_id=company_id)[0].user
     return admin_user
 
 
@@ -9207,10 +9220,15 @@ def create_order_pos(user, order_objs, admin_user=None):
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
-        po_id = get_purchase_order_id(user) + 1
-        po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
-        if po_sub_user_prefix == 'true':
-            po_id = update_po_order_prefix(user, po_id)
+        sku_code = order_objs[0].sku.sku_code
+        po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix',
+                                                                                              sku_code)
+        if inc_status:
+            return HttpResponse("Prefix not defined")
+        # po_id = get_purchase_order_id(user) + 1
+        # po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+        # if po_sub_user_prefix == 'true':
+        #     po_id = update_po_order_prefix(user, po_id)
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
@@ -9262,10 +9280,9 @@ def create_order_pos(user, order_objs, admin_user=None):
             create_po.save()
             purchase_data['open_po_id'] = create_po.id
             purchase_data['order_id'] = po_id
-            if user_profile:
-                purchase_data['prefix'] = user_profile.prefix
+            purchase_data['prefix'] = prefix
+            purchase_data['po_number'] = full_po_number
             order = PurchaseOrder(**purchase_data)
-            order.po_number = get_po_reference(order)
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
                                         creation_date=datetime.datetime.now())
@@ -9882,6 +9899,55 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 
+def get_user_prefix_incremental(user, type_name, sku_code):
+    count = 0
+    prefix = ''
+    full_number = ''
+    inc_status = ''
+    incr_type_name = ''
+    sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
+    product_category = 'Kits&Consumables'
+    try:
+        if sku.assetmaster:
+            product_category = 'Assets'
+    except:
+        pass
+    try:
+        if sku.servicemaster:
+            product_category = 'Services'
+    except:
+        pass
+    try:
+        if sku.otheritemsmaster:
+            product_category = 'OtherItems'
+    except:
+        pass
+    sku_category = sku.sku_category
+    if not sku_category:
+        sku_category = 'Default'
+    user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
+                                sku_category=sku_category)
+    if not user_prefix:
+        user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
+                                                  sku_category='Default')
+    if not user_prefix:
+        inc_status = 'Prefix not defined'
+    else:
+        user_prefix = user_prefix[0]
+        prefix = user_prefix.prefix
+        incr_type_name = '%s_%s' % (str(type_name), str(user_prefix.id))
+        count = get_incremental(user, incr_type_name, default_val=1)
+        userprofile = user.userprofile
+        store_code = userprofile.stockone_code
+        dept_code = '0000'
+        if userprofile.warehouse_level == 3 and type_name in ['pr_prefix', 'po_prefix']:
+            admin_user = get_admin(user)
+            store_code = admin_user.userprofile.stockone_code
+            dept_code = userprofile.stockone_code
+        full_number = '%s-%s-%s%s' % (prefix, store_code, dept_code, str(count).zfill(5))
+    return count, prefix, full_number, incr_type_name, inc_status
+
+
 def get_incremental(user, type_name, default_val=''):
     # custom sku counter
     if not default_val:
@@ -9898,6 +9964,7 @@ def get_incremental(user, type_name, default_val=''):
         IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
+
 
 def get_decremental(user, type_name, old_pack_ref_no):
     # custom sku counter
@@ -11986,7 +12053,7 @@ def internal_external_map(response, type_name=''):
 
 
 def insert_admin_suppliers(request, user):
-    admin_user = get_admin(user)
+    admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
     suppliers = SupplierMaster.objects.filter(user=admin_user.id)
@@ -12004,7 +12071,7 @@ def insert_admin_suppliers(request, user):
 
 
 def insert_admin_tax_master(request, user):
-    admin_user = get_admin(user)
+    admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
     taxes = TaxMaster.objects.filter(user=admin_user.id)
@@ -12020,7 +12087,7 @@ def insert_admin_tax_master(request, user):
 
 
 def insert_admin_tax_master(request, user):
-    admin_user = get_admin(user)
+    admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
     taxes = TaxMaster.objects.filter(user=admin_user.id)
@@ -12036,7 +12103,7 @@ def insert_admin_tax_master(request, user):
 
 
 def insert_admin_sku_attributes(request, user):
-    admin_user = get_admin(user)
+    admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
     attributes = UserAttributes.objects.filter(user=admin_user.id)

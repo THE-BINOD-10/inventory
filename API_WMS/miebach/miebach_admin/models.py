@@ -3874,6 +3874,8 @@ class Discrepancy(models.Model):
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
+    product_category = models.CharField(max_length=128, default='')
+    sku_category = models.CharField(max_length=128, default='')
     type_name = models.CharField(max_length=64, default='')
     prefix = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -3881,6 +3883,3 @@ class UserPrefixes(models.Model):
 
     class Meta:
         db_table = 'USER_PREFIXES'
-
-    def __unicode__(self):
-        return str(self.value)

@@ -2093,11 +2093,12 @@ def print_purchase_order_form(request, user=''):
         terms_condition = open_po.terms
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
-    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_reference = order.open_po.po_name
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
-    company_name = profile.company_name
+    company_name = profile.company.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
@@ -2140,9 +2141,10 @@ def print_purchase_order_form(request, user=''):
         'terms_condition': terms_condition,
         'total_amt_in_words': total_amt_in_words,
         'show_cess_tax': show_cess_tax,
-        'company_name': profile.company_name,
+        'company_name': profile.company.company_name,
         'location': profile.location,
         'po_reference': po_reference,
+        'po_number': po_number,
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
         'company_address': company_address

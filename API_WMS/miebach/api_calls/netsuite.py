@@ -373,8 +373,6 @@ def netsuite_create_grn(user, grn_data):
                 grnrec.createdFrom = ns.RecordRef(externalId=t_grn_data['grn_number'].split("/")[0])
                 grnrec.customFieldList =  ns.CustomFieldList([
                                                             ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]),
-                                                            # ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]),
-                                                            # ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"])
                                                             ])
                 grnrec.externalId = t_grn_data['grn_number']
                 list_dc_items.append(grnrec)

@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, $modal, Service, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -608,6 +608,28 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+    vm.move_to_sku_supplier = function (sku) {
+      vm.display_vision = {'display': 'none'};
+      var data = {'sku_code': sku};
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
+        controller: 'skuSupplierCtrl',
+        controllerAs: 'showCase',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+        vm.display_vision = {'display': 'block'};
+        console.log(selectedItem);
+      });
+    }
+    
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
@@ -1270,3 +1292,56 @@ vm.checkWHSupplierExist  = function (sup_id) {
     });
   }
 }
+
+angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.title = 'ADD SUPPLIER SKU MAPPING';
+  vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
+  vm.permissions = Session.roles.permissions;
+  vm.user_profile = Session.user_profile;
+  vm.warehouse_level = vm.user_profile.warehouse_level;
+  vm.industry_type = vm.user_profile.industry_type;
+  vm.model_data = {}
+  vm.model_data.costing_type = 'Price Based';
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  function get_warehouses() {
+    vm.service.apiCall('get_warehouse_list/').then(function(data){
+      if(data.message) {
+        data = data.data;
+        var list = [];
+        angular.forEach(data.warehouses, function(d){
+          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+        });
+        vm.warehouse_list = list;
+      }
+    });
+  }
+  get_warehouses();
+  vm.send_supplier_doa = function(form) {
+    vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
+      if(data.message) {
+        if(data.data == "Added Successfully") {
+          vm.close();
+        } else {
+          vm.service.pop_msg(data.data);
+        }
+      }
+    });
+  }
+
+  vm.get_sku_mrp = function(wms_code){
+    vm.model_data.wms_code = wms_code
+    vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
+      if(data.message) {
+        vm.model_data.mrp = data.data['mrp'];
+      }
+    })
+  }
+  vm.get_sku_mrp(vm.requestData['sku_code']);
+  vm.close = function () {
+    $modalInstance.close('data');
+  };
+});

@@ -1353,6 +1353,7 @@ def generated_actual_pr_data(request, user=''):
     pr_delivery_date = ''
     pr_created_date = ''
     validateFlag = 0
+    uploaded_file_dict = {}
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
@@ -1364,6 +1365,11 @@ def generated_actual_pr_data(request, user=''):
         current_wh_level = int(user.userprofile.warehouse_level)
         if (db_wh_level - 1) == current_wh_level:
             convertPoFlag = True
+
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
+    if master_docs.exists():
+        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                              'file_url': '/' + master_docs[0].uploaded_file.name}    
 
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
@@ -1415,7 +1421,7 @@ def generated_actual_pr_data(request, user=''):
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
-                                    'validated_users': validated_users}))
+                                    'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict}))
 
 
 @csrf_exempt
@@ -2980,6 +2986,19 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         PendingLineItems.objects.update_or_create(**pendingLineItems)
+
+    file_obj = request.FILES.get('files-0', '')
+    if file_obj:
+        master_docs_obj = MasterDocs.objects.filter(master_id=pendingPurchaseObj.id, master_type=apprType,
+                                                    user_id=user.id)
+        if not master_docs_obj:
+            upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
+        else:
+            master_docs_obj = master_docs_obj[0]
+            if os.path.exists(master_docs_obj.uploaded_file.path):
+                os.remove(master_docs_obj.uploaded_file.path)
+            master_docs_obj.uploaded_file = file_obj
+            master_docs_obj.save()
     return totalAmt, pendingPurchaseObj
 
 

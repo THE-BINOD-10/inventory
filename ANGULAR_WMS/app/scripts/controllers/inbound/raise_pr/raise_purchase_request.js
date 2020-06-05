@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "pr_created_date": data.data.pr_created_date,
                   "product_category": data.data.product_category,
                   "priority_type": data.data.priority_type,
+                  'uploaded_file_dict': data.data.uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "warehouse": data.data.warehouse,
                   "data": data.data.data,
@@ -185,6 +186,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.model_data['supplier_id_name'] = '';
           }
 
+          if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+            vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
 
@@ -728,10 +732,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
+      var form_data = new FormData();
+      var files = $(".pr_form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('save_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('save_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Saved Successfully') {
                   vm.close();
@@ -1135,10 +1148,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
+      var form_data = new FormData();
+      var files = $(".pr_form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('add_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('add_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
                   vm.close();

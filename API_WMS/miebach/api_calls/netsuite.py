@@ -28,11 +28,11 @@ today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/netsuite_integrations_' + today + '.log')
 log_err = init_logger('logs/netsuite_integration_errors.log')
 
-NS_ACCOUNT='4120343_SB1'
-NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea'
-NS_CONSUMER_SECRET='a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35'
-NS_TOKEN_KEY='e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f'
-NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
+# NS_ACCOUNT='4120343_SB1'
+# NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea'
+# NS_CONSUMER_SECRET='a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35'
+# NS_TOKEN_KEY='e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f'
+# NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
 
 def connect_tba():
     nc = NetSuiteConnection(
@@ -241,7 +241,8 @@ def netsuite_update_create_service(data, user):
         serviceitem.includeChildren = 'Y'
         # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicegroup', value=data.sku_group))
 
-        serviceitem.customFieldList = ns.CustomFieldList([ ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
+        serviceitem.customFieldList = ns.CustomFieldList([
+                                                    # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.sku_class),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=data.sku_category),
                                                       ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=2)),
                                                       # ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.mrp),
@@ -275,7 +276,8 @@ def netsuite_update_create_assetmaster(data, user):
         assetitem.includeChildren = 'Y'
         assetitem.cost = data.cost_price
         assetitem.purchaseunit = data.measurement_type
-        assetitem.customFieldList = ns.CustomFieldList([ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=4)),
+        assetitem.customFieldList = ns.CustomFieldList([
+                                                        # ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_assetcategory', value=ns.ListOrRecordRef(internalId=4)),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.sku_group),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T'),
                                                         ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.sub_category)
@@ -364,29 +366,87 @@ def netsuite_create_grn(user, grn_data):
         nc = connect_tba()
         ns = nc.raw_client
         item = []
-        grnrec = ns.ItemReceipt()
-        grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-        # grnrec.tranDate = '2020-05-25T10:47:05+05:30'
-        grnrec.tranDate = grn_data["grn_date"]
-        grnrec.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65)
-                                                      # ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="api.stockone.in/static/master_docs/GRN_1/3.pdf")
-                                                      ])
-        for idx, data in enumerate(grn_data['items']):
-            line_item = {
-            'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
-            'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
-            item.append(line_item)
-        grnrec.itemList = {'item':item}
-        grnrec.externalId = grn_data['grn_number']
-        grnrec.tranId = grn_data['grn_number']
-        data_response = ns.upsert(grnrec)
-        data_response = json.dumps(data_response.__dict__)
-        data_response = json.loads(data_response)
-
+        if("po_challan" in grn_data):
+            list_dc_items=[]
+            for t_grn_data in grn_data["dc_data"]:
+                grnrec = ns.ItemReceipt()
+                grnrec.createdFrom = ns.RecordRef(externalId=t_grn_data['grn_number'].split("/")[0])
+                grnrec.customFieldList =  ns.CustomFieldList([
+                                                            ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]),
+                                                            ])
+                grnrec.externalId = t_grn_data['grn_number']
+                list_dc_items.append(grnrec)
+            data_response =  ns.upsertList(list_dc_items)
+        elif("credit_note_approve" in grn_data):
+            grnrec = ns.ItemReceipt()
+            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['grn_number'].split("/")[0])
+            custom_field_list=[
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note', value=grn_data["url"]),
+                ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]),
+                ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"])
+            ]
+            if(grn_data["vendor_url"]):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendor_url"]))
+            grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            grnrec.externalId = grn_data['grn_number']
+            data_response = ns.upsert(grnrec)
+            data_response = json.dumps(data_response.__dict__)
+            data_response = json.loads(data_response)
+        elif("move_to_invoice" in grn_data):
+            list_invoice_items=[]
+            for t_grn_data in grn_data["invoice_data"]:
+                grnrec = ns.ItemReceipt()
+                grnrec.createdFrom = ns.RecordRef(externalId=t_grn_data['grn_number'].split("/")[0])
+                custom_field_list= []
+                if(grn_data["inv_receipt_date"]):
+                    custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
+                if(grn_data["credit_note"]=="false"):
+                    if(grn_data["invoice_number"]):
+                        custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_number"]))
+                    if(grn_data["invoice_date"]):
+                        custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+                    if grn_data["invoice_url"]:
+                        custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["invoice_url"]))
+                grnrec.customFieldList=ns.CustomFieldList(custom_field_list)
+                grnrec.externalId = t_grn_data['grn_number']
+                list_invoice_items.append(grnrec)
+            data_response =  ns.upsertList(list_invoice_items)
+        else:
+            grnrec = ns.ItemReceipt()
+            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
+            grnrec.tranDate = grn_data["grn_date"]
+            custom_field_list=[ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65),
+                                                        ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]),
+                                                        # ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="api.stockone.in/static/master_docs/GRN_1/3.pdf"),
+                                                        # ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"])
+                                                        ]
+            if((grn_data["invoice_quantity"]==grn_data["grn_qty"] and grn_data["invoice_value"]==grn_data["grn_value"]) or (grn_data["invoice_quantity"]==grn_data["grn_qty"] and grn_data["invoice_value"] < grn_data["grn_value"])):
+                if(grn_data["invoice_no"]):
+                    custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
+                if(grn_data["invoice_date"]):
+                    custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+                if grn_data["url"]:
+                    custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["url"]))
+            if(grn_data["dc_date"]):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
+            grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            for idx, data in enumerate(grn_data['items']):
+                line_item = {
+                'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+                'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
+                item.append(line_item)
+            grnrec.itemList = {'item':item}
+            grnrec.externalId = grn_data['grn_number']
+            grnrec.tranId = grn_data['grn_number']
+            data_response = ns.upsert(grnrec)
+            data_response = json.dumps(data_response.__dict__)
+            data_response = json.loads(data_response)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
+        log.info('Create GRN data failed for and error was %s' % (str(e)))
     return data_response
 
 
@@ -415,19 +475,22 @@ def netsuite_create_po(po_data, user):
 
         # purorder.location = warehouse_id
         purorder.approvalstatus = ns.RecordRef(internalId=2)
-        # purorder.subsidiary = '1'
-        # purorder.department = po_data['user_id']
+        # purorder.subsidiary = ns.RecordRef(internalId=po_data['company_id'])
+        # purorder.department = ns.RecordRef(internalId=po_data['department_id'])
         # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
         purorder.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                                                         ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                                                        ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=28))])
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_shiptoplantid', value=ns.ListOrRecordRef(internalId=po_data['store_id'])),
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['company_id'])),
+                                                        # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply']))
+                                                        ])
         for data in po_data['items']:
             line_item = {'item': ns.RecordRef(externalId=data['sku_code']), 'description': data['sku_desc'], 'rate': data['unit_price'],
-                         'quantity':data['quantity'],
+                         'quantity':data['quantity'],'location':ns.RecordRef(internalId=108),
                          'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                                                                ns.StringCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=po_data['full_pr_number'])])
+                                                                ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                          }
             item.append(line_item)
         purorder.itemList = {'item':item}

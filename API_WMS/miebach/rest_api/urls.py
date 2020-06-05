@@ -40,6 +40,7 @@ urlpatterns = [
     url(r'^insert_supplier_attribute/$', insert_supplier_attribute),
     url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
     url(r'^insert_mapping/$', insert_mapping),
+    url(r'^send_supplier_doa/$', send_supplier_doa),
     url(r'^insert_wh_mapping/$', insert_wh_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),
@@ -229,6 +230,7 @@ urlpatterns = [
     url(r'^get_credit_note_po_data/$',get_credit_note_po_data),
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
+    url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
 
 
     # Production

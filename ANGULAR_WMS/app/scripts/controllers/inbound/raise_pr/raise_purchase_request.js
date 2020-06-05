@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, $modal, Service, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -179,7 +179,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.is_resubmitted = false;
           angular.copy(empty_data, vm.model_data);
 
-          vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          if (vm.model_data.supplier_id){
+            vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          } else {
+            vm.model_data['supplier_id_name'] = '';
+          }
 
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -261,7 +265,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.pending_level = aData['LevelToBeApproved']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
-          } else if (aData['Validation Status'] == 'Store_sent'){
+          } else if (aData['Validation Status'] == 'Store_Sent'){
             $state.go('app.inbound.RaisePr.ConvertPRtoPO');
           } else if (aData['Validation Status'] == 'Saved'){
             vm.update = true;
@@ -390,6 +394,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }
+    
     vm.update_data = function (index, flag=true, plus=false, product_category='') {
       var emptylineItems = {}
       if (product_category == 'Kits&Consumables'){
@@ -521,11 +526,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.pr_to_po_preview = function(){
       vm.bt_disable = true;
       var prIds = [];
+      var firstDeptType = ''
+      var firstProdCatg = ''
 
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          prIds.push(temp['_aData']["Purchase Id"]);
+          if (firstDeptType.length == 0){
+            firstDeptType = temp['_aData']['Department Type'];
+            firstProdCatg = temp['_aData']['Product Category'];
+            prIds.push(temp['_aData']["Purchase Id"]);
+          } else {
+            if (firstDeptType != temp['_aData']['Department Type'] || firstProdCatg != temp['_aData']['Product Category']) {
+              vm.service.showNoty("Same Department/ProductCategory PRs can be consolidated");
+              prIds = [];
+            } else {
+              prIds.push(temp['_aData']["Purchase Id"]);
+            }
+          }
         }
         if(Object.keys(vm.selected).length-1 == parseInt(key)){
           var data_dict = {
@@ -535,9 +553,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.service.apiCall('get_pr_preview_data/', 'POST', data_dict, true).then(function(data){
               if(data.message){
                 vm.preview_data = data.data;
-                for(var i = 0; i < vm.preview_data.data.length; i++) {
-                  vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i].supplier_id + ":" + vm.preview_data.data[i].supplier_name;
-                }
+                // for(var i = 0; i < vm.preview_data.data.length; i++) {
+                //   vm.preview_data.data[i].supplier_id_name = vm.preview_data.data[i]['supplierDetails'][0].supplier_id + ":" + vm.preview_data.data[i]['supplierDetails'][0].supplier_name;
+                // }
                 $state.go("app.inbound.RaisePr.PRemptyPreview");
               }
             });
@@ -546,6 +564,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       });
+    }
+
+    vm.getFirstSupplier = function(data){
+      vm.getsupBasedPriceDetails(Object.keys(data.supplierDetails)[0], data)
+      return Object.keys(data.supplierDetails)[0];
+
+    }
+    vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
+      var supDetails = sup_data.supplierDetails[supplier_id_name];
+      sup_data.moq = supDetails.moq;
+      sup_data.tax = supDetails.tax;
+      sup_data.amount = supDetails.amount;
+      sup_data.unit_price = supDetails.unit_price;
+      sup_data.total = supDetails.total;
+      sup_data.supplier_id = supDetails.supplier_id;
     }
 
     vm.send_to_parent_store = function(form) {
@@ -575,19 +608,46 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+    vm.move_to_sku_supplier = function (sku) {
+      vm.display_vision = {'display': 'none'};
+      var data = {'sku_code': sku};
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
+        controller: 'skuSupplierCtrl',
+        controllerAs: 'showCase',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+        vm.display_vision = {'display': 'block'};
+        console.log(selectedItem);
+      });
+    }
+    
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
       angular.forEach(vm.preview_data.data, function(eachLineItem){
         if (eachLineItem.checkbox){
-          if (eachLineItem.moq > eachLineItem.quantity){
-            alertMsg = alertMsg + " " + eachLineItem.sku_code 
+          if (eachLineItem.product_category == 'Kits&Consumables' && 
+                (Object.keys(eachLineItem.supplierDetails).length == 0)){
+            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
           } else {
-            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-            selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-          };
+            if (eachLineItem.moq > eachLineItem.quantity){
+              alertMsg = alertMsg + " " + eachLineItem.sku_code 
+            } else {
+              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+            };
+          }
         }
       });
       if (selectedItems.length == 0){
@@ -936,6 +996,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
+      product.fields.type = item.type;
       product.fields.asset_code = item.asset_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
@@ -1231,3 +1292,56 @@ vm.checkWHSupplierExist  = function (sup_id) {
     });
   }
 }
+
+angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.title = 'ADD SUPPLIER SKU MAPPING';
+  vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
+  vm.permissions = Session.roles.permissions;
+  vm.user_profile = Session.user_profile;
+  vm.warehouse_level = vm.user_profile.warehouse_level;
+  vm.industry_type = vm.user_profile.industry_type;
+  vm.model_data = {}
+  vm.model_data.costing_type = 'Price Based';
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  function get_warehouses() {
+    vm.service.apiCall('get_warehouse_list/').then(function(data){
+      if(data.message) {
+        data = data.data;
+        var list = [];
+        angular.forEach(data.warehouses, function(d){
+          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+        });
+        vm.warehouse_list = list;
+      }
+    });
+  }
+  get_warehouses();
+  vm.send_supplier_doa = function(form) {
+    vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
+      if(data.message) {
+        if(data.data == "Added Successfully") {
+          vm.close();
+        } else {
+          vm.service.pop_msg(data.data);
+        }
+      }
+    });
+  }
+
+  vm.get_sku_mrp = function(wms_code){
+    vm.model_data.wms_code = wms_code
+    vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
+      if(data.message) {
+        vm.model_data.mrp = data.data['mrp'];
+      }
+    })
+  }
+  vm.get_sku_mrp(vm.requestData['sku_code']);
+  vm.close = function () {
+    $modalInstance.close('data');
+  };
+});

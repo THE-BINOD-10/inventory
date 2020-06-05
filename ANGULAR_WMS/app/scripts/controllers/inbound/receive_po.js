@@ -817,6 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         if (vm.permissions.receive_po_inv_value_qty_check) {
           elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+          elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
         }
         if (vm.permissions.dispatch_qc_check) {
           if (!$.isEmptyObject(vm.collect_imei_details)) {

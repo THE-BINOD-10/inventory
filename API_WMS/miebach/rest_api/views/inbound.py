@@ -3062,7 +3062,7 @@ def convert_pr_to_po(request, user=''):
                 eachPRId = existingPRObj.id
                 convertingSkus = prIdSkusMap.get(str(eachPRId))
                 if convertingSkus == list(eachPRLineItems):
-                    # existingPRObj.final_status='pr_converted_to_po'
+                    existingPRObj.final_status='pr_converted_to_po'
                     existingPRObj.save()
                 else:
                     lineItemIds = existingPRObj.pending_prlineItems.filter(sku__sku_code__in=convertingSkus).delete()

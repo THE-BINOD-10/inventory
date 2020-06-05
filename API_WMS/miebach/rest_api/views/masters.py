@@ -4971,7 +4971,7 @@ def get_company_list(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def send_supplier_doa(request, user=''):
+def send_supplier_doa(request, user=''):    
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     for key, value in request.POST.iteritems():
@@ -5008,8 +5008,19 @@ def send_supplier_doa(request, user=''):
         'json_data': json.dumps(data_dict),
         'doa_status': 'pending'
     }
-    doa_obj = MastersDOA(**doa_dict)
-    doa_obj.save()
+    if not data_dict.has_key('DT_RowId'):
+        doa_obj = MastersDOA(**doa_dict)
+        doa_obj.save()
+    else:
+        doa_dict['model_id'] = data_dict['DT_RowId']
+        doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            doa_obj.json_data = json.dumps(data_dict)
+            doa_obj.save()
+        else:
+            doa_obj = MastersDOA(**doa_dict)
+            doa_obj.save()
     return HttpResponse("Added Successfully")
 
 @csrf_exempt

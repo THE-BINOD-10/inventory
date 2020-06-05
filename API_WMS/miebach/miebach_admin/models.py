@@ -188,7 +188,7 @@ class MastersDOA(models.Model):
     id = BigAutoField(primary_key=True)
     requested_user = models.ForeignKey(User, related_name="doa_requested_user")
     wh_user = models.ForeignKey(User, related_name='doa_wh_user')
-    # model_id = models.PositiveIntegerField()
+    model_id = models.PositiveIntegerField(default=0)
     model_name = models.CharField(max_length=256, default='')
     json_data = models.TextField()
     doa_status = models.CharField(max_length=64, default='pending')

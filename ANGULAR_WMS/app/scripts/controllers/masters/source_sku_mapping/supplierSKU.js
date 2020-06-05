@@ -149,6 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.send_supplier_doa = function() {
+    vm.model_data['data-id'] = vm.model_data.DT_RowId;
     vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Added Successfully") {

@@ -735,11 +735,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
-      var form_data = new FormData();
-      var files = $(".pr_form").find('[name="files"]')[0].files;
-      $.each(files, function(i, file) {
-        form_data.append('files-' + i, file);
+
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
       });
+
+
+      var form_data = new FormData();
+      if(product_category != "Kits&Consumables") {
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });  
+      }
+      // var files = $(".pr_form").find('[name="files"]')[0].files;
+      // $.each(files, function(i, file) {
+      //   form_data.append('files-' + i, file);
+      // });
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -1151,11 +1166,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
-      var form_data = new FormData();
-      var files = $(".pr_form").find('[name="files"]')[0].files;
-      $.each(files, function(i, file) {
-        form_data.append('files-' + i, file);
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
       });
+
+      var form_data = new FormData();
+      if (product_category != "Kits&Consumables"){
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });

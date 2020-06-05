@@ -2620,11 +2620,11 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
     if poFor:
         model_name = PendingPO
         filtersMap['po_number'] = pr_number
-        purchaseNumber = 'po_number'
+        purchaseNumber = 'full_po_number'
     else:
         model_name = PendingPR
         filtersMap['pr_number'] = pr_number
-        purchaseNumber = 'pr_number'
+        purchaseNumber = 'full_pr_number'
     openPurchaseQs = model_name.objects.filter(**filtersMap)
     if openPurchaseQs.exists():
         openPurchaseObj = openPurchaseQs[0]
@@ -2637,7 +2637,8 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         result = openPurchaseQs[0]
         # prefix = lineItems.values()[0]['prefix']
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
+        # po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
+        po_reference = getattr(result, purchaseNumber)
         # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
@@ -2881,6 +2882,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
+        filtersMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
@@ -2891,6 +2893,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
+        filtersMap['product_category'] = firstEntryValues['product_category']        
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix

@@ -2,7 +2,7 @@
   <form name="form" role="form">
     <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
       <!-- Modal content-->
-      <div class="modal-content mw60">
+      <div class="modal-content mw60" style="width: fit-content;">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
@@ -32,42 +32,42 @@
                   <th>Tax %</th>
                   <th>Total(INR)</th>
                 </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="data in showCase.preview_data.data">
-                  <td> <input type="checkbox" ng-model="data.checkbox"> </td>
-                  <td>
-                    <select ui-select class="form-control" name="supplier" style="width:140px;"
-                    ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
-                    ng-model="data.supplier_id_name" 
-                    ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">
-                      <option ng-repeat="(supplier_id_name, details) in data.supplierDetails" 
-                      ng-selected="data.supplier_id_name==supplier_id_name"
-                      value="{{supplier_id_name}}">{{supplier_id_name}}
-                      </option>
-                    </select>
-                  </td>
-                  <td>
-                    <span class="badge bg-warning" ng-if="data.supplier_id_name">+</span>
-                    <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(data.sku_code)" ng-if="!data.supplier_id_name" style="cursor: pointer;">+</span>
-                  </td>
-                  <td>
-                    {{data.pr_number}}
-                    <input ng-hide="true" class="form-control" ng-model="data.pr_id" type="text" name="pr_id">
-                  </td>
-                  <td> {{data.product_category}} </td>
-                  <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
-                  <td> {{data.sku_desc}} </td>
-                  <td> {{data.moq}} </td>
-                  <!-- <td> {{data.quantity}} </td> -->
-                  <td> <input type="number" ng-model="data.quantity" name="quantity"> </td>
-                  <td> {{data.unit_price}} </td>
-                  <td> {{data.amount}} </td>
-                  <td> {{data.tax}} </td>
-                  <td> {{data.total}} </td>
-                 </tr>
-               </tbody>
-             </table>
+            </thead>
+            <tbody>
+              <tr ng-repeat="data in showCase.preview_data.data">
+                <td> <input type="checkbox" ng-model="data.checkbox"> </td>
+                <td>
+                  <select ui-select class="form-control" name="supplier" style="width:140px;"
+                  ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
+                  ng-model="data.supplier_id_name" 
+                  ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">
+                    <option ng-repeat="(supplier_id_name, details) in data.supplierDetails" 
+                    ng-selected="data.supplier_id_name==supplier_id_name"
+                    value="{{supplier_id_name}}">{{supplier_id_name}}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <!-- <span class="badge bg-warning" ng-if="data.supplier_id_name"></span> -->
+                  <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(data.sku_code)" ng-if="!data.supplier_id_name" style="cursor: pointer;">+</span>
+                </td>
+                <td>
+                  {{data.pr_number}}
+                  <input ng-hide="true" class="form-control" ng-model="data.pr_id" type="text" name="pr_id">
+                </td>
+                <td> {{data.product_category}} </td>
+                <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
+                <td> {{data.sku_desc}} </td>
+                <td> {{data.moq}} </td>
+                <!-- <td> {{data.quantity}} </td> -->
+                <td> <input type="number" ng-model="data.quantity" name="quantity"> </td>
+                <td> {{data.unit_price}} </td>
+                <td> {{data.amount}} </td>
+                <td> {{data.tax}} </td>
+                <td> {{data.total}} </td>
+               </tr>
+             </tbody>
+           </table>
           </div>
         </div>
         <div class="row mb10">

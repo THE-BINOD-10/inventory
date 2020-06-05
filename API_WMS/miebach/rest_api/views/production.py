@@ -1005,6 +1005,7 @@ def insert_rwo_po(rw_order, request, user):
                    'ship_to': '',
                    'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
         po_order = PurchaseOrder(**po_dict)
+        po_order.po_number = get_po_reference(po_order)
         po_order.save()
         rw_purchase_dict = copy.deepcopy(RWO_PURCHASE_FIELDS)
         rw_purchase_dict['purchase_order_id'] = po_order.id
@@ -2815,6 +2816,7 @@ def confirm_back_order(request, user=''):
             purchase_order_dict['po_date'] = datetime.datetime.now()
             purchase_order_dict['prefix'] = prefix
             purchase_order = PurchaseOrder(**purchase_order_dict)
+            purchase_order.po_number = get_po_reference(purchase_order)
             purchase_order.save()
 
             order_detail_id = ''

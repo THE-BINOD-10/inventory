@@ -1,0 +1,110 @@
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+  <div class="modal-header">
+    <h4 class="modal-title">{{showCase.title}}</h4>
+  </div>
+  <div class="modal-body">
+    <!-- body -->
+    <div class="row">
+      <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Supplier ID * </label>
+          <input type="text" autocomplete="off" name="supplier_id" ng-model="showCase.model_data.supplier_id" placeholder="Search Supplier"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+            typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id); showCase.update_wms_records()"
+            ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');"
+            ng-keyup="$event.keyCode == 13 ? showCase.checkSupplierExist(showCase.model_data.supplier_id) : null"
+            required>
+          <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
+          <input name="supplier_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> SKU Code *</label>
+                <input type="text" autocomplete="off"
+                       name="sku_id" class="form-control"
+                       placeholder="Search SKU Code"
+                       typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')"
+                       typeahead-loading="WMSCodesLoading"
+                       ng-model="showCase.model_data.wms_code"
+                       ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')"
+                       typeahead-on-select = "showCase.get_sku_mrp(showCase.model_data.wms_code)"
+                       required readonly="readonly">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Supplier's SKU Code </label>
+          <input type="text" name="supplier_code" class="form-control" ng-model="showCase.model_data.supplier_code" maxlength="32">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label">Priority *</label>
+          <input type="text" class="form-control" name="number" ng-model="showCase.model_data.preference" natural-number required>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> MOQ *</label>
+          <input name="moq" type="text" class="form-control" ng-model="showCase.model_data.moq" whole-number required>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-5 control-label"> Price </label>
+          <input type="text" name="price" class="form-control" ng-model="showCase.model_data.price" decimal-number>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="control-label"> Costing Type </label>
+          <select class="form-control" name="costing_type" ng-model="showCase.model_data.costing_type">
+            <option ng-repeat="obj in showCase.costing_type_list" value="{{obj}}" ng-selected="obj == showCase.model_data.costing_type">{{obj}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-8 control-label"> Markdown Percentage </label>
+          <input type="number" min="0" max="100" name="margin_percentage" class="form-control" ng-model="showCase.model_data.margin_percentage" decimal-number>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-6 control-label"> Markup Percentage </label>
+          <input type="number" min="0" max="100" name="markup_percentage" class="form-control" ng-model="showCase.model_data.markup_percentage" decimal-number>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-6 control-label"> Lead Time </label>
+          <input type="number" name="lead_time" class="form-control" ng-model="showCase.model_data.lead_time" decimal-number>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.warehouse_level==0">
+        <div class="form-group">
+          <label class="control-label"> Warehouse * </label>
+          <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse">
+            <option ng-repeat="obj in showCase.warehouse_list" value="{{obj.name}}" ng-selected="obj == showCase.model_data.warehouse" required>{{obj.name}}</option>
+          </select>
+          <input type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" readonly>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <div class="form-group">
+          <label class="col-md-5 control-label"> MRP </label>
+          <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.mrp" decimal-number readonly="readonly">
+        </div>
+      </div>
+    </div>
+    <div class="row insert-status">
+      <h4 style="text-align: center;">{{showCase.service.message}}</h4>
+    </div>
+    <!-- body end -->
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn pop pop-normal pull-left" ng-click="showCase.close()" style="background: #cc1919;color: white;">Close</button>  
+    <button type="submit" class="btn pop pop-green" ng-click="showCase.send_supplier_doa(form)" style="background: green;color: white;">Send For DOA</button>
+  </div>
+</form>

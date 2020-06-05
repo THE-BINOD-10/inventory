@@ -552,8 +552,8 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
-            'dt_headers': ['PO Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity'],
+            'dt_headers': ['GRN Number', 'PO Reference','Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
             #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -599,7 +599,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
                         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
             ],
-        'dt_headers': ["Received Date", "PO Date", "PO Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
+        'dt_headers': ["Received Date", "PO Date", "GRN Number", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                        "SKU Code", "SKU Description", "SKU Category","Sub Category","SKU Brand", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
@@ -607,7 +607,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "Overall Discount",
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
                        "Challan Date", "Remarks", "Updated User", "GST NO","LR-NUMBER"],
-        'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
+        'mk_dt_headers': [ "Received Date", "PO Date", "GRN Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Sub Category",
                            "Manufacturer","Searchable","Bundle",
                            "Received Qty", "Unit Rate", "MRP","Weight", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
@@ -1706,7 +1706,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '',
-                      'company_id': 0, 'reference_id': ''}
+                      'company_id': 0, 'reference_id': '', 'sap_code': '', 'stockone_code': ''}
 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
@@ -2830,6 +2830,15 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
                   'TTD', 'TVD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VEF', 'VND', 'VUV', 'WST', 'XAF',
                   'XCD', 'XDR', 'XOF', 'XPF', 'YER', 'ZAR', 'ZMW', 'ZWD']
 
+USER_PREFIXES_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
+                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
+                                      ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
+                                      ('Invoice Prefix', 'invoice_prefix')
+                        ))
+
+PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
+
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):
@@ -3217,7 +3226,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
         reason = ''
         if data.reason:
             reason = data.reason
-        po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
+        po_reference = data.po_number
         updated_user_name = user.username
         version_obj = Version.objects.using('reversion').get_for_object(data)
         if version_obj.exists():
@@ -3867,7 +3876,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
 
-        po_number = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
+        po_number = data.po_number #'%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         tax = 0
         price = order_data['price']
         if data.open_po:
@@ -4021,7 +4030,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount', 'invoice_date',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks', 'purchase_order__open_po__supplier__tin_number',
-                         'purchase_order__id','price','invoice_number','challan_number',
+                         'purchase_order__id','price','invoice_number','challan_number', 'grn_number'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -4101,9 +4110,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         receipt_no = data['receipt_number']
         if not receipt_no:
             receipt_no = ''
-        po_number = '%s%s_%s/%s' % (data[field_mapping['prefix']],
-                                 str(result.creation_date).split(' ')[0].replace('-', ''),
-                                 data[field_mapping['order_id']], str(receipt_no))
+        grn_number = data['grn_number']
         price = data['price']
         if data.get('batch_detail__buy_price', 0):
             price = data['batch_detail__buy_price']
@@ -4193,11 +4200,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             remarks = result.remarks
         ord_dict = OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
-                            ('PO Number', po_number),
+                            ('GRN Number', grn_number),
                             ('PO Reference Number',data['purchase_order__open_po__po_name']),
                             ('Supplier ID', data[field_mapping['supplier_id']]),
                             ('Supplier Name', data[field_mapping['supplier_name']]),
-                            ('Recepient', user.userprofile.company_name),
+                            ('Recepient', user.userprofile.company.company_name),
                             ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                             ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                             ('HSN Code', hsn_code),
@@ -4508,7 +4515,7 @@ def get_po_filter_data(search_params, user, sub_user):
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
     result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
-                     'sellerposummary__receipt_number']
+                     'sellerposummary__receipt_number', 'sellerposummary__grn_number', 'po_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'
     rec_quan = 'received_quantity'
@@ -4578,13 +4585,12 @@ def get_po_filter_data(search_params, user, sub_user):
         po_reference_name = result.open_po.po_name
         if not total_ordered:
             total_ordered = 0
-        po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
-                                    data[field_mapping['order_id']])
+        po_number = data['po_number']
         receipt_no = data['sellerposummary__receipt_number']
         if not receipt_no:
             receipt_no = ''
         else:
-            po_number = '%s/%s' % (po_number, receipt_no)
+            po_number = data['sellerposummary__grn_number'] #'%s/%s' % (po_number, receipt_no)
         received_qty = data['total_received']
         discrepancy_filter = {}
         if data.get('sellerposummary__receipt_number', ''):
@@ -4601,7 +4607,7 @@ def get_po_filter_data(search_params, user, sub_user):
             discrepancy_filter['purchase_order__order_id'] =data[field_mapping['order_id']]
             discrepancy_quantity = sum(list(Discrepancy.objects.exclude(purchase_order=None).filter(**discrepancy_filter)\
                                             .values_list('quantity',flat=True)))
-        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
+        temp_data['aaData'].append(OrderedDict((('GRN Number', po_number),
                                                 ('prefix', data['prefix']),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('PO Reference', po_reference_name),
@@ -6660,7 +6666,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
 
-        order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
+        order_id = rtv[0].seller_po_summary.purchase_order.po_number #get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
         temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
                                     ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
@@ -8926,12 +8932,8 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
 
         if not receipt_no:
             receipt_no = ''
-        grn_number = '%s%s_%s/%s' % (purchase_order.prefix,
-                                 str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
-                                 str(purchase_order.order_id), str(receipt_no))
-        po_number = '%s%s_%s' % (purchase_order.prefix,
-                                     str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
-                                     str(purchase_order.order_id))
+        grn_number = seller_po_summary.grn_number
+        po_number = purchase_order.po_number
         price = open_po.price
         mrp = open_po.mrp
         data['total_received'] = rtv.quantity

@@ -3246,7 +3246,8 @@ def get_pr_preview_data(request, user=''):
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
         supplierDetailsMap = {}
-        
+        parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
+
         reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc, 
                       'quantity': quantity, 'checkbox': False, 
                       'pr_id': ', '.join(skuPrIdsMap[sku_code]),
@@ -3255,7 +3256,13 @@ def get_pr_preview_data(request, user=''):
                       'supplierDetails': {}}
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
                                 sku__user=user.id).order_by('preference')
-        if supplierMappings.exists():
+        if not supplierMappings.exists():
+            is_doa_sent = MastersDOA.objects.filter(doa_status='pending', 
+                    model_name='SKUSupplier', requested_user=request.user, 
+                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+            if is_doa_sent.exists():
+                reqLineMap['is_doa_sent'] = True
+        else:
             for supplierMapping in supplierMappings:
                 supplierId = supplierMapping.supplier.supplier_id
                 supplierName = supplierMapping.supplier.name

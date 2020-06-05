@@ -1324,7 +1324,13 @@ def generated_pr_data(request, user=''):
         central_po_data = TempJson.objects.filter(model_id=pr_id, model_name='CENTRAL_PO') or ''
         if central_po_data:
             central_po_data = json.loads(eval(central_po_data[0].model_json)[0])
-    return HttpResponse(json.dumps({'supplier_id': record[0].supplier.supplier_id, 'supplier_name': record[0].supplier.name,
+    supplier_id = ''
+    supplier_name = ''
+    if record[0].supplier:
+        supplier_id = record[0].supplier.supplier_id
+        supplier_name = record[0].supplier.name
+
+    return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
@@ -2899,6 +2905,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.remarks = remarks
         pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
+        if supplier:
+            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -3008,6 +3016,7 @@ def convert_pr_to_po(request, user=''):
         skuQtyMap = {}
         supplierPrIdsMap = {}
         prIdSkusMap = {}
+        supplyObj = None
 
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
@@ -3053,7 +3062,7 @@ def convert_pr_to_po(request, user=''):
                 eachPRId = existingPRObj.id
                 convertingSkus = prIdSkusMap.get(str(eachPRId))
                 if convertingSkus == list(eachPRLineItems):
-                    existingPRObj.final_status='pr_converted_to_po'
+                    # existingPRObj.final_status='pr_converted_to_po'
                     existingPRObj.save()
                 else:
                     lineItemIds = existingPRObj.pending_prlineItems.filter(sku__sku_code__in=convertingSkus).delete()
@@ -3064,8 +3073,14 @@ def convert_pr_to_po(request, user=''):
                 sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
                 if not sku_id:
                     continue
-                skuTaxes = get_supplier_sku_price_values(supplyObj.id, sku_code, user)
-                if not skuTaxes: continue
+
+                if supplyObj:
+                    supplyId = supplyObj.id
+                else:
+                    supplyId = None
+
+                skuTaxes = get_supplier_sku_price_values(supplyId, sku_code, user)
+                # if not skuTaxes: continue
                 skuTaxVal = skuTaxes[0]
                 taxes = skuTaxVal['taxes']
                 if taxes:
@@ -3197,9 +3212,10 @@ def send_pr_to_parent_store(request, user=''):
 def get_pr_preview_data(request, user=''):
     prIds = json.loads(request.POST.get('prIds'))
     preview_data = {'data': []}
-    prQs = PendingPR.objects.filter(id__in=prIds)
+    # prQs = PendingPR.objects.filter(id__in=prIds)
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
-    lineItems = lineItemsQs.values_list('sku__sku_code', 'sku__sku_desc').annotate(Sum('quantity'))
+    lineItems = lineItemsQs.values_list('sku__sku_code', 
+        'sku__sku_desc', 'pending_pr__product_category').annotate(Sum('quantity'))
     skuPrNumsMap = {}
     skuPrIdsMap = {}
     for lineItem in lineItemsQs:
@@ -3207,7 +3223,7 @@ def get_pr_preview_data(request, user=''):
          skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
 
     for lineItem in lineItems:
-        sku_code, sku_desc, quantity = lineItem
+        sku_code, sku_desc, prod_catg, quantity = lineItem
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
         supplierDetailsMap = {}
@@ -3216,6 +3232,7 @@ def get_pr_preview_data(request, user=''):
                       'quantity': quantity, 'checkbox': False, 
                       'pr_id': ', '.join(skuPrIdsMap[sku_code]),
                       'pr_number': ','.join(skuPrNumsMap[sku_code]),
+                      'product_category': prod_catg,
                       'supplierDetails': {}}
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
                                 sku__user=user.id).order_by('preference')

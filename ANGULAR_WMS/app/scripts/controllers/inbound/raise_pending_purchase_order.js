@@ -171,7 +171,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
-          vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          if (vm.model_data.supplier_id){
+            vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          } else {
+            vm.model_data['supplier_id_name'] = '';
+          }
+          // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;

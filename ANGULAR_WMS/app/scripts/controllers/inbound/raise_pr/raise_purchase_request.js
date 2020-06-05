@@ -179,7 +179,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.is_resubmitted = false;
           angular.copy(empty_data, vm.model_data);
 
-          vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          if (vm.model_data.supplier_id){
+            vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+          } else {
+            vm.model_data['supplier_id_name'] = '';
+          }
 
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -523,16 +527,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.bt_disable = true;
       var prIds = [];
       var firstDeptType = ''
+      var firstProdCatg = ''
 
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
           if (firstDeptType.length == 0){
             firstDeptType = temp['_aData']['Department Type'];
+            firstProdCatg = temp['_aData']['Product Category'];
             prIds.push(temp['_aData']["Purchase Id"]);
           } else {
-            if (firstDeptType != temp['_aData']['Department Type']) {
-              vm.service.showNoty("Same Department PRs can be consolidated");
+            if (firstDeptType != temp['_aData']['Department Type'] || firstProdCatg != temp['_aData']['Product Category']) {
+              vm.service.showNoty("Same Department/ProductCategory PRs can be consolidated");
               prIds = [];
             } else {
               prIds.push(temp['_aData']["Purchase Id"]);
@@ -607,14 +613,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var alertMsg = "";
       angular.forEach(vm.preview_data.data, function(eachLineItem){
         if (eachLineItem.checkbox){
-          if (eachLineItem.moq > eachLineItem.quantity){
-            alertMsg = alertMsg + " " + eachLineItem.sku_code 
+          if (eachLineItem.product_category == 'Kits&Consumables' && 
+                (Object.keys(eachLineItem.supplierDetails).length == 0)){
+            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
           } else {
-            selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-            selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-            selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-            selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-          };
+            if (eachLineItem.moq > eachLineItem.quantity){
+              alertMsg = alertMsg + " " + eachLineItem.sku_code 
+            } else {
+              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+            };
+          }
         }
       });
       if (selectedItems.length == 0){

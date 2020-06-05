@@ -1351,6 +1351,7 @@ def generated_actual_pr_data(request, user=''):
     pr_delivery_date = ''
     pr_created_date = ''
     validateFlag = 0
+    uploaded_file_dict = {}
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
@@ -1362,6 +1363,11 @@ def generated_actual_pr_data(request, user=''):
         current_wh_level = int(user.userprofile.warehouse_level)
         if (db_wh_level - 1) == current_wh_level:
             convertPoFlag = True
+
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
+    if master_docs.exists():
+        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                              'file_url': '/' + master_docs[0].uploaded_file.name}    
 
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
@@ -1413,7 +1419,7 @@ def generated_actual_pr_data(request, user=''):
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
-                                    'validated_users': validated_users}))
+                                    'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict}))
 
 
 @csrf_exempt
@@ -2614,11 +2620,11 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
     if poFor:
         model_name = PendingPO
         filtersMap['po_number'] = pr_number
-        purchaseNumber = 'po_number'
+        purchaseNumber = 'full_po_number'
     else:
         model_name = PendingPR
         filtersMap['pr_number'] = pr_number
-        purchaseNumber = 'pr_number'
+        purchaseNumber = 'full_pr_number'
     openPurchaseQs = model_name.objects.filter(**filtersMap)
     if openPurchaseQs.exists():
         openPurchaseObj = openPurchaseQs[0]
@@ -2631,7 +2637,8 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         result = openPurchaseQs[0]
         # prefix = lineItems.values()[0]['prefix']
         dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
+        # po_reference = '%s%s_%s' % (prefix, dateforPo, getattr(result, purchaseNumber))
+        po_reference = getattr(result, purchaseNumber)
         # creation_date = result.creation_date.strftime('%d-%m-%Y %H:%M:%S')
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
@@ -2875,6 +2882,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
+        filtersMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
@@ -2885,6 +2893,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
+        filtersMap['product_category'] = firstEntryValues['product_category']        
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix
@@ -2973,6 +2982,19 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         PendingLineItems.objects.update_or_create(**pendingLineItems)
+
+    file_obj = request.FILES.get('files-0', '')
+    if file_obj:
+        master_docs_obj = MasterDocs.objects.filter(master_id=pendingPurchaseObj.id, master_type=apprType,
+                                                    user_id=user.id)
+        if not master_docs_obj:
+            upload_master_file(request, user, pendingPurchaseObj.id, apprType, master_file=file_obj)
+        else:
+            master_docs_obj = master_docs_obj[0]
+            if os.path.exists(master_docs_obj.uploaded_file.path):
+                os.remove(master_docs_obj.uploaded_file.path)
+            master_docs_obj.uploaded_file = file_obj
+            master_docs_obj.save()
     return totalAmt, pendingPurchaseObj
 
 
@@ -3223,7 +3245,8 @@ def get_pr_preview_data(request, user=''):
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
         supplierDetailsMap = {}
-        
+        parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
+
         reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc, 
                       'quantity': quantity, 'checkbox': False, 
                       'pr_id': ', '.join(skuPrIdsMap[sku_code]),
@@ -3232,7 +3255,13 @@ def get_pr_preview_data(request, user=''):
                       'supplierDetails': {}}
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
                                 sku__user=user.id).order_by('preference')
-        if supplierMappings.exists():
+        if not supplierMappings.exists():
+            is_doa_sent = MastersDOA.objects.filter(doa_status='pending', 
+                    model_name='SKUSupplier', requested_user=user, 
+                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+            if is_doa_sent.exists():
+                reqLineMap['is_doa_sent'] = True
+        else:
             for supplierMapping in supplierMappings:
                 supplierId = supplierMapping.supplier.supplier_id
                 supplierName = supplierMapping.supplier.name

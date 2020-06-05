@@ -4998,8 +4998,11 @@ def send_supplier_doa(request, user=''):
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
+    req_user = request.user
+    if not request.user.is_staff:
+        req_user = user
     doa_dict = {
-        'requested_user': request.user,
+        'requested_user': req_user,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),

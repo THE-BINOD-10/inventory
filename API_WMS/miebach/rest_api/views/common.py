@@ -887,7 +887,7 @@ def pr_request(request):
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
                         'pending_pr__requested_user__username', 'pending_pr__pr_number',
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
-                        'pending_pr__delivery_date', 'pending_pr_id']
+                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -897,7 +897,8 @@ def pr_request(request):
                     'pending_level': 'pending_pr__pending_level',
                     'remarks': 'pending_pr__remarks',
                     'delivery_date': 'pending_pr__delivery_date',
-                    'purchase_id': 'pending_pr_id'
+                    'purchase_id': 'pending_pr_id',
+                    'full_purchase_number': 'pending_pr__full_pr_number',
                 }
         purchase_type = 'PR'
     else:
@@ -907,7 +908,7 @@ def pr_request(request):
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
                         'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 
-                        'pending_po__supplier__name', 'pending_po_id']
+                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -917,7 +918,8 @@ def pr_request(request):
                     'pending_level': 'pending_po__pending_level',
                     'remarks': 'pending_po__remarks',
                     'delivery_date': 'pending_po__delivery_date',
-                    'purchase_id': 'pending_po_id'
+                    'purchase_id': 'pending_po_id',
+                    'full_purchase_number': 'pending_po__full_po_number',
                 }
         purchase_type = 'PO'
 
@@ -977,7 +979,8 @@ def pr_request(request):
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
+        # po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
+        po_reference = result[fieldsMap['full_purchase_number']]
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']],
                                     result['total_amt'], purchase_type=purchase_type)
@@ -4727,7 +4730,7 @@ def search_wms_data(request, user=''):
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': master_data.measurement_type,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'type': master_data.item_type,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests,
                        'enable_serial_based': master_data.enable_serial_based}
         if instanceName == ServiceMaster:
             asset_code = master_data.asset_code
@@ -4736,6 +4739,8 @@ def search_wms_data(request, user=''):
             data_dict.update({'asset_code': asset_code, 
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
+        elif instanceName == OtherItemsMaster:
+            data_dict['type'] =  master_data.item_type
         total_data.append(data_dict)
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),

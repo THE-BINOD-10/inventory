@@ -584,6 +584,8 @@ urlpatterns = [
     url(r'get_approval_summary_report/$', get_approval_summary_report),
     url(r'get_approval_detail_report/$', get_approval_detail_report),
     url(r'^get_st_po_filter/$', get_st_po_filter),
+    url(r'^get_pr_report/$', get_pr_report),
+    url(r'^get_pr_detail_report/$', get_pr_detail_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

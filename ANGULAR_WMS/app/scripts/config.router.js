@@ -2763,6 +2763,18 @@ var app = angular.module('urbanApp')
             title: 'OPEN PO APPROVAL Report',
           }
         })
+        .state('app.reports.PRReport', {
+          url: '/PRReport',
+          templateUrl: 'views/reports/pr_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/pr_report.js');
+              }]
+          },
+          data: {
+            title: 'PR Report',
+          }
+        })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',

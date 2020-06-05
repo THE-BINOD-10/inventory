@@ -1891,6 +1891,7 @@ def get_po_report(request, user=''):
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1899,6 +1900,25 @@ def get_open_order_report(request, user=''):
     temp_data = get_open_order_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_report_data(search_params, user, request)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_detail_report_data(search_params, user, request)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 
 @csrf_exempt

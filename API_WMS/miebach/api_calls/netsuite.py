@@ -28,12 +28,12 @@ today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/netsuite_integrations_' + today + '.log')
 log_err = init_logger('logs/netsuite_integration_errors.log')
 
-NS_ACCOUNT='4120343_SB1'
+'''NS_ACCOUNT='4120343_SB1'
 NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea'
 NS_CONSUMER_SECRET='a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35'
 NS_TOKEN_KEY='e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f'
 NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
-
+'''
 def connect_tba():
     nc = NetSuiteConnection(
       account=NS_ACCOUNT,

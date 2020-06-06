@@ -146,6 +146,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.dynamic_route = function(aData) {
       vm.data_id = aData['id']?aData['id']:''
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id };
+      vm.is_direct_po = true;      
+      if (aData['PR No'] != "None") {
+        vm.is_direct_po = false;
+      }
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];

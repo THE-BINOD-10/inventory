@@ -2884,7 +2884,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
         # filtersMap['product_category'] = firstEntryValues['product_category']
-        filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
+        sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
@@ -2896,7 +2896,7 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
         # filtersMap['product_category'] = firstEntryValues['product_category'] 
-        filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])       
+        sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])       
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix

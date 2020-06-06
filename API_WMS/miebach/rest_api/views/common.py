@@ -9921,7 +9921,7 @@ def get_product_category_from_sku(user, sku_code):
             product_category = 'OtherItems'
     except:
         pass    
-    return product_category
+    return sku, product_category
 
 
 def get_user_prefix_incremental(user, type_name, sku_code):
@@ -9930,7 +9930,7 @@ def get_user_prefix_incremental(user, type_name, sku_code):
     full_number = ''
     inc_status = ''
     incr_type_name = ''
-    get_product_category_from_sku(user, sku_code)
+    sku, product_category = get_product_category_from_sku(user, sku_code)
     sku_category = sku.sku_category
     if not sku_category:
         sku_category = 'Default'

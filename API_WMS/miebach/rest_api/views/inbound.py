@@ -2846,9 +2846,10 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
-def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, baseLevel, prefix, full_pr_number,
-                                 orderStatus='pending',
-                                    prObj=None, is_po_creation=False, skusInPO=[], supplier=None, convertPRtoPO=False, central_po_data=None):
+def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, 
+            baseLevel, prefix, full_pr_number, orderStatus='pending',
+            prObj=None, is_po_creation=False, skusInPO=[], supplier=None, 
+            convertPRtoPO=False, central_po_data=None):
     firstEntryValues = all_data.values()[0]
     if not firstEntryValues['pr_delivery_date']:
         pr_delivery_date = datetime.datetime.today()
@@ -2882,7 +2883,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
-        filtersMap['product_category'] = firstEntryValues['product_category']
+        # filtersMap['product_category'] = firstEntryValues['product_category']
+        filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
@@ -2893,7 +2895,8 @@ def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
-        filtersMap['product_category'] = firstEntryValues['product_category']        
+        # filtersMap['product_category'] = firstEntryValues['product_category'] 
+        filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])       
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix
@@ -3495,16 +3498,21 @@ def save_pr(request, user=''):
         if myDict.get('purchase_id'):
             pr_id = myDict.get('purchase_id')[0]
             if is_actual_pr == 'true':
-                purchase_number = PendingPR.objects.get(id=pr_id).pr_number
+                pr_obj = PendingPR.objects.get(id=pr_id)
+                purchase_number = pr_obj.pr_number
+                prefix = pr_obj.prefix
+                full_purchase_number = pr_obj.full_pr_number
             else:
-                purchase_number = PendingPO.objects.get(id=pr_id).po_number
+                po_obj = PendingPO.objects.get(id=pr_id)
+                purchase_number = po_obj.po_number
+                prefix = po_obj.prefix
+                full_purchase_number = po_obj.full_po_number
         else:
             if is_actual_pr == 'true':
                 sku_code = all_data.keys()[0]
                 purchase_number, prefix, full_purchase_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'pr_prefix', sku_code)
                 if inc_status:
                     return HttpResponse("Prefix not defined")
-                #purchase_number = get_incremental(user, 'ActualPurchaseRequest')
             else:
                 sku_code = all_data.keys()[0]
                 purchase_number, prefix, full_purchase_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)

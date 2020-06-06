@@ -9903,13 +9903,7 @@ def get_gen_wh_ids(request, user, delivery_date):
             gen_whs.extend(list(nw_gen_whs))
     return gen_whs
 
-
-def get_user_prefix_incremental(user, type_name, sku_code):
-    count = 0
-    prefix = ''
-    full_number = ''
-    inc_status = ''
-    incr_type_name = ''
+def get_product_category_from_sku(user, sku_code):
     sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
     product_category = 'Kits&Consumables'
     try:
@@ -9926,7 +9920,17 @@ def get_user_prefix_incremental(user, type_name, sku_code):
         if sku.otheritemsmaster:
             product_category = 'OtherItems'
     except:
-        pass
+        pass    
+    return product_category
+
+
+def get_user_prefix_incremental(user, type_name, sku_code):
+    count = 0
+    prefix = ''
+    full_number = ''
+    inc_status = ''
+    incr_type_name = ''
+    get_product_category_from_sku(user, sku_code)
     sku_category = sku.sku_category
     if not sku_category:
         sku_category = 'Default'

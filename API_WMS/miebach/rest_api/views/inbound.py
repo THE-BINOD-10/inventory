@@ -254,7 +254,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__pr_number')
+    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number')
     POtoPRsMap = {}
     for eachPO, pr_number in approvedPRQs:
         POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
@@ -1426,23 +1426,23 @@ def generated_actual_pr_data(request, user=''):
 @login_required
 @get_admin_user
 def print_pending_po_form(request, user=''):
-    po_id = request.GET.get('po_id', '')
+    purchase_id = request.GET.get('purchase_id', '')
     is_actual_pr = request.GET.get('is_actual_pr', '')
     warehouse = request.GET.get('warehouse', '')
-    purchase_number = int(po_id.split('_')[-1])
-    filtersMap = {'wh_user': user.id}
+    purchase_number = int(purchase_id)
+    filtersMap = {}
     if warehouse:
         wh_user = User.objects.filter(first_name=warehouse)
         filtersMap['wh_user'] = wh_user[0].id
     if is_actual_pr == 'true':
         model_name = PendingPR
-        filtersMap['pr_number'] = purchase_number
+        filtersMap['id'] = purchase_number
     else:
         model_name = PendingPO
-        filtersMap['po_number'] = purchase_number
+        filtersMap['id'] = purchase_number
     total_qty = 0
     total = 0
-    if not po_id:
+    if not purchase_id:
         return HttpResponse("Purchase Order Id is missing")
     pendingPurchaseQs = model_name.objects.filter(**filtersMap)
     if pendingPurchaseQs.exists():
@@ -1514,7 +1514,8 @@ def print_pending_po_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
-    po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_number = order.full_po_number    
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -3240,7 +3241,7 @@ def get_pr_preview_data(request, user=''):
     skuPrNumsMap = {}
     skuPrIdsMap = {}
     for lineItem in lineItemsQs:
-         skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.pr_number))
+         skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.full_pr_number))
          skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
 
     for lineItem in lineItems:
@@ -3565,15 +3566,14 @@ def cancel_pr(request, user=''):
 @get_admin_user
 def submit_pending_approval_enquiry(request, user=''):
     is_purchase_request = request.POST.get('is_purchase_request')
-    pr_number = request.POST.get('pr_number')
+    purchase_id = request.POST.get('purchase_id')
     requested_username = request.POST.get('requested_user', '')
     enquiry_to = request.POST.get('enquiry_to', '')
     enquiry_remarks = request.POST.get('enquiry_remarks', '')
     emailsOfApprovedUsersMap = {}
     if is_purchase_request == 'true':
         requested_user = User.objects.get(username=requested_username)
-        pendingPurchaseObj = PendingPO.objects.get(requested_user__username=requested_user,
-                                        po_number=pr_number)
+        pendingPurchaseObj = PendingPO.objects.get(id=purchase_id)
         emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
         permission_name = 'pending po'
         admin_user = None

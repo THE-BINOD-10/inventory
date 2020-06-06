@@ -631,8 +631,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if (vm.is_purchase_request){
       elem.push({name:'is_purchase_request', value:true})
     }
-    if (vm.model_data.pr_number){
-      elem.push({name:'pr_number', value:vm.model_data.pr_number})
+    if (vm.model_data.purchase_id){
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
     }
     if (vm.requested_user){
       elem.push({name:'requested_user', value:vm.requested_user})
@@ -650,9 +650,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id, {withCredential: true})
       .success(function(data, status, headers, config) {
-          vm.service.print_data(data, vm.model_data.po_number);
+          vm.service.print_data(data, vm.model_data.purchase_id);
       });      
     }
 

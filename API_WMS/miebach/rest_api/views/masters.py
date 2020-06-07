@@ -1598,6 +1598,7 @@ def insert_mapping(request, user=''):
             return HttpResponse('Invalid Warehouse')
         else:
             user = user_obj[0]
+    doa_status = request.POST.get('status')
     for key, value in request.POST.iteritems():
         if key == 'warehouse':
             continue
@@ -1622,7 +1623,7 @@ def insert_mapping(request, user=''):
         if key == 'preference':
             preference = value
 
-        if value != '':
+        if value != '' and key in data_dict:
             data_dict[key] = value
     if auto_po_switch == 'true':
         sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
@@ -1643,6 +1644,10 @@ def insert_mapping(request, user=''):
 
     sku_supplier = SKUSupplier(**data_dict)
     sku_supplier.save()
+    if doa_status == 'pending':
+        doa_obj = MastersDOA.objects.get(id=request.POST.get('DT_RowId'))
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Added Successfully')
 
 
@@ -2464,7 +2469,8 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone, 'reference_id': user_profile.reference_id}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -2874,6 +2880,7 @@ def insert_sku(request, user=''):
 
             sku_master = instanceName(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
             if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
                 send_push_notification(contents, notified_users)
@@ -4610,7 +4617,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
-        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -4988,3 +4995,119 @@ def get_company_list(request, user=''):
 #                          ('city', data.city), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
 #                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results')
 #                        )))
+
+
+@csrf_exempt
+@get_admin_user
+def send_supplier_doa(request, user=''):    
+    data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
+    integer_data = 'preference'
+    for key, value in request.POST.iteritems():
+        if key == 'wms_code':
+            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
+            if not sku_id:
+                return HttpResponse('Wrong WMS Code')
+            key = 'sku'
+            value = sku_id[0].id
+        elif key == 'supplier_id':
+            supplier = SupplierMaster.objects.get(supplier_id=value, user=user.id)
+            value = supplier.supplier_id
+        elif key == 'price' and not value:
+            value = 0
+        elif key in integer_data:
+            if not value.isdigit():
+                return HttpResponse('Please enter Integer values for Priority and MOQ')
+        if key == 'preference':
+            preference = value
+        if value != '':
+            data_dict[key] = value
+
+    userQs = UserGroups.objects.filter(user=user)
+    parentCompany = userQs[0].company_id
+    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+    admin_user = admin_userQs[0].user
+    req_user = request.user
+    if not request.user.is_staff:
+        req_user = user
+    doa_dict = {
+        'requested_user': req_user,
+        'wh_user': admin_user,
+        'model_name': 'SKUSupplier',
+        'json_data': json.dumps(data_dict),
+        'doa_status': 'pending'
+    }
+    if not data_dict.has_key('DT_RowId'):
+        doa_obj = MastersDOA(**doa_dict)
+        doa_obj.save()
+    else:
+        doa_dict['model_id'] = data_dict['DT_RowId']
+        doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            doa_obj.json_data = json.dumps(data_dict)
+            doa_obj.save()
+        else:
+            doa_obj = MastersDOA(**doa_dict)
+            doa_obj.save()
+    return HttpResponse("Added Successfully")
+
+@csrf_exempt
+def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 
+            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq', 
+            'lead_time', 'sku__user', 'status']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+                    model_name="SKUSupplier",
+                    doa_status="pending").order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+                    model_name="SKUSupplier",
+                    doa_status="pending").order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        sku_preference = result['preference']
+        if sku_preference:
+            try:
+                sku_preference = int(float(sku_preference))
+            except:
+                sku_preference = 0
+        skuObj = SKUMaster.objects.get(id=result['sku'])
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+        else:
+            warehouse = get_admin(row.requested_user)
+        temp_data['aaData'].append(OrderedDict((('supplier_id', result['supplier_id']), ('wms_code', skuObj.wms_code),
+                                                ('supplier_code', result['supplier_code']), ('moq', result['moq']),
+                                                ('preference', sku_preference),
+                                                ('costing_type', result['costing_type']),
+                                                ('price', result.get('price', '')),
+                                                ('margin_percentage', result.get('margin_percentage', '')),
+                                                ('markup_percentage',result.get('markup_percentage', '')),
+                                                ('lead_time', result.get('lead_time', '')),
+                                                ('requested_user', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('status', row.doa_status),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp))))

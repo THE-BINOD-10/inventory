@@ -1326,11 +1326,14 @@ def generated_pr_data(request, user=''):
             central_po_data = json.loads(eval(central_po_data[0].model_json)[0])
     supplier_id = ''
     supplier_name = ''
+    supplier_payment_desc = ''
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
+        if record[0].supplier.payment:
+            supplier_payment_desc = record[0].supplier.payment.payment_description
 
-    return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name,
+    return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
@@ -2297,6 +2300,20 @@ def get_mapping_values(request, user=''):
     supplier_id = request.GET['supplier_id']
     data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_supplier_payment_terms(request, user=''):
+    payment_desc = ''
+    supplier_id = request.POST.get('supplier_id', '')
+    data = SupplierMaster.objects.filter(supplier_id = supplier_id, user=user.id)
+    if data.exists():
+        if data[0].payment:
+            payment_desc = data[0].payment.payment_description
+    return HttpResponse(payment_desc, content_type='application/json')
+
 
 def get_ep_supplier_value(request, user=''):
     data = {}

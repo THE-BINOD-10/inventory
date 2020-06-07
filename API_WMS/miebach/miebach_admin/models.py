@@ -264,6 +264,16 @@ class LocationMaster(models.Model):
         return self.location
 
 
+class PaymentTerms(models.Model):
+    id = BigAutoField(primary_key=True)
+    payment_code = models.CharField(max_length=64, default='')
+    payment_description = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PAYMENT_TERMS'
+
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
     supplier_id = models.CharField(max_length=64, default='')
@@ -304,7 +314,7 @@ class SupplierMaster(models.Model):
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
     reference_id = models.CharField(max_length=64, default='')
-    payment_terms = models.CharField(max_length=256, default='')
+    payment = models.ForeignKey(PaymentTerms, blank=True, null=True)
     subsidiary = models.CharField(max_length=64, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')

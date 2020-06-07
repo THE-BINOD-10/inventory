@@ -115,6 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     var empty_data = {"supplier_id":"",
                       "po_name": "",
                       "ship_to": "",
+                      "supplier_payment_terms": "",
                       "receipt_types": ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'],
                       "receipt_type": 'Purchase Order',
                       "seller_types": [],
@@ -152,6 +153,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
+            "supplier_payment_terms": data.data.supplier_payment_desc,
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -1085,6 +1087,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 notify_flag = false;
               }
             }
+          }
+        })
+      }
+      if (vm.model_data.supplier_id) {
+        var supplier_data = {'supplier_id':vm.model_data.supplier_id}
+        vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
+          if (data.data) {
+            vm.model_data.supplier_payment_terms = data.data;
+          } else {
+            vm.model_data.supplier_payment_terms = '';
           }
         })
       }

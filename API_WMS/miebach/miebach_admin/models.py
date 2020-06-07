@@ -188,7 +188,7 @@ class MastersDOA(models.Model):
     id = BigAutoField(primary_key=True)
     requested_user = models.ForeignKey(User, related_name="doa_requested_user")
     wh_user = models.ForeignKey(User, related_name='doa_wh_user')
-    # model_id = models.PositiveIntegerField()
+    model_id = models.PositiveIntegerField(default=0)
     model_name = models.CharField(max_length=256, default='')
     json_data = models.TextField()
     doa_status = models.CharField(max_length=64, default='pending')
@@ -581,6 +581,7 @@ class PendingPR(models.Model):
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
     sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
+    full_pr_number = models.CharField(max_length=32, default='')
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     product_category = models.CharField(max_length=64, default='')
@@ -608,6 +609,7 @@ class PendingPO(models.Model):
     product_category = models.CharField(max_length=64, default='')
     po_number = models.PositiveIntegerField(blank=True, null=True) # Similar to PurchaseOrder->order_id field
     prefix = models.CharField(max_length=32, default='')
+    full_po_number = models.CharField(max_length=32, default='')
     delivery_date = models.DateField(blank=True, null=True)
     ship_to = models.CharField(max_length=256, default='')
     pending_level = models.CharField(max_length=64, default='')
@@ -696,6 +698,7 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
+    po_number = models.CharField(max_length=64, default='')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
@@ -1271,6 +1274,8 @@ class UserProfile(models.Model):
     pan_number = models.CharField(max_length=64, default='', blank=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
+    stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -2289,6 +2294,7 @@ class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
+    grn_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateField(blank=True, null=True)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
@@ -3873,3 +3879,17 @@ class Discrepancy(models.Model):
 
     class Meta:
         db_table = 'DISCREPANCY'
+
+
+class UserPrefixes(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    product_category = models.CharField(max_length=128, default='')
+    sku_category = models.CharField(max_length=128, default='')
+    type_name = models.CharField(max_length=64, default='')
+    prefix = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_PREFIXES'

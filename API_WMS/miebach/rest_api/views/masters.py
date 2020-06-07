@@ -2464,7 +2464,8 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone, 'reference_id': user_profile.reference_id}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -4970,7 +4971,7 @@ def get_company_list(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def send_supplier_doa(request, user=''):
+def send_supplier_doa(request, user=''):    
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     for key, value in request.POST.iteritems():
@@ -4997,15 +4998,29 @@ def send_supplier_doa(request, user=''):
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
+    req_user = request.user
+    if not request.user.is_staff:
+        req_user = user
     doa_dict = {
-        'requested_user': request.user,
+        'requested_user': req_user,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),
         'doa_status': 'pending'
     }
-    doa_obj = MastersDOA(**doa_dict)
-    doa_obj.save()
+    if not data_dict.has_key('DT_RowId'):
+        doa_obj = MastersDOA(**doa_dict)
+        doa_obj.save()
+    else:
+        doa_dict['model_id'] = data_dict['DT_RowId']
+        doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            doa_obj.json_data = json.dumps(data_dict)
+            doa_obj.save()
+        else:
+            doa_obj = MastersDOA(**doa_dict)
+            doa_obj.save()
     return HttpResponse("Added Successfully")
 
 @csrf_exempt

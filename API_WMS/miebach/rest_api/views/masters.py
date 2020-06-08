@@ -4399,7 +4399,7 @@ def insert_staff(request, user=''):
     status_msg = 'Staff Exists'
 
     if not data:
-        user_dict = {'username': email, 'first_name': staff_name, 'password': password}
+        user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
         wh_user_obj = User.objects.get(id=warehouse)
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:

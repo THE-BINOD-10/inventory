@@ -192,10 +192,17 @@
               <textarea rows="5" class="form-control" cols="15" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
             </div>
           </div>
+          <div class = "row">
+            <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+              <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+                Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+              </a>
+            </div>
+          </div>          
 		    </div>
         <div class="modal-footer" ng-if="showCase.warehouse_type != 'admin'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.save_raise_pr(form, 'save')">Save</button>
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green pull-left" ng-click="showCase.send_back_to_pr(form)">Send Back To PR</button>
+          <button ng-if="(!(showCase.print_enable) && (!showCase.is_direct_po)) " type="submit" class="btn pop pop-green pull-left" ng-click="showCase.send_back_to_pr(form)">Send Back To PR</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.save_raise_pr(form, 'create')">Send For Approval</button>
         </div>
       </div>

@@ -18,11 +18,12 @@ import datetime
 import os
 # from django.db.models import Q, F
 # from django.core.serializers.json import DjangoJSONEncoder
-from rest_api.views.utils import init_logger
+from integrations.utils import init_logger
 import reversion
 import itertools
 from netsuitesdk import NetSuiteConnection
 from netsuitesdk.internal.utils import PaginatedSearch
+
 
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/netsuite_integrations_' + today + '.log')

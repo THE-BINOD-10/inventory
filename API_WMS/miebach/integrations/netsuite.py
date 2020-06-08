@@ -130,6 +130,9 @@ class netsuiteIntegration(object):
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
             # rtvitem.location = ns.RecordRef(internalId=108)
+            custom_field_list=[]
+            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
+            rtvitem.customFieldList = ns.CustomFieldList(customFieldList)
             item = []
             for data in rtv_data['item_details']:
                 line_item = {

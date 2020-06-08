@@ -17,7 +17,7 @@ from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
-from integrations.views import Integrations
+# from integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 
@@ -1256,7 +1256,7 @@ def update_sku(request, user=''):
 
         insert_update_brands(user)
         # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
-        netsuite_sku(data, user,instanceName=instanceName)
+        # netsuite_sku(data, user,instanceName=instanceName)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1297,7 +1297,6 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
-    import pdb; pdb.set_trace()
     from integrations.views import Integrations
     intObj = Integrations('netsuiteIntegration')
     sku_data_dict=gatherSkuData(data)
@@ -2816,7 +2815,6 @@ def insert_sku(request, user=''):
         notified_users.extend(wh_ids)
         notified_users.extend(cust_ids)
         notified_users = list(set(notified_users))
-        import pdb; pdb.set_trace()
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
             if instanceName == ServiceMaster:
@@ -2880,7 +2878,6 @@ def insert_sku(request, user=''):
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-            import pdb; pdb.set_trace()
             sku_master = instanceName(**data_dict)
             sku_master.save()
             update_sku_attributes(sku_master, request)
@@ -2904,7 +2901,7 @@ def insert_sku(request, user=''):
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
             # if admin_user.get_username().lower() == 'metropolis':
-            netsuite_sku(sku_master, user, instanceName=instanceName)
+            # netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -4979,7 +4976,7 @@ def get_company_list(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def send_supplier_doa(request, user=''):    
+def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     for key, value in request.POST.iteritems():

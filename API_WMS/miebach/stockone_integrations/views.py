@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.shortcuts import render
 import datetime
-from integrations.netsuite import netsuiteIntegration
+from stockone_integrations.netsuite import netsuiteIntegration
 import json,os  
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.

@@ -17,7 +17,7 @@ from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
-from integrations.views import Integrations
+from stockone_integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 

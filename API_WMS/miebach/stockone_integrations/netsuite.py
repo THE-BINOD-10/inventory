@@ -18,7 +18,7 @@ import datetime
 import os
 # from django.db.models import Q, F
 # from django.core.serializers.json import DjangoJSONEncoder
-from integrations.utils import init_logger
+from stockone_integrations.utils import init_logger
 import reversion
 import itertools
 from netsuitesdk import NetSuiteConnection

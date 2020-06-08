@@ -1,24 +1,24 @@
-from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
-from django.contrib import auth
-from django.views.decorators.csrf import csrf_exempt
-from miebach_admin.models import *
-from miebach_admin.custom_decorators import login_required
-from collections import OrderedDict
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from dateutil.relativedelta import relativedelta
-from operator import itemgetter
-from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check
-from rest_api.views.integrations import *
+# from django.shortcuts import render
+# from django.http import HttpResponse, HttpResponseRedirect
+# from django.contrib.auth import authenticate, login
+# from django.contrib.auth.models import User
+# from django.contrib import auth
+# from django.views.decorators.csrf import csrf_exempt
+# from miebach_admin.models import *
+# from miebach_admin.custom_decorators import login_required
+# from collections import OrderedDict
+# from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+# from dateutil.relativedelta import relativedelta
+# from operator import itemgetter
+# from django.db.models import Sum, Count
+# from rest_api.views.common import get_local_date, folder_check
+# from rest_api.views.integrations import *
 import json
 import datetime
 import os
-from django.db.models import Q, F
-from django.core.serializers.json import DjangoJSONEncoder
-from rest_api.views.utils import *
+# from django.db.models import Q, F
+# from django.core.serializers.json import DjangoJSONEncoder
+from rest_api.views.utils import init_logger
 import reversion
 import itertools
 from netsuitesdk import NetSuiteConnection
@@ -37,7 +37,7 @@ class netsuiteIntegration(object):
           consumer_secret=auth_dict.get('secret'),
           token_key=auth_dict.get('token_id'),
           token_secret=auth_dict.get('token_secret'))
-        
+
     def complete_transaction(self, records, is_list):
         ns = self.nc.raw_client
         if is_list:
@@ -68,31 +68,31 @@ class netsuiteIntegration(object):
             customFieldList = []
             if data.get('No. of Test', None):
                 customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=data.get('No. of Test')))
-            if data.get('No. of flex', None):  
+            if data.get('No. of flex', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=data.get('No. of flex'))
                 )
-            if data.get('Conversion Factor', None):  
+            if data.get('Conversion Factor', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
                 )
-            if data.get('sku_class', None):  
+            if data.get('sku_class', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.get('sku_class'))
-                )   
-            if data.get('mrp', None):  
+                )
+            if data.get('mrp', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
-                )       
-            if data.get('sub_category', None):  
+                )
+            if data.get('sub_category', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
                 )
-            if data.get('hsn_code', None):  
+            if data.get('hsn_code', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
                 )
-            if data.get('sub_category', None):  
+            if data.get('sub_category', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
                 )
@@ -104,13 +104,13 @@ class netsuiteIntegration(object):
             )
             customFieldList.append(
               ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1)),
-            )  
+            )
             customFieldList.append(
               ns.StringCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.RecordRef(internalId=1))
             )
-            
+
             invitem.customFieldList = ns.CustomFieldList(customFieldList)
-            
+
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -159,20 +159,37 @@ class netsuiteIntegration(object):
             item = []
             grnrec = ns.ItemReceipt()
             grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
-            # grnrec.tranDate = '2020-05-25T10:47:05+05:30'
-            grnrec.tranDate = grn_data["grn_date"]
-            grnrec.customFieldList =  ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65)
-                                                          # ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value="api.stockone.in/static/master_docs/GRN_1/3.pdf")
-                                                          ])
-            for idx, data in enumerate(grn_data['items']):
-                line_item = {
-                'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
-                'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
-                item.append(line_item)
-            grnrec.itemList = {'item':item}
+            custom_field_list=[]
+            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
+            if(grn_data.get("dc_number",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]))
+            if(grn_data.get("invoice_no",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
+            if(grn_data.get("invoice_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+            if grn_data.get("vendorbill_url",None):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
+            if(grn_data.get("dc_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
+            if(grn_data.get("credit_note_url",None)):
+                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note', value=grn_data["credit_note_url"]))
+            if(grn_data.get("credit_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]))
+            if(grn_data.get("credit_number",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"]))
+            if(grn_data.get("inv_receipt_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
+            grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            if(grn_data.get("items",None)):
+                for idx, data in enumerate(grn_data['items']):
+                    line_item = {
+                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
+                    item.append(line_item)
+                grnrec.itemList = {'item':item}
+                grnrec.tranId = grn_data['grn_number']
+                grnrec.tranDate = grn_data["grn_date"]
             grnrec.externalId = grn_data['grn_number']
-            grnrec.tranId = grn_data['grn_number']
-
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -216,8 +233,8 @@ class netsuiteIntegration(object):
             ])
             for data in po_data['items']:
                 line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 
-                    'description': data['sku_desc'], 
+                    'item': ns.RecordRef(externalId=data['sku_code']),
+                    'description': data['sku_desc'],
                     'rate': data['unit_price'],
                     'quantity':data['quantity'],
                     'customFieldList': ns.CustomFieldList([
@@ -254,9 +271,9 @@ class netsuiteIntegration(object):
             ])
             for data in pr_data['items']:
                 line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 
+                    'item': ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
-                    'quantity':data['quantity'], 
+                    'quantity':data['quantity'],
                     'location':ns.RecordRef(internalId=108)
                 }
                 item.append(line_item)
@@ -267,116 +284,3 @@ class netsuiteIntegration(object):
             log.debug(traceback.format_exc())
             log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
         return purreq
-
-@login_required
-@get_admin_user
-def netsuite_update_supplier(request, user=''):
-    try:
-        supplier = json.loads(request.body)
-    except:
-        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(supplier))
-    try:
-        failed_status = netsuite_validate_supplier(request,supplier, user=request.user)
-        status = {'status': 200, 'message': 'Success'}
-        if failed_status:
-            status = failed_status[0]
-        return HttpResponse(json.dumps(status))
-        log.info(status)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'status': 0,'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(message), status=message.get('status', 200))
-
-def netsuite_validate_supplier(request, supplier, user=''):
-    from rest_api.views.masters import *
-    failed_status = OrderedDict()
-    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
-    sister_whs1.append(user.username)
-    sister_whs = []
-    for sister_wh1 in sister_whs1:
-        sister_whs.append(str(sister_wh1).lower())
-    try:
-        if supplier.has_key('warehouse'):
-            warehouse = supplier['warehouse']
-            if warehouse.lower() in sister_whs:
-                user = User.objects.get(username=warehouse)
-            else:
-                error_message = 'Invalid Warehouse Name'
-                update_error_message(failed_status, 5024, error_message, '')
-        if supplier.has_key('supplierid'):
-            supplier_id = supplier.get('supplierid')
-            # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
-        else:
-            error_message = 'supplier id missing'
-            update_error_message(failed_status, 5024, error_message, '', 'supplierid')
-
-        supplier_dict = {'name': 'suppliername', 'address': 'address', 'phone_number': 'phoneno', 'email_id': 'email',
-                         'tax_type': 'taxtype', 'po_exp_duration': 'poexpiryduration','reference_id':'nsinternalid',
-                         'spoc_name': 'spocname', 'spoc_number': 'spocnumber', 'spoc_email_id': 'spocemail',
-                         'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
-                         'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
-                         'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
-                         'payment_terms':'paymentterms', 'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply'
-                        }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
-        data_dict = {}
-        supplier_count = 0
-        gst_check = []
-        for address in supplier['addresses']:
-            if supplier_count and address['gstno'] not in gst_check:
-                supplier_id = supplier_id+'-'+str(supplier_count)
-            filter_dict = {'supplier_id': supplier_id }
-            for key,val in supplier_dict.iteritems():
-                value = supplier.get(val, '')
-                if key in number_field.keys():
-                    value = supplier.get(val, 0)
-                    try:
-                        value = float(value)
-                    except:
-                        error_message = '%s is Number field' % val
-                        update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
-                if key == 'email_id' and value:
-                    if validate_supplier_email(value):
-                        update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
-                if key == 'status':
-                    status = supplier.get(val, 'active')
-                    value = 1
-                    if status.lower() != 'active':
-                        value = 0
-                if key == 'address':
-                    value = address.get('address', '')
-                if key == 'state':
-                    value = address.get('state', '')
-                if key == 'city':
-                    value = address.get('city', '')
-                if key == 'country':
-                    value = address.get('country', '')
-                if key == 'tin_number':
-                    value = address.get('gstno', '')
-                if key == 'place_of_supply':
-                    value = address.get('placeofsupply', '')
-                gst_check.append(address['gstno'])
-                data_dict[key] = value
-                # if supplier_master and value:
-                #     setattr(supplier_master, key, value)
-            secondary_email_id = supplier.get('secondaryemailid', '')
-            if secondary_email_id:
-                secondary_email_id = secondary_email_id.split(',')
-                for mail in secondary_email_id:
-                    if validate_supplier_email(mail):
-                        update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
-            if not failed_status:
-                master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
-                supplier_count += 1
-                log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
-        return failed_status.values()
-
-    except Exception as e:
-        traceback.print_exc()
-        log_err.debug(traceback.format_exc())
-        log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        failed_status = [{'status': 0,'message': 'Internal Server Error'}]
-        return failed_status

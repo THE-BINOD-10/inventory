@@ -17,7 +17,7 @@ from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
-
+from integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 
@@ -1297,6 +1297,10 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
+    import pdb; pdb.set_trace()
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    sku_data_dict=gatherSkuData(data)
     if instanceName == ServiceMaster:
         response = netsuite_update_create_service(data, user)
     elif instanceName == AssetMaster:
@@ -1304,7 +1308,10 @@ def netsuite_sku(data, user, instanceName=''):
     elif instanceName == OtherItemsMaster:
         response = netsuite_update_create_otheritem_master(data, user)
     else:
-        response = netsuite_update_create_sku(data, sku_attr_dict, user)
+        intObj.initiateAuthentication()
+        sku_data_dict.update(sku_attr_dict)
+        intObj.integrateSkuMaster(sku_data_dict, is_multiple=False)
+        # response = netsuite_update_create_sku(data, sku_attr_dict, user)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='sku_master')
 
@@ -2808,6 +2815,7 @@ def insert_sku(request, user=''):
         notified_users.extend(wh_ids)
         notified_users.extend(cust_ids)
         notified_users = list(set(notified_users))
+        import pdb; pdb.set_trace()
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
             if instanceName == ServiceMaster:
@@ -2871,7 +2879,7 @@ def insert_sku(request, user=''):
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-
+            import pdb; pdb.set_trace()
             sku_master = instanceName(**data_dict)
             sku_master.save()
             update_sku_attributes(sku_master, request)
@@ -5010,8 +5018,8 @@ def send_supplier_doa(request, user=''):
 
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 
-            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq', 
+    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
+            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
             'lead_time', 'sku__user', 'status']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
@@ -5032,11 +5040,11 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
     else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
 

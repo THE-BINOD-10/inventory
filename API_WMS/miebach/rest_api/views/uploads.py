@@ -1560,6 +1560,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -1916,16 +1918,28 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         data_dict.pop(k)
             sku_data = instanceName(**data_dict)
             sku_data.save()
+        import pdb; pdb.set_trace()
         if sku_data:
             sku_data.save()
+            from integrations.views import Integrations
+            intObj = Integrations('netsuiteIntegration')
+            sku_data_dict=gatherSkuData(sku_data)
             if instanceName == ServiceMaster:
-                response = netsuite_update_create_service(sku_data, user)
+                intObj.initiateAuthentication()
+                intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)
+                # response = netsuite_update_create_service(sku_data, user)
             elif instanceName == AssetMaster:
-                response = netsuite_update_create_assetmaster(sku_data, user)
+                intObj.initiateAuthentication()
+                intObj.integrateAssetMaster(sku_data_dict, is_multiple=False)
+                # response = netsuite_update_create_assetmaster(sku_data, user)
             elif instanceName == OtherItemsMaster:
-                response = netsuite_update_create_otheritem_master(sku_data, user)
+                intObj.initiateAuthentication()
+                intObj.integrateOtherItemsMaster(sku_data_dict, is_multiple=False)
+                # response = netsuite_update_create_otheritem_master(sku_data, user)
             else:
-                data= netsuite_update_create_sku(sku_data, attr_dict, user)
+                intObj.initiateAuthentication()
+                intObj.integrateSkuMaster(sku_data_dict, is_multiple=False)
+                # data= netsuite_update_create_sku(sku_data, attr_dict, user)
             all_sku_masters.append(sku_data)
             if _size_type:
                 check_update_size_type(sku_data, _size_type)
@@ -2934,7 +2948,7 @@ def supplier_sku_upload(request, user=''):
 
         mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
         if user.userprofile.warehouse_level != 0:
-            del mapping['Warehouse']        
+            del mapping['Warehouse']
         headers = mapping.keys()
         file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
         for col_idx in range(0, open_sheet.ncols):

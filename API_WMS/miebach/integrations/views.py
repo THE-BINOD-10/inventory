@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 import datetime
 from integrations.netsuite import netsuiteIntegration
-import json
+import json,os  
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
 
@@ -31,7 +31,7 @@ class Integrations():
             self.is_connected = True
         except Exception as e:
             self.is_connected = False
-        
+
 
     def get_auth_dict(self, userObject, intType):
         respObj = integmodel.objects.get(user=userObject.id)
@@ -249,21 +249,20 @@ class Integrations():
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
                 self.connectionObject.complete_transaction(records, is_multiple)
-        
-    
+
+
     def getRelatedJson(self, recordType):
         netsuiteJsonFile = '%s/Netsuite-%s-%s-JSON-ForBatch.json' % (TEMPFOLDER, recordType, self.userObject.id)
         try:
             with open(netsuiteJsonFile, 'rb') as json_file:
                 data = json.load(json_file)
-                return data 
+                return data
         except Exception as e:
             return []
-        
+
     def writeJsonToFile(self, recordType, data):
         netsuiteJsonFile = '%s/Netsuite-%s-%s-JSON-ForBatch.json' % (TEMPFOLDER, recordType, self.userObject.id)
         with open(netsuiteJsonFile, 'wb') as json_file:
             json.dump(data, json_file)
-            return True    
+            return True
         return False
-        

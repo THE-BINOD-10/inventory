@@ -3145,7 +3145,12 @@ def netsuite_pr(user, PRQs, full_pr_number):
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
 
-    response = netsuite_create_pr(pr_datas, user)
+    # response = netsuite_create_pr(pr_datas, user)
+    import pdb; pdb.set_trace()
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=False)
 
 
 @csrf_exempt
@@ -3214,7 +3219,7 @@ def get_pr_preview_data(request, user=''):
     preview_data = {'data': []}
     # prQs = PendingPR.objects.filter(id__in=prIds)
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
-    lineItems = lineItemsQs.values_list('sku__sku_code', 
+    lineItems = lineItemsQs.values_list('sku__sku_code',
         'sku__sku_desc', 'pending_pr__product_category').annotate(Sum('quantity'))
     skuPrNumsMap = {}
     skuPrIdsMap = {}
@@ -3548,7 +3553,7 @@ def submit_pending_approval_enquiry(request, user=''):
             'status': 'pending'
         }
         GenericEnquiry.objects.create(**sendEnquiryMap)
-        
+
         lineItems = pendingPurchaseObj.pending_polineItems
         prefix = pendingPurchaseObj.prefix
         po_number = pendingPurchaseObj.po_number
@@ -3578,7 +3583,7 @@ def submit_pending_approval_enquiry(request, user=''):
             <p>%s : %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy,
                             creation_date, delivery_date, pendingLevel, enquiry_remarks,
                             line_sub_heading, lineItemDetails)
-            subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)            
+            subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)
             send_mail([enquiry_to], subject, body)
 
     return HttpResponse("Submitted Successfully")
@@ -5471,7 +5476,7 @@ def confirm_grn(request, confirm_returns='', user=''):
 # def confirm_qc_grn(request, user=''):
 
 def netsuite_grn(user, data_dict, po_number, dc_level_grn, grn_params,seller_receipt_id,myDict):
-    from api_calls.netsuite import netsuite_create_grn
+    # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     # grn_number = data_dict.get('po_number', '')
     grn_number = po_number+"/"+str(seller_receipt_id)
@@ -5493,27 +5498,31 @@ def netsuite_grn(user, data_dict, po_number, dc_level_grn, grn_params,seller_rec
         bill_no=''
         bill_date=''
     purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
-    url=""
+    vendorbill_url=""
     if purchase_order_obj:
         file_obj = grn_params.FILES.get('files-0', '')
         if file_obj:
             po_order_id = purchase_order_obj[0].order_id
             master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
                                                     master_type='GRN')
-            url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-    grn_data = {'po_number':po_number,
-                'grn_number':grn_number,
+            vendorbill_url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+    grn_qty=float(data_dict.get("total_received_qty",0.0))
+    grn_value=float(data_dict.get("net_amount",0.0))
+    invoice_quantity= float(invoice_quantity)
+    invoice_value= float(invoice_value)
+    if(not (invoice_quantity==grn_qty and invoice_value==grn_value) or not (invoice_quantity==grn_qty and invoice_value < grn_value)):
+        vendorbill_url=""
+        invoice_no=""
+        invoice_date=""
+    grn_data = {'po_number': po_number,
+                'grn_number': grn_number,
                 'items':[],
                 'grn_date': Now,
                 "invoice_no": bill_no,
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
                 "dc_date" : dc_date,
-                "grn_value":  float(data_dict.get("net_amount",0.0)),
-                "grn_qty": float(data_dict.get("total_received_qty",0.0)),
-                "invoice_quantity": float(invoice_quantity),
-                "invoice_value": float(invoice_value),
-                "url":url
+                "vendorbill_url": vendorbill_url
      }
     for data in po_data:
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],
@@ -5522,9 +5531,11 @@ def netsuite_grn(user, data_dict, po_number, dc_level_grn, grn_params,seller_rec
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
         grn_data['items'].append(item)
-
-    response = netsuite_create_grn(user, grn_data)
-
+    # response = netsuite_create_grn(user, grn_data)
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegrateGRN(grn_data, is_multiple=False)
 
 
 
@@ -7880,7 +7891,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
-    from api_calls.netsuite import netsuite_create_po
+    # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
     company_id = ''
@@ -7930,7 +7941,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_data['items'].append(item)
 
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
-    response = netsuite_create_po(po_data, user)
+    # response = netsuite_create_po(po_data, )
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')
 
@@ -10380,13 +10395,18 @@ def netsuite_move_to_poc_grn(req_data, chn_no, user=''):
     dc_data=[]
     for data in req_data:
         grn_info= {
-                    'grn_number':"/".join(data["grn_no"]),
-                    "dc_date" : ''
+                    "grn_number": "/".join(data["grn_no"]),
+                    "po_number" : data["grn_no"][0],
+                    "dc_number": chn_no
         }
         dc_data.append(grn_info)
-    grn_data={"dc_data":dc_data, "po_challan": True, "dc_number": chn_no}
-    response = netsuite_create_grn(user, grn_data)
-    return response
+    # grn_data={"dc_data":dc_data, "po_challan": True, "dc_number": chn_no}
+    # response = netsuite_create_grn(user, grn_data)
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegrateGRN(dc_data, is_multiple=True)
+    # return response
 
 @csrf_exempt
 @get_admin_user
@@ -10473,13 +10493,7 @@ def move_to_invoice(request, user=''):
         return HttpResponse(json.dumps({'message': 'failed'}))
 
 def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, user=''):
-    from api_calls.netsuite import netsuite_create_grn
-    invoice_data=[]
-    for data in req_data:
-        grn_info= {
-                    'grn_number':"/".join(data["grn_no"])
-        }
-        invoice_data.append(grn_info)
+    # from api_calls.netsuite import netsuite_create_grn
     invoice_url=""
     extra_flag= req_data[0]["grn_no"][-1]
     po_num=req_data[0]["grn_no"][0]
@@ -10489,17 +10503,28 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
     invoice_url=""
     if master_docs_obj:
         invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-    grn_data={
-         "invoice_data": invoice_data,
-         "invoice_number": invoice_number,
-         "move_to_invoice": True,
-         "invoice_date": invoice_date.isoformat(),
-         "inv_receipt_date": inv_receipt_date.isoformat(),
-         "invoice_url" : invoice_url,
-         "credit_note" : credit_note
-     }
-    response = netsuite_create_grn(user, grn_data)
-    return response
+    invoice_date=invoice_date.isoformat()
+    if(credit_note=="false"):
+        invoice_number=""
+        invoice_url=""
+        invoice_date=""
+    invoice_data=[]
+    for data in req_data:
+        grn_info= {
+                    "grn_number":"/".join(data["grn_no"]),
+                    "po_number": data["grn_no"][0],
+                    "invoice_no": invoice_number,
+                    "invoice_date":invoice_date,
+                    "inv_receipt_date": inv_receipt_date.isoformat(),
+                    "vendorbill_url" : invoice_url
+        }
+        invoice_data.append(grn_info)
+    # response = netsuite_create_grn(user, invoice_data)
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegrateGRN(invoice_data, is_multiple=True)
+    # return response
 
 @csrf_exempt
 @get_admin_user
@@ -11951,8 +11976,12 @@ def create_rtv(request, user=''):
                                    '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
-            from api_calls.netsuite import netsuite_update_create_rtv
-            response = netsuite_update_create_rtv(show_data_invoice, user)
+            # from api_calls.netsuite import netsuite_update_create_rtv
+            # response = netsuite_update_create_rtv(show_data_invoice, user)
+            from integrations.views import Integrations
+            intObj = Integrations('netsuiteIntegration')
+            intObj.initiateAuthentication()
+            intObj.IntegrateRTV(show_data_invoice, is_multiple=False)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -13167,7 +13196,7 @@ def save_credit_note_po_data(request, user=''):
 
 def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
     import dateutil.parser as parser
-    from api_calls.netsuite import netsuite_create_grn
+    # from api_calls.netsuite import netsuite_create_grn
     import datetime
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
@@ -13187,9 +13216,9 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
         date = parser.parse(credit_date)
         credit_date= date.isoformat()
     all_po_data=json.loads(credit_note_req_data.get("po_data"))
+    creditnote_data=[]
     for po_data in all_po_data:
         grn_no=po_data["grn_number"]
-        # po_no= po_data["po_number"]
         extra_flag=grn_no.split("/")[-1]
         po_num=grn_no.split("/")[0]
         po_order_id=po_num.split("_")[-1]
@@ -13198,17 +13227,21 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
         vendor_url=""
         if master_docs_obj:
             vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-        grn_data={ "credit_number": credit_number,
+        grn_data={
+         "po_number": po_num,
+         "credit_number": credit_number,
          "credit_date": credit_date,
-         "credit_note_approve": True,
          "grn_number": grn_no,
          "invoice_date": invoice_date,
          "invoice_no": invoice_number,
-         "url": url,
-         "vendor_url": vendor_url
-         }
-        response = netsuite_create_grn(user, grn_data)
-    return response
+         "credit_note_url": url,
+         "vendorbill_url": vendor_url
+        }
+        creditnote_data.append(grn_data)
+    from integrations.views import Integrations
+    intObj = Integrations('netsuiteIntegration')
+    intObj.initiateAuthentication()
+    intObj.IntegrateGRN(creditnote_data, is_multiple=True)
 
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, user, admin_user):

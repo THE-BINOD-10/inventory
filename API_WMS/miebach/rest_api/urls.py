@@ -145,6 +145,7 @@ urlpatterns = [
     url(r'^get_mapping_values/$', get_mapping_values),
     url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
     url(r'^get_supplier_payment_terms/$', get_supplier_payment_terms),
+    url(r'^get_suppllier_sku_mapping_id/$', get_suppllier_sku_mapping_id),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),

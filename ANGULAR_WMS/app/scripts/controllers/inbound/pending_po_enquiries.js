@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.extra_width = { 'width': '1250px' };
 
     vm.filters = {'datatable': 'PendingPOEnquiries', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -56,6 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.update = true;
                     vm.title = "Reply Enquiry";
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data.po_number = aData["PO Number"];
                     $state.go('app.inbound.RaisePo.submitResponseToEnquiry');
                   }
                 });

@@ -40,6 +40,7 @@ urlpatterns = [
     url(r'^insert_supplier_attribute/$', insert_supplier_attribute),
     url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
     url(r'^insert_mapping/$', insert_mapping),
+    url(r'^send_supplier_doa/$', send_supplier_doa),
     url(r'^insert_wh_mapping/$', insert_wh_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),
@@ -143,6 +144,8 @@ urlpatterns = [
     url(r'^raise_po_toggle/$', raise_po_toggle),
     url(r'^get_mapping_values/$', get_mapping_values),
     url(r'^get_ep_supplier_value/$', get_ep_supplier_value),
+    url(r'^get_supplier_payment_terms/$', get_supplier_payment_terms),
+    url(r'^get_suppllier_sku_mapping_id/$', get_suppllier_sku_mapping_id),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^delete_po/$', delete_po),
@@ -229,6 +232,7 @@ urlpatterns = [
     url(r'^get_credit_note_po_data/$',get_credit_note_po_data),
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
+    url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
 
 
     # Production
@@ -675,6 +679,8 @@ urlpatterns += [
     url(r'^sku_substitutes_upload/$', sku_substitutes_upload),
     url(r'^brand_level_barcode_configuration_form/$', brand_level_barcode_configuration_form),
     url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
+    url(r'^user_prefixes_form/$', user_prefixes_form),
+    url(r'^user_prefixes_upload/$', user_prefixes_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

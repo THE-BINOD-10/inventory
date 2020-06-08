@@ -156,6 +156,15 @@
                                     ng-readonly="showCase.pr_selected">
                             </div>
                             <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.product_category" 
+                                    ng-disabled="showCase.pr_selected"
+                                    ng-change="showCase.getProdMaxValue(datum, 'pr_save')">
+                                <option value="">Select</option>
+                                <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
+                                  ng-selected="datum.product_category == product_catg"> {{product_catg}}</option>
+                              </select>
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
                                 <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt"
                                     readonly>
                             </div>
@@ -216,6 +225,15 @@
                             <div class="col-md-1 col-sm-2 col-xs-3">
                                 <input type="text" class="form-control" ng-model="datum.name" placeholder="Config name"
                                     ng-readonly="showCase.actual_pr_selected">
+                            </div>
+                            <div class="col-md-1 col-sm-1 col-xs-2">
+                              <select class="form-control" ng-model="datum.product_category" 
+                                    ng-disabled="showCase.actual_pr_selected"
+                                    ng-change="showCase.getProdMaxValue(datum, 'actual_pr_save')">
+                                <option value="">Select</option>
+                                <option ng-repeat="product_catg in showCase.model_data.product_categories" value="{{product_catg}}"
+                                  ng-selected="datum.product_category == product_catg"> {{product_catg}}</option>
+                              </select>
                             </div>
                             <div class="col-md-1 col-sm-1 col-xs-2">
                                 <input type="text" class="form-control" ng-model="datum.min_Amt" placeholder="MinAmt"
@@ -351,7 +369,7 @@
                         ng-init="showCase.prefix_enable_save = false">
                         <div class="col-md-5 col-sm-8 col-xs-12">
                             <i class="fa fa-outdent fa-15px pull-left" style="line-height: 34px;"></i>
-                            <strong style="line-height: 34px;" class="pull-left ml20"> PO and Invoice number Prefix
+                            <strong style="line-height: 34px;" class="pull-left ml20"> PO Prefix
                             </strong>
                         </div>
                         <div class="col-md-1 col-sm-2 col-xs-3">

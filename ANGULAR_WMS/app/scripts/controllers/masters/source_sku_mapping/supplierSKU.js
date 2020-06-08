@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.permissions = Session.roles.permissions;
+    vm.warehouse_type = Session.user_profile.warehouse_type;
     vm.filters = {'datatable': 'SupplierSKUMappingMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -147,6 +148,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 
+  vm.send_supplier_doa = function() {
+    vm.model_data['data-id'] = vm.model_data.DT_RowId;
+    vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
+      if(data.message) {
+        if(data.data == "Added Successfully") {
+          vm.service.refresh(vm.dtInstance);
+          vm.close();
+        } else {
+          vm.service.pop_msg(data.data);
+        }
+      }
+    });
+  }
   // add or update supplier sku mapping
   vm.supplier_sku = function(url) {
     vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){

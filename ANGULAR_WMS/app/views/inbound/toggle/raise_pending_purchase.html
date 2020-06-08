@@ -18,7 +18,7 @@
   }
 </style>
 <div id="page-pop" class="modal fade in over-x">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
@@ -47,6 +47,12 @@
                 >
                 <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
                 <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update">
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
+              <div class="form-group">
+                <label class="control-label">Supplier Payment Terms</label>
+                <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-md-3 col-sm-4 col-xs-6">
@@ -90,7 +96,7 @@
           </div> -->
           <div ng-if="showCase.model_data.product_category">
             <div class="row" ng-if="showCase.model_data.product_category=='Kits&Consumables'" >
-              <div ng-include="'views/inbound/toggle/RaisePendingPoLineItems/kits&consumables.html'"></div>
+              <div ng-include="'views/inbound/toggle/RaisePendingPoLineItems/kits_consumables.html'"></div>
             </div>
             <div class="row" ng-if="showCase.model_data.product_category=='Assets'" >
               <div ng-include="'views/inbound/toggle/RaisePendingPoLineItems/assets.html'"></div>
@@ -233,6 +239,14 @@
             </div>
             <div class="col-md-9 col-sm-9 col-xs-9">
               <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+            </div>
+          </div>
+          <div class="row" style="padding-top: 35px;"  
+                ng-if="showCase.model_data.product_category!='Kits&Consumables'">
+            <div class="form-group col-md-3">
+               <span>
+                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
+               </span>
             </div>
           </div>
 		    </div>

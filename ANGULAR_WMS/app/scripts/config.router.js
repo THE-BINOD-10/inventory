@@ -412,6 +412,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/masters/source_sku_mapping/supplierSKUAttribute.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/source_sku_mapping/supplierSKUDOA.js'
+                  ])
                 });
               }]
           },

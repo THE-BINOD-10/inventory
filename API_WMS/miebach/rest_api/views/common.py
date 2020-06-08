@@ -9944,7 +9944,7 @@ def get_user_prefix_incremental(user, type_name, sku_code):
     else:
         user_prefix = user_prefix[0]
         prefix = user_prefix.prefix
-        incr_type_name = '%s_%s' % (str(type_name), str(user_prefix.id))
+        incr_type_name = '%s_%s' % (str(type_name), str(prefix))
         count = get_incremental(user, incr_type_name, default_val=1)
         userprofile = user.userprofile
         store_code = userprofile.stockone_code

@@ -115,6 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     var empty_data = {"supplier_id":"",
                       "po_name": "",
                       "ship_to": "",
+                      "supplier_payment_terms": "",
                       "receipt_types": ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'],
                       "receipt_type": 'Purchase Order',
                       "seller_types": [],
@@ -146,12 +147,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.dynamic_route = function(aData) {
       vm.data_id = aData['id']?aData['id']:''
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id'], id:vm.data_id };
+      vm.is_direct_po = true;      
+      if (aData['PR No'] != "None") {
+        vm.is_direct_po = false;
+      }
       vm.service.apiCall('generated_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
           var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
           vm.update_part = false;
           var empty_data = {"supplier_id":vm.supplier_id,
             "po_name": "",
+            "supplier_payment_terms": data.data.supplier_payment_desc,
             "ship_to": data.data.ship_to,
             "terms_condition": data.data.terms_condition,
             "receipt_type": data.data.receipt_type,
@@ -168,6 +174,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "warehouse": data.data.warehouse,
             "data": data.data.data,
             "send_sku_dict": data.data.central_po_data,
+            "uploaded_file_dict": data.data.uploaded_file_dict,            
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
@@ -176,6 +183,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             vm.model_data['supplier_id_name'] = '';
           }
+          if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+            vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }          
           // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -631,8 +641,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if (vm.is_purchase_request){
       elem.push({name:'is_purchase_request', value:true})
     }
-    if (vm.model_data.pr_number){
-      elem.push({name:'pr_number', value:vm.model_data.pr_number})
+    if (vm.model_data.purchase_id){
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
     }
     if (vm.requested_user){
       elem.push({name:'requested_user', value:vm.requested_user})
@@ -650,9 +660,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
   }
 
     vm.print_pending_po = function(form, validation_type) {
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.po_number, {withCredential: true})
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id, {withCredential: true})
       .success(function(data, status, headers, config) {
-          vm.service.print_data(data, vm.model_data.po_number);
+          vm.service.print_data(data, vm.model_data.purchase_id);
       });      
     }
 
@@ -693,10 +703,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.pr_number){
         elem.push({name:'pr_number', value:vm.pr_number})
       }
+
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
+      });
+
+
+      var form_data = new FormData();
+      if(product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });  
+      }
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+
+
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('save_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('save_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Saved Successfully') {
                   vm.close();
@@ -1088,6 +1119,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         })
       }
+      if (vm.model_data.supplier_id) {
+        var supplier_data = {'supplier_id':vm.model_data.supplier_id}
+        vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
+          if (data.data) {
+            vm.model_data.supplier_payment_terms = data.data;
+          } else {
+            vm.model_data.supplier_payment_terms = '';
+          }
+        })
+      }
     }
     vm.clear_raise_po_data = function(product){
       product.fields.sku.wms_code = '';
@@ -1138,10 +1179,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:'ship_to', value:''});
         elem.push({name:'location_sku_data', value:JSON.stringify(vm.final_send_sku_dict)});
       }
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
+      });
+
+      var form_data = new FormData();
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
+      
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('add_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('add_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
                   vm.final_send_sku_dict = {};

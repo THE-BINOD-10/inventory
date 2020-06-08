@@ -66,6 +66,12 @@
               <label class="control-label"> Warehouse </label>
               <input type="text" ng-model="showCase.model_data.warehouse" name="warehouse" class="form-control" ng-readonly="true"> </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
+              <div class="form-group">
+                <label class="control-label">Supplier Payment Terms</label>
+                <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-12"><hr></div>
           </div>
           <div class="row">
@@ -273,6 +279,13 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+      <div class = "row">
+        <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+          <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+            Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+          </a>
         </div>
       </div>
         <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>

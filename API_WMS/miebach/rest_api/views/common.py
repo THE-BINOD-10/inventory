@@ -9949,12 +9949,12 @@ def get_user_prefix_incremental(user, type_name, sku_code):
     else:
         user_prefix = user_prefix[0]
         prefix = user_prefix.prefix
-        incr_type_name = '%s_%s' % (str(type_name), str(user_prefix.id))
+        incr_type_name = '%s_%s' % (str(type_name), str(prefix))
         count = get_incremental(user, incr_type_name, default_val=1)
         userprofile = user.userprofile
         store_code = userprofile.stockone_code
         dept_code = '0000'
-        if userprofile.warehouse_level == 3 and type_name in ['pr_prefix', 'po_prefix']:
+        if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
             dept_code = userprofile.stockone_code

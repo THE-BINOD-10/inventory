@@ -692,7 +692,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           warehouse = key.value;
         }
       });
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
       .success(function(data, status, headers, config) {
         vm.service.print_data(data, vm.model_data.pr_number);
       });
@@ -745,7 +745,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
 
       var form_data = new FormData();
-      if(product_category != "Kits&Consumables") {
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
@@ -1174,7 +1174,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables"){
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);

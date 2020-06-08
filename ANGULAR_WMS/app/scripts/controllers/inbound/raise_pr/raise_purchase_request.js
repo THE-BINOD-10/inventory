@@ -692,7 +692,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           warehouse = key.value;
         }
       });
-      $http.get(Session.url+'print_pending_po_form/?po_id='+vm.model_data.pr_number+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
+      $http.get(Session.url+'print_pending_po_form/?purchase_id='+vm.model_data.purchase_id+'&is_actual_pr=true'+'&warehouse='+warehouse, {withCredential: true})
       .success(function(data, status, headers, config) {
         vm.service.print_data(data, vm.model_data.pr_number);
       });

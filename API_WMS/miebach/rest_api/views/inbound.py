@@ -1448,9 +1448,11 @@ def print_pending_po_form(request, user=''):
     if is_actual_pr == 'true':
         model_name = PendingPR
         filtersMap['id'] = purchase_number
+        full_purchase_number = 'full_pr_number'
     else:
         model_name = PendingPO
         filtersMap['id'] = purchase_number
+        full_purchase_number = 'full_po_number'
     total_qty = 0
     total = 0
     if not purchase_id:
@@ -1526,7 +1528,8 @@ def print_pending_po_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
     # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    po_number = order.full_po_number
+    # po_number = order.full_po_number
+    po_number = getattr(order, full_purchase_number)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -2840,12 +2843,14 @@ def approve_pr(request, user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
+        prefix = pendingPRObj.prefix
+        full_pr_number = pendingPRObj.full_pr_number
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:

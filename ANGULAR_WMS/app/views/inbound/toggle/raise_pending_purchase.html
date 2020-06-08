@@ -49,6 +49,12 @@
                 <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update">
               </div>
             </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
+              <div class="form-group">
+                <label class="control-label">Supplier Payment Terms</label>
+                <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-3 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">PO Delivery Date *</label>

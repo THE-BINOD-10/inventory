@@ -987,7 +987,7 @@ def sku_form(request, user=''):
     if user_profile.industry_type == "FMCG":
         headers.append("Shelf life")
     if not request.user.is_staff:
-	headers = list(filter(('Block For PO').__ne__, headers))
+        headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.username))
@@ -1621,6 +1621,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
+            elif key == 'batch_based':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Batch Based Should be Enable or Disable')
             elif key == 'enable_serial_based':
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
@@ -1869,6 +1873,17 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not toggle_value:
                     cell_data = 0
                 if toggle_value:
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
+            elif key == 'batch_based':
+                svaed_value = str(cell_data).lower()
+                if svaed_value == "enable":
+                    cell_data = 1
+                if svaed_value == "disable":
+                    cell_data = 0
+                if not svaed_value:
+                    cell_data = 0
+                if svaed_value:
                     setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'block_options':
@@ -7799,8 +7814,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
                     block_stock_dict[key] = int(cell_data)
-          	    if int(cell_data) not in [1, 3]:
-          	        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
+                    if int(cell_data) not in [1, 3]:
+                        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
         grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code', '')),str(block_stock_dict.get('corporate_name', '')),str(block_stock_dict.get('reseller_name', '')),str(block_stock_dict.get('warehouse', '')),str(block_stock_dict.get('level', '')))

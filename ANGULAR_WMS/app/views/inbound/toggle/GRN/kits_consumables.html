@@ -121,8 +121,8 @@
         </td>
         <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly></td>
         <td>
-          <button class="btn" ng-click="showCase.price_request(showCase.model_data['supplier_name'], data.wms_code, data.sku_desc, data.price, data.buy_price)" ng-disabled="showCase.price_request_button(data.price, data.buy_price)" style="background: #ffc65d;">Request Price Change</button>
-          <!-- <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0})"></a> -->
+          <button class="btn" ng-if="data.price_request" ng-disabled="data.price_request" style="background: #7bf72e;">Price Change Requested</button>
+          <button class="btn" ng-if="!data.price_request" ng-click="showCase.price_request(showCase.model_data.supplier_id, showCase.model_data['supplier_name'], data.wms_code, data.sku_desc, data.price, data.buy_price, data)" ng-disabled="showCase.price_request_button(data.price, data.buy_price)" style="background: #ffc65d;">Request Price Change</button>
         </td>
         <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
         <td ng-include="'views/production/toggle/common/custom_sku_details.html'">

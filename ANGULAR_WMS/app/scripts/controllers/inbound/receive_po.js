@@ -983,8 +983,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.price_request = function(supplier, sku, sku_desc, price, buyprice) {
-    var data = {'supplier': supplier, 'sku': sku, 'sku_desc': sku_desc, 'price': price, 'buyprice': buyprice}
+  vm.price_request = function(supplier_id, supplier, sku, sku_desc, price, buyprice, datum) {
+    var data = {'supplier_id': supplier_id, 'supplier': supplier, 'sku': sku, 'sku_desc': sku_desc, 'price': price, 'buyprice': buyprice, 'record': datum}
     var modalInstance = $modal.open({
       templateUrl: 'views/inbound/toggle/GRN/price_request.html',
       controller: 'priceRequestCtrl',
@@ -999,7 +999,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
     modalInstance.result.then(function (selectedItem) {
-      console.log(selectedItem);
+      if (selectedItem['status'] == 'success') {
+        selectedItem['datum']['price_request'] = true;
+      }
     });
   }
 
@@ -3000,10 +3002,50 @@ angular
 angular.module('urbanApp').controller('priceRequestCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
-  vm.grnData = items
-  console.log(items);
-  vm.cancel = function () {
-    $modalInstance.dismiss('cancel');
+  vm.grnData = items;
+  vm.service = Service;
+  vm.base = function () {
+    var data_dict = { 'supplier_id': vm.grnData['supplier_id'], 'sku_code': vm.grnData['sku'] }
+    vm.service.apiCall('get_suppllier_sku_mapping_id/', 'POST', data_dict).then(function(data){
+      if (data.data) {
+        vm.supplier_table_id = parseInt(data.data);
+      } else {
+        vm.supplier_table_id = '';
+      }
+    })
+  }
+  vm.base();
+  vm.send_supplier_doa = function() {
+    if (parseInt(vm.grnData.buyprice) > 0 && vm.grnData.buyprice)  {
+      var data_to_send = { 'DT_RowId': vm.supplier_table_id, 'supplier_id': vm.grnData['supplier_id'], 'wms_code': vm.grnData['sku'], 'price': parseInt(vm.grnData.buyprice) }
+      vm.service.apiCall('send_supplier_doa/', 'POST', data_to_send, true).then(function(data){
+        if(data.message) {
+          if(data.data == "Added Successfully") {
+            vm.service.showNoty("Price Change Requested !");
+            var temp_dict = {
+              'status': 'success',
+              'datum': vm.grnData['record']
+            }
+            vm.cancel(temp_dict);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
+    } else {
+      vm.service.showNoty("Please Fill The Price *");
+    }
+  }
+  vm.cancel = function (data) {
+    var temp_dict = '';
+    if (data) {
+      temp_dict = data;
+    } else {
+      temp_dict = {
+            'status': 'cancel'
+          }
+    }
+    $modalInstance.close(temp_dict);
   };
 
 });

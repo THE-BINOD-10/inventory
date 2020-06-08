@@ -19,8 +19,18 @@
                 <label class="control-label"> Company List </label>
                 <input ng-if="showCase.update" type="hidden" name="company_id" class="form-control" ng-model="showCase.model_data.company_id" value="{{showCase.model_data.company_id}}">
                 <input ng-if="showCase.update" type="text" name="company" class="form-control" ng-model="showCase.model_data.company" readonly>
-                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id">
+                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id" ng-change="showCase.get_company_warehouse_list()">
                   <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Warehouse List </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>
+                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse_list" ng-init="showCase.get_company_warehouse_list()" name="warehouse">
+                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.id}}">{{warehouse.username}}</option>
                 </select>
               </div>
             </div>
@@ -28,6 +38,16 @@
               <div class="form-group">
                 <label class="control-label"> Email *</label>
                 <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" ng-readonly="showCase.update" required> </div>
+            </div>
+            <div class="col-md-4" ng-if="!showCase.update">
+              <div class="form-group">
+                <label class="control-label"> Password * </label>
+                <input name="password" type="password" class="form-control" ng-model="showCase.model_data.password" maxlength="64"> </div>
+            </div>
+            <div class="col-md-4" ng-if="!showCase.update">
+              <div class="form-group">
+                <label class="control-label"> Retype Password * </label>
+                <input name="re_password" type="password" class="form-control" ng-model="showCase.model_data.re_password" maxlength="64"> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">

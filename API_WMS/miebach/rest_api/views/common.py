@@ -788,19 +788,9 @@ def get_user_groups(start_index, stop_index, temp_data, search_term, order_term,
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def add_user(request, user=''):
+def add_warehouse_sub_user(user_dict, user):
     status = 'Username already exists'
-    user_dict = {}
-    for key, value in request.GET.iteritems():
-        if not key == 're_password':
-            user_dict[key] = value
-    user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
-    import pdb;pdb.set_trace()
-    #all_sub_users = get_sub_users(user)
     all_sub_users = get_company_sub_users(user)
     existing_emails = all_sub_users.values_list('email', flat=True)
     if user_dict.get('email', ''):
@@ -818,9 +808,20 @@ def add_user(request, user=''):
             admin_group.save()
             user.groups.add(group)
         new_user.groups.add(group)
-        # add_extra_permissions(new_user)
-        new_user.groups.add(group)
+        #new_user.groups.add(group)
         status = 'Added Successfully'
+    return status
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_user(request, user=''):
+    user_dict = {}
+    for key, value in request.GET.iteritems():
+        if not key == 're_password':
+            user_dict[key] = value
+    user_dict['last_login'] = datetime.datetime.now()
+    status = add_warehouse_sub_user(user_dict, user)
     return HttpResponse(status)
 
 
@@ -11925,9 +11926,9 @@ def get_related_users(user_id, level=0, company_id=''):
     return all_users
 
 
-def get_related_user_objs(user_id, level=0):
-    user_ids = get_related_users(user_id, level=level)
-    users = User.objects.filter(id__in=user_ids) 
+def get_related_user_objs(user_id, level=0, company_id=''):
+    user_ids = get_related_users(user_id, level=level, company_id=company_id)
+    users = User.objects.filter(id__in=user_ids)
     return users
 
 
@@ -12153,3 +12154,21 @@ def insert_admin_sku_attributes(request, user):
         update_dict = {'attribute_type': attribute.attribute_type, 'status': 1}
         sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
     return "Success"
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_company_warehouses(request, user=''):
+    company_id = request.GET.get('company_id', '')
+    wh_objs = get_related_user_objs(user.id, company_id=company_id)
+    warehouse_list = list(wh_objs.values('id', 'username'))
+    return HttpResponse(json.dumps({'warehouse_list': warehouse_list}))
+
+
+def get_sub_user_parent(request_user):
+    groups_list = request_user.groups.all()
+    user = None
+    group = AdminGroups.objects.filter(group_id__in=groups_list.values_list('id', flat=True))
+    if group:
+        user = group[0].user
+    return user

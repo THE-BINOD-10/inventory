@@ -682,7 +682,13 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
+        sub_user = User.objects.get(username=data.email_id)
+        wh_user = get_sub_user_parent(sub_user)
+        warehouse_name = ''
+        if wh_user:
+            warehouse_name = wh_user.username
         data_dict = OrderedDict((('name', data.staff_name), ('company', data.company.company_name),
+                                 ('warehouse', warehouse_name),
                                  ('plant', data.plant), ('department_type', data.department_type),
                                  ('department_id', data.department_id), ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
@@ -4377,22 +4383,31 @@ def insert_staff(request, user=''):
     department_type = request.POST.get('department_type', '')
     department_id = request.POST.get('department_id', '')
     position = request.POST.get('position', '')
+    password = request.POST.get('password', '')
+    re_password = request.POST.get('re_password', '')
+    warehouse = request.POST.get('warehouse', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     if not (staff_name or email):
         return HttpResponse('Missing Required Fields')
+    if password != re_password:
+        return HttpResponse('Password and Retype passwords not matching')
     all_sub_users = get_company_sub_users(user, company_id=company_id)
     sub_user_email = all_sub_users.filter(email=email)
-    if not sub_user_email.exists():
-        return HttpResponse('Invalid Email')
+    if sub_user_email.exists():
+        return HttpResponse('Email exists already')
     data = filter_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     status_msg = 'Staff Exists'
 
     if not data:
+        user_dict = {'username': email, 'first_name': staff_name, 'password': password}
+        wh_user_obj = User.objects.get(id=warehouse)
+        add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
+        if 'Added' not in add_user_status:
+            return HttpResponse(add_user_status)
         StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
                             plant=plant, department_type=department_type, department_id=department_id,
                             position=position)
-
         status_msg = 'New Staff Added'
     return HttpResponse(status_msg)
 

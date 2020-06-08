@@ -745,7 +745,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
 
       var form_data = new FormData();
-      if(product_category != "Kits&Consumables") {
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
@@ -1174,7 +1174,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables"){
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);

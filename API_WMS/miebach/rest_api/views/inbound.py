@@ -2843,12 +2843,14 @@ def approve_pr(request, user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
+        prefix = pendingPRObj.prefix
+        full_pr_number = pendingPRObj.full_pr_number
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:

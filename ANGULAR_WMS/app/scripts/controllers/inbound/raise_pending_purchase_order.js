@@ -172,6 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "warehouse": data.data.warehouse,
             "data": data.data.data,
             "send_sku_dict": data.data.central_po_data,
+            "uploaded_file_dict": data.data.uploaded_file_dict,            
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
@@ -180,6 +181,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           } else {
             vm.model_data['supplier_id_name'] = '';
           }
+          if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+            vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }          
           // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -697,10 +701,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.pr_number){
         elem.push({name:'pr_number', value:vm.pr_number})
       }
+
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
+      });
+
+
+      var form_data = new FormData();
+      if(product_category != "Kits&Consumables") {
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });  
+      }
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+
+
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('save_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('save_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Saved Successfully') {
                   vm.close();
@@ -1142,10 +1167,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:'ship_to', value:''});
         elem.push({name:'location_sku_data', value:JSON.stringify(vm.final_send_sku_dict)});
       }
+      var product_category = '';
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'product_category') {
+          product_category = list_obj['value']
+        }
+      });
+
+      var form_data = new FormData();
+      if (product_category != "Kits&Consumables"){
+        var files = $(".pr_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
+      
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+
       vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('add_pr/', 'POST', elem, true).then(function(data){
+            vm.service.apiCall('add_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
                   vm.final_send_sku_dict = {};

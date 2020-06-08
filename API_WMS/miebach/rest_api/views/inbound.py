@@ -1266,12 +1266,19 @@ def generated_pr_data(request, user=''):
     pr_created_date = ''
     central_po_data = ''
     validateFlag = 0
+    uploaded_file_dict = {}    
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
     # prApprQs = PurchaseApprovals.objects.filter(pr_user=user.id, openpr_number=pr_number)
+
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_po')
+    if master_docs.exists():
+        uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                              'file_url': '/' + master_docs[0].uploaded_file.name}
+
     prApprQs = record[0].pending_poApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1333,7 +1340,8 @@ def generated_pr_data(request, user=''):
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
-                                    'enquiryRemarks': enquiryRemarks, 'central_po_data': central_po_data}))
+                                    'enquiryRemarks': enquiryRemarks, 'central_po_data': central_po_data,
+                                    'uploaded_file_dict': uploaded_file_dict}))
 
 
 @csrf_exempt

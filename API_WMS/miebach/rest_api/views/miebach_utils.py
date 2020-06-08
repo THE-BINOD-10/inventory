@@ -11701,7 +11701,7 @@ def get_pr_report_data(search_params, user, request):
                             approver1_id = approver_data[0].validated_by
                             approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver1_status = approver_data[0].status
-                            approver1_remarks = approver_data[0].reamarks
+                            approver1_remarks = approver_data[0].remarks
 
                     elif prev_level == 'level1':
                         approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], level=prev_level)
@@ -11709,15 +11709,15 @@ def get_pr_report_data(search_params, user, request):
                             approver2_id = approver_data[0].validated_by
                             approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver2_status = approver_data[0].status
-                            approver2_remarks = approver_data[0].reamarks
+                            approver2_remarks = approver_data[0].remarks
             else:
-                approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                                                  level=lastLevel)
                 if approver_data.exists():
                     approver1_id = approver_data[0].validated_by
                     approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                     approver1_status = approver_data[0].status
-                    approver1_remarks = approver_data[0].reamarks
+                    approver1_remarks = approver_data[0].remarks
 
         last_updated_by = ''
         last_updated_time = ''
@@ -11883,8 +11883,17 @@ def get_pr_detail_report_data(search_params, user, request):
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                                     pr_user=pr_user, level=result['pending_pr__pending_level'])
 
-        pr_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],pr_user=pr_user,level='level0')
-        pr_submitted_date = ''
+        # pr_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],pr_user=pr_user,level='level0')
+        # pr_submitted_date, pr_conv_date = '', ''
+        pr_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'], pr_user=pr_user,
+                                                   level='level0')
+        pr_stat_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                                                        pr_user=pr_user, pending_pr__final_status='pr_converted_to_po')
+        pr_submitted_date, pr_conv_date = '', ''
+        if pr_data.exists():
+            pr_submitted_date = get_local_date(user, pr_data[0].creation_date)
+        if pr_stat_data.exists():
+            pr_conv_date = get_local_date(user, pr_stat_data[0].creation_date)
         if pr_data.exists():
             pr_submitted_date = get_local_date(user, pr_data[0].creation_date)
         approver1_id, approver2_id ='', ''
@@ -11914,17 +11923,17 @@ def get_pr_detail_report_data(search_params, user, request):
                         approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                         approver2_status = approver_data[0].status
                         approver2_remarks = approver_data[0].reamarks
-            # else:
-            #     approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-            #                                                      level=lastLevel)
-            #     if approver_data.exists():
-            #         approver1_id = approver_data[0].validated_by
-            #         approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-            #         approver1_status = approver_data[0].status
-            #         approver1_remarks = approver_data[0].reamarks
-
         else:
-            pr_requested_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],pr_user=pr_user, level=result['pending_pr__pending_level'])
+            approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                                                             level=lastLevel)
+            if approver_data.exists():
+                approver1_id = approver_data[0].validated_by
+                approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
+                approver1_status = approver_data[0].status
+                approver1_remarks = approver_data[0].remarks
+
+        # else:
+        #     pr_requested_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],pr_user=pr_user, level=result['pending_pr__pending_level'])
 
 
         last_updated_by = ''
@@ -11976,7 +11985,7 @@ def get_pr_detail_report_data(search_params, user, request):
             ('SKU Sub-Category', result['sku__sub_category']),
             ('SKU Group', result['sku__sku_group']),
             ('Quantity', result['total_qty']),
-            ('PR Converted to PO Date', pr_convert_date),
+            ('PR Converted to PO Date', pr_conv_date),
             ('PO Number', result['pending_po__po_number']),
             ('Approver 1 ID', approver1_id),
             ('Approver 1 Status', approver1_status),

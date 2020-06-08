@@ -4129,6 +4129,7 @@ def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
             if user_profile:
                 purchase_data['prefix'] = user_profile[0].prefix
             order = PurchaseOrder(**purchase_data)
+            order.po_number = get_po_reference(order)
             order.save()
         check_prefix = ''
         if user_profile:

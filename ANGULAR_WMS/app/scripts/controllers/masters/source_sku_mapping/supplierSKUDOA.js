@@ -58,9 +58,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('td', nRow).bind('click', function() {
           $scope.$apply(function() {
               // vm.model_data['create_login'] = false;
+              var margin_perc = parseInt(aData['margin_percentage'])
+              var mark_perc = parseInt(aData['markup_percentage'])
+              var lead_time = parseInt(aData['lead_time'])
+              aData['margin_percentage'] = margin_perc?margin_perc:0;
+              aData['markup_percentage'] = mark_perc?mark_perc:0;
+              aData['lead_time'] = lead_time?lead_time:0
               angular.copy(aData, vm.model_data);
               vm.update = true;
               vm.title = "Supplier SKU DOA";
+              vm.is_doa = true;
               $state.go('app.masters.sourceSKUMapping.mapping');
           });
       });

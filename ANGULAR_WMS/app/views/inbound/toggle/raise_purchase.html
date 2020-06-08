@@ -187,6 +187,12 @@
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
               </div>
             </div>
+            <div class="col-md-2 col-sm-2 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
+              <div class="form-group">
+                <label class="control-label">Supplier Payment Terms</label>
+                <input type="text" ng-model="showCase.model_data.supplier_payment_terms" name="supplier_payment_terms" class="form-control" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'admin' && !showCase.permissions.central_admin_level_po">
               <div class="form-group">
                 <label class="control-label"> Warehouse </label>

@@ -987,7 +987,7 @@ def sku_form(request, user=''):
     if user_profile.industry_type == "FMCG":
         headers.append("Shelf life")
     if not request.user.is_staff:
-	headers = list(filter(('Block For PO').__ne__, headers))
+        headers = list(filter(('Block For PO').__ne__, headers))
     wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.username))
@@ -1623,6 +1623,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
+            elif key == 'batch_based':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Batch Based Should be Enable or Disable')
             elif key == 'enable_serial_based':
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
@@ -1871,6 +1875,17 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if not toggle_value:
                     cell_data = 0
                 if toggle_value:
+                    setattr(sku_data, key, cell_data)
+                    data_dict[key] = cell_data
+            elif key == 'batch_based':
+                svaed_value = str(cell_data).lower()
+                if svaed_value == "enable":
+                    cell_data = 1
+                if svaed_value == "disable":
+                    cell_data = 0
+                if not svaed_value:
+                    cell_data = 0
+                if svaed_value:
                     setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
             elif key == 'block_options':
@@ -3374,6 +3389,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     po_data = []
     ids_dict = {}
     send_mail_data = OrderedDict()
+    check_prefix = ''
     for final_dict in data_list:
         final_dict['sku'] = SKUMaster.objects.get(id=final_dict['sku_id'], user=user.id)
         final_dict['supplier'] = SupplierMaster.objects.get(id=final_dict['supplier_id'], user=user.id)
@@ -3442,12 +3458,18 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             excel_seller_id = final_dict['seller'].seller_id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_id = get_purchase_order_id(user)+1
-            if po_sub_user_prefix == 'true':
-                po_id = update_po_order_prefix(request.user, po_id)
-            order_ids[group_key] = po_id
+            # po_id = get_purchase_order_id(user)+1
+            # if po_sub_user_prefix == 'true':
+            #     po_id = update_po_order_prefix(request.user, po_id)
+            sku_code = final_dict['sku'].sku_code
+            po_id, prefix, po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+            if inc_status:
+                return HttpResponse("Prefix not defined")
+            order_ids[group_key] = {'po_id': po_id, 'prefix': prefix, 'po_number': po_number}
         else:
-            po_id = order_ids[group_key]
+            po_id = order_ids[group_key]['po_id']
+            prefix = order_ids[group_key]['prefix']
+            po_number = order_ids[group_key]['po_number']
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
@@ -3470,8 +3492,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = po_id
-        if user_profile:
-            data['prefix'] = user_profile.prefix
+        data['prefix'] = prefix
+        data['po_number'] = po_number
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
@@ -3563,7 +3585,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             telephone = purchase_order.supplier.phone_number
             name = purchase_order.supplier.name
             supplier = purchase_order.supplier_id
-            order_id = ids_dict[supplier]
+            order_id = po_id
             supplier_email = purchase_order.supplier.email_id
             secondary_supplier_email = list(MasterEmailMapping.objects.filter(master_id=supplier, user=user.id, master_type='supplier').values_list('email_id',flat=True).distinct())
             supplier_email_id =[]
@@ -3577,7 +3599,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
                 expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
             else:
                 expiry_date = ''
-            po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+            po_reference = order.po_number
             report_file_names = []
             if user.username in MILKBASKET_USERS:
                 wb, ws, path, file_name = get_excel_variables(po_reference+' '+'Purchase Order Form', 'purchase_order_sheet', excel_headers)
@@ -3639,11 +3661,8 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             log.info('Purchase Order send mail failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
     for key, value in order_ids.iteritems():
-        if value:
-            check_prefix = ''
-            if user_profile:
-                check_prefix = user_profile.prefix
-            check_purchase_order_created(user, value, check_prefix)
+        if value.get('po_id'):
+            check_purchase_order_created(user, value['po_id'], check_prefix)
     return 'success'
 
 
@@ -5973,6 +5992,7 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
 def create_po_serial_mapping(final_data_dict, user):
     order_id_dict = {}
     lr_number, invoice_num = '', ''
+    check_prefix = ''
     receipt_number = get_stock_receipt_number(user)
     NOW = datetime.datetime.now()
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -6000,16 +6020,23 @@ def create_po_serial_mapping(final_data_dict, user):
         open_po_obj.save()
         group_key = (str(po_details['supplier_id']) + ':' + str(po_details['po_reference_no']))
         if group_key in order_id_dict:
-            order_id = order_id_dict[group_key]
+            order_id = order_id_dict[group_key]['order_id']
+            prefix = order_id_dict[group_key]['prefix']
+            po_number = order_id_dict[group_key]['po_number']
         else:
-            order_id = get_purchase_order_id(user) + 1
-            if po_sub_user_prefix == 'true':
-                order_id = update_po_order_prefix(user, order_id)
-            order_id_dict[group_key] = order_id
+            sku_code = open_po_obj.sku.sku_code
+            order_id, prefix, po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+            if inc_status:
+                return HttpResponse("Prefix not defined")
+            order_id_dict[group_key]['order_id'] = order_id
+            order_id_dict[group_key]['prefix'] = prefix
+            order_id_dict[group_key]['po_number'] = po_number
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
-                               'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
-                               'order_id': order_id, 'creation_date': NOW,'updation_date':NOW}
+                               'po_date': NOW, 'status': po_details['status'], 'prefix': prefix,
+                               'order_id': order_id, 'creation_date': NOW,'updation_date':NOW,
+                               'po_number': po_number}
         purchase_order = PurchaseOrder(**purchase_order_dict)
+        purchase_order.po_number = get_po_reference(purchase_order)
         purchase_order.save()
         if lr_number:
             lr_details = LRDetail(lr_number=lr_number, quantity=quantity,
@@ -6049,11 +6076,8 @@ def create_po_serial_mapping(final_data_dict, user):
         mod_locations.append(location_master.location)
 
     for key, value in order_id_dict.iteritems():
-        if value:
-            check_prefix = ''
-            if user_profile:
-                check_prefix = user_profile.prefix
-            check_purchase_order_created(user, value, check_prefix)
+        if value.get('order_id'):
+            check_purchase_order_created(user, value['order_id'], check_prefix)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 
@@ -7804,8 +7828,8 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
                     index_status.setdefault(row_idx, set()).add("Level Missing")
                 else:
                     block_stock_dict[key] = int(cell_data)
-          	    if int(cell_data) not in [1, 3]:
-          	        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
+                    if int(cell_data) not in [1, 3]:
+                        index_status.setdefault(row_idx, set()).add('Level must be either 1 or 3')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
         grouping_key = '%s,%s,%s,%s,%s' % (str(block_stock_dict.get('sku_code', '')),str(block_stock_dict.get('corporate_name', '')),str(block_stock_dict.get('reseller_name', '')),str(block_stock_dict.get('warehouse', '')),str(block_stock_dict.get('level', '')))
@@ -9100,3 +9124,128 @@ def update_sku_make_model(request, reader, user, no_of_rows, no_of_cols, fname, 
     if create_sku_attrs:
         SKUAttributes.objects.bulk_create(create_sku_attrs)
     return 'Success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_prefixes_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(USER_PREFIXES_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('User Prefixes', excel_headers)
+    return xls_to_response(wb, '%s.user_prefixes_form.xls' % str(user.id))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_prefixes_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_user_prefixes_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    save_user_prefixes(data_list)
+    return HttpResponse('Success')
+
+
+@csrf_exempt
+def validate_user_prefixes_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(USER_PREFIXES_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['warehouse', 'product_category', 'sku_category', 'pr_prefix', 'po_prefix',
+                'grn_prefix', 'invoice_prefix']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+
+    category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                      values_list('sku_category', flat=True).distinct())
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'warehouse':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    all_users = get_related_users(user.id)
+                    all_user_objs = User.objects.filter(id__in=all_users)
+                    warehouse = all_user_objs.filter(username=cell_data)
+                    if not warehouse:
+                        index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+                    else:
+                        data_dict['user'] = warehouse[0]
+                        user = warehouse[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Warehouse is Mandatory')
+            elif key == 'product_category':
+                if cell_data:
+                    if cell_data not in PRODUCT_CATEGORIES:
+                        index_status.setdefault(row_idx, set()).add('Invalid Product Category')
+                    else:
+                        data_dict['product_category'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Product Category is Mandatory')
+            elif key == 'sku_category':
+                if cell_data:
+                    if cell_data not in category_list and not cell_data.lower() == 'default':
+                        index_status.setdefault(row_idx, set()).add('Invalid Category')
+                    else:
+                        data_dict['sku_category'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Category is Mandatory')
+            elif key in ['pr_prefix', 'po_prefix', 'grn_prefix', 'invoice_prefix']:
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                    data_dict[key] = cell_data
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+def save_user_prefixes(data_list):
+    final_data = copy.deepcopy(data_list)
+    for data in final_data:
+        user = data['user']
+        product_category = data['product_category']
+        sku_category = data['sku_category']
+        for key, val in data.items():
+            if 'prefix' in key:
+                prefix_dict = {'user_id': user.id, 'product_category': product_category,
+                                'sku_category': sku_category, 'type_name': key}
+                exist_obj = UserPrefixes.objects.filter(**prefix_dict)
+                if exist_obj:
+                    exist_obj.update(prefix=val)
+                else:
+                    prefix_dict['prefix'] = val
+                    new_obj = UserPrefixes(**prefix_dict)
+                    new_obj.save()

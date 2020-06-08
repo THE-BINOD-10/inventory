@@ -565,6 +565,44 @@ class GenericEnquiry(models.Model):
         db_table = 'GENERIC_ENQUIRY'
 
 
+class CompanyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company_name = models.CharField(max_length=256, default='')
+    address = models.CharField(max_length=256, default='', blank=True)
+    city = models.CharField(max_length=64, default='', blank=True)
+    state = models.CharField(max_length=64, default='', blank=True)
+    country = models.CharField(max_length=64, default='', blank=True)
+    pincode = models.CharField(max_length=64, default='', blank=True)
+    phone_number = models.CharField(max_length=32, blank=True)
+    email_id = models.EmailField(max_length=64, default='', blank=True)
+    gstin_number = models.CharField(max_length=64, default='', blank=True)
+    cin_number = models.CharField(max_length=64, default='', blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
+    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
+    parent = models.ForeignKey("self", blank=True, null=True)
+    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'COMPANY_MASTER'
+
+    def __unicode__(self):
+        return str(self.company_name)
+
+
+class CompanyRoles(models.Model):
+    company = models.ForeignKey(CompanyMaster)
+    role_name = models.CharField(max_length=64, default='')
+    group = models.ForeignKey(Group, default=None, blank=True, null=True)
+
+    class Meta:
+        db_table = 'COMPANY_ROLES'
+
+    def __unicode__(self):
+        return self.role_name
+
+
 @reversion.register()
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
@@ -665,6 +703,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     product_category = models.CharField(max_length=64, default='')
     plant = models.CharField(max_length=64, default='')
     department_type = models.CharField(max_length=64, default='')
+    user_role = models.ManyToManyField(CompanyRoles, default=None)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1199,32 +1238,6 @@ class CustomerUserMapping(models.Model):
 
     class Meta:
         db_table = 'CUSTOMER_USER_MAPPING'
-
-
-class CompanyMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    company_name = models.CharField(max_length=256, default='')
-    address = models.CharField(max_length=256, default='', blank=True)
-    city = models.CharField(max_length=64, default='', blank=True)
-    state = models.CharField(max_length=64, default='', blank=True)
-    country = models.CharField(max_length=64, default='', blank=True)
-    pincode = models.CharField(max_length=64, default='', blank=True)
-    phone_number = models.CharField(max_length=32, blank=True)
-    email_id = models.EmailField(max_length=64, default='', blank=True)
-    gstin_number = models.CharField(max_length=64, default='', blank=True)
-    cin_number = models.CharField(max_length=64, default='', blank=True)
-    pan_number = models.CharField(max_length=64, default='', blank=True)
-    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
-    parent = models.ForeignKey("self", blank=True, null=True)
-    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'COMPANY_MASTER'
-
-    def __unicode__(self):
-        return str(self.company_name)
 
 
 class UserProfile(models.Model):

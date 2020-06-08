@@ -148,5 +148,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.roles_list = [];
+  function get_roles_list() {
+    vm.service.apiCall("get_company_roles_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.roles_list = data.data.roles_list;
+      }
+    });
+  }
+  get_roles_list();
+
 }
 

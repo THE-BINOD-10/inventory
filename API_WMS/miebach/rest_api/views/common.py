@@ -12172,3 +12172,24 @@ def get_sub_user_parent(request_user):
     if group:
         user = group[0].user
     return user
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_company_roles_list(request, user=''):
+    company_id = get_company_id(user)
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=True).\
+                                    values_list('role_name', flat=True))
+    return HttpResponse(json.dumps({'roles_list': roles_list}))
+
+
+def update_user_role(user, sub_user, position, old_position=''):
+    company_id = get_company_id(user)
+    company_role = CompanyRoles.objects.filter(company_id=company_id, role_name=position, group__isnull=False)
+    if company_role.exists():
+        group = company_role[0].group
+        sub_user.groups.add(group)
+    if old_position:
+        old_role = CompanyRoles.objects.filter(company_id=company_id, role_name=old_position, group__isnull=False)
+        if old_role:
+            sub_user.groups.remove(old_role[0].group)

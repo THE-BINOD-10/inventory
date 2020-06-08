@@ -4409,6 +4409,8 @@ def insert_staff(request, user=''):
                             plant=plant, department_type=department_type, department_id=department_id,
                             position=position)
         status_msg = 'New Staff Added'
+        sub_user = User.objects.get(username=email)
+        update_user_role(user, sub_user, position, old_position='')
     return HttpResponse(status_msg)
 
 
@@ -4436,10 +4438,15 @@ def update_staff_values(request, user=''):
     data.plant = plant
     data.department_type = department_type
     data.department_id = department_id
+    old_position = data.position
+    if old_position != position:
+        sub_user = User.objects.get(username=data.email_id)
+        update_user_role(user, sub_user, position, old_position=old_position)
     data.position = position
     data.phone_number = phone
     data.status = status
     data.save()
+
     return HttpResponse("Updated Successfully")
 
 

@@ -855,8 +855,8 @@ PR_REPORT_DICT = {
          {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
          {'label': 'Plant', 'name': 'plant_code', 'type': 'input'},
          {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
-         {'label': 'Priority Type', 'name': 'sister_warehouse', 'type': 'select'},
-         {'label': 'PR Status', 'name': 'sister_warehouse', 'type': 'select'},
+         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
+         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
            ],
 'dt_headers':['PR Number', 'PR Submitted Date','Department','Plant','Product Category', 'Priority Type',
               'PR Status', 'Total Quantity', 'PR Converted to PO Date', 'PO Number', 'Approver 1 ID', 'Approver 1 Status',
@@ -873,8 +873,8 @@ PR_DETAIL_REPORT_DICT = {
          {'label': 'PR Number', 'name': 'pr_number', 'type': 'supplier_search'},
          {'label': 'Plant', 'name': 'sister_warehouse', 'type': 'select'},
          {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
-         {'label': 'Priority Type', 'name': 'sister_warehouse', 'type': 'select'},
-         {'label': 'PR Status', 'name': 'sister_warehouse', 'type': 'select'},
+         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
+         {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},
          {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
          {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
          {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
@@ -11636,6 +11636,35 @@ def get_pr_report_data(search_params, user, request):
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    search_parameters = {}
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if user.userprofile.warehouse_type == 'admin':
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            warehouses = UserGroups.objects.filter(user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+        else:
+            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouse_users[user.id] = user.username
+        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
+        # sku_master_ids = sku_master.values_list('id', flat=True)
+        search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
+
+    else:
+        search_parameters['pending_po__wh_user__username'] = user.username
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
                    'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
                    'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',

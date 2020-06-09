@@ -282,9 +282,9 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button> -->
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.confirm_grn(update_grn_form)">Update GRN</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-3 col-md-2" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.confirm_grn(update_grn_form)">Update GRN</button> -->
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-danger pop pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.cancel_grn(update_grn_form)">Cancel GRN</button>
+        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-3 col-md-2" data-dismiss="modal" ng-click="showCase.close()">Close</button> -->
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>

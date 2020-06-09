@@ -12555,7 +12555,9 @@ def update_existing_grn(request, user=''):
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
         zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date','scan_pack']
+        import pdb; pdb.set_trace()
         for ind in range(0, len(myDict['confirm_key'])):
+            import pdb; pdb.set_trace()
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
                 seller_po_check = True
@@ -12698,6 +12700,70 @@ def update_existing_grn(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Update GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Update GRN Failed")
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def cancel_existing_grn(request, user=''):
+    reversion.set_user(request.user)
+    data_dict = ''
+    headers = (
+    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    seller_po_check = False
+    total_tax = 0
+    is_putaway = ''
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
+        if inv_status:
+            req_po_number = request.POST['po_number']
+            temp_inv_status = inv_status.replace('Invoice Number already Mapped to ', '')
+            if temp_inv_status != req_po_number:
+                return HttpResponse(inv_status)
+    request_data = request.POST
+    myDict = dict(request_data.iterlists())
+
+    log.info('Request params for Cancel GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
+    try:
+        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
+                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no', 'weight':'weight',
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
+                         'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
+                         'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
+        zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date','scan_pack']
+        import pdb; pdb.set_trace()
+        for ind in range(0, len(myDict['confirm_key'])):
+            import pdb; pdb.set_trace()
+            model_name = myDict['confirm_key'][ind].strip('_id')
+            if myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                seller_po_check = True
+                model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
+                if model_obj:
+                    model_obj.status = 1
+                    model_obj.save()
+            else:
+                model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
+            batch_dict = {}
+            for key, value in myDict.iteritems():
+                print key + '-' + str(value[ind])
+        return HttpResponse("Success")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Cancel GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Cancel GRN Failed")
+
 
 
 @csrf_exempt

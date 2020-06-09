@@ -108,6 +108,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.filters_dt_data = {};
   angular.copy(vm.empty_data, vm.filters_dt_data);
 
+  vm.cancel_grn = function(form) {
+    if (form.$valid) {
+      vm.cancel_grn_api();
+    } else {
+      colFilters.showNoty("Fill Required Fields");
+    }
+  }
+
+  vm.cancel_grn_api = function(){
+      var that = vm;
+      var elem = angular.element($('#update_grn_form'));
+      elem = elem[0];
+      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+      if(buy_price > mrp) {
+        pop_msg("Buy Price should be less than or equal to MRP");
+        return false;
+      }
+      elem = $(elem).serializeArray();
+      var url = "cancel_existing_grn/";
+      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if(data.data == 'Success') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            pop_msg(data.data)
+          }
+        }
+      });
+  }
+
   vm.confirm_grn = function(form) {
     if (form.$valid) {
       // if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){

@@ -80,11 +80,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 configName = prApprObj[0].name
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
-                                level=currentUserLevel).distinct().values_list('purchase_number', flat=True))
+                                level=currentUserLevel).distinct().values_list('pending_pr_id', flat=True))
             else:
                 pr_numbers = []
-            filtersMap.setdefault('pending_pr__pr_number__in', [])
-            filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
+            filtersMap.setdefault('pending_pr_id__in', [])
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
     else:
@@ -208,11 +208,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
                                 level=currentUserLevel,
-                                status='').distinct().values_list('purchase_number', flat=True))
+                                status='').distinct().values_list('pending_po_id', flat=True))
             else:
                 pr_numbers = []
-            filtersMap.setdefault('pending_po__po_number__in', [])
-            filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
+            filtersMap.setdefault('pending_po_id__in', [])
+            filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
     else:
@@ -3381,11 +3381,14 @@ def send_back_po_to_pr(request, user=''):
                     prObj.final_status = 'approved'
                 prObj.save()
         else:
-            if prObj.final_status == 'approved':
+            existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                            wh_user=prObj.wh_user, final_status='approved')
+            if existingApprovedPR.exists():
+                existingApprovedPRObj = existingApprovedPR[0]
                 poLineItems = pendingPoObj.pending_polineItems.values()
                 for lineItem in poLineItems:
                     lineItemMap = {
-                        'pending_pr_id': prObj.id,
+                        'pending_pr_id': existingApprovedPRObj.id,
                         'purchase_type': 'PR',
                         'sku_id': lineItem['sku_id'],
                         'quantity': lineItem['quantity'],
@@ -3404,7 +3407,7 @@ def send_back_po_to_pr(request, user=''):
                     sub_pr_number = sub_pr_number['sub_pr_number__max']
                 newPrMap = {
                     'pr_number': prObj.pr_number,
-                    'sub_pr_number': prObj.sub_pr_number + 1,
+                    'sub_pr_number': sub_pr_number + 1,
                     'full_pr_number': prObj.full_pr_number,
                     'prefix': prObj.prefix,
                     'requested_user': prObj.requested_user,

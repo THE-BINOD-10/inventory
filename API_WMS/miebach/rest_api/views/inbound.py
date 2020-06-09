@@ -1331,11 +1331,14 @@ def generated_pr_data(request, user=''):
             central_po_data = json.loads(eval(central_po_data[0].model_json)[0])
     supplier_id = ''
     supplier_name = ''
+    supplier_payment_desc = ''
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
+        if record[0].supplier.payment:
+            supplier_payment_desc = record[0].supplier.payment.payment_description
 
-    return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name,
+    return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
@@ -2307,6 +2310,33 @@ def get_mapping_values(request, user=''):
     supplier_id = request.GET['supplier_id']
     data = get_mapping_values_po(wms_code ,supplier_id,user)
     return HttpResponse(json.dumps(data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_supplier_payment_terms(request, user=''):
+    payment_desc = ''
+    supplier_id = request.POST.get('supplier_id', '')
+    data = SupplierMaster.objects.filter(supplier_id = supplier_id, user=user.id)
+    if data.exists():
+        if data[0].payment:
+            payment_desc = data[0].payment.payment_description
+    return HttpResponse(payment_desc, content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_suppllier_sku_mapping_id(request, user=''):
+    sup_id = ''
+    supplier_id = request.POST.get('supplier_id', '')
+    sku_code = request.POST.get('sku_code', '')
+    data = SKUSupplier.objects.filter(supplier__supplier_id = supplier_id, sku__sku_code=sku_code, sku__user=user.id)
+    if data.exists():
+        sup_id = data[0].id
+    return HttpResponse(sup_id, content_type='application/json')
+
 
 def get_ep_supplier_value(request, user=''):
     data = {}
@@ -3879,6 +3909,12 @@ def get_supplier_data(request, user=''):
                     rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
                 else:
                     rec_data = get_decimal_limit(user.id, order.saved_quantity)
+                request_button = False
+                datum = SKUSupplier.objects.filter(supplier__supplier_id = order.open_po.supplier.id, sku__sku_code=order_data['wms_code'], sku__user=user.id)
+                if datum.exists():
+                    masterdoa = MastersDOA.objects.filter(model_id=datum[0].id, doa_status='pending', requested_user_id=user.id)
+                    if masterdoa.exists():
+                        request_button = True
                 orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'], 'sku_brand': order_data['sku'].sku_brand,
                                 'sku_desc': order_data['sku_desc'], 'weight': weight,
                                  'weight_copy':weight,
@@ -3899,7 +3935,7 @@ def get_supplier_data(request, user=''):
                                 'apmc_percent': order_data['apmc_tax'],
                                 'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
                                  'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
-                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based,
+                                 'buy_price': order_data['price'], 'batch_based': order_data['sku'].batch_based, 'price_request': request_button,
                                  'discount_percentage': 0, 'batch_no': '', 'batch_ref':'', 'mfg_date': '', 'exp_date': '',
                                  'pallet_number': '', 'is_stock_transfer': '', 'po_extra_fields':json.dumps(list(extra_po_fields)),
                                  }])
@@ -4985,7 +5021,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     if request.POST.get('grn_total_amount', 0) == 'undefined':
         total_grn_value = 0
     else:
-        total_grn_value = int(request.POST.get('grn_total_amount', 0))
+        total_grn_value = float(request.POST.get('grn_total_amount', 0))
     credit_status = 0
     if inv_qty > total_grn_qty and inv_value > total_grn_value:
         credit_status = 1
@@ -13028,7 +13064,7 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
     main_master_data = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id, credit_status=stat)
     master_data = main_master_data.values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
     if search_term:
-        master_data = main_master_data.filter(Q(invoice_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term) | Q(invoice_value__icontains=search_term) | Q(credit_id__credit_number__icontains=search_term), user_id=user.id, status=stat).values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
+        master_data = main_master_data.filter(Q(invoice_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term) | Q(invoice_value__icontains=search_term) | Q(credit_id__credit_number__icontains=search_term)| Q(credit_type__icontains=search_term)).values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for invoice_num in master_data[start_index:stop_index]:

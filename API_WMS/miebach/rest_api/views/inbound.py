@@ -5019,7 +5019,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     if request.POST.get('grn_total_amount', 0) == 'undefined':
         total_grn_value = 0
     else:
-        total_grn_value = int(request.POST.get('grn_total_amount', 0))
+        total_grn_value = float(request.POST.get('grn_total_amount', 0))
     credit_status = 0
     if inv_qty > total_grn_qty and inv_value > total_grn_value:
         credit_status = 1

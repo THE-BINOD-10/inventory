@@ -1933,7 +1933,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         data_dict.pop(k)
             sku_data = instanceName(**data_dict)
             sku_data.save()
-        import pdb; pdb.set_trace()
         if sku_data:
             sku_data.save()
             from integrations.views import Integrations

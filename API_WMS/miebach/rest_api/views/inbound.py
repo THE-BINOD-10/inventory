@@ -1448,9 +1448,11 @@ def print_pending_po_form(request, user=''):
     if is_actual_pr == 'true':
         model_name = PendingPR
         filtersMap['id'] = purchase_number
+        full_purchase_number = 'full_pr_number'
     else:
         model_name = PendingPO
         filtersMap['id'] = purchase_number
+        full_purchase_number = 'full_po_number'
     total_qty = 0
     total = 0
     if not purchase_id:
@@ -1526,7 +1528,8 @@ def print_pending_po_form(request, user=''):
     order_date = get_local_date(request.user, order.creation_date)
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
     # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    po_number = order.full_po_number
+    # po_number = order.full_po_number
+    po_number = getattr(order, full_purchase_number)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -2840,12 +2843,14 @@ def approve_pr(request, user=''):
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
+        prefix = pendingPRObj.prefix
+        full_pr_number = pendingPRObj.full_pr_number
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
-                    orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
+            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:
@@ -3206,11 +3211,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
         pr_datas.append(pr_data)
 
     # response = netsuite_create_pr(pr_datas, user)
-    import pdb; pdb.set_trace()
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=False)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=False)
 
 
 @csrf_exempt
@@ -5655,10 +5659,10 @@ def netsuite_grn(user, data_dict, po_number, dc_level_grn, grn_params,seller_rec
                 'batch_no':data['batch_no']}
         grn_data['items'].append(item)
     # response = netsuite_create_grn(user, grn_data)
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegrateGRN(grn_data, is_multiple=False)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegrateGRN(grn_data, is_multiple=False)
 
 
 
@@ -8052,10 +8056,10 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
 
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
     # response = netsuite_create_po(po_data, )
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')
 
@@ -10511,10 +10515,10 @@ def netsuite_move_to_poc_grn(req_data, chn_no, user=''):
         dc_data.append(grn_info)
     # grn_data={"dc_data":dc_data, "po_challan": True, "dc_number": chn_no}
     # response = netsuite_create_grn(user, grn_data)
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegrateGRN(dc_data, is_multiple=True)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegrateGRN(dc_data, is_multiple=True)
     # return response
 
 @csrf_exempt
@@ -10629,10 +10633,10 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
         }
         invoice_data.append(grn_info)
     # response = netsuite_create_grn(user, invoice_data)
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegrateGRN(invoice_data, is_multiple=True)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegrateGRN(invoice_data, is_multiple=True)
     # return response
 
 @csrf_exempt
@@ -12092,12 +12096,17 @@ def create_rtv(request, user=''):
                                    '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
+            t = loader.get_template('templates/toggle/rtv_mail.html')
+            rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
+            attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
+            if(len(attachments)>0):
+                show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
             # response = netsuite_update_create_rtv(show_data_invoice, user)
-            from integrations.views import Integrations
-            intObj = Integrations('netsuiteIntegration')
-            intObj.initiateAuthentication()
-            intObj.IntegrateRTV(show_data_invoice, is_multiple=False)
+            # from integrations.views import Integrations
+            # intObj = Integrations('netsuiteIntegration')
+            # intObj.initiateAuthentication()
+            # intObj.IntegrateRTV(show_data_invoice["bebit_note_url"]=, is_multiple=False
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -12106,6 +12115,29 @@ def create_rtv(request, user=''):
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
 
+def write_html_to_pdf(f_name, html_data):
+    from random import randint
+    attachments = []
+    try:
+        if not isinstance(html_data, list):
+            html_data = [html_data]
+        for data in html_data:
+            temp_name = f_name + str(randint(100, 9999))
+            file_name = '%s.html' % temp_name
+            pdf_file = '%s.pdf' % temp_name
+            path = 'static/temp_files/'
+            folder_check(path)
+            file = open(path + file_name, "w+b")
+            file.write(xcode(data))
+            file.close()
+            os.system(
+                "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+            attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    except Exception as e:
+        import traceback
+        log_mail_info.debug(traceback.format_exc())
+        log_mail_info.info('PDF file genrations failed for ' + str(xcode(html_data)) + ' error statement is ' + str(e))
+    return attachments
 
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -13352,10 +13384,10 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
          "vendorbill_url": vendor_url
         }
         creditnote_data.append(grn_data)
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    intObj.initiateAuthentication()
-    intObj.IntegrateGRN(creditnote_data, is_multiple=True)
+    # from integrations.views import Integrations
+    # intObj = Integrations('netsuiteIntegration')
+    # intObj.initiateAuthentication()
+    # intObj.IntegrateGRN(creditnote_data, is_multiple=True)
 
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, user, admin_user):

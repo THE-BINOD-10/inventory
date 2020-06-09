@@ -41,8 +41,7 @@
                   ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
                   ng-model="data.supplier_id_name" 
                   ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">
-                    <option ng-repeat="(supplier_id_name, details) in data.supplierDetails" 
-                    ng-selected="data.supplier_id_name==supplier_id_name"
+                    <option ng-repeat="(supplier_id_name, details) in data.supplierDetails"
                     value="{{supplier_id_name}}">{{supplier_id_name}}
                     </option>
                   </select>

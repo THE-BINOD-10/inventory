@@ -16,7 +16,7 @@ auth_dict = {
     'NS_TOKEN_SECRET':'7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
 }
 
-Batched = True
+Batched = False
 TEMPFOLDER = '/tmp'
 
 class Integrations():

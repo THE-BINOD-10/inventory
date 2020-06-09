@@ -140,7 +140,7 @@
         </li>
         <li ng-show="show_tab('multi_warehouse') && show_tab('is_staff')" ui-sref-active="active">
           <a ui-sref="app.masters.WarehouseMaster">
-            <span>Warehouse Master</span>
+            <span>{{ user.user_profile.warehouse_type_name}} Master</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('add_vendormaster') && show_tab('production_switch')">

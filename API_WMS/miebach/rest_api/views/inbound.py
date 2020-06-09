@@ -3307,7 +3307,7 @@ def get_pr_preview_data(request, user=''):
         sku_code, sku_desc, prod_catg, quantity = lineItem
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
-        supplierDetailsMap = {}
+        supplierDetailsMap = OrderedDict()
         parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
 
         reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc, 
@@ -3352,8 +3352,10 @@ def get_pr_preview_data(request, user=''):
                                                           'unit_price': price,
                                                           'amount': amount,
                                                           'tax': tax,
-                                                          'total': total
+                                                          'total': total,
                                                           }
+                if not reqLineMap.has_key('preferred_supplier'):
+                    reqLineMap['preferred_supplier'] = supplier_id_name
             reqLineMap['supplierDetails'] = supplierDetailsMap
         preview_data['data'].append(reqLineMap)
     return HttpResponse(json.dumps(preview_data))
@@ -3373,7 +3375,7 @@ def send_back_po_to_pr(request, user=''):
         prItems = list(prObj.pending_prlineItems.values_list('sku__sku_code', flat=True))
         if poItems == prItems:
             if prObj.final_status == 'pr_converted_to_po':
-                if pendingPoObj.wh_user_id == get_admin(get_admin(prObj.wh_user)).id or pendingPoObj.wh_user_id == get_admin(prObj.wh_user).id:
+                if pendingPoObj.wh_user_id == get_admin(get_admin(prObj.wh_user)).id:
                     prObj.final_status = 'store_sent'
                 else:    
                     prObj.final_status = 'approved'

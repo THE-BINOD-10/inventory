@@ -3381,42 +3381,59 @@ def send_back_po_to_pr(request, user=''):
                     prObj.final_status = 'approved'
                 prObj.save()
         else:
-            sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number, 
-                                wh_user=prObj.wh_user).aggregate(Max('sub_pr_number'))
-            if sub_pr_number:
-                sub_pr_number = sub_pr_number['sub_pr_number__max']
-            newPrMap = {
-                'pr_number': prObj.pr_number,
-                'sub_pr_number': prObj.sub_pr_number + 1,
-                'full_pr_number': prObj.full_pr_number,
-                'prefix': prObj.prefix,
-                'requested_user': prObj.requested_user,
-                'wh_user': prObj.wh_user,
-                'product_category': prObj.product_category,
-                'priority_type': prObj.priority_type,
-                'delivery_date': prObj.delivery_date,
-                'ship_to': prObj.ship_to,
-                'pending_level': prObj.pending_level,
-                'final_status': 'approved',
-                'remarks': prObj.remarks
-            }
-            newPrObj = PendingPR.objects.create(**newPrMap)
-            lineItems = existingLineItems.filter(sku__sku_code__in=poItems)
-            for lineItem in lineItems:
-                lineItemMap = {
-                    'pending_pr_id': newPrObj.id,
-                    'purchase_type': 'PR',
-                    'sku': lineItem.sku,
-                    'quantity': lineItem.quantity,
-                    'price': lineItem.price,
-                    'measurement_unit': lineItem.measurement_unit,
-                    'sgst_tax': lineItem.sgst_tax,
-                    'cgst_tax': lineItem.cgst_tax,
-                    'igst_tax': lineItem.igst_tax,
-                    'utgst_tax': lineItem.utgst_tax,
+            if prObj.final_status == 'approved':
+                poLineItems = pendingPoObj.pending_polineItems.values()
+                for lineItem in poLineItems:
+                    lineItemMap = {
+                        'pending_pr_id': prObj.id,
+                        'purchase_type': 'PR',
+                        'sku_id': lineItem['sku_id'],
+                        'quantity': lineItem['quantity'],
+                        'price': lineItem['price'],
+                        'measurement_unit': lineItem['measurement_unit'],
+                        'sgst_tax': lineItem['sgst_tax'],
+                        'cgst_tax': lineItem['cgst_tax'],
+                        'igst_tax': lineItem['igst_tax'],
+                        'utgst_tax': lineItem['utgst_tax'],
+                    }
+                    PendingLineItems.objects.create(**lineItemMap)
+            else:
+                sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                                    wh_user=prObj.wh_user).aggregate(Max('sub_pr_number'))
+                if sub_pr_number:
+                    sub_pr_number = sub_pr_number['sub_pr_number__max']
+                newPrMap = {
+                    'pr_number': prObj.pr_number,
+                    'sub_pr_number': prObj.sub_pr_number + 1,
+                    'full_pr_number': prObj.full_pr_number,
+                    'prefix': prObj.prefix,
+                    'requested_user': prObj.requested_user,
+                    'wh_user': prObj.wh_user,
+                    'product_category': prObj.product_category,
+                    'priority_type': prObj.priority_type,
+                    'delivery_date': prObj.delivery_date,
+                    'ship_to': prObj.ship_to,
+                    'pending_level': prObj.pending_level,
+                    'final_status': 'approved',
+                    'remarks': prObj.remarks
                 }
-                PendingLineItems.objects.create(**lineItemMap)
-            lineItems.delete()
+                newPrObj = PendingPR.objects.create(**newPrMap)
+                lineItems = existingLineItems.filter(sku__sku_code__in=poItems)
+                for lineItem in lineItems:
+                    lineItemMap = {
+                        'pending_pr_id': newPrObj.id,
+                        'purchase_type': 'PR',
+                        'sku': lineItem.sku,
+                        'quantity': lineItem.quantity,
+                        'price': lineItem.price,
+                        'measurement_unit': lineItem.measurement_unit,
+                        'sgst_tax': lineItem.sgst_tax,
+                        'cgst_tax': lineItem.cgst_tax,
+                        'igst_tax': lineItem.igst_tax,
+                        'utgst_tax': lineItem.utgst_tax,
+                    }
+                    PendingLineItems.objects.create(**lineItemMap)
+                # lineItems.delete()
     pendingPoObj.final_status = 'po_converted_back_to_pr'
     pendingPoObj.save()
     return HttpResponse("Sent Back Successfully")

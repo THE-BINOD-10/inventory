@@ -2816,10 +2816,10 @@ def approve_pr(request, user=''):
         prefix = pendingPRObj.prefix
         full_pr_number = pendingPRObj.full_pr_number
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
                     full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
                     full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
@@ -2860,7 +2860,7 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
-def createPRObjandRertunOrderAmt(request, myDict, all_data, user, purchase_number, 
+def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_number, 
             baseLevel, prefix, full_pr_number, orderStatus='pending',
             prObj=None, is_po_creation=False, skusInPO=[], supplier=None, 
             convertPRtoPO=False, central_po_data=None):
@@ -3210,6 +3210,7 @@ def send_pr_to_parent_store(request, user=''):
             newPrMap = {
                 'pr_number': prObj.pr_number,
                 'sub_pr_number': prObj.sub_pr_number + 1,
+                'full_pr_number': prObj.full_pr_number,
                 'prefix': prObj.prefix,
                 'requested_user': prObj.requested_user,
                 'wh_user': prObj.wh_user,
@@ -3337,6 +3338,7 @@ def send_back_po_to_pr(request, user=''):
             newPrMap = {
                 'pr_number': prObj.pr_number,
                 'sub_pr_number': prObj.sub_pr_number + 1,
+                'full_pr_number': prObj.full_pr_number,
                 'prefix': prObj.prefix,
                 'requested_user': prObj.requested_user,
                 'wh_user': prObj.wh_user,
@@ -3433,7 +3435,7 @@ def add_pr(request, user=''):
         baseLevel = 'level0'
         mailsList = []
         if is_actual_pr == 'true':
-            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+            totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category)
@@ -3452,7 +3454,7 @@ def add_pr(request, user=''):
                         hash_code = generateHashCodeForMail(prObj, eachMail)
                         sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
-            totalAmt, pendingPRObj= createPRObjandRertunOrderAmt(request, myDict, all_data, user, pr_number,
+            totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, prefix, full_pr_number, is_po_creation=True,
                                                                  central_po_data=central_po_data)
             admin_user = None
@@ -3539,10 +3541,10 @@ def save_pr(request, user=''):
         baseLevel = 'level0'
         orderStatus = 'saved'
         if is_actual_pr == 'true':
-            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
+            createPRObjandReturnOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
                                          prefix, full_purchase_number, orderStatus=orderStatus)
         else:
-            createPRObjandRertunOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
+            createPRObjandReturnOrderAmt(request,myDict, all_data, user, purchase_number, baseLevel,
                                          prefix, full_purchase_number, orderStatus=orderStatus, is_po_creation=True,
                                          supplier=supplier)
     except Exception as e:

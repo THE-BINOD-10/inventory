@@ -12742,9 +12742,7 @@ def cancel_existing_grn(request, user=''):
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
         zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date','scan_pack']
-        import pdb; pdb.set_trace()
         for ind in range(0, len(myDict['confirm_key'])):
-            import pdb; pdb.set_trace()
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
                 seller_po_check = True

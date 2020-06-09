@@ -3093,10 +3093,6 @@ def convert_pr_to_po(request, user=''):
 
         for supplier, all_skus in supplierSKUMapping.items():
             sku_code = all_skus[0]
-            po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix',
-                                                                                                  sku_code)
-            if inc_status:
-                return HttpResponse("Prefix not defined")
             shipments = user.useraddresses_set.filter(address_type='Shipment Address').values()
             if shipments.exists():
                 shipToAddress = shipments[0]['address']
@@ -3113,6 +3109,15 @@ def convert_pr_to_po(request, user=''):
                 'final_status': orderStatus,
                 'product_category': existingPRObjs[0].product_category,
             }
+            try:
+                dept_code = existingPRObjs[0].wh_user.userprofile.stockone_code
+            except:
+                dept_code = ''
+            po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix',
+                                                                                                  sku_code,
+                                                                                                  dept_code=dept_code)
+            if inc_status:
+                return HttpResponse("Prefix not defined")
             purchaseMap['po_number'] = po_id
             purchaseMap['prefix'] = prefix
             purchaseMap['full_po_number'] = full_po_number
@@ -5184,8 +5189,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                     seller_receipt_id = get_st_seller_receipt_id(data)
             if not grn_number:
                 sku_code = SKUMaster.objects.filter(user=user.id, sku_code=myDict['wms_code'][i].upper())[0].sku_code
+                dept_code = get_po_pr_dept_code(data)
                 grn_no, grn_prefix, grn_number, check_grn_prefix, inc_status = get_user_prefix_incremental(user, 'grn_prefix',
-                                                                                                      sku_code)
+                                                                                                      sku_code,
+                                                                                                    dept_code=dept_code)
             seller_received_list = update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
@@ -5284,7 +5291,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):
     inv_qty = int(request.POST.get('invoice_quantity', 0))
@@ -5442,7 +5449,7 @@ def confirm_grn(request, confirm_returns='', user=''):
         if wms_validation_status:
             return HttpResponse(wms_validation_status)
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids,po_new_data, send_discrepencey, grn_number = generate_grn(myDict, request, user,  failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=True)
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
             if key[10]:
@@ -5508,7 +5515,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
-            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
+            po_reference = data.po_number
             table_headers = (
             'WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
             '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
@@ -5519,15 +5526,16 @@ def confirm_grn(request, confirm_returns='', user=''):
             sku_slices=[]
             if sku_list:
                 sku_slices = generate_grn_pagination(sku_list)
-            if seller_receipt_id:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
-                            + '/' + str(seller_receipt_id)
-            else:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            # if seller_receipt_id:
+            #     po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+            #                 + '/' + str(seller_receipt_id)
+            # else:
+            #     po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            po_number = grn_number
             grn_extra_fields_obj = grn_extra_fields(user)
             grn_extra_field_dict = {}
             if grn_extra_fields_obj:
-                for field in grn_extra_fields_obj :
+                for field in grn_extra_fields_obj:
                     value = request.POST.get('grn_field_'+field ,'')
                     grn_extra_field_dict[field]= value
                     if not seller_receipt_id :
@@ -9387,7 +9395,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency, grn_number = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i] or not (int(myDict['id'][i]) in created_qc_ids):
                 continue
@@ -9451,7 +9459,7 @@ def confirm_receive_qc(request, user=''):
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
-            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
+            po_reference = data.po_number
             table_headers = (
             'WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
             '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
@@ -9460,11 +9468,12 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
-            if seller_receipt_id:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
-                            + '/' + str(seller_receipt_id)
-            else:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            po_number = grn_number
+            # if seller_receipt_id:
+            #     po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+            #                 + '/' + str(seller_receipt_id)
+            # else:
+            #     po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
             dc_level_grn = request.POST.get('dc_level_grn', '')
             if dc_level_grn == 'on':
                 bill_no = request.POST.get('dc_number', '')

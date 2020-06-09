@@ -80,11 +80,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 configName = prApprObj[0].name
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
-                                level=currentUserLevel).distinct().values_list('purchase_number', flat=True))
+                                level=currentUserLevel).distinct().values_list('pending_pr_id', flat=True))
             else:
                 pr_numbers = []
-            filtersMap.setdefault('pending_pr__pr_number__in', [])
-            filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
+            filtersMap.setdefault('pending_pr_id__in', [])
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
     else:
@@ -208,11 +208,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
                                 level=currentUserLevel,
-                                status='').distinct().values_list('purchase_number', flat=True))
+                                status='').distinct().values_list('pending_po_id', flat=True))
             else:
                 pr_numbers = []
-            filtersMap.setdefault('pending_po__po_number__in', [])
-            filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
+            filtersMap.setdefault('pending_po_id__in', [])
+            filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         if not memQs.exists(): # Creator Sub Users
             filtersMap['pending_po__requested_user'] = request.user.id
     else:

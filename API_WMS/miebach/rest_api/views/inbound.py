@@ -3354,11 +3354,14 @@ def send_back_po_to_pr(request, user=''):
     for each_pr in pr_ids:
         prObj = PendingPR.objects.get(id=each_pr)
         existingLineItems = PendingLineItems.objects.filter(pending_pr_id=each_pr)
-        poItems = pendingPoObj.pending_polineItems.values_list('sku__sku_code', flat=True)
-        prItems = prObj.pending_prlineItems.values_list('sku__sku_code', flat=True)
+        poItems = list(pendingPoObj.pending_polineItems.values_list('sku__sku_code', flat=True))
+        prItems = list(prObj.pending_prlineItems.values_list('sku__sku_code', flat=True))
         if poItems == prItems:
             if prObj.final_status == 'pr_converted_to_po':
-                prObj.final_status = 'approved'
+                if pendingPoObj.wh_user_id == get_admin(get_admin(prObj.wh_user)).id or pendingPoObj.wh_user_id == get_admin(prObj.wh_user).id:
+                    prObj.final_status = 'store_sent'
+                else:    
+                    prObj.final_status = 'approved'
                 prObj.save()
         else:
             sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number, 

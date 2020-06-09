@@ -9939,9 +9939,10 @@ def get_product_category_from_sku(user, sku_code):
     return sku, product_category
 
 
-def get_user_prefix_incremental(user, type_name, sku_code):
+def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     count = 0
     prefix = ''
+    full_prefix = ''
     full_number = ''
     inc_status = ''
     incr_type_name = ''
@@ -9959,17 +9960,20 @@ def get_user_prefix_incremental(user, type_name, sku_code):
     else:
         user_prefix = user_prefix[0]
         prefix = user_prefix.prefix
+        full_prefix = prefix
         incr_type_name = '%s_%s' % (str(type_name), str(prefix))
         count = get_incremental(user, incr_type_name, default_val=1)
         userprofile = user.userprofile
         store_code = userprofile.stockone_code
-        dept_code = '0000'
+        if not dept_code:
+            dept_code = '0000'
         if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
             dept_code = userprofile.stockone_code
-        full_number = '%s-%s-%s%s' % (prefix, store_code, dept_code, str(count).zfill(5))
-    return count, prefix, full_number, incr_type_name, inc_status
+        full_prefix = '%s-%s-%s' % (prefix, store_code, dept_code)
+        full_number = '%s%s' % (full_prefix, str(count).zfill(5))
+    return count, full_prefix, full_number, incr_type_name, inc_status
 
 
 def get_incremental(user, type_name, default_val=''):
@@ -12203,3 +12207,16 @@ def update_user_role(user, sub_user, position, old_position=''):
         old_role = CompanyRoles.objects.filter(company_id=company_id, role_name=old_position, group__isnull=False)
         if old_role:
             sub_user.groups.remove(old_role[0].group)
+
+def get_po_pr_dept_code(data):
+    dept_code = ''
+    try:
+        if data.open_po and data.open_po.pendingpos.filter():
+            pending_po = data.open_po.pendingpos.filter()[0]
+            if pending_po.pending_prs.filter():
+                dept_code = pending_po.pending_prs.filter()[0].wh_user.userprofile.stockone_code
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get Dept Code from PO for GRN Number generation failed")
+    return dept_code

@@ -117,13 +117,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(valid)
       {
        delete(vm.model_data.mrp)
-       if ("Supplier SKU DOA" == vm.title) {
-           vm.supplier_sku('insert_mapping/');
-          }
-        else {
-           vm.model_data['data-id'] = vm.model_data.DT_RowId;
-           vm.supplier_sku('update_sku_supplier_values/');
-        }
+       // if ("Supplier SKU DOA" == vm.title) {
+       //     vm.supplier_sku('insert_mapping/');
+       //    }
+       //  else {
+       //     vm.model_data['data-id'] = vm.model_data.DT_RowId;
+       //     vm.supplier_sku('update_sku_supplier_values/');
+       //  }
+       if (parseInt(vm.model_data.model_id) == 0){
+        vm.supplier_sku('insert_mapping/');
+       } else {
+        vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
+        vm.supplier_sku('update_sku_supplier_values/');
+       }
+
       }
     }
   }

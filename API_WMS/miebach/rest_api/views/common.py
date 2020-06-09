@@ -190,6 +190,14 @@ def get_label_permissions(request, user, role_perms, user_type):
     return labels
 
 
+def get_warehouse_type_name(user_profile):
+    warehouse_type_name = 'Warehouse'
+    if user_profile.warehouse_type in ['STORE', 'SUB_STORE']:
+        warehouse_type_name = 'Department'
+    elif user_profile.warehouse_type == 'ST_HUB':
+        warehouse_type_name = 'Plant'
+    return warehouse_type_name
+
 @get_admin_user
 def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
@@ -253,6 +261,7 @@ def add_user_permissions(request, response_data, user=''):
         company_name = user_profile.company.company_name
         if user_profile.company.logo:
             response_data['data']['parent']['logo'] = user_profile.company.logo.url
+    warehouse_type_name = get_warehouse_type_name(user_profile)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
@@ -267,7 +276,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'warehouse_type': user_profile.warehouse_type,
                                              'warehouse_level': user_profile.warehouse_level,
                                              'multi_level_system': user_profile.multi_level_system,
-                                             'company_id': user_profile.company_id}
+                                             'company_id': user_profile.company_id,
+                                             'warehouse_type_name': warehouse_type_name}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:

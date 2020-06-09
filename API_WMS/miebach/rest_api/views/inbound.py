@@ -1279,6 +1279,15 @@ def generated_pr_data(request, user=''):
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
+    pr_uploaded_file_dict = {}
+    respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
+    if respectivePrIds:
+        master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='pending_pr')
+        if master_docs.exists():
+            pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                                  'file_url': '/' + master_docs[0].uploaded_file.name}
+
+
     prApprQs = record[0].pending_poApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1344,7 +1353,8 @@ def generated_pr_data(request, user=''):
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
                                     'enquiryRemarks': enquiryRemarks, 'central_po_data': central_po_data,
-                                    'uploaded_file_dict': uploaded_file_dict}))
+                                    'uploaded_file_dict': uploaded_file_dict, 
+                                    'pr_uploaded_file_dict': pr_uploaded_file_dict}))
 
 
 @csrf_exempt

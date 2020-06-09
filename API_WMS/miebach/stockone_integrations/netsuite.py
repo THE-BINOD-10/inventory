@@ -57,7 +57,7 @@ class netsuiteIntegration(object):
             invitem.externalId = data.get('sku_code')
             invitem.displayName = data.get('sku_desc','')
             invitem.itemType = data.get('sku_type','')
-            invitem.vendorname = data.get('sku_brand','')
+            invitem.vendorName = data.get('sku_brand','')
             invitem.upc = data.get('ean_number','')
             invitem.isinactive = data.get('status','')
             invitem.itemtype = data.get('batch_based','')
@@ -67,8 +67,8 @@ class netsuiteIntegration(object):
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
             customFieldList = []
-            if data.get('No. of Test', None):
-                customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=data.get('No. of Test')))
+            if data.get('No.OfTests', None):
+                customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=data.get('No.OfTests')))
             if data.get('No. of flex', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=data.get('No. of flex'))
@@ -78,9 +78,10 @@ class netsuiteIntegration(object):
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
                 )
             if data.get('sku_class', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.get('sku_class'))
-                )
+                if("non_inventoryitem" not in data):
+                    customFieldList.append(
+                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.get('sku_class'))
+                    )
             if data.get('mrp', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
@@ -91,11 +92,19 @@ class netsuiteIntegration(object):
                 )
             if data.get('hsn_code', None):
                 customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
+                  ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
                 )
             if data.get('sub_category', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
+                )
+            if("non_inventoryitem" not in data):
+                customFieldList.append(
+                 ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
+                )
+            if data.get("service_start_date",None):
+                customFieldList.append(
+                 ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.get('service_start_date').isoformat())
                 )
             customFieldList.append(
               ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=1))
@@ -120,7 +129,7 @@ class netsuiteIntegration(object):
 
 
 
-    def netsuite_update_create_rtv(rtv_data):
+    def netsuite_update_create_rtv(self, rtv_data):
         data_response = {}
         try:
             ns = self.nc.raw_client
@@ -128,11 +137,11 @@ class netsuiteIntegration(object):
             rtvitem.entity = str(rtv_data["supplier_name"])
             rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
-            rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["grn_no"].split("/")[0])
+            rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
             # rtvitem.location = ns.RecordRef(internalId=108)
             custom_field_list=[]
             custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
-            rtvitem.customFieldList = ns.CustomFieldList(customFieldList)
+            rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
             for data in rtv_data['item_details']:
                 line_item = {
@@ -156,7 +165,7 @@ class netsuiteIntegration(object):
             log.info('Create RTV data failed for %s and error was %s' % (str(rtv_data["grn_no"].split("/")[0]), str(e)))
         return rtvitem
 
-    def netsuite_create_grn(grn_data):
+    def netsuite_create_grn(self, grn_data):
         data_response = {}
         try:
             ns = self.nc.raw_client
@@ -172,7 +181,7 @@ class netsuiteIntegration(object):
             if(grn_data.get("invoice_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
             if grn_data.get("vendorbill_url",None):
-                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=str(grn_data["vendorbill_url"])))
             if(grn_data.get("dc_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
             if(grn_data.get("credit_note_url",None)):
@@ -187,7 +196,7 @@ class netsuiteIntegration(object):
             if(grn_data.get("items",None)):
                 for idx, data in enumerate(grn_data['items']):
                     line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': 2,
                     'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
                     item.append(line_item)
                 grnrec.itemList = {'item':item}
@@ -201,7 +210,7 @@ class netsuiteIntegration(object):
         return grnrec
 
 
-    def netsuite_create_po(po_data):
+    def netsuite_create_po(self, po_data):
         data_response = {}
         try:
             ns = self.nc.raw_client
@@ -233,19 +242,17 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=28))
+                # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=28))
             ])
             for data in po_data['items']:
-                line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']),
-                    'description': data['sku_desc'],
-                    'rate': data['unit_price'],
-                    'quantity':data['quantity'],
-                    'customFieldList': ns.CustomFieldList([
-                        ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                        ns.StringCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=po_data['full_pr_number'])
-                    ])
-                }
+                line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                 'description': data['sku_desc'],
+                 'rate': data['unit_price'],
+                 'quantity':data['quantity'],
+                 'location':ns.RecordRef(internalId=108),
+                 'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
+                  ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
+                 }
                 item.append(line_item)
             purorder.itemList = {'item':item}
 
@@ -255,7 +262,7 @@ class netsuiteIntegration(object):
             log.info('Create PurchaseOrder data failed and error was %s' % (str(e)))
         return purorder
 
-    def netsuite_create_pr(pr_data):
+    def netsuite_create_pr(self, pr_data):
         data_response = {}
         try:
             ns = self.nc.raw_client

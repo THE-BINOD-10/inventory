@@ -1,19 +1,33 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
+
+from django.http import HttpResponse, HttpResponseRedirect
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+from django.contrib import auth
+from django.views.decorators.csrf import csrf_exempt
+from itertools import chain
 
 from django.shortcuts import render
 import datetime
 from stockone_integrations.netsuite import netsuiteIntegration
-import json,os  
+import json,os
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
 
+# auth_dict = {
+#     'NS_ACCOUNT':'4120343_SB1',
+#     'NS_CONSUMER_KEY':'c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea',
+#     'NS_CONSUMER_SECRET':'a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35',
+#     'NS_TOKEN_KEY':'e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f',
+#     'NS_TOKEN_SECRET':'7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
+# }
 auth_dict = {
-    'NS_ACCOUNT':'4120343_SB1',
-    'NS_CONSUMER_KEY':'c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea',
-    'NS_CONSUMER_SECRET':'a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35',
-    'NS_TOKEN_KEY':'e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f',
-    'NS_TOKEN_SECRET':'7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
+    'api_instance':'4120343_SB1',
+    'client_id':'c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea',
+    'secret':'a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35',
+    'token_id':'e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f',
+    'token_secret':'7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
 }
 
 Batched = False
@@ -40,6 +54,7 @@ class Integrations():
 
     def initiateAuthentication(self):
         class_to_initialize = self.integration_type
+        # self.authenticationDict = auth_dict
         self.connectionObject = eval(class_to_initialize)(self.authenticationDict)
 
     def removeUnnecessaryData(self, skuDict):
@@ -239,7 +254,7 @@ class Integrations():
                     self.storeIntegrationDataForLaterUser(dataDict, 'grn')
         else:
             if not is_multiple:
-                recordDict = prData #self.gatherSkuData(skuObject)
+                recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
                 self.connectionObject.complete_transaction(record, is_multiple)
             else:

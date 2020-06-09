@@ -181,10 +181,10 @@
           <div class="row" ng-if="showCase.product_type=='Kits&Consumables'">
             <div ng-include="'views/inbound/toggle/GRN/kits_consumables.html'"></div>
           </div>
-          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets'" >
+          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets' || showCase.product_type=='OtherItems'" >
             <div ng-include="'views/inbound/toggle/GRN/grn_services_assets.html'"></div>
           </div>
-          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables'">
+          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables' && showCase.product_type!='OtherItems'">
             <div class="col-md-12 in_header">
               <table class="table">
                 <thead>

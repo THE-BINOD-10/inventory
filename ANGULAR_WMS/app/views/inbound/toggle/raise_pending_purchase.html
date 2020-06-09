@@ -94,7 +94,7 @@
           <!-- <div class="row">
             <div class="col-md-12"><hr></div>
           </div> -->
-          <div ng-if="showCase.model_data.product_category">
+          <div ng-if="showCase.model_data.product_category" style="padding: 10px;">
             <div class="row" ng-if="showCase.model_data.product_category=='Kits&Consumables'" >
               <div ng-include="'views/inbound/toggle/RaisePendingPoLineItems/kits_consumables.html'"></div>
             </div>
@@ -244,21 +244,8 @@
           <div class="row" style="padding-top: 35px;"  
                 ng-if="showCase.model_data.product_category!='Kits&Consumables'">
             <div class="form-group col-md-3">
-              <div>File Upload</div>
-               <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
-                 <input style="position: absolute;
-                              top: 0;
-                              right: 0;
-                              min-width: 100%;
-                              min-height: 100%;
-                              font-size: 100px;
-                              text-align: right;
-                              filter: alpha(opacity=0);
-                              opacity: 0;
-                              outline: none;
-                              background: white;
-                              cursor: inherit;
-                              display: block;" class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/>
+               <span>
+                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
                </span>
             </div>
           </div>

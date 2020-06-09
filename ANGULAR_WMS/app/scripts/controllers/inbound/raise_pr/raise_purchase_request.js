@@ -571,8 +571,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.getFirstSupplier = function(data){
-      vm.getsupBasedPriceDetails(Object.keys(data.supplierDetails)[0], data)
-      return Object.keys(data.supplierDetails)[0];
+      vm.getsupBasedPriceDetails(data["preferred_supplier"], data)
+      return data["preferred_supplier"];
 
     }
     vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){
@@ -745,7 +745,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
 
       var form_data = new FormData();
-      if(product_category != "Kits&Consumables") {
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
@@ -1174,7 +1174,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
 
       var form_data = new FormData();
-      if (product_category != "Kits&Consumables"){
+      if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);

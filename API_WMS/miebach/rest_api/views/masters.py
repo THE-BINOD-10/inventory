@@ -1576,6 +1576,9 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
+    doa_obj = MastersDOA.objects.get(model_id=data_id, model_name='SKUSupplier')
+    doa_obj.doa_status = 'created'
+    doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 
@@ -5082,4 +5085,5 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('warehouse', warehouse.username),
                                                 ('status', row.doa_status),
                                                 ('DT_RowClass', 'results'),
-                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp))))
+                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp),
+                                                ('model_id', row.model_id))))

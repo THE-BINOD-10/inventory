@@ -54,7 +54,12 @@
       </tr>
       <tr class="rm-padding">
         <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
-          <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount}}</span></b>
+          <b>Extra Charges (GRN): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.extra_other_charges}}</span></b>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
+          <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount + showCase.pdf_data.extra_other_charges}}</span></b>
         </td>
       </tr>
       <tr class="rm-padding">

@@ -497,6 +497,34 @@ class NetSuiteClient:
             exc = self._request_error('upsert', detail=status['statusDetail'][0])
             raise exc
 
+
+    def upsertListInBatch(self, records, batch_count=0):
+        dataToSend = []
+        if batch_count == 0:
+            dataToSend.append(self.upsertList(records))
+        elif len(records) <= batch_count:
+            dataToSend.append(self.upsertList(records))
+        else:
+            tmp_batch_addition = 0
+            current_batch = []
+            all_batches = []
+            for row in records:
+                tmp_batch_addition += 1
+                current_batch.append(row)
+                if tmp_batch_addition == batch_count:
+                    all_batches.append(current_batch)
+                    tmp_batch_addition = 0
+                    current_batch = []
+
+            if len(current_batch):
+                all_batches.append(current_batch)
+            
+            for batch in all_batches:
+                dataToSend.append(self.upsertList(batch))
+
+        return dataToSend
+
+
     def upsertList(self, records):
         """
         Add objects of type recordType with given externalId..

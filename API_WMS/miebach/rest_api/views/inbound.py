@@ -3253,59 +3253,38 @@ def send_pr_to_parent_store(request, user=''):
             prObj.final_status = 'store_sent'
             prObj.save()
         else:
-            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
-                            wh_user=prObj.wh_user, final_status='store_sent')
-            if existingParentSentPR.exists():
-                existingParentStorePRObj = existingParentSentPR[0]
-                lineItems = existingLineItems.filter(sku__sku_code__in=skus)
-                for lineItem in lineItems:
-                    lineItemMap = {
-                        'pending_pr_id': existingParentStorePRObj.id,
-                        'purchase_type': 'PR',
-                        'sku': lineItem.sku,
-                        'quantity': lineItem.quantity,
-                        'price': lineItem.price,
-                        'measurement_unit': lineItem.measurement_unit,
-                        'sgst_tax': lineItem.sgst_tax,
-                        'cgst_tax': lineItem.cgst_tax,
-                        'igst_tax': lineItem.igst_tax,
-                        'utgst_tax': lineItem.utgst_tax,
-                    }
-                    PendingLineItems.objects.create(**lineItemMap)
-                lineItems.delete()
-            else:
-                newPrMap = {
-                    'pr_number': prObj.pr_number,
-                    'sub_pr_number': prObj.sub_pr_number + 1,
-                    'full_pr_number': prObj.full_pr_number,
-                    'prefix': prObj.prefix,
-                    'requested_user': prObj.requested_user,
-                    'wh_user': prObj.wh_user,
-                    'product_category': prObj.product_category,
-                    'priority_type': prObj.priority_type,
-                    'delivery_date': prObj.delivery_date,
-                    'ship_to': prObj.ship_to,
-                    'pending_level': prObj.pending_level,
-                    'final_status': 'store_sent',
-                    'remarks': prObj.remarks
+            newPrMap = {
+                'pr_number': prObj.pr_number,
+                'sub_pr_number': prObj.sub_pr_number + 1,
+                'full_pr_number': prObj.full_pr_number,
+                'prefix': prObj.prefix,
+                'requested_user': prObj.requested_user,
+                'wh_user': prObj.wh_user,
+                'product_category': prObj.product_category,
+                'priority_type': prObj.priority_type,
+                'delivery_date': prObj.delivery_date,
+                'ship_to': prObj.ship_to,
+                'pending_level': prObj.pending_level,
+                'final_status': 'store_sent',
+                'remarks': prObj.remarks
+            }
+            newPrObj = PendingPR.objects.create(**newPrMap)
+            lineItems = existingLineItems.filter(sku__sku_code__in=skus)
+            for lineItem in lineItems:
+                lineItemMap = {
+                    'pending_pr_id': newPrObj.id,
+                    'purchase_type': 'PR',
+                    'sku': lineItem.sku,
+                    'quantity': lineItem.quantity,
+                    'price': lineItem.price,
+                    'measurement_unit': lineItem.measurement_unit,
+                    'sgst_tax': lineItem.sgst_tax,
+                    'cgst_tax': lineItem.cgst_tax,
+                    'igst_tax': lineItem.igst_tax,
+                    'utgst_tax': lineItem.utgst_tax,
                 }
-                newPrObj = PendingPR.objects.create(**newPrMap)
-                lineItems = existingLineItems.filter(sku__sku_code__in=skus)
-                for lineItem in lineItems:
-                    lineItemMap = {
-                        'pending_pr_id': newPrObj.id,
-                        'purchase_type': 'PR',
-                        'sku': lineItem.sku,
-                        'quantity': lineItem.quantity,
-                        'price': lineItem.price,
-                        'measurement_unit': lineItem.measurement_unit,
-                        'sgst_tax': lineItem.sgst_tax,
-                        'cgst_tax': lineItem.cgst_tax,
-                        'igst_tax': lineItem.igst_tax,
-                        'utgst_tax': lineItem.utgst_tax,
-                    }
-                    PendingLineItems.objects.create(**lineItemMap)
-                lineItems.delete()
+                PendingLineItems.objects.create(**lineItemMap)
+            lineItems.delete()
     return HttpResponse('Sent To Parent Store Successfully')
 
 
@@ -3397,7 +3376,7 @@ def send_back_po_to_pr(request, user=''):
         prItems = list(prObj.pending_prlineItems.values_list('sku__sku_code', flat=True))
         if poItems == prItems:
             if prObj.final_status == 'pr_converted_to_po':
-                if get_admin(prObj.wh_user).userprofile.warehouse_type == 'SUB_STORE':
+                if pendingPoObj.wh_user_id == get_admin(get_admin(prObj.wh_user)).id:
                     prObj.final_status = 'store_sent'
                 else:
                     prObj.final_status = 'approved'
@@ -5630,7 +5609,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, data.po_number, grn_number, dc_level_grn, request, myDict)
+            netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -10566,7 +10545,7 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     dc_data=[]
     for data in req_data:
         grn_info= {
-                    "grn_number": data["grn_no"],
+                    "grn_number": data["grn_no"][0],
                     "po_number" : seller_summary[0].purchase_order.po_number,
                     "dc_number": chn_no
         }
@@ -10687,6 +10666,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
         }
         invoice_data.append(grn_info)
     intObj = Integrations(user, 'netsuiteIntegration')
+    invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
     intObj.IntegrateGRN(invoice_data, is_multiple=True)
     return {"data": invoice_data }
 
@@ -13399,17 +13379,20 @@ def save_credit_note_po_data(request, user=''):
         SellerPOSummary.objects.filter(id__in=credit_ids).update(credit_status=2)
         if credit_files:
             upload_master_file(request, user, purchase_credit.id, 'PO_CREDIT_FILE', master_file=credit_files)
-        netsuite_save_credit_note_po_data(request.POST, purchase_credit.id, request, user)
+        netsuite_save_credit_note_po_data(request.POST, purchase_credit.id, credit_files, request, user)
     return HttpResponse('success')
 
-def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
+def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_file, request, user="" ):
     import dateutil.parser as parser
     import datetime
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
-    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
+    upload_doc_dict = {'master_id': credit_id, 'master_type':'PO_CREDIT_FILE',
+                       'uploaded_file': master_file, 'user_id': user.id}
+    pdf_obj = MasterDocs.objects.filter(**upload_doc_dict)
+    # pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
     static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
     url=""
     if(static_url):

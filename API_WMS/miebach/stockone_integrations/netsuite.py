@@ -148,7 +148,7 @@ class netsuiteIntegration(object):
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': 1,
                 'quantity': data['order_qty'],
-                'location': ns.RecordRef(internalId=108),
+                'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
                 'description': data['sku_desc']
                 }
@@ -180,8 +180,8 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
             if(grn_data.get("invoice_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
-            # if grn_data.get("vendorbill_url",None):
-            #     custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
+            if grn_data.get("vendorbill_url",None):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
             if(grn_data.get("dc_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
             if(grn_data.get("credit_note_url",None)):
@@ -196,8 +196,8 @@ class netsuiteIntegration(object):
             if(grn_data.get("items",None)):
                 for idx, data in enumerate(grn_data['items']):
                     line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': 2,
-                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=108), 'itemReceive': True}
+                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True}
                     item.append(line_item)
                 grnrec.itemList = {'item':item}
                 grnrec.tranId = grn_data['grn_number']
@@ -249,7 +249,7 @@ class netsuiteIntegration(object):
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
-                 'location':ns.RecordRef(internalId=108),
+                 'location':ns.RecordRef(internalId=297),
                  'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                   ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                  }
@@ -285,7 +285,7 @@ class netsuiteIntegration(object):
                     'item': ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
-                    'location':ns.RecordRef(internalId=108)
+                    'location':ns.RecordRef(internalId=297)
                 }
                 item.append(line_item)
             purreq.itemList = { 'purchaseRequisitionItem': item }

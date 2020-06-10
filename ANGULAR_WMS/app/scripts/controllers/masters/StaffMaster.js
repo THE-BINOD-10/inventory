@@ -29,11 +29,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
-        DTColumnBuilder.newColumn('company').withTitle('Company'),
-        DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'),
-        DTColumnBuilder.newColumn('plant').withTitle('Plant'),
+        DTColumnBuilder.newColumn('company').withTitle('Subsidary'),
+        DTColumnBuilder.newColumn('warehouse').withTitle('Plant'),
+        DTColumnBuilder.newColumn('department').withTitle('Department'),
         DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
-        DTColumnBuilder.newColumn('department_id').withTitle('Department ID'),
         DTColumnBuilder.newColumn('position').withTitle('Position'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
@@ -141,12 +140,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   function get_company_warehouse_list() {
     var wh_data = {};
     wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse_type'] = 'STORE,SUB_STORE';
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
         vm.warehouse_list = data.data.warehouse_list;
       }
     });
   }
+
+  vm.department_list = [];
+  vm.get_warehouse_department_list = get_warehouse_department_list;
+  function get_warehouse_department_list() {
+    var wh_data = {};
+    wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse'] = vm.model_data.warehouse;
+    wh_data['warehouse_type'] = 'DEPT';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.department_list = data.data.warehouse_list;
+      }
+    });
+  }
+
+  vm.department_type_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_type_list = data.data.department_list;
+    }
+  });
 
   vm.roles_list = [];
   function get_roles_list() {
@@ -157,6 +178,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
   get_roles_list();
+
+  vm.update_department_type = function() {
+    angular.forEach(vm.department_list, function(dept){
+      console.log(dept);
+      if(dept.username == vm.model_data.department){
+        vm.model_data.department_type = dept.stockone_code;
+      }
+    });
+  }
 
 }
 

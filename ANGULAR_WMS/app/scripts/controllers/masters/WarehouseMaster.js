@@ -183,5 +183,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   get_company_list()
 
+  vm.department_type_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_type_list = data.data.department_list;
+    }
+  });
 
 }

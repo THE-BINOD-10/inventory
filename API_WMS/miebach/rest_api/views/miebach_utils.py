@@ -2838,6 +2838,25 @@ USER_PREFIXES_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Product Cate
 
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
 
+DEPARTMENT_TYPES_MAPPING = OrderedDict([('ALLDE', 'All Department'), ('COVID', 'COVID-19'), ('MOLBI', 'Molecular Biology'),
+                                     ('IMMUN', 'Immunochemistry'), ('BIOCHE', 'Bio Chemistry'),
+                                     ('CLITRL', 'Clinical Trial'), ('CLITRP', 'Clinical Trial Project'),
+                                     ('RE&DE', 'Research & Development'), ('MEDGE', 'Medical Genetics'),
+                                     ('IFADE', 'IFA'), ('MOLPA', 'Molecular Pathology'), ('NACOP', 'NACO'),
+                                     ('ACCES', 'Accession'), ('MICRO', 'Microbiology'), ('ELISA', 'Elisa'),
+                                     ('SPCHE', 'Special Chemistry'), ('ANACH', 'Analytical Chemistry'),
+                                     ('COAGU', 'Coagulation'), ('HEMAT', 'Hematology'), ('SEROL', 'Serology'),
+                                     ('HISTO', 'Histopathology'), ('HLADE', 'HLA'), ('REPOR', 'Reports'),
+                                     ('QUAAU', 'Quality Assurance'), ('CUSCA', 'Customer Care'), ('LOGIS', 'Logistics'),
+                                     ('HOMVO', 'Home Visit'), ('COLCO', 'Collection Centers'), ('HUBDE', 'HUB'),
+                                     ('HEALC', 'Health Checkup'), ('SCMMM', 'Supply Chain/Materials Management'),
+                                     ('ADMIN', 'Administration'), ('HRDDE', 'Human Resources'),
+                                     ('ACCFI', 'Account & Finance'), ('MARKE', 'Marketing'),
+                                     ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
+                                     ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
+                                     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
+                                     ('HEADW', 'Head Office - Worli')])
+
 
 def fn_timer(function):
     @wraps(function)

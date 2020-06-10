@@ -1070,6 +1070,10 @@ def add_update_pr_config(request,user=''):
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         mailsMap = data.get('mail_id', {})
         updatingLevels = mailsMap.keys()
+        # import pdb;pdb.set_trace()
+        # company_id = get_company_id(user)
+        # for level, mails in mailsMap.items():
+        #     CompanyRoles.objects.filter(company_id=company_id, role_name=mails)
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
         if tobeDeletedLevels:
             for eachLevel in tobeDeletedLevels:
@@ -11905,9 +11909,13 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
     po_data.save()
 
 
-def get_companies_list(user):
+def get_companies_list(user, send_parent=False):
+    company_id = get_company_id(user)
     company_list = list(CompanyMaster.objects.filter(parent_id=user.userprofile.company_id).\
                             values('id', 'company_name'))
+    if send_parent:
+        parent_company = list(CompanyMaster.objects.filter(id=company_id).values('id', 'company_name'))
+        company_list = list(chain(parent_company, company_list))
     return company_list
 
 
@@ -11927,23 +11935,44 @@ def get_related_users(user_id, level=0, company_id=''):
     main_company_id = get_company_id(user)
     if not level:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
-    else:
+    else: 
         user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) |
                                                 Q(user__userprofile__warehouse_level=level), company_id=main_company_id)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     all_users = list(set(user_list1 + user_list2))
     if company_id:
-        all_users = list(User.objects.filter(userprofile__company_id=company_id, id__in=all_users).\
-                    values_list('id', flat=True))
+        all_users = list(User.objects.filter(userprofile__company_id=company_id, id__in=all_users). \
+                         values_list('id', flat=True))
     log.info("all users %s" % all_users)
     return all_users
 
 
-def get_related_user_objs(user_id, level=0, company_id=''):
-    user_ids = get_related_users(user_id, level=level, company_id=company_id)
-    users = User.objects.filter(id__in=user_ids)
+def get_related_user_objs(user_id, level=0, ):
+    user_ids = get_related_users(user_id, level=level)
+    users = User.objects.filter(id__in=user_ids) 
     return users
+
+def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id=''):
+    """ this function generates all users related to a user with filters"""
+    user = User.objects.get(id=user_id)
+    main_company_id = get_company_id(user)
+    if warehouse_types:
+        user_groups = UserGroups.objects.filter(user__userprofile__warehouse_type__in=warehouse_types,
+                                                company_id=main_company_id)
+    else:
+        user_groups = UserGroups.objects.filter(company_id=main_company_id)
+    if warehouse:
+        user_groups = user_groups.filter(admin_user__username=warehouse)
+    user_list1 = list(user_groups.values_list('user_id', flat=True))
+    user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
+    if warehouse:
+        user_list2 = []
+    all_users = list(set(user_list1 + user_list2))
+    all_user_objs = User.objects.filter(id__in=all_users)
+    if company_id:
+        all_user_objs = all_user_objs.filter(userprofile__company_id=company_id)
+    return all_user_objs
 
 
 def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key, current_user=False):
@@ -12102,11 +12131,14 @@ def get_subsidary_companies(company_id):
 @csrf_exempt
 @get_admin_user
 def get_department_list(request, user=''):
-    company_id = get_company_id(user)
-    companies = get_subsidary_companies(company_id)
-    company_ids = list(companies.values_list('id', flat=True))
-    department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).values_list('department_type', flat=True))
+    # company_id = get_company_id(user)
+    # companies = get_subsidary_companies(company_id)
+    # company_ids = list(companies.values_list('id', flat=True))
+    # department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).\
+    #                        values_list('department_type', flat=True).distinct())
+    department_list = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     return HttpResponse(json.dumps({'department_list': department_list}))
+
 
 def insert_admin_suppliers(request, user):
     admin_user = get_company_admin_user(user)
@@ -12174,8 +12206,18 @@ def insert_admin_sku_attributes(request, user):
 @get_admin_user
 def get_company_warehouses(request, user=''):
     company_id = request.GET.get('company_id', '')
-    wh_objs = get_related_user_objs(user.id, company_id=company_id)
-    warehouse_list = list(wh_objs.values('id', 'username'))
+    warehouse_types = request.GET.get('warehouse_type', '')
+    warehouse_types = warehouse_types.split(',')
+    warehouse = request.GET.get('warehouse', '')
+    wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
+                                        company_id=company_id)
+    warehouse_list = []
+    wh_list = wh_objs.values('id', 'username', 'userprofile__stockone_code', 'first_name', 'last_name')
+    for wh in wh_list:
+        name = ' '.join([wh['first_name'], wh['last_name']])
+        wh_dict = {'id': wh['id'], 'username': wh['username'], 'stockone_code': wh['userprofile__stockone_code'],
+                   'name': name}
+        warehouse_list.append(wh_dict)
     return HttpResponse(json.dumps({'warehouse_list': warehouse_list}))
 
 
@@ -12192,7 +12234,7 @@ def get_sub_user_parent(request_user):
 @get_admin_user
 def get_company_roles_list(request, user=''):
     company_id = get_company_id(user)
-    roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=True).\
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
     return HttpResponse(json.dumps({'roles_list': roles_list}))
 
@@ -12220,3 +12262,16 @@ def get_po_pr_dept_code(data):
         log.debug(traceback.format_exc())
         log.info("Get Dept Code from PO for GRN Number generation failed")
     return dept_code
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_warehouse_department_list(request, user=''):
+    # company_id = get_company_id(user)
+    # companies = get_subsidary_companies(company_id)
+    # company_ids = list(companies.values_list('id', flat=True))
+    # department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).\
+    #                        values_list('department_type', flat=True).distinct())
+    department_list = list(DEPARTMENT_TYPES_MAPPING.values())
+    return HttpResponse(json.dumps({'department_list': department_list}))

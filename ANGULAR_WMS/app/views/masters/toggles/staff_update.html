@@ -10,29 +10,52 @@
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Staff Name * </label>
-                <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
-                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Company List </label>
+                <label class="control-label"> Subsidary </label>
                 <input ng-if="showCase.update" type="hidden" name="company_id" class="form-control" ng-model="showCase.model_data.company_id" value="{{showCase.model_data.company_id}}">
                 <input ng-if="showCase.update" type="text" name="company" class="form-control" ng-model="showCase.model_data.company" readonly>
-                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id" ng-change="showCase.get_company_warehouse_list()">
+                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" name="company_id" ng-change="showCase.get_company_warehouse_list()">
                   <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
                 </select>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Warehouse List </label>
+                <label class="control-label"> Plant </label>
                 <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
                 <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>
-                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse_list" ng-init="showCase.get_company_warehouse_list()" name="warehouse">
-                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.id}}">{{warehouse.username}}</option>
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">
+                  <option value="">All</option>
+                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>
                 </select>
               </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.department" value="{{showCase.model_data.department}}">
+                <input ng-if="showCase.update" type="text" name="department" class="form-control" ng-model="showCase.model_data.department" readonly>
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()">
+                  <option value="">All</option>
+                  <option ng-repeat="department in showCase.department_list" value="{{department.username}}">{{department.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department Type </label>
+                <input ng-if="showCase.update" type="hidden" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" value="{{showCase.model_data.department_type}}">
+                <input ng-if="showCase.update" type="text" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" readonly>
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department_type" name="department_type">
+                  <option value="">All</option>
+                  <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}">{{dept_type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Staff Name * </label>
+                <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
+                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
@@ -54,26 +77,6 @@
                 <label class="control-label"> Phone No. </label>
                 <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/"> </div>
             </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Plant </label>
-                <input name="plant" type="text" class="form-control" ng-model="showCase.model_data.plant" maxlength="64"> </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Department Type </label>
-                <input name="department_type" type="text" class="form-control" ng-model="showCase.model_data.department_type" maxlength="64"> </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Department ID </label>
-                <input name="department_id" type="text" class="form-control" ng-model="showCase.model_data.department_id" maxlength="64"> </div>
-            </div>
-<!--            <div class="col-md-4">-->
-<!--              <div class="form-group">-->
-<!--                <label class="control-label"> Position </label>-->
-<!--                <input name="position" type="text" class="form-control" ng-model="showCase.model_data.position" maxlength="64"> </div>-->
-<!--            </div>-->
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Position </label>

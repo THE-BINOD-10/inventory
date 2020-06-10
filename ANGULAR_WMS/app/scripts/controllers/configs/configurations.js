@@ -2428,19 +2428,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       })
   }
 
+
   vm.warehouse_list = [];
-  vm.service.apiCall('get_warehouses_list/').then(function(data){
+  vm.get_company_warehouses = function() {
+  var wh_data = {};
+  wh_data['warehouse_type'] = 'STORE,SUB_STORE';
+  vm.service.apiCall('get_company_warehouses/', "GET", wh_data).then(function(data){
     if(data.message) {
-      vm.warehouse_list = data.data.warehouses;
-      vm.warehouse_list = ['All'].concat(vm.warehouse_list);
-    }
-  });
+      vm.warehouse_list = ['All'];
+      angular.forEach(data.data.warehouse_list, function(warehouse_data){
+        vm.warehouse_list.push(warehouse_data.username);
+       });
+      }
+    });
+  }
+  vm.get_company_warehouses();
 
   vm.department_list = [];
   vm.service.apiCall('get_department_list/').then(function(data){
     if(data.message) {
       vm.department_list = data.data.department_list;
-      vm.department_list = ['All'].concat(vm.department_list);
+      if(vm.department_list.indexOf('All') == -1) {
+        vm.department_list = ['All'].concat(vm.department_list);
+      }
     }
   });
 

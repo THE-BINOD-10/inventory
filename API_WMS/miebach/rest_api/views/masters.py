@@ -636,9 +636,9 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['staff_name', 'department_type', 'department_id', 'position', 'email_id', 'phone_number', 'status']
+    lis = ['staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id', 'phone_number', 'status']
 
-    company_list = get_companies_list(user)
+    company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     search_params = get_filtered_params(filters, lis)
     if 'status__icontains' in search_params.keys():
@@ -669,6 +669,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
         if data.status:
@@ -684,13 +685,18 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
             phone_number = data.phone_number
         sub_user = User.objects.get(username=data.email_id)
         wh_user = get_sub_user_parent(sub_user)
-        warehouse_name = ''
+        plant = ''
+        department = ''
         if wh_user:
-            warehouse_name = wh_user.username
+            if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+                plant = wh_user.username
+            elif wh_user.userprofile.warehouse_type in ['DEPT']:
+                plant = get_admin(wh_user).username
+                department = wh_user.username
         data_dict = OrderedDict((('name', data.staff_name), ('company', data.company.company_name),
-                                 ('warehouse', warehouse_name),
-                                 ('plant', data.plant), ('department_type', data.department_type),
-                                 ('department_id', data.department_id), ('position', data.position),
+                                 ('warehouse', plant), ('department', department),
+                                 ('department_type', department_type_mapping.get(data.department_type, '')),
+                                 ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
@@ -4382,13 +4388,12 @@ def insert_staff(request, user=''):
     email = request.POST.get('email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
-    plant = request.POST.get('plant', '')
-    department_type = request.POST.get('department_type', '')
-    department_id = request.POST.get('department_id', '')
     position = request.POST.get('position', '')
     password = request.POST.get('password', '')
     re_password = request.POST.get('re_password', '')
     warehouse = request.POST.get('warehouse', '')
+    department = request.POST.get('department', '')
+    department_type = request.POST.get('department_type', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     if not (staff_name or email):
         return HttpResponse('Missing Required Fields')
@@ -4403,14 +4408,18 @@ def insert_staff(request, user=''):
 
     if not data:
         user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
-        wh_user_obj = User.objects.get(id=warehouse)
+        parent_username = user.username
+        if department:
+            parent_username = department
+        elif warehouse:
+            parent_username = warehouse
+        wh_user_obj = User.objects.get(username=parent_username)
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:
             return HttpResponse(add_user_status)
         StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
-                            plant=plant, department_type=department_type, department_id=department_id,
-                            position=position)
+                            position=position, department_type=department_type)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
@@ -4431,16 +4440,12 @@ def update_staff_values(request, user=''):
     email = request.POST.get('email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
-    plant = request.POST.get('plant', '')
     department_type = request.POST.get('department_type', '')
-    department_id = request.POST.get('department_id', '')
     position = request.POST.get('position', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
-    data.plant = plant
     data.department_type = department_type
-    data.department_id = department_id
     old_position = data.position
     if old_position != position:
         sub_user = User.objects.get(username=data.email_id)
@@ -4950,7 +4955,7 @@ def insert_supplier_attribute(request, user=''):
 @login_required
 @get_admin_user
 def get_company_list(request, user=''):
-    data = get_companies_list(user)
+    data = get_companies_list(user, send_parent=True)
     return HttpResponse(json.dumps({'company_list': data}))
 
 # @csrf_exempt

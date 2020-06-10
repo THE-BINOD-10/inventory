@@ -2,7 +2,7 @@ from __future__ import absolute_import, unicode_literals
 from django.contrib.auth.models import User
 
 from miebach.celery import app
-from integrations.views import Integrations
+from stockone_integrations.views import Integrations
 import datetime
 from rest_api.views.utils import init_logger
 
@@ -23,7 +23,7 @@ log_err = init_logger('logs/automated_tasks_errors.log')
 @app.task
 def runStoredAutomatedTasks():
     for userObj in User.objects.filter():
-        executeAutomatedTaskForUser(userObj)    
+        executeAutomatedTaskForUser(userObj)
 
 def executeAutomatedTaskForUser(userObj):
     intObj = Integrations(userObj, intType='netsuiteIntegration', executebatch=True)

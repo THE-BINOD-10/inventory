@@ -187,9 +187,9 @@ class Integrations():
     def IntegratePurchaseRequizition(self, prData, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseRequizition')
+                self.storeIntegrationDataForLaterUser(prData, 'PurchaseRequizition')
             else:
-                for dataDict in skuObject:
+                for dataDict in prData:
                     self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition')
         else:
             if not is_multiple:
@@ -207,9 +207,9 @@ class Integrations():
     def IntegratePurchaseOrder(self, poData, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseOrder')
+                self.storeIntegrationDataForLaterUser(poData, 'PurchaseOrder')
             else:
-                for dataDict in skuObject:
+                for dataDict in poData:
                     self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder')
         else:
             if not is_multiple:
@@ -228,9 +228,9 @@ class Integrations():
     def IntegrateRTV(self, rtvData, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(skuObject, 'rtv')
+                self.storeIntegrationDataForLaterUser(rtvData, 'rtv')
             else:
-                for dataDict in skuObject:
+                for dataDict in rtvData:
                     self.storeIntegrationDataForLaterUser(dataDict, 'rtv')
         else:
             if not is_multiple:
@@ -248,9 +248,9 @@ class Integrations():
     def IntegrateGRN(self, grnData, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(skuObject, 'grn')
+                self.storeIntegrationDataForLaterUser(grnData, 'grn')
             else:
-                for dataDict in skuObject:
+                for dataDict in grnData:
                     self.storeIntegrationDataForLaterUser(dataDict, 'grn')
         else:
             if not is_multiple:

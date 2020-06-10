@@ -173,7 +173,7 @@ class netsuiteIntegration(object):
             grnrec = ns.ItemReceipt()
             grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
             custom_field_list=[]
-            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
+            # custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
             if(grn_data.get("dc_number",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]))
             if(grn_data.get("invoice_no",None)):
@@ -181,11 +181,11 @@ class netsuiteIntegration(object):
             if(grn_data.get("invoice_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
             if grn_data.get("vendorbill_url",None):
-                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=str(grn_data["vendorbill_url"])))
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
             if(grn_data.get("dc_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vra_challandate', value=grn_data["dc_date"]))
             if(grn_data.get("credit_note_url",None)):
-                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note', value=grn_data["credit_note_url"]))
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note', value=grn_data["credit_note_url"]))
             if(grn_data.get("credit_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]))
             if(grn_data.get("credit_number",None)):

@@ -5327,13 +5327,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
-<<<<<<< HEAD
-    if(grn_number):
-        purchase_data["grn_number"]=grn_number
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey
-=======
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
->>>>>>> 534ac261595f07aeb799cc73d9e008a6b0117a8f
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):
     inv_qty = int(request.POST.get('invoice_quantity', 0))
@@ -5615,7 +5609,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, data.po_number, purchase_data["grn_number"], dc_level_grn, request, myDict)
+            netsuite_grn(user, report_data_dict, data.po_number, grn_number, dc_level_grn, request, myDict)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -10538,7 +10532,7 @@ def move_to_poc(request, user=''):
         chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         seller_summary.update(challan_number=chn_no, order_status_flag=status_flag)
-        res=netsuite_move_to_poc_grn(req_data, chn_no, user)
+        res=netsuite_move_to_poc_grn(req_data, chn_no, seller_summary, user)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -10546,17 +10540,16 @@ def move_to_poc(request, user=''):
         log.info("Exception raised wile updating status of Seller Order Summary: %s" %str(e))
         return HttpResponse(json.dumps({'message': 'failed'}))
 
-def netsuite_move_to_poc_grn(req_data, chn_no, user=''):
+def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     from api_calls.netsuite import netsuite_create_grn
     dc_data=[]
     for data in req_data:
         grn_info= {
-                    "grn_number": "/".join(data["grn_no"]),
-                    "po_number" : data["grn_no"][0],
+                    "grn_number": data["grn_no"],
+                    "po_number" : seller_summary[0].purchase_order.po_number,
                     "dc_number": chn_no
         }
         dc_data.append(grn_info)
-    # grn_data={"dc_data":dc_data, "po_challan": True, "dc_number": chn_no}
     intObj = Integrations(user, 'netsuiteIntegration')
     intObj.IntegrateGRN(dc_data, is_multiple=True)
     return {"data": dc_data}
@@ -10638,7 +10631,7 @@ def move_to_invoice(request, user=''):
                         if os.path.exists(exist_master_doc.uploaded_file.path):
                             os.remove(exist_master_doc.uploaded_file.path)
                         exist_master_doc.delete()
-        netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, user)
+        netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary, user)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -10646,27 +10639,26 @@ def move_to_invoice(request, user=''):
         log.info("Exception raised wile updating status of Seller Order Summary: %s" %str(e))
         return HttpResponse(json.dumps({'message': 'failed'}))
 
-def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, user=''):
+def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary,user=''):
     # from api_calls.netsuite import netsuite_create_grn
     invoice_url=""
-    extra_flag= req_data[0]["grn_no"][-1]
-    po_num=req_data[0]["grn_no"][0]
-    po_order_id=po_num.split("_")[-1]
+    extra_flag= req_data[0]["receipt_number"]
+    po_order_id= req_data[0]["purchase_order__order_id"]
     master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
                                             master_type='GRN')
     invoice_url=""
     if master_docs_obj:
         invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     invoice_date=invoice_date.isoformat()
-    if(credit_note=="false"):
+    if(not credit_note=="false"):
         invoice_number=""
         invoice_url=""
         invoice_date=""
     invoice_data=[]
-    for data in req_data:
+    for seller_po_data in seller_summary:
         grn_info= {
-                    "grn_number":"/".join(data["grn_no"]),
-                    "po_number": data["grn_no"][0],
+                    "grn_number":seller_po_data.grn_number,
+                    "po_number": seller_po_data.purchase_order.po_number,
                     "invoice_no": invoice_number,
                     "invoice_date":invoice_date,
                     "inv_receipt_date": inv_receipt_date.isoformat(),
@@ -13363,7 +13355,6 @@ def get_credit_note_po_data(request, user=''):
 @login_required
 @get_admin_user
 def save_credit_note_po_data(request, user=''):
-    import pdb; pdb.set_trace()
     sku_data = []
     credit_ids = json.loads(request.POST.get('credit_id', ''))
     credit_number = request.POST.get('credit_number', '')
@@ -13392,11 +13383,9 @@ def save_credit_note_po_data(request, user=''):
 
 def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
     import dateutil.parser as parser
-    # from api_calls.netsuite import netsuite_create_grn
     import datetime
     credit_number = credit_note_req_data.get('credit_number', '')
     credit_date = credit_note_req_data.get('credit_date', '')
-    # grn_no = credit_note_req_data.get('grn_no', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
     pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
@@ -13415,9 +13404,10 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
     creditnote_data=[]
     for po_data in all_po_data:
         grn_no=po_data["grn_number"]
-        extra_flag=grn_no.split("/")[-1]
+        s_po_s=SellerPOSummary.objects.filter(grn_number=grn_no)
+        extra_flag=s_po_s[0].receipt_number
         po_num=po_data["po_number"]
-        po_order_id=po_num.split("_")[-1]
+        po_order_id=s_po_s[0].purchase_order.order_id
         master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
                                                 master_type='GRN')
         vendor_url=""
@@ -13434,7 +13424,6 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, 
          "vendorbill_url": vendor_url
         }
         creditnote_data.append(grn_data)
-
     intObj = Integrations(user, 'netsuiteIntegration')
     intObj.IntegrateGRN(creditnote_data, is_multiple=True)
 

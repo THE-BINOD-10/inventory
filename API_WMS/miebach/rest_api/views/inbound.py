@@ -2876,8 +2876,8 @@ def approve_pr(request, user=''):
         sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
         if purchase_type == 'PR':
-            pass
-            # netsuite_pr(user, PRQs, full_pr_number)
+            # pass
+            netsuite_pr(user, PRQs, full_pr_number)
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':
@@ -3249,14 +3249,14 @@ def send_pr_to_parent_store(request, user=''):
 
     for prId, skus in prIdSkusMap.items():
         prObj = PendingPR.objects.get(id=prId)
-        existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+        existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                             wh_user=prObj.wh_user, final_status='store_sent')
         existingLineItems = PendingLineItems.objects.filter(pending_pr_id=prId)
         if not existingParentSentPR.exists() and existingLineItems.count() == len(skus):
             prObj.final_status = 'store_sent'
             prObj.save()
         else:
-            # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
             #                 wh_user=prObj.wh_user, final_status='store_sent')
             if existingParentSentPR.exists():
                 existingParentStorePRObj = existingParentSentPR[0]
@@ -3292,23 +3292,8 @@ def send_pr_to_parent_store(request, user=''):
                     'final_status': 'store_sent',
                     'remarks': prObj.remarks
                 }
-                newPrObj = PendingPR.objects.create(**newPrMap)
-                lineItems = existingLineItems.filter(sku__sku_code__in=skus)
-                for lineItem in lineItems:
-                    lineItemMap = {
-                        'pending_pr_id': newPrObj.id,
-                        'purchase_type': 'PR',
-                        'sku': lineItem.sku,
-                        'quantity': lineItem.quantity,
-                        'price': lineItem.price,
-                        'measurement_unit': lineItem.measurement_unit,
-                        'sgst_tax': lineItem.sgst_tax,
-                        'cgst_tax': lineItem.cgst_tax,
-                        'igst_tax': lineItem.igst_tax,
-                        'utgst_tax': lineItem.utgst_tax,
-                    }
-                    PendingLineItems.objects.create(**lineItemMap)
-                lineItems.delete()
+                PendingLineItems.objects.create(**lineItemMap)
+            lineItems.delete()
     return HttpResponse('Sent To Parent Store Successfully')
 
 
@@ -3398,14 +3383,14 @@ def send_back_po_to_pr(request, user=''):
         existingLineItems = PendingLineItems.objects.filter(pending_pr_id=each_pr)
         poItems = list(pendingPoObj.pending_polineItems.values_list('sku__sku_code', flat=True))
         prItems = list(prObj.pending_prlineItems.values_list('sku__sku_code', flat=True))
-        existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+        existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                             wh_user=prObj.wh_user, final_status='approved')
         if not existingApprovedPR.exists():
             if poItems == prItems:
                 if prObj.final_status == 'pr_converted_to_po':
                     if user.userprofile.warehouse_type == 'STORE' and get_admin(prObj.wh_user).userprofile.warehouse_type == 'SUB_STORE':
                         prObj.final_status = 'store_sent'
-                    else:    
+                    else:
                         prObj.final_status = 'approved'
                     prObj.save()
             else:
@@ -3444,9 +3429,9 @@ def send_back_po_to_pr(request, user=''):
                         'utgst_tax': lineItem.utgst_tax,
                     }
                     PendingLineItems.objects.create(**lineItemMap)
-                lineItems.delete()            
+                lineItems.delete()
         else:
-            # existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            # existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
             #                 wh_user=prObj.wh_user, final_status='approved')
             if existingApprovedPR.exists():
                 existingApprovedPRObj = existingApprovedPR[0]
@@ -3467,7 +3452,7 @@ def send_back_po_to_pr(request, user=''):
                         'utgst_tax': lineItem.utgst_tax,
                     }
                     PendingLineItems.objects.create(**lineItemMap)
-            
+
     pendingPoObj.final_status = 'po_converted_back_to_pr'
     pendingPoObj.save()
     return HttpResponse("Sent Back Successfully")
@@ -5188,7 +5173,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         purchase_data['cess_tax'] = sku_row_cess_percent
         purchase_data['apmc_tax'] = sku_row_apmc_percent
         purchase_data['remarks'] = remarks
-
+        purchase_data["order_idx"]= i+1
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -5203,7 +5188,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"])
         else:
             try:
                 mrp = myDict['mrp'][i]
@@ -5213,12 +5198,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp)
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp, purchase_data["order_idx"])
             else:
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'], purchase_data['sku'].mrp)
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"])
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
@@ -5533,7 +5518,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
-                                               'mrp': key[13]})
+                                               'mrp': key[13], "order_idx": key[14]})
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
                 #                               key[6], key[7], entry_price, key[8], key[9], ''))
@@ -5543,7 +5528,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
-                                              'mrp': key[12]})
+                                              'mrp': key[12],"order_idx": key[13]})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -5639,7 +5624,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, data.po_number, grn_number, dc_level_grn, request, myDict)
+            netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -5723,7 +5708,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "vendorbill_url": vendorbill_url
      }
     for data in po_data:
-        item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],
+        item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],"order_idx":data["order_idx"],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
@@ -10575,7 +10560,7 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     dc_data=[]
     for data in req_data:
         grn_info= {
-                    "grn_number": data["grn_no"],
+                    "grn_number": data["grn_no"][0],
                     "po_number" : seller_summary[0].purchase_order.po_number,
                     "dc_number": chn_no
         }
@@ -10696,6 +10681,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
         }
         invoice_data.append(grn_info)
     intObj = Integrations(user, 'netsuiteIntegration')
+    invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
     intObj.IntegrateGRN(invoice_data, is_multiple=True)
     return {"data": invoice_data }
 
@@ -13408,10 +13394,10 @@ def save_credit_note_po_data(request, user=''):
         SellerPOSummary.objects.filter(id__in=credit_ids).update(credit_status=2)
         if credit_files:
             upload_master_file(request, user, purchase_credit.id, 'PO_CREDIT_FILE', master_file=credit_files)
-        netsuite_save_credit_note_po_data(request.POST, purchase_credit.id, request, user)
+        netsuite_save_credit_note_po_data(request.POST, purchase_credit.id, credit_files, request, user)
     return HttpResponse('success')
 
-def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
+def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_file, request, user="" ):
     import dateutil.parser as parser
     import datetime
     credit_number = credit_note_req_data.get('credit_number', '')

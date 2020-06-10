@@ -2034,19 +2034,16 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
     sku_list_dict=[]
     intObj = Integrations(user,'netsuiteIntegration')
     for sku_code, sku_id in sku_key_map.items():
-        import pdb; pdb.set_trace()
         sku_master_data=new_skus[sku_code].get('sku_obj', {})
         sku_master_data=intObj.gatherSkuData(sku_master_data)
         sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
         sku_attr_dict.update(sku_master_data)
         sku_list_dict.append(sku_attr_dict)
-    import pdb; pdb.set_trace()
     intObj.integrateSkuMaster(sku_list_dict, is_multiple= True)
 
 def upload_netsuite_sku(data, user, instanceName=''):
     intObj = Integrations(user,'netsuiteIntegration')
     sku_data_dict=intObj.gatherSkuData(data)
-    import pdb; pdb.set_trace()
     if instanceName == ServiceMaster:
         sku_data_dict.update({"ServicePurchaseItem":True})
         intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)

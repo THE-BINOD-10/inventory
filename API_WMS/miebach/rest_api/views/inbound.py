@@ -3252,38 +3252,59 @@ def send_pr_to_parent_store(request, user=''):
             prObj.final_status = 'store_sent'
             prObj.save()
         else:
-            newPrMap = {
-                'pr_number': prObj.pr_number,
-                'sub_pr_number': prObj.sub_pr_number + 1,
-                'full_pr_number': prObj.full_pr_number,
-                'prefix': prObj.prefix,
-                'requested_user': prObj.requested_user,
-                'wh_user': prObj.wh_user,
-                'product_category': prObj.product_category,
-                'priority_type': prObj.priority_type,
-                'delivery_date': prObj.delivery_date,
-                'ship_to': prObj.ship_to,
-                'pending_level': prObj.pending_level,
-                'final_status': 'store_sent',
-                'remarks': prObj.remarks
-            }
-            newPrObj = PendingPR.objects.create(**newPrMap)
-            lineItems = existingLineItems.filter(sku__sku_code__in=skus)
-            for lineItem in lineItems:
-                lineItemMap = {
-                    'pending_pr_id': newPrObj.id,
-                    'purchase_type': 'PR',
-                    'sku': lineItem.sku,
-                    'quantity': lineItem.quantity,
-                    'price': lineItem.price,
-                    'measurement_unit': lineItem.measurement_unit,
-                    'sgst_tax': lineItem.sgst_tax,
-                    'cgst_tax': lineItem.cgst_tax,
-                    'igst_tax': lineItem.igst_tax,
-                    'utgst_tax': lineItem.utgst_tax,
+            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                            wh_user=prObj.wh_user, final_status='store_sent')
+            if existingParentSentPR.exists():
+                existingParentStorePRObj = existingParentSentPR[0]
+                lineItems = existingLineItems.filter(sku__sku_code__in=skus)
+                for lineItem in lineItems:
+                    lineItemMap = {
+                        'pending_pr_id': existingParentStorePRObj.id,
+                        'purchase_type': 'PR',
+                        'sku': lineItem.sku,
+                        'quantity': lineItem.quantity,
+                        'price': lineItem.price,
+                        'measurement_unit': lineItem.measurement_unit,
+                        'sgst_tax': lineItem.sgst_tax,
+                        'cgst_tax': lineItem.cgst_tax,
+                        'igst_tax': lineItem.igst_tax,
+                        'utgst_tax': lineItem.utgst_tax,
+                    }
+                    PendingLineItems.objects.create(**lineItemMap)
+                lineItems.delete()
+            else:
+                newPrMap = {
+                    'pr_number': prObj.pr_number,
+                    'sub_pr_number': prObj.sub_pr_number + 1,
+                    'full_pr_number': prObj.full_pr_number,
+                    'prefix': prObj.prefix,
+                    'requested_user': prObj.requested_user,
+                    'wh_user': prObj.wh_user,
+                    'product_category': prObj.product_category,
+                    'priority_type': prObj.priority_type,
+                    'delivery_date': prObj.delivery_date,
+                    'ship_to': prObj.ship_to,
+                    'pending_level': prObj.pending_level,
+                    'final_status': 'store_sent',
+                    'remarks': prObj.remarks
                 }
-                PendingLineItems.objects.create(**lineItemMap)
-            lineItems.delete()
+                newPrObj = PendingPR.objects.create(**newPrMap)
+                lineItems = existingLineItems.filter(sku__sku_code__in=skus)
+                for lineItem in lineItems:
+                    lineItemMap = {
+                        'pending_pr_id': newPrObj.id,
+                        'purchase_type': 'PR',
+                        'sku': lineItem.sku,
+                        'quantity': lineItem.quantity,
+                        'price': lineItem.price,
+                        'measurement_unit': lineItem.measurement_unit,
+                        'sgst_tax': lineItem.sgst_tax,
+                        'cgst_tax': lineItem.cgst_tax,
+                        'igst_tax': lineItem.igst_tax,
+                        'utgst_tax': lineItem.utgst_tax,
+                    }
+                    PendingLineItems.objects.create(**lineItemMap)
+                lineItems.delete()
     return HttpResponse('Sent To Parent Store Successfully')
 
 
@@ -3375,7 +3396,7 @@ def send_back_po_to_pr(request, user=''):
         prItems = list(prObj.pending_prlineItems.values_list('sku__sku_code', flat=True))
         if poItems == prItems:
             if prObj.final_status == 'pr_converted_to_po':
-                if pendingPoObj.wh_user_id == get_admin(get_admin(prObj.wh_user)).id:
+                if get_admin(prObj.wh_user).userprofile.warehouse_type == 'SUB_STORE':
                     prObj.final_status = 'store_sent'
                 else:    
                     prObj.final_status = 'approved'

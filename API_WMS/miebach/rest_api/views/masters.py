@@ -1300,7 +1300,6 @@ def netsuite_sku(data, user, instanceName=''):
     # from integrations.views import Integrations
     intObj = Integrations(user,'netsuiteIntegration')
     sku_data_dict=intObj.gatherSkuData(data)
-    import pdb; pdb.set_trace()
     if instanceName == ServiceMaster:
         sku_data_dict.update({"ServicePurchaseItem":True})
         intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)

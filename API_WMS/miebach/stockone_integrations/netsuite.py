@@ -196,7 +196,7 @@ class netsuiteIntegration(object):
             if(grn_data.get("items",None)):
                 for idx, data in enumerate(grn_data['items']):
                     line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': idx+1,
+                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
                     'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True}
                     item.append(line_item)
                 grnrec.itemList = {'item':item}

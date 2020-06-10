@@ -1586,9 +1586,11 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
-    doa_obj = MastersDOA.objects.get(model_id=data_id, model_name='SKUSupplier')
-    doa_obj.doa_status = 'created'
-    doa_obj.save()
+    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+    if doa_qs.exists():
+        doa_obj = doa_qs[0]
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 

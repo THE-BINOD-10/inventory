@@ -684,7 +684,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
         sub_user = User.objects.get(username=data.email_id)
-        wh_user = get_sub_user_parent(sub_user)
+        wh_user = data.user
         plant = ''
         department = ''
         if wh_user:
@@ -693,7 +693,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
                 plant = get_admin(wh_user).username
                 department = wh_user.username
-        data_dict = OrderedDict((('name', data.staff_name), ('company', data.company.company_name),
+        data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
+                                 ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
                                  ('position', data.position),
@@ -4394,11 +4395,18 @@ def insert_staff(request, user=''):
     warehouse = request.POST.get('warehouse', '')
     department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
+    staff_code = request.POST.get('staff_code', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     if not (staff_name or email):
         return HttpResponse('Missing Required Fields')
     if password != re_password:
         return HttpResponse('Password and Retype passwords not matching')
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
+    all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
+    if str(staff_code).lower() in all_staff_codes:
+        return HttpResponse("Duplicate Staff Code")
     all_sub_users = get_company_sub_users(user, company_id=company_id)
     sub_user_email = all_sub_users.filter(email=email)
     if sub_user_email.exists():
@@ -4409,17 +4417,30 @@ def insert_staff(request, user=''):
     if not data:
         user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
         parent_username = user.username
+        warehouse_type = 'ADMIN'
+        main_company_id = get_company_id(user)
         if department:
             parent_username = department
+            warehouse_type = 'DEPT'
         elif warehouse:
             parent_username = warehouse
+            warehouse_type = 'STORE'
+        elif str(main_company_id) != str(company_id):
+            warehouse_type = 'ST_HUB'
+            st_hub_wh = UserProfile.objects.filter(company_id=company_id, warehouse_type='ST_HUB')
+            if not st_hub_wh:
+                return HttpResponse("Warehouse Mapping not found")
+            else:
+                parent_username = st_hub_wh[0].user.username
         wh_user_obj = User.objects.get(username=parent_username)
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:
             return HttpResponse(add_user_status)
         StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
-                            position=position, department_type=department_type)
+                            position=position, department_type=department_type,
+                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
+                            staff_code=staff_code)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')

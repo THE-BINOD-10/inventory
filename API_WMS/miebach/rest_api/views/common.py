@@ -1052,6 +1052,22 @@ def pr_request(request):
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
+
+def update_pr_po_config_roles(company_id, eachConfig, roles):
+    exist_roles = eachConfig.user_role.filter().values_list('role_name', flat=True)
+    exist_roles = [(str(erole)).lower() for erole in exist_roles]
+    for role in roles:
+        company_role = CompanyRoles.objects.filter(company_id=company_id, role_name=role)
+        if company_role:
+            eachConfig.user_role.add(company_role[0])
+        if role.lower() in exist_roles:
+            exist_roles.remove(role.lower())
+    for exist_role in exist_roles:
+        company_role = CompanyRoles.objects.filter(company_id=company_id, role_name=exist_role)
+        if company_role:
+            eachConfig.user_role.remove(company_role[0])
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1064,27 +1080,26 @@ def add_update_pr_config(request,user=''):
     else:
         master_type = 'pr_approvals_conf_data'
         purchase_type = 'PO'
+    company_id = get_company_id(user)
     if toBeUpdateData:
         data = toBeUpdateData[0]
-        pr_approvals = PurchaseApprovalConfig.objects.filter(user=user, name=data['name'], purchase_type=purchase_type)
+        pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=data['name'], purchase_type=purchase_type)
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         mailsMap = data.get('mail_id', {})
         updatingLevels = mailsMap.keys()
-        # import pdb;pdb.set_trace()
-        # company_id = get_company_id(user)
-        # for level, mails in mailsMap.items():
-        #     CompanyRoles.objects.filter(company_id=company_id, role_name=mails)
-        tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
-        if tobeDeletedLevels:
-            for eachLevel in tobeDeletedLevels:
-                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
-                if tobeDeleteQs.exists():
-                    tobeDeleteId = tobeDeleteQs[0].id
-                    MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete()
-                    tobeDeleteQs.delete()
-        for level, mails in mailsMap.items():
+        # tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
+        # if tobeDeletedLevels:
+        #     for eachLevel in tobeDeletedLevels:
+        #         tobeDeleteQs = pr_approvals.filter(level=eachLevel)
+        #         if tobeDeleteQs.exists():
+        #             tobeDeleteId = tobeDeleteQs[0].id
+        #             MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete()
+        #             tobeDeleteQs.delete()
+
+        for level, roles in mailsMap.items():
             PRApprovalMap = {
                     'user': user,
+                    'company_id': company_id,
                     'name': data['name'],
                     'product_category': data['product_category'],
                     'plant': data.get('plant', ''),
@@ -1106,28 +1121,32 @@ def add_update_pr_config(request,user=''):
                     if eachLevelObj.min_Amt != data['min_Amt']:
                         eachLevelObj.min_Amt = data['min_Amt']
                     eachLevelObj.save()
+                    eachConfig = eachLevelObj
                     eachConfigId = eachLevelObj.id
                 else:
                     eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
                     eachConfigId = eachConfig.id
-            # To Delete Existing Mails from  Level
-            mailsList = [i.strip() for i in mails.split(',')]
-            memQs = MasterEmailMapping.objects.filter(master_type=master_type,
-                                    master_id=eachConfigId)
-            existingMails = memQs.values_list('email_id', flat=True)
-            toBeDeletedMails = set(list(existingMails)) - set(mailsList)
-            for tobeDelMail in toBeDeletedMails:
-                memQs.filter(email_id=tobeDelMail).delete()
 
-            # To add new email in Level
-            for eachMail in mailsList:
-                emailMap = {
-                            'user': user,
-                            'master_id': eachConfigId,
-                            'master_type': master_type,
-                            'email_id': eachMail,
-                            }
-                MasterEmailMapping.objects.update_or_create(**emailMap)
+            roles = roles.split(',')
+            update_pr_po_config_roles(company_id, eachConfig, roles)
+            # To Delete Existing Mails from  Level
+            # mailsList = [i.strip() for i in mails.split(',')]
+            # memQs = MasterEmailMapping.objects.filter(master_type=master_type,
+            #                         master_id=eachConfigId)
+            # existingMails = memQs.values_list('email_id', flat=True)
+            # toBeDeletedMails = set(list(existingMails)) - set(mailsList)
+            # for tobeDelMail in toBeDeletedMails:
+            #     memQs.filter(email_id=tobeDelMail).delete()
+            #
+            # # To add new email in Level
+            # for eachMail in mailsList:
+            #     emailMap = {
+            #                 'user': user,
+            #                 'master_id': eachConfigId,
+            #                 'master_type': master_type,
+            #                 'email_id': eachMail,
+            #                 }
+            #     MasterEmailMapping.objects.update_or_create(**emailMap)
         status = "Updated Successfully"
     else:
         status = "Wrong data provided in Configuration"
@@ -1162,9 +1181,20 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
-    for rec in PurchaseApprovalConfig.objects.filter(user=user, 
-                                    purchase_type=purchase_type,
-                                    product_category=product_category).distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
+    company_id = get_company_id(user)
+    admin_user = get_admin(user)
+    pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
+                    'product_category': product_category, 'department_type': '',
+                  'plant': ''}
+    import pdb;pdb.set_trace()
+    pac_filter1 = copy.deepcopy(pac_filter)
+    if user.userprofile.warehouse_type == 'DEPT':
+        pac_filter1['department_type'] = user.userprofile.stockone_code
+        pac_filter1['plant'] = admin_user.username
+    purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
+    if not purchase_config:
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)
     return confMap
@@ -5122,10 +5152,10 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
             sub_user_groups = sub_user.groups.filter().exclude(name__in=usernames).values_list('name', flat=True)
         else:
             sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
-        brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name',
-                                                                                             flat=True)
-        if not 'All' in brands_list:
-            sku_master = sku_master.filter(sku_brand__in=brands_list)
+        # brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name',
+        #                                                                                      flat=True)
+        # if not 'All' in brands_list:
+        #     sku_master = sku_master.filter(sku_brand__in=brands_list)
         sku_master_ids = sku_master.values_list('id', flat=True)
 
     return sku_master, sku_master_ids
@@ -11911,7 +11941,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
 
 def get_companies_list(user, send_parent=False):
     company_id = get_company_id(user)
-    company_list = list(CompanyMaster.objects.filter(parent_id=user.userprofile.company_id).\
+    company_list = list(CompanyMaster.objects.filter(parent_id=company_id).\
                             values('id', 'company_name'))
     if send_parent:
         parent_company = list(CompanyMaster.objects.filter(id=company_id).values('id', 'company_name'))
@@ -12268,10 +12298,20 @@ def get_po_pr_dept_code(data):
 @csrf_exempt
 @get_admin_user
 def get_warehouse_department_list(request, user=''):
-    # company_id = get_company_id(user)
-    # companies = get_subsidary_companies(company_id)
-    # company_ids = list(companies.values_list('id', flat=True))
-    # department_list = list(StaffMaster.objects.filter(company_id__in=company_ids).\
-    #                        values_list('department_type', flat=True).distinct())
     department_list = list(DEPARTMENT_TYPES_MAPPING.values())
     return HttpResponse(json.dumps({'department_list': department_list}))
+
+
+def get_purchase_config_role_mailing_list(user, app_config, company_id):
+    user_roles = app_config.user_role.filter().values_list('role_name', flat=True)
+    mail_list = []
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    for user_role in user_roles:
+        emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=user, department_type=app_config.department_type,
+                                   position=user_role).values_list('email_id', flat=True))
+        if not emails:
+            emails = list(StaffMaster.objects.filter(company_id=company_id, department_type='', position=user_role).\
+                    values_list('email_id', flat=True))
+        mail_list = list(chain(mail_list, emails))
+    return mail_list

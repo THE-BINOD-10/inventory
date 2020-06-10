@@ -2435,7 +2435,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   wh_data['warehouse_type'] = 'STORE,SUB_STORE';
   vm.service.apiCall('get_company_warehouses/', "GET", wh_data).then(function(data){
     if(data.message) {
-      vm.warehouse_list = ['All'];
+      vm.warehouse_list = [];
       angular.forEach(data.data.warehouse_list, function(warehouse_data){
         vm.warehouse_list.push(warehouse_data.username);
        });
@@ -2448,9 +2448,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.service.apiCall('get_department_list/').then(function(data){
     if(data.message) {
       vm.department_list = data.data.department_list;
-      if(vm.department_list.indexOf('All') == -1) {
-        vm.department_list = ['All'].concat(vm.department_list);
-      }
     }
   });
 

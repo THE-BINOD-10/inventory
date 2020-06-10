@@ -59,6 +59,12 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
+                <label class="control-label"> Staff Code * </label>
+                <input ng-if="showCase.update" type="hidden" name="staff_code" class="form-control" ng-model="showCase.model_data.staff_code">
+                <input type="text" name="staff_code" class="form-control" ng-model="showCase.model_data.staff_code" maxlength="256" required ng-readonly="showCase.update"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
                 <label class="control-label"> Email *</label>
                 <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" ng-readonly="showCase.update" required> </div>
             </div>

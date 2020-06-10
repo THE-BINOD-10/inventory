@@ -70,22 +70,25 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
     elif request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        memQs = MasterEmailMapping.objects.filter(user=user, master_type='actual_pr_approvals_conf_data',
-                                                  email_id=currentUserEmailId)
-        for memObj in memQs:
-            master_id = memObj.master_id
-            prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
-            if prApprObj.exists():
-                currentUserLevel = prApprObj[0].level
-                configName = prApprObj[0].name
-                pr_numbers = list(PurchaseApprovals.objects.filter(
-                                configName=configName,
-                                level=currentUserLevel).distinct().values_list('purchase_number', flat=True))
-            else:
-                pr_numbers = []
-            filtersMap.setdefault('pending_pr__pr_number__in', [])
-            filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
-        if not memQs.exists(): # Creator Sub Users
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).values_list('pr_approval__purchase_number', flat=True)
+        if pa_mails:
+            filtersMap['pending_pr__pr_number__in'] = pa_mails
+        # memQs = MasterEmailMapping.objects.filter(user=user, master_type='actual_pr_approvals_conf_data',
+        #                                           email_id=currentUserEmailId)
+        # for memObj in memQs:
+        #     master_id = memObj.master_id
+        #     prApprObj = PurchaseApprovalConfig.objects.filter(id=master_id)
+        #     if prApprObj.exists():
+        #         currentUserLevel = prApprObj[0].level
+        #         configName = prApprObj[0].name
+        #         pr_numbers = list(PurchaseApprovals.objects.filter(
+        #                         configName=configName,
+        #                         level=currentUserLevel).distinct().values_list('purchase_number', flat=True))
+        #     else:
+        #         pr_numbers = []
+        #     filtersMap.setdefault('pending_pr__pr_number__in', [])
+        #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
+        else: # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
     else:
         filtersMap['pending_pr__wh_user'] = user
@@ -2596,16 +2599,18 @@ def add_po(request, user=''):
 def createPRApproval(user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
                     forPO=False, product_category='Kits&Consumables', admin_user=None):
     mailsList = []
-    pacFiltersMap = {'user': user, 'name': reqConfigName, 'level': level}
+    company_id = get_company_id(user)
+    pacFiltersMap = {'company_id': company_id, 'name': reqConfigName, 'level': level}
     if admin_user:
         pacFiltersMap['user'] = admin_user
     apprConfObj = PurchaseApprovalConfig.objects.filter(**pacFiltersMap)
     if apprConfObj:
         apprConfObjId = apprConfObj[0].id
-        memFiltersMap = {'user': user, 'master_id': apprConfObjId, 'master_type': master_type}
-        if admin_user:
-            memFiltersMap['user'] = admin_user
-        mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
+        # memFiltersMap = {'user': user, 'master_id': apprConfObjId, 'master_type': master_type}
+        # if admin_user:
+        #     memFiltersMap['user'] = admin_user
+        mailsList = get_purchase_config_role_mailing_list(user, apprConfObj[0],company_id)
+        #mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
     if mailsList:
         validated_by = ", ".join(mailsList)
     else:
@@ -3489,6 +3494,7 @@ def add_pr(request, user=''):
                         hash_code = generateHashCodeForMail(prObj, eachMail)
                         sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
+            import pdb;pdb.set_trace()
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, prefix, full_pr_number, is_po_creation=True,
                                                                  central_po_data=central_po_data)

@@ -23,11 +23,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback)
+       .withOption('order', [1, 'asc'])
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
     vm.dtColumns = [
+        DTColumnBuilder.newColumn('staff_code').withTitle('Staff Code'),
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
         DTColumnBuilder.newColumn('company').withTitle('Subsidary'),
         DTColumnBuilder.newColumn('warehouse').withTitle('Plant'),

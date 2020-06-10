@@ -705,6 +705,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
@@ -3134,10 +3135,11 @@ class IntransitOrders(models.Model):
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
     staff_name = models.CharField(max_length=64, default='')
+    staff_code = models.CharField(max_length=64, default='')
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
-    plant = models.CharField(max_length=64, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    warehouse_type = models.CharField(max_length=64, default='')
     department_type = models.CharField(max_length=64, default='')
-    department_id = models.CharField(max_length=64, default='')
     position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)

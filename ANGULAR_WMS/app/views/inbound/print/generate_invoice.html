@@ -42,28 +42,15 @@
               <input name="inv_recpt_date" ui-jq="datepicker" ng-model="showCase.inv_receipt_date" class="form-control stk-readonly" type="text" ng-init="showCase.inv_receipt_date=''" data-date-today-highlight="true" data-date-autoclose="true" required>
             </div>
           </div>
-          <div class="col-md-3 col-sm-3 col-xs-3" class="form-group">
-            <div>File Upload *</div>
-            <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 200px;">Choose File
-              <input style="position: absolute;
-                        top: 0;
-                        right: 0;
-                        min-width: 100%;
-                        min-height: 100%;
-                        font-size: 100px;
-                        text-align: right;
-                        filter: alpha(opacity=0);
-                        opacity: 0;
-                        outline: none;
-                        background: white;
-                        cursor: inherit;
-                        display: block;" class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" required/>
+          <div class="form-group col-md-3" style="padding-top: 22px;">
+            <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 200px;cursor: pointer;">
+              <input type = "file" name="files" id="file-upload" ng-model="file_input" required/>
             </span>
           </div>
           <div class="col-md-3 col-sm-3 col-xs-3" style="padding-top: 15px;font-size: 14px;" align="center">
             <span class="label label-default">Credit Note Generation Status</span>
-            <span class="badge bg-success" ng-if="((showCase.inv_value ? showCase.inv_value : 0) > showCase.pdf_data.rounded_invoice_amount) && ((showCase.inv_quantity ? showCase.inv_quantity : 0) > showCase.pdf_data.total_quantity)">Yes</span>
-            <span class="badge bg-danger" ng-if="((showCase.inv_value ? showCase.inv_value : 0) < showCase.pdf_data.rounded_invoice_amount) || ((showCase.inv_quantity ? showCase.inv_quantity : 0) <= showCase.pdf_data.total_quantity)">No</span>
+            <span class="badge bg-success" ng-if="((showCase.inv_value ? showCase.inv_value : 0) > (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges))">Yes</span>
+            <span class="badge bg-danger" ng-if="((showCase.inv_value ? showCase.inv_value : 0) <= (showCase.pdf_data.rounded_invoice_amount+showCase.pdf_data.extra_other_charges))">No</span>
           </div>
 	      </div>
           <div class="row col-md-12">

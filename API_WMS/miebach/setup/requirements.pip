@@ -38,3 +38,7 @@ lxml==3.3.3
 idna==2.8
 pandas==0.24.2
 xhtml2pdf==0.2.4
+celery==4.4.4
+redis==3.5.3
+django-celery==3.3.1
+django-celery-results==1.2.1

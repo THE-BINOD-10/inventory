@@ -26,6 +26,7 @@ from rest_api.views import *
 from inbound_descrepancy import *
 from inbound_common_operations import *
 from django.db import transaction
+from stockone_integrations.views import Integrations
 
 log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
@@ -1266,7 +1267,7 @@ def generated_pr_data(request, user=''):
     pr_created_date = ''
     central_po_data = ''
     validateFlag = 0
-    uploaded_file_dict = {}    
+    uploaded_file_dict = {}
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
@@ -1353,7 +1354,7 @@ def generated_pr_data(request, user=''):
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'validated_users': validated_users,
                                     'enquiryRemarks': enquiryRemarks, 'central_po_data': central_po_data,
-                                    'uploaded_file_dict': uploaded_file_dict, 
+                                    'uploaded_file_dict': uploaded_file_dict,
                                     'pr_uploaded_file_dict': pr_uploaded_file_dict}))
 
 
@@ -1388,7 +1389,7 @@ def generated_actual_pr_data(request, user=''):
     master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='pending_pr')
     if master_docs.exists():
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                              'file_url': '/' + master_docs[0].uploaded_file.name}    
+                              'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
@@ -1539,7 +1540,7 @@ def print_pending_po_form(request, user=''):
     delivery_date = order.delivery_date.strftime('%d-%m-%Y')
     # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     # po_number = order.full_po_number
-    po_number = getattr(order, full_purchase_number)    
+    po_number = getattr(order, full_purchase_number)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -2901,9 +2902,9 @@ def approve_pr(request, user=''):
     return HttpResponse(status)
 
 
-def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_number, 
+def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_number,
             baseLevel, prefix, full_pr_number, orderStatus='pending',
-            prObj=None, is_po_creation=False, skusInPO=[], supplier=None, 
+            prObj=None, is_po_creation=False, skusInPO=[], supplier=None,
             convertPRtoPO=False, central_po_data=None):
     firstEntryValues = all_data.values()[0]
     if not firstEntryValues['pr_delivery_date']:
@@ -2943,15 +2944,15 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_po_number'] = full_pr_number
-            
+
     else:
         model_name = PendingPR
         purchaseMap['pr_number'] = purchase_number
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
-        # filtersMap['product_category'] = firstEntryValues['product_category'] 
-        sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])       
+        # filtersMap['product_category'] = firstEntryValues['product_category']
+        sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix
@@ -3225,8 +3226,8 @@ def netsuite_pr(user, PRQs, full_pr_number):
             item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
-
-    response = netsuite_create_pr(pr_datas, user)
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=True)
 
 
 @csrf_exempt
@@ -3319,7 +3320,7 @@ def get_pr_preview_data(request, user=''):
     preview_data = {'data': []}
     # prQs = PendingPR.objects.filter(id__in=prIds)
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
-    lineItems = lineItemsQs.values_list('sku__sku_code', 
+    lineItems = lineItemsQs.values_list('sku__sku_code',
         'sku__sku_desc', 'pending_pr__product_category').annotate(Sum('quantity'))
     skuPrNumsMap = {}
     skuPrIdsMap = {}
@@ -3334,17 +3335,17 @@ def get_pr_preview_data(request, user=''):
         supplierDetailsMap = OrderedDict()
         parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
 
-        reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc, 
-                      'quantity': quantity, 'checkbox': False, 
+        reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc,
+                      'quantity': quantity, 'checkbox': False,
                       'pr_id': ', '.join(skuPrIdsMap[sku_code]),
                       'pr_number': ','.join(skuPrNumsMap[sku_code]),
                       'product_category': prod_catg,
                       'supplierDetails': {}}
-        supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+        supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                                 sku__user=user.id).order_by('preference')
         if not supplierMappings.exists():
-            is_doa_sent = MastersDOA.objects.filter(doa_status='pending', 
-                    model_name='SKUSupplier', requested_user=user, 
+            is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+                    model_name='SKUSupplier', requested_user=user,
                     json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
             if is_doa_sent.exists():
                 reqLineMap['is_doa_sent'] = True
@@ -3370,7 +3371,7 @@ def get_pr_preview_data(request, user=''):
                     amount = quantity * price
                     total = amount + (amount * (tax/100))
                     supplier_id_name = '%s:%s' %(supplierId, supplierName)
-                supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId, 
+                supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                           'supplier_name': supplierName,
                                                           'moq': moq,
                                                           'unit_price': price,
@@ -3408,7 +3409,7 @@ def send_back_po_to_pr(request, user=''):
                         prObj.final_status = 'approved'
                     prObj.save()
             else:
-                sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                sub_pr_number = PendingPR.objects.filter(pr_number=prObj.pr_number,
                                     wh_user=prObj.wh_user).aggregate(Max('sub_pr_number'))
                 if sub_pr_number:
                     sub_pr_number = sub_pr_number['sub_pr_number__max']
@@ -3719,7 +3720,7 @@ def submit_pending_approval_enquiry(request, user=''):
             'status': 'pending'
         }
         GenericEnquiry.objects.create(**sendEnquiryMap)
-        
+
         lineItems = pendingPurchaseObj.pending_polineItems
         prefix = pendingPurchaseObj.prefix
         po_number = pendingPurchaseObj.po_number
@@ -3749,7 +3750,7 @@ def submit_pending_approval_enquiry(request, user=''):
             <p>%s : %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy,
                             creation_date, delivery_date, pendingLevel, enquiry_remarks,
                             line_sub_heading, lineItemDetails)
-            subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)            
+            subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)
             send_mail([enquiry_to], subject, body)
 
     return HttpResponse("Submitted Successfully")
@@ -5093,7 +5094,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     else:
         total_grn_value = float(request.POST.get('grn_total_amount', 0))
     credit_status = 0
-    if inv_qty > total_grn_qty and inv_value > total_grn_value:
+    if inv_value > total_grn_value:
         credit_status = 1
     invoice_datum = {'invoice_value': inv_value, 'invoice_quantity': inv_qty, 'status': credit_status}
     for i in range(len(myDict['id'])):
@@ -5195,7 +5196,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 purchase_data['igst_tax'] = float(sku_row_tax_percent)
             else:
                 purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
-                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2     
+                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
         if user.userprofile.industry_type != 'FMCG':
             if myDict['grn_price'][i]:
                 purchase_data['price']=myDict['grn_price'][i]
@@ -5368,8 +5369,8 @@ def invoice_datum(request, user, purchase_order, seller_receipt_id):
     if request.POST.get('grn_total_amount', 0) == 'undefined':
         total_grn_value = 0
     else:
-        total_grn_value = int(request.POST.get('grn_total_amount', 0))
-    if inv_qty > total_grn_qty and inv_value > total_grn_value:
+        total_grn_value = float(request.POST.get('grn_total_amount', 0))
+    if inv_value > total_grn_value:
         credit_quantity = inv_qty - total_grn_qty
         credit_note = {
                     'user_id': user.id,
@@ -5638,7 +5639,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, po_reference)
+            netsuite_grn(user, report_data_dict, data.po_number, grn_number, dc_level_grn, request, myDict)
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -5673,13 +5674,54 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 # def confirm_qc_grn(request, user=''):
 
-def netsuite_grn(user, data_dict, po_number):
-    from api_calls.netsuite import netsuite_create_grn
+def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_params,myDict):
+    # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
-    grn_number = data_dict.get('po_number', '')
+    # grn_number = data_dict.get('po_number', '')
     Now = datetime.now().isoformat()
     po_data = data_dict['data'].values()[0]
-    grn_data = {'po_number':po_number, 'grn_number':grn_number, 'items':[],'grn_date':Now}
+    dc_number=""
+    dc_date=""
+    bill_no= data_dict.get("bill_no",'')
+    bill_date= data_dict.get("bill_date",'')
+    invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)
+    invoice_value= grn_params.POST.get('invoice_value', 0.0)
+    if(bill_date):
+        import dateutil.parser as parser
+        date = parser.parse(bill_date)
+        bill_date= date.isoformat()
+    if(dc_level_grn=="on"):
+        dc_number=bill_no
+        dc_date=bill_date
+        bill_no=''
+        bill_date=''
+    purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
+    vendorbill_url=""
+    if purchase_order_obj:
+        file_obj = grn_params.FILES.get('files-0', '')
+        if file_obj:
+            po_order_id = purchase_order_obj[0].order_id
+            master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                                    master_type='GRN')
+            vendorbill_url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+    grn_qty=float(data_dict.get("total_received_qty",0.0))
+    grn_value=float(data_dict.get("net_amount",0.0))
+    invoice_quantity= float(invoice_quantity)
+    invoice_value= float(invoice_value)
+    if((invoice_quantity==grn_qty and invoice_value > grn_value) or  (invoice_quantity >grn_qty)):
+        vendorbill_url=""
+        invoice_no=""
+        invoice_date=""
+    grn_data = {'po_number': po_number,
+                'grn_number': grn_number,
+                'items':[],
+                'grn_date': Now,
+                "invoice_no": bill_no,
+                "invoice_date": bill_date,
+                "dc_number": dc_number,
+                "dc_date" : dc_date,
+                "vendorbill_url": vendorbill_url
+     }
     for data in po_data:
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
@@ -5687,9 +5729,8 @@ def netsuite_grn(user, data_dict, po_number):
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
         grn_data['items'].append(item)
-
-    response = netsuite_create_grn(user, grn_data)
-
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateGRN(grn_data, is_multiple=False)
 
 
 
@@ -7690,7 +7731,8 @@ def confirm_add_po(request, sales_data='', user=''):
     try:
         if is_purchase_request == 'true':
             pr_number = int(request.POST.get('pr_number'))
-            prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id)
+            full_po_number = request.POST.get('po_number')
+            prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id, full_po_number=full_po_number)
             if prQs:
                 prObj = prQs[0]
                 po_creation_date = prObj.creation_date
@@ -8032,7 +8074,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
-    from api_calls.netsuite import netsuite_create_po
+    # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
     company_id = ''
@@ -8053,6 +8095,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             if pr_number_list:
                 pr_number = pr_number_list[0]
                 full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+            full_pr_number= pr_obj.full_pr_number
             prApprQs = prQs[0].pending_poApprovals
             validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
             if validated_users:
@@ -8080,9 +8123,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
                 'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
         po_data['items'].append(item)
-
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
-    response = netsuite_create_po(po_data, user)
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')
 
@@ -10368,10 +10411,10 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
 
-        tot_amt, rem_quantity = 0, 0
+        tot_amt, rem_quantity, temp_qty = 0, 0, 0
         for seller_sum in seller_summary_obj:
             rem_quantity = 0
-            temp_qty = float(seller_sum.quantity)
+            temp_qty = temp_qty + float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
                 temp_qty -= processed_val
@@ -10416,7 +10459,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
-    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
+    result_values = ['grn_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -10457,7 +10500,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     for data in master_data[start_index:stop_index]:
 
         po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
-        grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
+        grn_number = data['grn_number']
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
@@ -10519,6 +10562,7 @@ def move_to_poc(request, user=''):
         chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         seller_summary.update(challan_number=chn_no, order_status_flag=status_flag)
+        res=netsuite_move_to_poc_grn(req_data, chn_no, seller_summary, user)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -10526,6 +10570,20 @@ def move_to_poc(request, user=''):
         log.info("Exception raised wile updating status of Seller Order Summary: %s" %str(e))
         return HttpResponse(json.dumps({'message': 'failed'}))
 
+def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
+    from api_calls.netsuite import netsuite_create_grn
+    dc_data=[]
+    for data in req_data:
+        grn_info= {
+                    "grn_number": data["grn_no"],
+                    "po_number" : seller_summary[0].purchase_order.po_number,
+                    "dc_number": chn_no
+        }
+        dc_data.append(grn_info)
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateGRN(dc_data, is_multiple=True)
+    return {"data": dc_data}
+    # return response
 
 @csrf_exempt
 @get_admin_user
@@ -10543,7 +10601,7 @@ def move_to_invoice(request, user=''):
     credit_note = request.POST.get('credit', 'false')
     inv_receipt_date = request.POST.get('inv_receipt_date', '')
     if inv_receipt_date:
-        inv_receipt_date = datetime.datetime.strptime(inv_receipt_date, "%m/%d/%Y") if inv_receipt_date else None        
+        inv_receipt_date = datetime.datetime.strptime(inv_receipt_date, "%m/%d/%Y") if inv_receipt_date else None
     po_obj = None
     if req_data:
         req_data = eval(req_data)
@@ -10603,6 +10661,7 @@ def move_to_invoice(request, user=''):
                         if os.path.exists(exist_master_doc.uploaded_file.path):
                             os.remove(exist_master_doc.uploaded_file.path)
                         exist_master_doc.delete()
+        netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary, user)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -10610,7 +10669,35 @@ def move_to_invoice(request, user=''):
         log.info("Exception raised wile updating status of Seller Order Summary: %s" %str(e))
         return HttpResponse(json.dumps({'message': 'failed'}))
 
-
+def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary,user=''):
+    # from api_calls.netsuite import netsuite_create_grn
+    invoice_url=""
+    extra_flag= req_data[0]["receipt_number"]
+    po_order_id= req_data[0]["purchase_order__order_id"]
+    master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
+                                            master_type='GRN')
+    invoice_url=""
+    if master_docs_obj:
+        invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+    invoice_date=invoice_date.isoformat()
+    if(not credit_note=="false"):
+        invoice_number=""
+        invoice_url=""
+        invoice_date=""
+    invoice_data=[]
+    for seller_po_data in seller_summary:
+        grn_info= {
+                    "grn_number":seller_po_data.grn_number,
+                    "po_number": seller_po_data.purchase_order.po_number,
+                    "invoice_no": invoice_number,
+                    "invoice_date":invoice_date,
+                    "inv_receipt_date": inv_receipt_date.isoformat(),
+                    "vendorbill_url" : invoice_url
+        }
+        invoice_data.append(grn_info)
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateGRN(invoice_data, is_multiple=True)
+    return {"data": invoice_data }
 
 @csrf_exempt
 @get_admin_user
@@ -10628,7 +10715,7 @@ def generate_supplier_invoice(request, user=''):
             request_data = (request_data,) if isinstance(request_data,dict) else request_data
             result_data["data"] = []
             result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
-            result_data["total_quantity"], result_data["total_tax"] = [0]*5
+            result_data["total_quantity"], result_data["total_tax"], result_data["extra_other_charges"] = [0]*6
             tot_cgst, tot_sgst, tot_igst, tot_utgst = [0]*4
             sku_grouping_dict = OrderedDict()
             for req_data in request_data:
@@ -10670,11 +10757,14 @@ def generate_supplier_invoice(request, user=''):
                                    "receipt_number": seller_summary[0].receipt_number,
                                    "price_in_words": "",
                                    "total_tax_words": ''
-
                                   })
                     result_data["challan_date"] = seller_summary[0].challan_date
                     result_data["challan_date"] = result_data["challan_date"].strftime("%m/%d/%Y") if result_data["challan_date"] else ''
                     #result_data["data"] = []
+                    other_charge = seller_summary.values('purchase_order__po_number', 'receipt_number').distinct()
+                    if other_charge:
+                        other_charges_po = other_charge[0]['purchase_order__po_number']
+                        other_charges_receipt = other_charge[0]['receipt_number']
                     tot_amt, tot_invoice, tot_qty, tot_tax = [0]*4
                     for seller_sum in seller_summary:
                         rem_quantity = 0
@@ -10777,11 +10867,16 @@ def generate_supplier_invoice(request, user=''):
                         result_data["sequence_number"] = sku.sequence
                     if seller_summary and seller_summary[0].overall_discount:
                         tot_invoice -= seller_summary[0].overall_discount
+                    other_charges = OrderCharges.objects.filter(order_id=other_charges_po, order_type='po', extra_flag= other_charges_receipt, user=user.id).values('extra_flag', 'order_id', 'order_type').annotate(total=Sum('charge_amount'))
+                    if other_charges.exists():
+                        other_charges_amt = other_charges[0]['total']
+                        result_data["extra_other_charges"] = result_data["extra_other_charges"] + other_charges_amt
                     result_data["total_amt"] += tot_amt
                     result_data["total_invoice_amount"] += tot_invoice
                     result_data["rounded_invoice_amount"] += round(tot_invoice)
                     result_data["total_quantity"] += tot_qty
                     result_data["total_tax"] += tot_tax
+                    result_data["price_in_words"] = number_in_words(round(result_data["total_invoice_amount"] + result_data["extra_other_charges"])) + ' ONLY'
                     result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
                                                   "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
                 if result_data.get('challan_no', ''):
@@ -11718,9 +11813,14 @@ def get_po_putaway_summary(request, user=''):
             quantity -= processed_val
         if quantity <= 0:
             continue
+        suggested_location = ''
+        assigned_location = POLocation.objects.filter(purchase_order_id=seller_summary.purchase_order.id)
+        if assigned_location.exists():
+            suggested_location = assigned_location[0].location.location
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
                      'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
+        data_dict['location'] = suggested_location
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
@@ -12069,8 +12169,15 @@ def create_rtv(request, user=''):
                                    '', False, False, 'rtv_mail' ,data_dict_po )
             if user.username in MILKBASKET_USERS:
                 check_and_update_marketplace_stock(sku_codes, user)
-            from api_calls.netsuite import netsuite_update_create_rtv
-            response = netsuite_update_create_rtv(show_data_invoice, user)
+            t = loader.get_template('templates/toggle/rtv_mail.html')
+            rendered_data = t.render({'show_data_invoice': [show_data_invoice]})
+            attachments= write_html_to_pdf(show_data_invoice.get('rtv_number',''),rendered_data)
+            if(len(attachments)>0):
+                show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
+            # from api_calls.netsuite import netsuite_update_create_rtv
+            intObj = Integrations(user, 'netsuiteIntegration')
+            show_data_invoice["po_number"]=request_data["po_number"][0]
+            intObj.IntegrateRTV(show_data_invoice, is_multiple=False)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -12079,6 +12186,29 @@ def create_rtv(request, user=''):
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
 
+def write_html_to_pdf(f_name, html_data):
+    from random import randint
+    attachments = []
+    try:
+        if not isinstance(html_data, list):
+            html_data = [html_data]
+        for data in html_data:
+            temp_name = f_name + str(randint(100, 9999))
+            file_name = '%s.html' % temp_name
+            pdf_file = '%s.pdf' % temp_name
+            path = 'static/temp_files/'
+            folder_check(path)
+            file = open(path + file_name, "w+b")
+            file.write(xcode(data))
+            file.close()
+            os.system(
+                "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+            attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    except Exception as e:
+        import traceback
+        log_mail_info.debug(traceback.format_exc())
+        log_mail_info.info('PDF file genrations failed for ' + str(xcode(html_data)) + ' error statement is ' + str(e))
+    return attachments
 
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -13202,8 +13332,8 @@ def get_credit_note_po_data(request, user=''):
                                 purchase_order__order_id=record['purchase_order__order_id'], purchase_order__prefix=record['purchase_order__prefix'])
             order_receipt_mumber, order_po_number = '', ''
             if purchase_order_data.exists():
-                po_number = purchase_order_data[0].purchase_order.po_number #get_po_reference(purchase_order_data[0].purchase_order)
-                grn_number = purchase_order_data[0].grn_number#"%s/%s" %(po_number, purchase_order_data[0].receipt_number)
+                po_number = purchase_order_data[0].purchase_order.po_number
+                grn_number = purchase_order_data[0].grn_number
                 po_date = get_local_date(user, purchase_order_data[0].purchase_order.creation_date, True)
                 po_date = po_date.strftime("%d %b, %Y")
                 po_dict={
@@ -13216,7 +13346,7 @@ def get_credit_note_po_data(request, user=''):
                     order = spos.purchase_order
                     grn_qt = 0
                     temp_buy_price = 0
-                    order_po_number = order.po_number #get_po_reference(order)
+                    order_po_number = order.po_number
                     order_data = get_purchase_order_data(order)
                     datum = SellerPOSummary.objects.filter(purchase_order__id = order.id, receipt_number=spos.receipt_number)
                     if datum.exists():
@@ -13278,7 +13408,54 @@ def save_credit_note_po_data(request, user=''):
         SellerPOSummary.objects.filter(id__in=credit_ids).update(credit_status=2)
         if credit_files:
             upload_master_file(request, user, purchase_credit.id, 'PO_CREDIT_FILE', master_file=credit_files)
+        netsuite_save_credit_note_po_data(request.POST, purchase_credit.id, request, user)
     return HttpResponse('success')
+
+def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id ,request, user="" ):
+    import dateutil.parser as parser
+    import datetime
+    credit_number = credit_note_req_data.get('credit_number', '')
+    credit_date = credit_note_req_data.get('credit_date', '')
+    invoice_date = credit_note_req_data.get('invoice_date', '')
+    invoice_number = credit_note_req_data.get('invoice_number', '')
+    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
+    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
+    url=""
+    if(static_url):
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[0]
+    if invoice_date:
+        invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%m/%d/%Y')
+        date=parser.parse(invoice_date)
+        invoice_date= date.isoformat()
+    if credit_date:
+        date = parser.parse(credit_date)
+        credit_date= date.isoformat()
+    all_po_data=json.loads(credit_note_req_data.get("po_data"))
+    creditnote_data=[]
+    for po_data in all_po_data:
+        grn_no=po_data["grn_number"]
+        s_po_s=SellerPOSummary.objects.filter(grn_number=grn_no)
+        extra_flag=s_po_s[0].receipt_number
+        po_num=po_data["po_number"]
+        po_order_id=s_po_s[0].purchase_order.order_id
+        master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
+                                                master_type='GRN')
+        vendor_url=""
+        if master_docs_obj:
+            vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+        grn_data={
+         "po_number": po_num,
+         "credit_number": credit_number,
+         "credit_date": credit_date,
+         "grn_number": grn_no,
+         "invoice_date": invoice_date,
+         "invoice_no": invoice_number,
+         "credit_note_url": url,
+         "vendorbill_url": vendor_url
+        }
+        creditnote_data.append(grn_data)
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateGRN(creditnote_data, is_multiple=True)
 
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, user, admin_user):

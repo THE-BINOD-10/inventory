@@ -2,18 +2,18 @@ from __future__ import absolute_import, unicode_literals
 from django.contrib.auth.models import User
 
 from miebach.celery import app
-from integrations.views import Integrations
+from stockone_integrations.views import Integrations
 import datetime
-from rest_api.views.utils import init_logger
+from stockone_integrations.utils import init_logger
 
 ListOfExecution = [
-    { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem'},
-    { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem'},
-    { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem'},
-    { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition'},
-    { 'function': 'IntegratePurchaseOrder', 'objType': 'PurchaseOrder'},
-    { 'function': 'IntegrateGRN', 'objType': 'grn'},
-    { 'function': 'IntegrateRTV', 'objType': 'rtv'}
+    { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
+    { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
+    { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
+    { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition', 'unique_param': 'full_pr_number'},
+    { 'function': 'IntegratePurchaseOrder', 'objType': 'PurchaseOrder', 'unique_param': 'po_number'},
+    { 'function': 'IntegrateGRN', 'objType': 'grn', 'unique_param': 'grn_number'},
+    { 'function': 'IntegrateRTV', 'objType': 'rtv', 'unique_param': 'rtv_number'}
 ]
 
 today = datetime.datetime.now().strftime("%Y%m%d")
@@ -32,12 +32,13 @@ def executeAutomatedTaskForUser(userObj):
     for row in ListOfExecution:
         try:
             currentData = intObj.getRelatedJson(row.get('objType'))
+
             log.info('Executing %s' % (row.get('objType')))
             if len(currentData):
                 log.info('Executing %s' % (row.get('objType')))
-                getattr(intObj, row.get('function'))(currentData, is_multiple=True)
+                getattr(intObj, row.get('function'))(currentData, row.get('unique_param'), is_multiple=True)
                 log.info('Executed %s' % (row.get('objType')))
-                intObj.writeJsonToFile(row.get('objType'), [])
+                # intObj.writeJsonToFile(row.get('objType'), [])
             else:
                 log.info('Empty For Queue %s' % (row.get('objType')))
         except Exception as e:

@@ -45,7 +45,7 @@ class netsuiteIntegration(object):
             data_response =  ns.upsertList(records)
         else:
             data_response =  ns.upsert(records)
-        print(data_response)
+        return data_response
 
     def initiate_item(self, data, item_type):
         data_response = {}

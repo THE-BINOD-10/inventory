@@ -552,7 +552,8 @@ class NetSuiteClient:
                         type=record_ref['type'], internalId=record_ref['internalId'], externalId=record_ref['externalId']))
                 record_refs.append(record_ref)
             else:
-                exc = self._request_error('upsertList', detail=status['statusDetail'][0])
-                has_failures = True
-                raise exc
+                record_ref = response['baseRef']
+                record_ref.error = True
+                record_refs.append(record_ref)
+                
         return record_refs

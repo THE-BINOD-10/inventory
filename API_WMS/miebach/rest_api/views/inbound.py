@@ -3729,7 +3729,7 @@ def cancel_pr(request, user=''):
         reversion.set_comment("CancelPR")
     else:
         model_name = PendingPO
-        filtersMap['po_number'] = pr_number
+        filtersMap['id'] = pr_number
         reversion.set_comment("CancelPO")
     prQs = model_name.objects.filter(**filtersMap)
     if prQs.exists():

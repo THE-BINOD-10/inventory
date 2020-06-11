@@ -320,7 +320,10 @@ class Integrations():
                 module_type=recordType,
                 stockone_reference=data.externalId
             )
+        status = True
+        if data.error:
+            status = False
         resultArr.update(
             integration_reference = data.internalId,
-            status = True
+            status = status
         )

@@ -16,7 +16,7 @@ import json,os
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
 
-Batched = True
+Batched = False
 TEMPFOLDER = '/tmp'
 
 class Integrations():

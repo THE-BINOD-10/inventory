@@ -22,26 +22,26 @@ log_err = init_logger('logs/automated_tasks_errors.log')
 
 @app.task
 def runStoredAutomatedTasks():
-    for userObj in User.objects.filter():
-        executeAutomatedTaskForUser(userObj)
+    for row in ListOfExecution:
+        for userObj in User.objects.filter():
+            executeAutomatedTaskForUser(userObj, row)
 
-def executeAutomatedTaskForUser(userObj):
+@app.task
+def executeAutomatedTaskForUser(userObj, row):
     intObj = Integrations(userObj, intType='netsuiteIntegration', executebatch=True)
     if not intObj.is_connected:
         log.info('Connection With Integration Layer Failed')
-    for row in ListOfExecution:
-        try:
-            currentData = intObj.getRelatedJson(row.get('objType'))
-
+    try:
+        currentData = intObj.getRelatedJson(row.get('objType'))
+        log.info('Executing %s' % (row.get('objType')))
+        if len(currentData):
             log.info('Executing %s' % (row.get('objType')))
-            if len(currentData):
-                log.info('Executing %s' % (row.get('objType')))
-                getattr(intObj, row.get('function'))(currentData, row.get('unique_param'), is_multiple=True)
-                log.info('Executed %s' % (row.get('objType')))
-                # intObj.writeJsonToFile(row.get('objType'), [])
-            else:
-                log.info('Empty For Queue %s' % (row.get('objType')))
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Faied Executing %s' % row.get('objType'))
+            getattr(intObj, row.get('function'))(currentData, row.get('unique_param'), is_multiple=True)
+            log.info('Executed %s' % (row.get('objType')))
+            # intObj.writeJsonToFile(row.get('objType'), [])
+        else:
+            log.info('Empty For Queue %s' % (row.get('objType')))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Faied Executing %s' % row.get('objType'))

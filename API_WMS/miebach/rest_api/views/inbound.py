@@ -5457,7 +5457,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
-            if fmcg and po_product_category not in ['Services', 'Assets']:
+            if fmcg and po_product_category not in ['Services', 'Assets', 'OtherItems']:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
                 #                                   key[6], key[7], entry_price, key[8], key[9], key[12]))
                 if not value:

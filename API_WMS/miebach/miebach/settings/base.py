@@ -40,6 +40,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_results',
     'corsheaders',
     'miebach_admin',
     #'maintenancemode',
@@ -55,6 +56,11 @@ AUTHENTICATION_BACKENDS = (
 'oauth2_provider.backends.OAuth2Backend',
 )
 '''
+
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
+
+
 MIDDLEWARE_CLASSES = (
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     #'reversion.middleware.RevisionMiddleware',

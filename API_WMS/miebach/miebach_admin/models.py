@@ -727,6 +727,7 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
     id = BigAutoField(primary_key=True)
     pr_approval = models.ForeignKey(PurchaseApprovals)
     email = models.EmailField(max_length=64)
+    level  = models.CharField(max_length=64, default='')
     # approval_user = models.ForeignKey(User, blank=True, related_name='approval_user')
     hash_code = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=32, default='')

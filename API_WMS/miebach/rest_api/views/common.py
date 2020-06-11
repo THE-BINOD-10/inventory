@@ -876,8 +876,10 @@ def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', produc
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
+    company_id = get_company_id(user)
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category)
-    configQs = list(PurchaseApprovalConfig.objects.filter(user=user, name=reqConfigName).values_list('level', flat=True).order_by('-id'))
+    configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName).\
+                    values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
     return reqConfigName, finalLevel
@@ -1186,7 +1188,6 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant': ''}
-    import pdb;pdb.set_trace()
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
@@ -11983,7 +11984,7 @@ def get_related_user_objs(user_id, level=0, ):
     users = User.objects.filter(id__in=user_ids) 
     return users
 
-def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id=''):
+def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False):
     """ this function generates all users related to a user with filters"""
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
@@ -11996,7 +11997,7 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
         user_groups = user_groups.filter(admin_user__username=warehouse)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
-    if warehouse:
+    if not send_parent:
         user_list2 = []
     all_users = list(set(user_list1 + user_list2))
     all_user_objs = User.objects.filter(id__in=all_users)
@@ -12240,7 +12241,7 @@ def get_company_warehouses(request, user=''):
     warehouse_types = warehouse_types.split(',')
     warehouse = request.GET.get('warehouse', '')
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
-                                        company_id=company_id)
+                                        company_id=company_id, send_parent=False)
     warehouse_list = []
     wh_list = wh_objs.values('id', 'username', 'userprofile__stockone_code', 'first_name', 'last_name')
     for wh in wh_list:
@@ -12314,4 +12315,6 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
             emails = list(StaffMaster.objects.filter(company_id=company_id, department_type='', position=user_role).\
                     values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
+    log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
+                                                                      str(mail_list)))
     return mail_list

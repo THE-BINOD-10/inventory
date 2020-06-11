@@ -47,7 +47,8 @@ INSTALLED_APPS = (
     'api_calls',
     'rest_api',
     'oauth2_provider',
-    'reversion'
+    'reversion',
+    "stockone_integrations"
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -74,7 +75,7 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
 )
 '''
-MIDDLEWARE_CLASSES = [ 
+MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

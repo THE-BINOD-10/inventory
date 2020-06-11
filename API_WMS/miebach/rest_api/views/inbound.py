@@ -3229,8 +3229,11 @@ def netsuite_pr(user, PRQs, full_pr_number):
             item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegratePurchaseRequizition(pr_datas , pr_number, is_multiple=True)
+    except Exception as e:
+        print(e)
 
 
 @csrf_exempt
@@ -5717,8 +5720,11 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
         grn_data['items'].append(item)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(grn_data, is_multiple=False)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(grn_data, grn_number, is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 
@@ -8112,8 +8118,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
         po_data['items'].append(item)
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegratePurchaseOrder(po_data, po_number, is_multiple=False)
+    except Exception as e:
+        print(e)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')
 
@@ -10568,8 +10577,11 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
                     "dc_number": chn_no
         }
         dc_data.append(grn_info)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(dc_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(dc_data, dc_data[0]["grn_number"], is_multiple=True)
+    except Exception as e:
+        print(e)
     return {"data": dc_data}
     # return response
 
@@ -10683,9 +10695,12 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
                     "vendorbill_url" : invoice_url
         }
         invoice_data.append(grn_info)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
-    intObj.IntegrateGRN(invoice_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
+        intObj.IntegrateGRN(invoice_data, invoice_data[0]["grn_number"], is_multiple=True)
+    except Exception as e:
+        print(e)
     return {"data": invoice_data }
 
 @csrf_exempt
@@ -12164,9 +12179,12 @@ def create_rtv(request, user=''):
             if(len(attachments)>0):
                 show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
-            intObj = Integrations(user, 'netsuiteIntegration')
-            show_data_invoice["po_number"]=request_data["po_number"][0]
-            intObj.IntegrateRTV(show_data_invoice, is_multiple=False)
+            try:
+                intObj = Integrations(user, 'netsuiteIntegration')
+                show_data_invoice["po_number"]=request_data["po_number"][0]
+                intObj.IntegrateRTV(show_data_invoice, show_data_invoice["rtv_number"], is_multiple=False)
+            except Exception as e:
+                print(e)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -13443,8 +13461,11 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
          "vendorbill_url": vendor_url
         }
         creditnote_data.append(grn_data)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(creditnote_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(creditnote_data, creditnote_data[0]["grn_number"], is_multiple=True)
+    except Exception as e:
+        print(e)
 
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, user, admin_user):

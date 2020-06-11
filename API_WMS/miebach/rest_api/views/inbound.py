@@ -13501,11 +13501,9 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     credit_date = credit_note_req_data.get('credit_date', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
-    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
-    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
     url=""
-    if(static_url):
-        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[0]
+    if(master_file):
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/static/master_docs/PO_CREDIT_FILE/"+str(master_file._name)
     if invoice_date:
         invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%m/%d/%Y')
         date=parser.parse(invoice_date)

@@ -3151,7 +3151,7 @@ def convert_pr_to_po(request, user=''):
                     pendingPoObj.pending_prs.add(existingPRObj)
                 else:
                     sub_pr_number = PendingPR.objects.filter(pr_number=existingPRObj.pr_number,
-                                    wh_user=existingPRObj.wh_user, 
+                                    wh_user=existingPRObj.wh_user,
                                     full_pr_number=existingPRObj.full_pr_number).aggregate(Max('sub_pr_number'))
                     if sub_pr_number:
                         sub_pr_number = sub_pr_number['sub_pr_number__max']
@@ -3266,8 +3266,11 @@ def netsuite_pr(user, PRQs, full_pr_number):
             item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegratePurchaseRequizition(pr_datas, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegratePurchaseRequizition(pr_datas , "full_pr_number", is_multiple=True)
+    except Exception as e:
+        print(e)
 
 
 @csrf_exempt
@@ -3277,7 +3280,7 @@ def send_pr_to_parent_store(request, user=''):
     skuQtyMap = {}
     skuPrIdsMap = {}
     prIdSkusMap = {}
-    log.info("Send To Parent Store from user %s and request params are %s" % (user.username, 
+    log.info("Send To Parent Store from user %s and request params are %s" % (user.username,
                     str(request.POST.dict())))
     myDict = dict(request.POST.iterlists())
     for i in range(0, len(myDict['sku_code'])):
@@ -3292,14 +3295,14 @@ def send_pr_to_parent_store(request, user=''):
     try:
         for prId, skus in prIdSkusMap.items():
             prObj = PendingPR.objects.get(id=prId)
-            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                                 wh_user=prObj.wh_user, final_status='store_sent')
             existingLineItems = PendingLineItems.objects.filter(pending_pr_id=prId)
             if not existingParentSentPR.exists() and existingLineItems.count() == len(skus):
                 prObj.final_status = 'store_sent'
                 prObj.save()
             else:
-                # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                 #                 wh_user=prObj.wh_user, final_status='store_sent')
                 if existingParentSentPR.exists():
                     existingParentStorePRObj = existingParentSentPR[0]
@@ -3439,7 +3442,7 @@ def get_pr_preview_data(request, user=''):
 def send_back_po_to_pr(request, user=''):
     myDict = dict(request.POST.iterlists())
     po_id = myDict.get('purchase_id')[0]
-    log.info("PO Sending back to PR: from user %s and request params are %s" % (user.username, 
+    log.info("PO Sending back to PR: from user %s and request params are %s" % (user.username,
                     str(request.POST.dict())))
     try:
         pendingPoObj = PendingPO.objects.get(id=po_id)
@@ -3454,7 +3457,7 @@ def send_back_po_to_pr(request, user=''):
                 if get_admin(prObj.wh_user).userprofile.warehouse_type == 'SUB_STORE':
                     final_status_flag = 'store_sent'
 
-            existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                                 wh_user=prObj.wh_user, final_status=final_status_flag)
             if not existingApprovedPR.exists():
                 if poItems == prItems:
@@ -3497,7 +3500,7 @@ def send_back_po_to_pr(request, user=''):
                             'utgst_tax': lineItem.utgst_tax,
                         }
                         PendingLineItems.objects.create(**lineItemMap)
-                    lineItems.delete()            
+                    lineItems.delete()
             else:
                 existingApprovedPRObj = existingApprovedPR[0]
                 poLineItems = existingLineItems.filter(sku__sku_code__in=poItems)
@@ -3514,14 +3517,14 @@ def send_back_po_to_pr(request, user=''):
                         'igst_tax': lineItem.igst_tax,
                         'utgst_tax': lineItem.utgst_tax,
                     }
-                    PendingLineItems.objects.create(**lineItemMap)            
+                    PendingLineItems.objects.create(**lineItemMap)
         pendingPoObj.final_status = 'po_converted_back_to_pr'
         pendingPoObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("PO Sending back to PR: failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
-        return HttpResponse('PO Sending back to PR is Failed')    
+        return HttpResponse('PO Sending back to PR is Failed')
     return HttpResponse("Sent Back Successfully")
 
 @csrf_exempt
@@ -3737,7 +3740,7 @@ def cancel_pr(request, user=''):
 @login_required
 @get_admin_user
 def submit_pending_approval_enquiry(request, user=''):
-    log.info("Enquiry Submission for pending PO by user %s and request params are %s" 
+    log.info("Enquiry Submission for pending PO by user %s and request params are %s"
         % (user.username, str(request.POST.dict())))
     is_purchase_request = request.POST.get('is_purchase_request')
     purchase_id = request.POST.get('purchase_id')
@@ -5793,8 +5796,11 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
         grn_data['items'].append(item)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(grn_data, is_multiple=False)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(grn_data, "grn_number", is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 
@@ -8188,8 +8194,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
         po_data['items'].append(item)
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegratePurchaseOrder(po_data, is_multiple=False)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
+    except Exception as e:
+        print(e)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')
 
@@ -10644,8 +10653,11 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
                     "dc_number": chn_no
         }
         dc_data.append(grn_info)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(dc_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(dc_data, "grn_number", is_multiple=True)
+    except Exception as e:
+        print(e)
     return {"data": dc_data}
     # return response
 
@@ -10759,9 +10771,12 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
                     "vendorbill_url" : invoice_url
         }
         invoice_data.append(grn_info)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
-    intObj.IntegrateGRN(invoice_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
+        intObj.IntegrateGRN(invoice_data, "grn_number", is_multiple=True)
+    except Exception as e:
+        print(e)
     return {"data": invoice_data }
 
 @csrf_exempt
@@ -12240,9 +12255,12 @@ def create_rtv(request, user=''):
             if(len(attachments)>0):
                 show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
-            intObj = Integrations(user, 'netsuiteIntegration')
-            show_data_invoice["po_number"]=request_data["po_number"][0]
-            intObj.IntegrateRTV(show_data_invoice, is_multiple=False)
+            try:
+                intObj = Integrations(user, 'netsuiteIntegration')
+                show_data_invoice["po_number"]=request_data["po_number"][0]
+                intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
+            except Exception as e:
+                print(e)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
@@ -13483,11 +13501,9 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     credit_date = credit_note_req_data.get('credit_date', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
-    pdf_obj = MasterDocs.objects.filter(master_id__in = str(credit_id), master_type='PO_CREDIT_FILE')
-    static_url = list(pdf_obj.values_list('uploaded_file', flat=True))
     url=""
-    if(static_url):
-        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+static_url[0]
+    if(master_file):
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/static/master_docs/PO_CREDIT_FILE/"+str(master_file._name)
     if invoice_date:
         invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%m/%d/%Y')
         date=parser.parse(invoice_date)
@@ -13519,8 +13535,11 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
          "vendorbill_url": vendor_url
         }
         creditnote_data.append(grn_data)
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateGRN(creditnote_data, is_multiple=True)
+    try:
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True)
+    except Exception as e:
+        print(e)
 
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_add_central_po(request, all_data, show_cess_tax, show_apmc_tax, po_id, po_prefix, user, admin_user):

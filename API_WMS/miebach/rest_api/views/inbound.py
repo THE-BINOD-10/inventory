@@ -2855,13 +2855,16 @@ def approve_pr(request, user=''):
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
         prefix = pendingPRObj.prefix
-        full_pr_number = pendingPRObj.full_pr_number
+        wh_user = pendingPRObj.wh_user
         if is_actual_pr == 'true':
-            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+            full_pr_number = pendingPRObj.full_pr_number
+            createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
                     full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
-                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
+            full_pr_number = pendingPRObj.full_po_number
+            createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, 
+                    supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:

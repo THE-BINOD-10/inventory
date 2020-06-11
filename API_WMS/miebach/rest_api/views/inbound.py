@@ -2877,7 +2877,10 @@ def approve_pr(request, user=''):
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
         if purchase_type == 'PR':
             # pass
-            netsuite_pr(user, PRQs, full_pr_number)
+            try:
+                netsuite_pr(user, PRQs, full_pr_number)
+            except:
+                pass
     else:
         nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         if validation_type == 'rejected':

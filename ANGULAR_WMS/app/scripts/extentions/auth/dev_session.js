@@ -5,7 +5,6 @@
 
     var that = this;
     that.host = 'http://localhost:7654/';
-    // that.host = 'http://mhl.stockone.in:7005/';
     that.url = that.host+'rest_api/';
 
     that.pos_host = 'https://pos.stockone.in/';

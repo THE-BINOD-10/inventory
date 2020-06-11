@@ -23,7 +23,7 @@ log_err = init_logger('logs/automated_tasks_errors.log')
 @app.task
 def runStoredAutomatedTasks():
     for userObj in User.objects.filter():
-        executeAutomatedTaskForUser(userObj)    
+        executeAutomatedTaskForUser(userObj)
 
 def executeAutomatedTaskForUser(userObj):
     intObj = Integrations(userObj, intType='netsuiteIntegration', executebatch=True)

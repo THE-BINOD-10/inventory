@@ -190,6 +190,14 @@ def get_label_permissions(request, user, role_perms, user_type):
     return labels
 
 
+def get_warehouse_type_name(user_profile):
+    warehouse_type_name = 'Warehouse'
+    if user_profile.warehouse_type in ['STORE', 'SUB_STORE']:
+        warehouse_type_name = 'Department'
+    elif user_profile.warehouse_type == 'ST_HUB':
+        warehouse_type_name = 'Plant'
+    return warehouse_type_name
+
 @get_admin_user
 def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
@@ -253,6 +261,7 @@ def add_user_permissions(request, response_data, user=''):
         company_name = user_profile.company.company_name
         if user_profile.company.logo:
             response_data['data']['parent']['logo'] = user_profile.company.logo.url
+    warehouse_type_name = get_warehouse_type_name(user_profile)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
@@ -267,7 +276,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'warehouse_type': user_profile.warehouse_type,
                                              'warehouse_level': user_profile.warehouse_level,
                                              'multi_level_system': user_profile.multi_level_system,
-                                             'company_id': user_profile.company_id}
+                                             'company_id': user_profile.company_id,
+                                             'warehouse_type_name': warehouse_type_name}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -9924,9 +9934,10 @@ def get_product_category_from_sku(user, sku_code):
     return sku, product_category
 
 
-def get_user_prefix_incremental(user, type_name, sku_code):
+def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     count = 0
     prefix = ''
+    full_prefix = ''
     full_number = ''
     inc_status = ''
     incr_type_name = ''
@@ -9944,17 +9955,20 @@ def get_user_prefix_incremental(user, type_name, sku_code):
     else:
         user_prefix = user_prefix[0]
         prefix = user_prefix.prefix
+        full_prefix = prefix
         incr_type_name = '%s_%s' % (str(type_name), str(prefix))
         count = get_incremental(user, incr_type_name, default_val=1)
         userprofile = user.userprofile
         store_code = userprofile.stockone_code
-        dept_code = '0000'
+        if not dept_code:
+            dept_code = '0000'
         if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
             admin_user = get_admin(user)
             store_code = admin_user.userprofile.stockone_code
             dept_code = userprofile.stockone_code
-        full_number = '%s-%s-%s%s' % (prefix, store_code, dept_code, str(count).zfill(5))
-    return count, prefix, full_number, incr_type_name, inc_status
+        full_prefix = '%s-%s-%s' % (prefix, store_code, dept_code)
+        full_number = '%s%s' % (full_prefix, str(count).zfill(5))
+    return count, full_prefix, full_number, incr_type_name, inc_status
 
 
 def get_incremental(user, type_name, default_val=''):
@@ -12121,3 +12135,17 @@ def insert_admin_sku_attributes(request, user):
         update_dict = {'attribute_type': attribute.attribute_type, 'status': 1}
         sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
     return "Success"
+
+
+def get_po_pr_dept_code(data):
+    dept_code = ''
+    try:
+        if data.open_po and data.open_po.pendingpos.filter():
+            pending_po = data.open_po.pendingpos.filter()[0]
+            if pending_po.pending_prs.filter():
+                dept_code = pending_po.pending_prs.filter()[0].wh_user.userprofile.stockone_code
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get Dept Code from PO for GRN Number generation failed")
+    return dept_code

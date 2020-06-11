@@ -10,7 +10,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'miebach.settings')
 
 app = Celery('miebach',
              broker='redis://',
-             include=['integrations.automate'])
+             include=['stockone_integrations.automate'])
 
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
@@ -18,8 +18,8 @@ app.conf.timezone = 'Asia/Kolkata'
 
 app.conf.CELERYBEAT_SCHEDULE = {
     'integrate_data': {
-        'task': 'integrations.automate.runStoredAutomatedTasks',
-        'schedule': crontab(minute=00, hour=19),
+        'task': 'stockone_integrations.automate.runStoredAutomatedTasks',
+        'schedule': crontab(minute=50, hour=17),
         'args': None
     },
 }

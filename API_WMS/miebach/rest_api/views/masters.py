@@ -1256,7 +1256,7 @@ def update_sku(request, user=''):
 
         insert_update_brands(user)
         # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
-        # netsuite_sku(data, user,instanceName=instanceName)
+        netsuite_sku(data, user,instanceName=instanceName)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1297,17 +1297,20 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
-    from integrations.views import Integrations
-    intObj = Integrations('netsuiteIntegration')
-    sku_data_dict=gatherSkuData(data)
+    # from integrations.views import Integrations
+    intObj = Integrations(user,'netsuiteIntegration')
+    sku_data_dict=intObj.gatherSkuData(data)
     if instanceName == ServiceMaster:
-        response = netsuite_update_create_service(data, user)
+        sku_data_dict.update({"ServicePurchaseItem":True})
+        intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)
     elif instanceName == AssetMaster:
-        response = netsuite_update_create_assetmaster(data, user)
+        sku_data_dict.update({"non_inventoryitem":True})
+        intObj.integrateAssetMaster(sku_data_dict, is_multiple=False)
     elif instanceName == OtherItemsMaster:
-        response = netsuite_update_create_otheritem_master(data, user)
+        sku_data_dict.update({"non_inventoryitem":True})
+        intObj.integrateOtherItemsMaster(sku_data_dict, is_multiple=False)
     else:
-        intObj.initiateAuthentication()
+        # intObj.initiateAuthentication()
         sku_data_dict.update(sku_attr_dict)
         intObj.integrateSkuMaster(sku_data_dict, is_multiple=False)
         # response = netsuite_update_create_sku(data, sku_attr_dict, user)
@@ -1582,6 +1585,11 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
+    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+    if doa_qs.exists():
+        doa_obj = doa_qs[0]
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 
@@ -2901,7 +2909,7 @@ def insert_sku(request, user=''):
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
             # if admin_user.get_username().lower() == 'metropolis':
-            # netsuite_sku(sku_master, user, instanceName=instanceName)
+            netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -5087,4 +5095,5 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('warehouse', warehouse.username),
                                                 ('status', row.doa_status),
                                                 ('DT_RowClass', 'results'),
-                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp))))
+                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp),
+                                                ('model_id', row.model_id))))

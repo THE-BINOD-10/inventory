@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
+
+from django.http import HttpResponse, HttpResponseRedirect
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+from django.contrib import auth
+from django.views.decorators.csrf import csrf_exempt
+from itertools import chain
 
 from django.shortcuts import render
 import datetime
 from stockone_integrations.netsuite import netsuiteIntegration
 from stockone_integrations.models import IntegrationMaster
-import json,os  
+import json,os
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
 
-auth_dict = {
-    'NS_ACCOUNT':'4120343_SB1',
-    'NS_CONSUMER_KEY':'c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea',
-    'NS_CONSUMER_SECRET':'a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35',
-    'NS_TOKEN_KEY':'e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f',
-    'NS_TOKEN_SECRET':'7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
-}
 
 Batched = True
 TEMPFOLDER = '/tmp'
@@ -41,6 +41,7 @@ class Integrations():
 
     def initiateAuthentication(self):
         class_to_initialize = self.integration_type
+        # self.authenticationDict = auth_dict
         self.connectionObject = eval(class_to_initialize)(self.authenticationDict)
 
     def removeUnnecessaryData(self, skuDict):
@@ -192,10 +193,17 @@ class Integrations():
     def IntegratePurchaseRequizition(self, prData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+<<<<<<< HEAD
                 self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseRequizition', unique_variable)
             else:
                 for dataDict in skuObject:
                     self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition', unique_variable)
+=======
+                self.storeIntegrationDataForLaterUser(prData, 'PurchaseRequizition')
+            else:
+                for dataDict in prData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition')
+>>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
         else:
             result = []
             if not is_multiple:
@@ -216,10 +224,17 @@ class Integrations():
     def IntegratePurchaseOrder(self, poData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+<<<<<<< HEAD
                 self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseOrder', unique_variable)
             else:
                 for dataDict in skuObject:
                     self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder', unique_variable)
+=======
+                self.storeIntegrationDataForLaterUser(poData, 'PurchaseOrder')
+            else:
+                for dataDict in poData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder')
+>>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
         else:
             result = []
             if not is_multiple:
@@ -240,10 +255,17 @@ class Integrations():
     def IntegrateRTV(self, rtvData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+<<<<<<< HEAD
                 self.storeIntegrationDataForLaterUser(skuObject, 'rtv', unique_variable)
             else:
                 for dataDict in skuObject:
                     self.storeIntegrationDataForLaterUser(dataDict, 'rtv', unique_variable)
+=======
+                self.storeIntegrationDataForLaterUser(rtvData, 'rtv')
+            else:
+                for dataDict in rtvData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'rtv')
+>>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
         else:
             result = []
             if not is_multiple:
@@ -264,14 +286,21 @@ class Integrations():
     def IntegrateGRN(self, grnData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+<<<<<<< HEAD
                 self.storeIntegrationDataForLaterUser(skuObject, 'grn', unique_variable)
             else:
                 for dataDict in skuObject:
                     self.storeIntegrationDataForLaterUser(dataDict, 'grn', unique_variable)
+=======
+                self.storeIntegrationDataForLaterUser(grnData, 'grn')
+            else:
+                for dataDict in grnData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'grn')
+>>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
         else:
             result = []
             if not is_multiple:
-                recordDict = prData #self.gatherSkuData(skuObject)
+                recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:

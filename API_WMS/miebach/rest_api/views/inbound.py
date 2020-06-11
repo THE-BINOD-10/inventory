@@ -210,9 +210,18 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).values_list('pr_approval__purchase_number', flat=True)
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId)
         if pa_mails:
-            filtersMap['pending_po__po_number__in'] = pa_mails
+            for pa_mail in pa_mails:
+                currentUserLevel = pa_mail.level
+                configName = pa_mail.pr_approval.configName
+                pr_numbers = list(PurchaseApprovals.objects.filter(
+                                configName=configName,
+                                level=currentUserLevel,
+                                status='').distinct().values_list('purchase_number', flat=True))
+
+                filtersMap.setdefault('pending_po__po_number__in', [])
+                filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         # memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
         # for memObj in memQs:
         #     master_id = memObj.master_id

@@ -48,7 +48,7 @@ INSTALLED_APPS = (
     'rest_api',
     'oauth2_provider',
     'reversion',
-    "stockone_integrations"
+    'stockone_integrations'
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS

@@ -15,7 +15,9 @@ from django.core import serializers
 import os
 from sync_sku import *
 import simplejson
-
+from api_calls.netsuite import *
+from rest_api.views.common import internal_external_map
+from stockone_integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 
@@ -413,6 +415,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 # ('markdown_percentage', data.markdown_percentage),
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
+                                                ('currency_code', data.currency_code),
                                                 )))
 
 
@@ -803,6 +806,7 @@ def get_company_master(start_index, stop_index, temp_data, search_term, order_te
                                                 ('cin_number', data.cin_number),
                                                 ('pan_number', data.pan_number),
                                                 ('address', data.address),
+                                                ('reference_id', data.reference_id),
                                                 ('DT_RowClass', 'results'))))
 
 
@@ -1197,6 +1201,7 @@ def update_sku(request, user=''):
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     today = datetime.datetime.now().strftime("%Y%m%d")
+    admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                          'hsn_code', 'shelf_life']
@@ -1269,6 +1274,11 @@ def update_sku(request, user=''):
                 continue
             elif key == 'enable_serial_based':
                 value = 1
+            elif key == 'batch_based':
+                if value.lower() == 'enable':
+                    value = 1
+                else:
+                    value = 0
             elif key == 'price':
                 wms_code = request.POST.get('wms_code', '')
             elif key == 'youtube_url':
@@ -1301,6 +1311,8 @@ def update_sku(request, user=''):
         #    print "already running"
 
         insert_update_brands(user)
+        # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
+        netsuite_sku(data, user,instanceName=instanceName)
 
         # Sync sku's with sister warehouses
         sync_sku_switch = get_misc_value('sku_sync', user.id)
@@ -1332,6 +1344,34 @@ def update_sku(request, user=''):
         return HttpResponse('Update SKU Failed')
 
     return HttpResponse('Updated Successfully')
+
+def netsuite_sku(data, user, instanceName=''):
+    # external_id = ''
+    sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
+    # if netsuite_map_obj:
+    #     external_id = netsuite_map_obj[0].external_id
+    # if not external_id:
+    #     external_id = get_incremental(user, 'netsuite_external_id')
+    # from integrations.views import Integrations
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
+        else:
+            # intObj.initiateAuthentication()
+            sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -1398,7 +1438,7 @@ def delete_bom_data(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_master_data(request, user=''):
-    return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
+    return HttpResponse(json.dumps({'tax_data': TAX_VALUES, 'currency_codes': CURRENCY_CODES}))
 
 
 def validate_supplier_email(email):
@@ -1697,6 +1737,11 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
+    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+    if doa_qs.exists():
+        doa_obj = doa_qs[0]
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 
@@ -1716,6 +1761,7 @@ def insert_mapping(request, user=''):
             return HttpResponse('Invalid Warehouse')
         else:
             user = user_obj[0]
+    doa_status = request.POST.get('status')
     for key, value in request.POST.iteritems():
         if key == 'warehouse':
             continue
@@ -1740,7 +1786,7 @@ def insert_mapping(request, user=''):
         if key == 'preference':
             preference = value
 
-        if value != '':
+        if value != '' and key in data_dict:
             data_dict[key] = value
     if auto_po_switch == 'true':
         sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
@@ -1761,6 +1807,10 @@ def insert_mapping(request, user=''):
 
     sku_supplier = SKUSupplier(**data_dict)
     sku_supplier.save()
+    if doa_status == 'pending':
+        doa_obj = MastersDOA.objects.get(id=request.POST.get('DT_RowId'))
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Added Successfully')
 
 
@@ -2166,7 +2216,7 @@ def insert_customer_sku(request, user=''):
 @login_required
 @get_admin_user
 def insert_company_master(request, user=''):
-    log.info('Add New Conpany request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Add New Company request params for ' + user.username + ' is ' + str(request.POST.dict()))
     status_msg = 'Failed'
     try:
         company_id = request.POST['id']
@@ -2193,6 +2243,7 @@ def insert_company_master(request, user=''):
             status_msg = 'Added Successfully'
 
     except Exception as e:
+        status_msg = 'Failed'
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add New Company failed for %s and params are %s and error statement is %s' % (
@@ -2213,7 +2264,7 @@ def update_company_master(request, user=''):
         image_file = request.FILES.get('files-0', '')
         if image_file:
             company_image_saving(image_file, data, user)
-            
+
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -2581,7 +2632,8 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -2893,6 +2945,7 @@ def insert_sku(request, user=''):
     reversion.set_user(request.user)
     reversion.set_comment("insert_sku")
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    admin_user = get_admin(user)
     try:
         if request.POST.get('is_test') == 'true':
             wms = request.POST['test_code']
@@ -2926,6 +2979,7 @@ def insert_sku(request, user=''):
             instanceName = TestMaster
             status_msg = 'Test Item exists'
         data = filter_or_none(instanceName, filter_params)
+
         wh_ids = get_related_users(user.id)
         cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
         notified_users = []
@@ -2957,6 +3011,11 @@ def insert_sku(request, user=''):
                             value = 1
                         else:
                             value = 0
+                    elif key == 'batch_based':
+                        if value.lower() == 'enable':
+                            value = 1
+                        else:
+                            value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
                     elif key == 'enable_serial_based':
@@ -2964,6 +3023,11 @@ def insert_sku(request, user=''):
                             value = 0
                         else:
                             value = 1
+                    # elif key == 'batch_based':
+                    #     if value.lower() == 'enable':
+                    #         value = 1
+                    #     else:
+                    #         value = 0
                     elif key == 'block_options':
                         if value == '0':
                             value = 'PO'
@@ -2993,6 +3057,7 @@ def insert_sku(request, user=''):
                         data_dict.pop(k)
             sku_master = instanceName(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
             if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
                 send_push_notification(contents, notified_users)
@@ -3012,6 +3077,8 @@ def insert_sku(request, user=''):
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
                 update_ean_sku_mapping(user, ean_numbers, sku_master)
+            # if admin_user.get_username().lower() == 'metropolis':
+            netsuite_sku(sku_master, user, instanceName=instanceName)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -4707,7 +4774,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
-        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -4729,7 +4796,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('account_holder_name', data.account_holder_name),
                                                 ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
-                                                ('secondary_email_id', secondary_email_ids)
+                                                ('secondary_email_id', secondary_email_ids),
+                                                ('currency_code', data.currency_code)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -4746,7 +4814,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
-    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID']
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID',
+    'Currency Code']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:
@@ -5083,3 +5152,120 @@ def get_company_list(request, user=''):
 #                          ('city', data.city), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
 #                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results')
 #                        )))
+
+
+@csrf_exempt
+@get_admin_user
+def send_supplier_doa(request, user=''):
+    data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
+    integer_data = 'preference'
+    for key, value in request.POST.iteritems():
+        if key == 'wms_code':
+            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
+            if not sku_id:
+                return HttpResponse('Wrong WMS Code')
+            key = 'sku'
+            value = sku_id[0].id
+        elif key == 'supplier_id':
+            supplier = SupplierMaster.objects.get(supplier_id=value, user=user.id)
+            value = supplier.supplier_id
+        elif key == 'price' and not value:
+            value = 0
+        elif key in integer_data:
+            if not value.isdigit():
+                return HttpResponse('Please enter Integer values for Priority and MOQ')
+        if key == 'preference':
+            preference = value
+        if value != '':
+            data_dict[key] = value
+
+    userQs = UserGroups.objects.filter(user=user)
+    parentCompany = userQs[0].company_id
+    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+    admin_user = admin_userQs[0].user
+    req_user = request.user
+    if not request.user.is_staff:
+        req_user = user
+    doa_dict = {
+        'requested_user': req_user,
+        'wh_user': admin_user,
+        'model_name': 'SKUSupplier',
+        'json_data': json.dumps(data_dict),
+        'doa_status': 'pending'
+    }
+    if not data_dict.has_key('DT_RowId'):
+        doa_obj = MastersDOA(**doa_dict)
+        doa_obj.save()
+    else:
+        doa_dict['model_id'] = data_dict['DT_RowId']
+        doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            doa_obj.json_data = json.dumps(data_dict)
+            doa_obj.save()
+        else:
+            doa_obj = MastersDOA(**doa_dict)
+            doa_obj.save()
+    return HttpResponse("Added Successfully")
+
+@csrf_exempt
+def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
+            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
+            'lead_time', 'sku__user', 'status']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="SKUSupplier",
+                    doa_status="pending").order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="SKUSupplier",
+                    doa_status="pending").order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        sku_preference = result['preference']
+        if sku_preference:
+            try:
+                sku_preference = int(float(sku_preference))
+            except:
+                sku_preference = 0
+        skuObj = SKUMaster.objects.get(id=result['sku'])
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+        else:
+            warehouse = get_admin(row.requested_user)
+        temp_data['aaData'].append(OrderedDict((('supplier_id', result['supplier_id']), ('wms_code', skuObj.wms_code),
+                                                ('supplier_code', result['supplier_code']), ('moq', result['moq']),
+                                                ('preference', sku_preference),
+                                                ('costing_type', result['costing_type']),
+                                                ('price', result.get('price', '')),
+                                                ('margin_percentage', result.get('margin_percentage', '')),
+                                                ('markup_percentage',result.get('markup_percentage', '')),
+                                                ('lead_time', result.get('lead_time', '')),
+                                                ('requested_user', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('status', row.doa_status),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp),
+                                                ('model_id', row.model_id))))

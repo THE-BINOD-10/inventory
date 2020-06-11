@@ -190,6 +190,14 @@ def get_label_permissions(request, user, role_perms, user_type):
     return labels
 
 
+def get_warehouse_type_name(user_profile):
+    warehouse_type_name = 'Warehouse'
+    if user_profile.warehouse_type in ['STORE', 'SUB_STORE']:
+        warehouse_type_name = 'Department'
+    elif user_profile.warehouse_type == 'ST_HUB':
+        warehouse_type_name = 'Plant'
+    return warehouse_type_name
+
 @get_admin_user
 def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
@@ -253,6 +261,7 @@ def add_user_permissions(request, response_data, user=''):
         company_name = user_profile.company.company_name
         if user_profile.company.logo:
             response_data['data']['parent']['logo'] = user_profile.company.logo.url
+    warehouse_type_name = get_warehouse_type_name(user_profile)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user,
                                                                                user_profile.creation_date),
@@ -267,7 +276,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'warehouse_type': user_profile.warehouse_type,
                                              'warehouse_level': user_profile.warehouse_level,
                                              'multi_level_system': user_profile.multi_level_system,
-                                             'company_id': user_profile.company_id}
+                                             'company_id': user_profile.company_id,
+                                             'warehouse_type_name': warehouse_type_name}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -328,12 +338,12 @@ def add_user_type_permissions(user_profile):
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
                      'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -558,7 +568,8 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results',
+    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -572,7 +583,10 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po', 'RaisePR': 'get_pr_suggestions', 'RaiseActualPR': 'get_actual_pr_suggestions',
+    'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
+    'RaisePendingPR': 'get_pending_pr_suggestions',
+    'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
+    'CreditNote': 'get_credit_note_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -885,7 +899,7 @@ def pr_request(request):
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
                         'pending_pr__requested_user__username', 'pending_pr__pr_number',
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
-                        'pending_pr__delivery_date']
+                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -895,6 +909,8 @@ def pr_request(request):
                     'pending_level': 'pending_pr__pending_level',
                     'remarks': 'pending_pr__remarks',
                     'delivery_date': 'pending_pr__delivery_date',
+                    'purchase_id': 'pending_pr_id',
+                    'full_purchase_number': 'pending_pr__full_pr_number',
                 }
         purchase_type = 'PR'
     else:
@@ -903,7 +919,8 @@ def pr_request(request):
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
-                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name']
+                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 
+                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -913,12 +930,24 @@ def pr_request(request):
                     'pending_level': 'pending_po__pending_level',
                     'remarks': 'pending_po__remarks',
                     'delivery_date': 'pending_po__delivery_date',
+                    'purchase_id': 'pending_po_id',
+                    'full_purchase_number': 'pending_po__full_po_number',
                 }
         purchase_type = 'PO'
 
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
-    sub_users = get_sub_users(parentUser)
+    admin_user = None
+    if parentUser.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        userQs = UserGroups.objects.filter(user=parentUser)
+        if userQs.exists:
+            parentCompany = userQs[0].company_id
+            admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+            admin_user = admin_userQs[0].user
+    if admin_user:
+        sub_users = get_sub_users(admin_user)
+    else:
+        sub_users = get_sub_users(parentUser)
     reqSubUser = sub_users.get(email=email_id)
     if reqSubUser and reqSubUser.is_active:
         login(request, reqSubUser)
@@ -940,6 +969,10 @@ def pr_request(request):
 
     # requested_user = parentUser
     purchase_number = prApprObj.purchase_number
+    if purchase_type == 'PO':
+        purchase_data_id = prApprObj.pending_po_id
+    else:
+        purchase_data_id = prApprObj.pending_pr_id
     response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
     #Data Table Data
     temp_data = {'aaData':[]}
@@ -958,7 +991,8 @@ def pr_request(request):
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
+        # po_reference = '%s%s_%s' % (prefix, dateInPO, result[fieldsMap['purchase_number']])
+        po_reference = result[fieldsMap['full_purchase_number']]
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result[fieldsMap['purchase_number']],
                                     result['total_amt'], purchase_type=purchase_type)
@@ -974,6 +1008,7 @@ def pr_request(request):
         pending_level = result[fieldsMap['pending_level']]
         final_status = result[fieldsMap['final_status']]
         purchase_number = result[fieldsMap['purchase_number']]
+        purchase_id = result[fieldsMap['purchase_id']]
         if pending_level != 'level0':
             prev_level = 'level' + str(int(pending_level.replace('level', '')) - 1)
             prApprQs = PurchaseApprovals.objects.filter(purchase_number=purchase_number,
@@ -993,7 +1028,8 @@ def pr_request(request):
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
         temp_data['aaData'].append(OrderedDict((
-                                                ('PR Number', purchase_number),
+                                                ('Purchase Id', purchase_id),
+                                                ('PR Number', po_reference),
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),
@@ -1010,6 +1046,7 @@ def pr_request(request):
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
+                                                ('id', purchase_data_id),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
@@ -1918,14 +1955,24 @@ def auto_po(wms_codes, user):
                         po.status = 0
                         po.save()
                         user_obj = User.objects.get(id=user)
-                        po_order_id = get_purchase_order_id(user_obj) + 1
-                        if po_sub_user_prefix == 'true':
-                            po_order_id = update_po_order_prefix(user_obj, po_order_id)
+                        sku_code = po.sku.sku_code
+                        po_order_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user,
+                                                                                                              'po_prefix',
+                                                                                                              sku_code)
+                        if inc_status:
+                            return HttpResponse("Prefix not defined")
+                        # po_order_id = get_purchase_order_id(user_obj) + 1
+                        # if po_sub_user_prefix == 'true':
+                        #     po_order_id = update_po_order_prefix(user_obj, po_order_id)
                         user_profile = UserProfile.objects.get(user_id=sku.user)
-                        PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                                     received_quantity=0, po_date=datetime.datetime.now(),
-                                                     prefix=user_profile.prefix,
-                                                     creation_date=datetime.datetime.now())
+                        new_po_dict = {'open_po_id': po.id, 'order_id': po_order_id, 'status': '',
+                                        'received_quantity': 0, 'po_date': datetime.datetime.now(),
+                                        'prefix': prefix,
+                                        'creation_date': datetime.datetime.now(),
+                                       'po_number': full_po_number}
+                        new_po = PurchaseOrder(**new_po_dict)
+                        new_po.po_number = get_po_reference(new_po)
+                        new_po.save()
                         check_purchase_order_created(User.objects.get(id=user), po_order_id, user_profile.prefix)
             else:
                 automated_po = automated_po[0]
@@ -1948,17 +1995,20 @@ def rewrite_excel_file(f_name, index_status, open_sheet):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+                cell_data = open_sheet.cell(row_idx, col_idx).value
+                if isinstance(cell_data, unicode):
+                    cell_data = unicodedata.normalize('NFKD', cell_data).encode('ascii', 'ignore')
+                ws1.write(row_idx, col_idx, str(cell_data), header_style)
             ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:
             for col_idx in range(0, open_sheet.ncols):
                 # print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 4 and 'xlsx' in f_name:
-                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
-                else:
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
+                #if col_idx == 4 and 'xlsx' in f_name:
+                #    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
+                #    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
+                #else:
+                ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
 
             index_data = index_status.get(row_idx, '')
             if index_data:
@@ -2307,7 +2357,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
     inv_obj = InventoryAdjustment.objects.filter(**inv_adj_filter)
     if inv_obj:
         inv_obj = inv_obj[0]
-        inv_obj.adjusted_quantity = quantity
+        inv_obj.adjusted_quantity = inv_obj.adjusted_quantity + quantity
         inv_obj.save()
         dat = inv_obj
     else:
@@ -2462,9 +2512,18 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                     batch_dict['buy_price'] = batch_obj.buy_price
                     batch_dict['tax_percent'] = batch_obj.tax_percent
                     add_ean_weight_to_batch_detail(sku[0], batch_dict)
+                else:
+                    latest_batch = SellerPOSummary.objects.filter(purchase_order__open_po__sku_id=sku_id,).\
+                                                        exclude(batch_detail__isnull=True)
+                    if latest_batch.exists():
+                        batch_obj = latest_batch.latest('id').batch_detail
+                        batch_dict['buy_price'] = batch_obj.buy_price
+                        batch_dict['tax_percent'] = batch_obj.tax_percent
+                        add_ean_weight_to_batch_detail(sku[0], batch_dict)
+       
                 if price:
                     batch_dict['buy_price'] = price
-                elif not (price and batch_dict.get('buy_price', 0)):
+                elif not (price or batch_dict.get('buy_price', 0)):
                     batch_dict['buy_price'] = sku[0].cost_price
                 if batch_dict.keys():
                     batch_obj = BatchDetail.objects.create(**batch_dict)
@@ -2647,9 +2706,20 @@ def add_group(request, user=''):
                 else:
                     sub_perms = dict(sub_perms)
                     if sub_perms.has_key(perm):
-                        permissions = Permission.objects.filter(codename=sub_perms[perm])
-                        for permission in permissions:
-                            group.permissions.add(permission)
+                        if perm.endswith('Edit') and sub_perms[perm].startswith('add'):
+                            check_data = perm
+                            results = view_master_access(sub_perms, check_data)
+                            if results:
+                                lis = []
+                                for res in results:
+                                    permissions = Permission.objects.filter(codename=res)
+                                    lis.append(permissions[0])
+                                group.permissions.add(*lis)
+                        else:
+                            permissions = Permission.objects.filter(codename=sub_perms[perm])
+                            for permission in permissions:
+                                print("else permission ====",permission)
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -3868,7 +3938,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     total_invoice_amount = total_invoice
     if order_id:
-        order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+        order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id, order_type='order')
         if order_charge_obj.exists():
             total_order_qtys = OrderDetail.objects.filter(original_order_id = order_id,user = user.id ).values('sku__wms_code').annotate(total=F('quantity') * F('unit_price'))
             for quantity in total_order_qtys :
@@ -4648,6 +4718,8 @@ def search_wms_data(request, user=''):
         instanceName = AssetMaster
     elif product_type == 'Services':
         instanceName = ServiceMaster
+    elif product_type == 'OtherItems':
+        instanceName = OtherItemsMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     search_key = request.GET.get('q', '')
     total_data = []
@@ -4679,6 +4751,8 @@ def search_wms_data(request, user=''):
             data_dict.update({'asset_code': asset_code, 
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
+        elif instanceName == OtherItemsMaster:
+            data_dict['type'] =  master_data.item_type
         total_data.append(data_dict)
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
@@ -4700,7 +4774,7 @@ def search_makemodel_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='make_model_map', attribute_value=type).\
+    sku_ids = list(SKUAttributes.objects.filter(sku__user=user.id, attribute_name='sku_attribute_grouping_key', attribute_value=type).\
         values_list('sku_id', flat=True))
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id, id__in=sku_ids)
@@ -4730,6 +4804,12 @@ def get_admin(user):
         admin_user = is_admin_exists[0].admin_user
     else:
         admin_user = user
+    return admin_user
+
+
+def get_company_admin_user(user):
+    company_id = get_company_id(user)
+    admin_user = UserProfile.objects.filter(warehouse_level=0, company_id=company_id)[0].user
     return admin_user
 
 
@@ -5011,14 +5091,20 @@ def get_group_data(request, user=''):
         json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms,
                                                        'View Order Statuses': statuses}}))
 
+def user_company_name(user):
+    company_name = ''
+    company_qs = UserGroups.objects.filter(user=user.id).values_list('company__company_name', flat=True)
+    if company_qs.exists():
+        company_name = company_qs[0]
+    return company_name
 
-def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster):
+def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_catgs=False):
     if not is_list:
         sku_master = instanceName.objects.filter(user=user.id)
     else:
         sku_master = instanceName.objects.filter(user__in=user)
 
-    if instanceName.__name__ == 'SKUMaster':
+    if instanceName.__name__ == 'SKUMaster' and not all_prod_catgs:
         sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
                         exclude(id__in=ServiceMaster.objects.all()). \
                         exclude(id__in=OtherItemsMaster.objects.all())
@@ -5903,6 +5989,71 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
                                     'openpr_qty': openpr_qty}))
 
 
+def sku_level_stock_data(request, user):
+    sku_code = request.GET.get('sku_code')
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = sku_code
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return {'status': 0, 'message': 'Invalid Location'}
+        search_params['location__location'] = request.GET.get('location')
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    skuPack_quantity = 0
+    sku_pack_config = get_misc_value('sku_pack_config', user.id)
+    if sku_pack_config == 'true':
+        skuPack_data = SKUPackMaster.objects.filter(sku__sku_code= sku_code, sku__user= user.id)
+        if skuPack_data:
+            skuPack_quantity = skuPack_data[0].pack_quantity
+
+    po_search_params = {'open_po__sku__user': user.id,
+                        'open_po__sku__sku_code': sku_code,
+                        }
+    poQs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                filter(**po_search_params).values('open_po__sku__sku_code').\
+                annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    intransitQty = 0
+    if poQs.exists():
+        poOrderedQty = poQs[0]['total_order']
+        poReceivedQty = poQs[0]['total_received']
+        intransitQty = poOrderedQty - poReceivedQty
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        if sku_pack_config:
+            return {'status': 1, 'available_quantity': 0,
+                'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+        return {'status': 0, 'message': 'No Stock Found'}
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return {'status': 1, 'data': zones_data, 'available_quantity': avail_qty,
+                                    'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity}
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_warehouse_level_data(request, user=''):
+    warehouses = request.GET.get('all_users', '')
+    warehouses = json.loads(warehouses)
+    all_users = User.objects.filter(username__in=warehouses)
+    data_dict = {}
+    for user in all_users:
+        data = sku_level_stock_data(request, user)
+        if data['status']:
+            data_dict[user.username] = {
+                                        'available_quantity': data['available_quantity'],
+                                        'intransit_quantity': data['intransit_quantity'],
+                                        'skuPack_quantity': data['skuPack_quantity'],
+                                        'order_qty': 0
+                                        }
+    return HttpResponse(json.dumps(data_dict, cls=DjangoJSONEncoder))
+
+
+
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
@@ -6040,32 +6191,47 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     return order_detail_objs
 
 
-def order_cancel_functionality(order_det_ids):
-    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+def order_cancel_functionality(order_det_ids, admin_user=''):
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids).exclude(status=3)
+    cancel_invoice_serial = ''
     for order_det in ord_det_qs:
-        if int(order_det.status) == 1:
+        order_det.cancelled_quantity = order_det.cancelled_quantity + order_det.quantity
+        if order_det.original_quantity == order_det.cancelled_quantity:
             order_det.status = 3
-            order_det.save()
+        elif order_det.shipmentinfo_set.filter().exists() and not order_det.picklist_set.filter(reserved_quantity__gt=0).exists():
+            order_det.status = 2
         else:
-            picklists = Picklist.objects.filter(order_id=order_det.id)
-            for picklist in picklists:
-                if picklist.picked_quantity <= 0:
-                    picklist.delete()
-                elif picklist.stock:
-                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-                                                                       picklist__order_id=order_det.id)
-                    if not cancel_location:
-                        CancelledLocation.objects.create(picklist_id=picklist.id,
-                                                         quantity=picklist.picked_quantity,
-                                                         location_id=picklist.stock.location_id,
-                                                         creation_date=datetime.datetime.now(), status=1)
-                        picklist.status = 'cancelled'
-                        picklist.save()
-                else:
+            order_det.status = 0
+        order_det.save()
+        picklists = Picklist.objects.filter(order_id=order_det.id)
+        if str(order_det.status) == '3':
+            seller_orders_summaries = SellerOrderSummary.objects.filter(order_id=order_det.id)
+            seller_orders_summaries.update(order_status_flag='cancelled')
+            if admin_user:
+                OrderFields.objects.filter(user=admin_user.id, original_order_id=order_det.original_order_id).delete()
+        for picklist in picklists:
+            if picklist.picked_quantity <= 0:
+                picklist.delete()
+            elif picklist.stock:
+                if not cancel_invoice_serial:
+                    cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
+                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+								   picklist__order_id=order_det.id)
+                if not cancel_location:
+                    CancelledLocation.objects.create(picklist_id=picklist.id,
+						     quantity=picklist.picked_quantity,
+						     location_id=picklist.stock.location_id,
+						     creation_date=datetime.datetime.now(), status=1,
+                            cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
+                    picklist.reserved_quantity = 0
                     picklist.save()
-            order_det.status = 3
-            order_det.save()
+                    PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
+            else:
+                picklist.status = 'cancelled'
+                picklist.reserved_quantity = 0
+                picklist.save()
+                PicklistLocation.objects.filter(picklist_id=picklist.id).update(reserved=0, status=0)
 
 
 @csrf_exempt
@@ -6097,8 +6263,24 @@ def check_labels(request, user=''):
 
 
 def get_po_reference(order):
-    po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    #po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    po_number = '%s%s' % (order.prefix, str(order.order_id).zfill(5))
     return po_number
+
+
+def get_full_pr_number_from_dict(pr_dict):
+    pr_number = '%s%s' % (pr_dict.get('prefix', ''), str(pr_dict.get('pr_number', '')).zfill(5))
+    return pr_number
+
+
+def get_full_po_number_from_dict(po_dict):
+    pr_number = '%s%s' % (po_dict.get('prefix', ''), str(po_dict.get('po_number', '')).zfill(5))
+    return pr_number
+
+
+def get_full_grn_number(user):
+    grn_number = '%s%s' % ('14-04402', str(get_incremental(user, "grn_number", 1)).zfill(5))
+    return grn_number
 
 
 @csrf_exempt
@@ -6136,7 +6318,7 @@ def get_imei_data(request, user=''):
                 if not sku_details:
                     sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
                                    'image_url': sku.image_url}
-                imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
+                imei_data['po_details'] = {'po_number': purchase_order.po_number, #get_po_reference(purchase_order),
                                            'supplier_id': purchase_order.open_po.supplier_id,
                                            'supplier_name': purchase_order.open_po.supplier.name,
                                            'received_date': get_local_date(user, po_mapping.creation_date),
@@ -6643,7 +6825,7 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
 
                 if po_mapping[0].status == 1 and not order_imei_mapping:
                     if po_mapping[0].purchase_order:
-                        purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
+                        purchase_order_id = po_mapping[0].purchase_order.po_number #get_po_reference(po_mapping[0].purchase_order)
                         status = '%s is already mapped with purchase_order %s' % (str(imei), purchase_order_id)
                     elif po_mapping[0].job_order:
                         status = '%s is already mapped with job order %s' % (str(imei),
@@ -7406,12 +7588,13 @@ def update_ingram_order_dicts(orders, seller_obj, user=''):
                     seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
 
             order_charge = OrderCharges.objects.filter(order_id=order_obj.original_order_id, charge_name='Shipping Tax',
-                                                       user_id=order_det_dict['user'])
+                                                       user_id=order_det_dict['user'], order_type='order')
             if not order_charge:
                 order_charge_dict['order_id'] = order_obj.original_order_id
                 order_charge_dict['charge_name'] = 'Shipping Tax'
                 order_charge_dict['charge_amount'] = order['shipping_tax']
                 order_charge_dict['user_id'] = order_det_dict['user']
+                order_charge_dict['order_type'] = 'order'
                 OrderCharges.objects.create(**order_charge_dict)
 
         order_id_pick = order_obj.original_order_id.split('_')
@@ -8108,7 +8291,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                 order_quantity = order_quantity - order.picked_quantity
 
             if stock_quantity < float(order_quantity):
-                if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                #if (not no_stock_switch and ((allow_partial_picklist and stock_quantity <= 0) or 'st_po' in dir(order))):
+                if not (no_stock_switch or allow_partial_picklist):
                     stock_status.append(str(member.sku_code))
                     continue
 
@@ -9053,10 +9237,15 @@ def create_order_pos(user, order_objs, admin_user=None):
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
-        po_id = get_purchase_order_id(user) + 1
-        po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
-        if po_sub_user_prefix == 'true':
-            po_id = update_po_order_prefix(user, po_id)
+        sku_code = order_objs[0].sku.sku_code
+        po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix',
+                                                                                              sku_code)
+        if inc_status:
+            return HttpResponse("Prefix not defined")
+        # po_id = get_purchase_order_id(user) + 1
+        # po_sub_user_prefix = get_misc_value('po_sub_user_prefix', user.id)
+        # if po_sub_user_prefix == 'true':
+        #     po_id = update_po_order_prefix(user, po_id)
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
@@ -9108,8 +9297,8 @@ def create_order_pos(user, order_objs, admin_user=None):
             create_po.save()
             purchase_data['open_po_id'] = create_po.id
             purchase_data['order_id'] = po_id
-            if user_profile:
-                purchase_data['prefix'] = user_profile.prefix
+            purchase_data['prefix'] = prefix
+            purchase_data['po_number'] = full_po_number
             order = PurchaseOrder(**purchase_data)
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
@@ -9375,12 +9564,16 @@ def allocate_order_returns(user, sku_data, request):
 
 
 def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sku_attrs=None,
-                               sku_attr_mapping=None, allow_multiple=False):
-    if not value == '':
+                               sku_attr_mapping=None, allow_multiple=False,remove_existing=False,
+                               remove_attr_ids=None):
+    if not value == '' or remove_existing:
         sku_attr_filter = {'sku_id': data.id, 'attribute_name': key}
         if allow_multiple:
             sku_attr_filter['attribute_value'] = value
         sku_attr_obj = SKUAttributes.objects.filter(**sku_attr_filter)
+        if remove_existing:
+            remove_attr_ids = list(chain(remove_attr_ids, list(sku_attr_obj.values_list('id', flat=True))))
+            sku_attr_obj = []
         if not sku_attr_obj and value:
             if not is_bulk_create:
                 SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
@@ -9396,16 +9589,27 @@ def update_sku_attributes_data(data, key, value, is_bulk_create=False, create_sk
                     sku_attr_mapping.append(grp_key)
         elif sku_attr_obj and sku_attr_obj[0].attribute_value != value:
             sku_attr_obj.update(attribute_value=value)
-    return create_sku_attrs, sku_attr_mapping
+    return create_sku_attrs, sku_attr_mapping, remove_attr_ids
 
 
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
             continue
+        if ',' in value:
+            allow_multiple = True
+        else:
+            allow_multiple = False
         key = key.replace('attr_', '')
+        exist_attributes = list(SKUAttributes.objects.filter(sku_id=data.id,
+                                                                 attribute_name=key). \
+                                    values_list('attribute_value', flat=True))
+        rem_list = set(exist_attributes) - set(value.split(','))
+        if rem_list:
+            SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key,
+                                         attribute_value__in=rem_list).delete()
         for val in value.split(','):
-            update_sku_attributes_data(data, key, val, allow_multiple=True)
+            update_sku_attributes_data(data, key, val, allow_multiple=allow_multiple)
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
@@ -9487,8 +9691,7 @@ def get_batch_dict(transact_id, transact_type):
     batch_dict = {}
     batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
     if batch_obj:
-        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight','batch_ref')[0]
-        # batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date','weight')[0]
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date', 'weight', 'batch_ref')[0]
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
         if batch_dict['manufactured_date']:
@@ -9712,6 +9915,63 @@ def get_gen_wh_ids(request, user, delivery_date):
             gen_whs.extend(list(nw_gen_whs))
     return gen_whs
 
+def get_product_category_from_sku(user, sku_code):
+    sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
+    product_category = 'Kits&Consumables'
+    try:
+        if sku.assetmaster:
+            product_category = 'Assets'
+    except:
+        pass
+    try:
+        if sku.servicemaster:
+            product_category = 'Services'
+    except:
+        pass
+    try:
+        if sku.otheritemsmaster:
+            product_category = 'OtherItems'
+    except:
+        pass    
+    return sku, product_category
+
+
+def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
+    count = 0
+    prefix = ''
+    full_prefix = ''
+    full_number = ''
+    inc_status = ''
+    incr_type_name = ''
+    sku, product_category = get_product_category_from_sku(user, sku_code)
+    sku_category = sku.sku_category
+    if not sku_category:
+        sku_category = 'Default'
+    user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
+                                sku_category=sku_category)
+    if not user_prefix:
+        user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name, product_category=product_category,
+                                                  sku_category='Default')
+    if not user_prefix:
+        inc_status = 'Prefix not defined'
+    else:
+        user_prefix = user_prefix[0]
+        prefix = user_prefix.prefix
+        full_prefix = prefix
+        incr_type_name = '%s_%s' % (str(type_name), str(prefix))
+        count = get_incremental(user, incr_type_name, default_val=1)
+        userprofile = user.userprofile
+        store_code = userprofile.stockone_code
+        if not dept_code:
+            dept_code = '0000'
+        if userprofile.warehouse_type == 'DEPT' and type_name in ['pr_prefix', 'po_prefix']:
+            admin_user = get_admin(user)
+            store_code = admin_user.userprofile.stockone_code
+            dept_code = userprofile.stockone_code
+        full_prefix = '%s-%s-%s' % (prefix, store_code, dept_code)
+        full_number = '%s%s' % (full_prefix, str(count).zfill(5))
+    return count, full_prefix, full_number, incr_type_name, inc_status
+
 
 def get_incremental(user, type_name, default_val=''):
     # custom sku counter
@@ -9729,6 +9989,7 @@ def get_incremental(user, type_name, default_val=''):
         IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
+
 
 def get_decremental(user, type_name, old_pack_ref_no):
     # custom sku counter
@@ -10122,7 +10383,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
                                                    invoice_number=invoice_num,
                                                    purchase_order__open_po__supplier__supplier_id=supplier_id)
     if exist_inv_obj.exists():
-        status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
+        status = 'Invoice Number already Mapped to %s/%s' % (exist_inv_obj[0].purchase_order.po_number,
                                                              str(exist_inv_obj[0].receipt_number))
     return status
 
@@ -10613,6 +10874,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
+            po_order.po_number = get_po_reference(po_order)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
                                 'creation_date': datetime.datetime.now()}
@@ -10742,6 +11004,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name, request=''):
                        'po_date': datetime.datetime.now(), 'ship_to': '',
                        'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
             po_order = PurchaseOrder(**po_dict)
+            po_order.po_number = get_po_reference(po_order)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
                                 'creation_date': datetime.datetime.now()}
@@ -10995,7 +11258,7 @@ def get_mapping_values_po(wms_code = '',supplier_id ='',user =''):
             if not int(sup_markdown.ep_supplier):
                 data = {'error_msg':'This SKU is Blocked for PO'}
         if margin_check:
-            status = check_margin_percentage(sku_master.id, sup_markdown.id)
+            status = check_margin_percentage(sku_master.id, sup_markdown.id, user)
             if status:
                 data = {'error_msg': status}
     except Exception as e:
@@ -11274,6 +11537,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                     'taxes': taxes_data, 'mrp': data.mrp, 'edit_tax': edit_tax}
         if supplier_sku:
             resultMap['sku_supplier_price'] = supplier_sku[0].price
+            resultMap['sku_supplier_moq'] = supplier_sku[0].moq
         result_data.append(resultMap)
 
         return result_data
@@ -11381,6 +11645,17 @@ def get_full_sequence_number(user_type_sequence, creation_date):
     sequence_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     return sequence_number
 
+def view_master_access(sub_perms, check_data):
+    lis = ['add','view','change','delete']
+    final_lis = []
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    if check_data in dict(permission_dict['MASTERS_LABEL']):
+        add_data = sub_perms[check_data].split('_')
+        if add_data[0] == 'add':
+            for i in lis:
+                data1 = str(i)+"_"+add_data[1]
+                final_lis.append(data1)
+    return final_lis
 
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -11571,9 +11846,14 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
+        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id)
+        if seller_po_summary_obj.exists():
+            grn_price = seller_po_summary_obj[0].price
+        if not grn_price:
+            grn_price = purchase_data['price']
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
-                            'unit_price': purchase_data['price'], 'receipt_type': receipt_type}
+                            'unit_price': grn_price, 'receipt_type': receipt_type}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
             stock_dict = stock_dict[0]
@@ -11648,10 +11928,11 @@ def get_related_user_objs(user_id, level=0):
     users = User.objects.filter(id__in=user_ids) 
     return users
 
-def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key):
+
+def sync_masters_data(user, model_obj, data_dict, filter_dict, sync_key, current_user=False):
     bulk_objs = []
     sync_switch = get_misc_value(sync_key, user.id)
-    if sync_switch == 'true':
+    if sync_switch == 'true' and not current_user:
         all_user_ids = get_related_users(user.id)
     else:
         all_user_ids = [user.id]
@@ -11743,9 +12024,9 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
     return 'Uploaded Successfully'
 
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=''):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False):
     supplier_sync = get_misc_value('supplier_sync', user.id)
-    if supplier_sync == 'true':
+    if supplier_sync == 'true' and not current_user:
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
@@ -11788,3 +12069,85 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
                 master_email_map['updation_date'] = datetime.datetime.now()
                 master_email_map = MasterEmailMapping.objects.create(**master_email_map)
     return master_objs
+
+def internal_external_map(response, type_name=''):
+    external_id = response['__values__']['externalId']
+    internal_id = response['__values__']['internalId']
+    NetsuiteIdMapping.objects.create(external_id=external_id, internal_id=internal_id,
+                                         type_name=type_name)
+
+
+def insert_admin_suppliers(request, user):
+    admin_user = get_company_admin_user(user)
+    if admin_user.id == user.id:
+        return "Success"
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    for supplier in suppliers:
+        filter_dict = {'supplier_id': supplier.supplier_id}
+        data_dict = copy.deepcopy(supplier.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        secondary_email_id = list(MasterEmailMapping.objects.filter(user=admin_user.id, master_type='supplier',
+                                                            master_id=supplier.id).values_list('email_id', flat=True))
+        sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id, current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_company_admin_user(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_tax_master(request, user):
+    admin_user = get_company_admin_user(user)
+    if admin_user.id == user.id:
+        return "Success"
+    taxes = TaxMaster.objects.filter(user=admin_user.id)
+    rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'user_id']
+    for tax in taxes:
+        filter_dict = {'product_type': tax.product_type, 'user_id': user.id, 'inter_state': tax.inter_state}
+        data_dict = copy.deepcopy(tax.__dict__)
+        for rem in rem_list:
+            if rem in data_dict.keys():
+                del data_dict[rem]
+        sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync', current_user=True)
+    return "Success"
+
+
+def insert_admin_sku_attributes(request, user):
+    admin_user = get_company_admin_user(user)
+    if admin_user.id == user.id:
+        return "Success"
+    attributes = UserAttributes.objects.filter(user=admin_user.id)
+    for attribute in attributes:
+        filter_dict = {'attribute_name': attribute.attribute_name, 'attribute_model': attribute.attribute_model}
+        update_dict = {'attribute_type': attribute.attribute_type, 'status': 1}
+        sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
+    return "Success"
+
+
+def get_po_pr_dept_code(data):
+    dept_code = ''
+    try:
+        if data.open_po and data.open_po.pendingpos.filter():
+            pending_po = data.open_po.pendingpos.filter()[0]
+            if pending_po.pending_prs.filter():
+                dept_code = pending_po.pending_prs.filter()[0].wh_user.userprofile.stockone_code
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get Dept Code from PO for GRN Number generation failed")
+    return dept_code

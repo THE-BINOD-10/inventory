@@ -16,7 +16,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket_test', 'NOIDA02', 'NOIDA01', 'GGN01', 'HYD01', 'BLR01', 'GGN02', 'NOIDA03', 'BLR02', 'HYD02'];
     vm.milkbasket_file_check = ['GGN01'];
-
     vm.selected = {};
     vm.checked_items = {};
     vm.selectAll = false;
@@ -221,7 +220,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 grn_no: grn_no,
                 invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
-                seller_summary_id: temp['id'], 
+                seller_summary_id: temp['id'],
+                prefix: temp['prefix'],
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number']
               });
@@ -247,16 +247,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   };
 
   vm.confirm_move_to_inv = function(){
-    if(!vm.inv_number || !vm.inv_date){
-      vm.service.showNoty("Please enter invoice number and invoice date");
-    } else{
+    if(!vm.inv_number || !vm.inv_date || !vm.inv_value || !vm.inv_quantity || !vm.inv_receipt_date){
+      vm.service.showNoty("Please fill * Fields");
+    } else {
       vm.move_to_api("move_to_invoice/", vm.move_to_inv_data);
     }
   }
 
   vm.move_to_api = function(click_type, data){
     var send = data.join(",");
-    send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date}
+    var credit = ((vm.inv_value ? vm.inv_value : 0) > (vm.pdf_data.rounded_invoice_amount + vm.pdf_data.extra_other_charges)) ? true : false
+    send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date, inv_value: vm.inv_value, inv_quantity: vm.inv_quantity, inv_receipt_date: vm.inv_receipt_date, credit: credit}
     var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;
     var form_data = new FormData();
@@ -264,11 +265,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       form_data.append(key, val);
     });
     if(click_type == 'move_to_invoice/') {
-      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0) {
-        if($("body #add-customer").find('[name="files"]')[0].files.length < 1) {
-          vm.service.showNoty("Uploading file is mandatory");
-          return
-        }
+      if($("body #add-customer").find('[name="files"]')[0].files.length < 1) {
+        vm.service.showNoty("Uploading file is mandatory");
+        return
       }
       var files = $("body #add-customer").find('[name="files"]')[0].files;
       $.each(files, function(i, file) {

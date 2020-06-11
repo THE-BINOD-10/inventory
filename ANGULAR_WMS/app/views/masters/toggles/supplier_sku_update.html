@@ -6,7 +6,7 @@
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
           <h4 class="modal-title">{{showCase.title}}</h4>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" ng-mouseover="showCase.readonly_permission()">
           <!-- body -->
             <div class="row">
                 <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse' && !showCase.wh_purchase_order">
@@ -47,7 +47,7 @@
 	    <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Priority *</label>
-                <input type="text" class="form-control" name="number" ng-model="showCase.model_data.preference" natural-number required>
+                <input type="text" class="form-control" name="preference" ng-model="showCase.model_data.preference" natural-number required>
               </div>
 	    </div>
 	    <div class="col-md-4 col-sm-6 col-xs-6">
@@ -117,7 +117,13 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.send_supplier_doa(form)" ng-disabled="process" ng-if="showCase.warehouse_type!='ADMIN' && (!showCase.is_doa)">
+            <span>Send For Approval</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="show_tab('change_skusupplier')" ng-disabled="process" ng-if="showCase.warehouse_type=='ADMIN'">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

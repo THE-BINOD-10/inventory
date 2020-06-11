@@ -439,6 +439,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    perm: "add_barcodebrandmappingmaster",
                  },
+                 {
+                   title: "User Prefixes Configuration Download/ Upload",
+                   download: "Download User Prefixes Form",
+                   upload: "Upload User Prefixes Form",
+                   durl: "user_prefixes_form/",
+                   uurl: "user_prefixes_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_userprefixes",
+                 },
                 ]
 
   $scope.download = function(data) {

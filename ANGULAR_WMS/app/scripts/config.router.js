@@ -279,7 +279,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.SKUMaster', {
           url: '/SKUMaster',
-          permission: 'add_skumaster',
+          permission:'view_skumaster',
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -416,7 +416,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.sourceSKUMapping', {
           url: '/SourceSKUMapping',
-          permission: 'add_skusupplier',
+          permission: 'view_skusupplier',
           templateUrl: 'views/masters/source_sku_mapping.html',
 
           resolve: {
@@ -430,6 +430,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/masters/source_sku_mapping/supplierSKUAttribute.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/source_sku_mapping/supplierSKUDOA.js'
                   ])
                 });
               }]
@@ -453,7 +457,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.SupplierMaster', {
           url: '/SupplierMaster',
-          permission: 'add_suppliermaster',
+          permission: 'view_suppliermaster',
           templateUrl: 'views/masters/supplier_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -500,7 +504,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.CustomerMaster', {
           url: '/CustomerMaster',
-          permission: 'add_customermaster',
+          permission: 'view_customermaster',
           templateUrl: 'views/masters/customer_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -719,7 +723,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.PricingMaster', {
           url: '/PricingMaster',
-          permission: 'add_pricemaster',
+          permission: 'view_pricemaster',
           templateUrl: 'views/masters/pricing_master.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -921,6 +925,10 @@ var app = angular.module('urbanApp')
           url: '/ConverPRtoPO',
           templateUrl: 'views/inbound/toggle/convert_pr_to_po.html'
           })
+          .state('app.inbound.RaisePr.PRemptyPreview', {
+          url: '/ConverPRtoPO',
+          templateUrl: 'views/inbound/toggle/pr_consolidated_preview.html'
+          })
 
         .state('app.inbound.RaisePo', {
           url: '/RaisePO',
@@ -945,6 +953,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/raise_pending_purchase_order.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_po_enquiries.js'
                   ])
                 });
               }]
@@ -981,6 +993,14 @@ var app = angular.module('urbanApp')
           url: '/SavedPendingPO',
           templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
           })
+          // .state('app.inbound.RaisePo.pendingPOEnquiries', {
+          // url: '/pendingPOEnquiries',
+          // templateUrl: 'views/inbound/toggle/saved_pending_purchase.html'
+          // })
+          .state('app.inbound.RaisePo.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
+          })
 
 
         .state('app.inbound.RevceivePo', {
@@ -988,15 +1008,19 @@ var app = angular.module('urbanApp')
           permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/outbound/pop_js/custom_order_details.js'
+              ]).then(function() {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() {
+                  'scripts/controllers/inbound/receive_po.js'
+                ])
+              }).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/receive_po.js'
-                  ])
-                });
-              }]
+                    'scripts/controllers/inbound/credit_note.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Receive PO',
@@ -1017,6 +1041,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RevceivePo.qc_detail', {
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/grn_qc.html'
+          })
+          .state('app.inbound.RevceivePo.CN', {
+          url: '/CN',
+          templateUrl: 'views/inbound/toggle/credit_nt.html'
           })
 
         .state('app.inbound.QualityCheck', {
@@ -2266,6 +2294,22 @@ var app = angular.module('urbanApp')
             title: 'Stock Transfer Goods Receipt Note',
           }
         })
+        .state('app.reports.ApprovalPOReport', {
+          url: '/ApprovalPOReport',
+          templateUrl: 'views/reports/approval_reports.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/approval_reports.js');
+              }]
+          },
+          data: {
+            title: 'Approval PO Report',
+          }
+        })
+        .state('app.reports.ApprovalPOReport.ApprovalDetailReport', {
+            url: '/ApprovalDetailReport',
+            templateUrl: 'views/reports/toggles/approval_details.html',
+          })
         .state('app.reports.STGoodsReceiptNote.PurchaseOrder', {
             url: '/STGoodsReceiptNote',
             templateUrl: 'views/reports/toggles/purchase_order.html',
@@ -2752,6 +2796,18 @@ var app = angular.module('urbanApp')
            url: '/CreditNoteReportPrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
         })
+        .state('app.reports.OpenPOApprovalReport', {
+          url: '/OpenPOApprovalReport',
+          templateUrl: 'views/reports/open_po_approval_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/open_po_approval_report.js');
+              }]
+          },
+          data: {
+            title: 'OPEN PO APPROVAL Report',
+          }
+        })
         .state('app.reports.RTVReport.DebitNotePrint', {
            url: '/DebitNotePrint',
            templateUrl: 'views/reports/toggles/purchase_order.html',
@@ -2770,6 +2826,30 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Current Stock Report',
+          }
+        })
+        .state('app.reports.ApprovalPOSummaryReport', {
+          url: '/ApprovalPOSummaryReport',
+          templateUrl: 'views/reports/approval_po_summary_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/approval_po_summary_report.js');
+              }]
+          },
+          data: {
+            title: 'Approval PO Summary Report',
+          }
+        })
+        .state('app.reports.ApprovalPODetailReport', {
+          url: '/ApprovalPODetailReport',
+          templateUrl: 'views/reports/approval_po_detail_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/approval_po_detail_report.js');
+              }]
+          },
+          data: {
+            title: 'Approval PO Detail Report',
           }
         })
         .state('app.reports.InventoryValueReport', {

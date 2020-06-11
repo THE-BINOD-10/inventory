@@ -56,7 +56,7 @@ def get_all_skus(all_users):
 
 def create_update_sku(all_skus, all_users):
     """ creating SKU for other linked users """
-    from rest_api.views.common import get_misc_value, bulk_create_in_batches, prepare_ean_bulk_data, update_sku_attributes_data
+    from rest_api.views.common import get_misc_value, bulk_create_in_batches, prepare_ean_bulk_data, update_sku_attributes_data,insert_update_brands
     from rest_api.views.masters import check_update_size_type
     dump_sku_codes = []
     wh_type = ''
@@ -91,6 +91,7 @@ def create_update_sku(all_skus, all_users):
                         'mrp': sku.mrp, 'sequence': sku.sequence, 'status': sku.status,
                         'measurement_type': sku.measurement_type, 'sale_through': sku.sale_through,
                         'hsn_code': sku.hsn_code, 'youtube_url': sku.youtube_url,
+                        'price': sku.price, 'cost_price': sku.cost_price,
                         }
             ean_numbers = list(sku.eannumbers_set.filter().values_list('ean_number', flat=True))
             if sku.ean_number and sku.ean_number != '0':
@@ -124,12 +125,19 @@ def create_update_sku(all_skus, all_users):
                     update_sku_dict['service_end_date'] = sku.servicemaster.service_end_date
             except:
                 pass
+            try:
+                if sku.otheritemsmaster:
+                    instanceName = OtherItemsMaster
+                    update_sku_dict['item_type'] = sku.otheritemsmaster.item_type
+            except:
+                pass
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
                                  'relation_type': sku.relation_type,
                                  'creation_date': datetime.datetime.now().date(),
                                  'updation_date': datetime.datetime.now().date()})
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'TestMaster'] and sku.sku_code.upper() not in exist_skus:
+
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster'] and sku.sku_code.upper() not in exist_skus:
                 new_sku_dict['user'] = user
                 new_sku_dict['sku_code'] = sku.sku_code
                 new_sku_dict['wms_code'] = sku.wms_code
@@ -160,7 +168,7 @@ def create_update_sku(all_skus, all_users):
                 sku_obj, new_ean_objs, update_sku_obj = prepare_ean_bulk_data(sku_obj, ean_numbers, exist_ean_list,
                                                                         exist_sku_eans, new_ean_objs=new_ean_objs)
                 for attr_key, attr_val in attr_dict.iteritems():
-                    create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
                 sku_obj.save()
                 if size_type:
@@ -186,7 +194,7 @@ def create_update_sku(all_skus, all_users):
                 else:
                     sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
                 for attr_key, attr_val in new_sku_attr.iteritems():
-                    create_sku_attrs, sku_attr_mapping = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
             for new_sku_code, new_sku_size_type in new_sku_size_types.items():
                 if new_sku_code in code_obj_dict.keys():
@@ -202,6 +210,7 @@ def create_update_sku(all_skus, all_users):
         if create_sku_attrs:
             SKUAttributes.objects.bulk_create(create_sku_attrs)
 
+        insert_update_brands(User.objects.get(id=user))
         if dump_sku_codes and all_skus:
             dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 

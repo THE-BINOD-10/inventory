@@ -46,7 +46,7 @@ def get_report_data(request, user=''):
                                                          .values_list('stage_name', flat=True))
             data['filters'][data_index]['values'].extend(
                 ['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
-    elif report_name in ['order_summary_report', 'po_report', 'open_order_report', 'stock_cover_report']:
+    elif report_name in ['order_summary_report', 'po_report', 'open_order_report', 'stock_cover_report', 'open_po_aprroval_report', 'aprroval_po_summary_report', 'aprroval_po_detail_report']:
         if report_name == 'order_summary_report':
             from common import get_misc_value
             extra_order_fields = get_misc_value('extra_order_fields', user.id)
@@ -271,6 +271,16 @@ def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_order_summary_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_approval_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_po_approval_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 
 @csrf_exempt
@@ -594,7 +604,7 @@ def get_supplier_details_data(search_params, user, sub_user):
         else:
             status_var = 'Partially Received'
         supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
-                                                    ('PO Number', get_po_reference(po_obj)),
+                                                    ('PO Number', po_obj.po_number), #get_po_reference(po_obj)),
                                                     ('Supplier Name', po_obj.open_po.supplier.name),
                                                     ('SKU Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
@@ -998,7 +1008,8 @@ def get_adjust_filter_data(search_params, user, sub_user):
         if stop_index:
             adjustments = adjustments[start_index:stop_index]
         for data in adjustments:
-            quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
+            quantity = data.adjusted_quantity
             temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),
@@ -2082,11 +2093,12 @@ def print_purchase_order_form(request, user=''):
         terms_condition = open_po.terms
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
-    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_number = order.po_number #'%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    po_reference = order.open_po.po_name
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
-    company_name = profile.company_name
+    company_name = profile.company.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
@@ -2129,9 +2141,10 @@ def print_purchase_order_form(request, user=''):
         'terms_condition': terms_condition,
         'total_amt_in_words': total_amt_in_words,
         'show_cess_tax': show_cess_tax,
-        'company_name': profile.company_name,
+        'company_name': profile.company.company_name,
         'location': profile.location,
         'po_reference': po_reference,
+        'po_number': po_number,
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
         'company_address': company_address
@@ -2194,7 +2207,7 @@ def print_descrepancy_note(request, user=''):
         for obj in discrepancy_objects:
             if obj.purchase_order:
                 open_po = obj.purchase_order.open_po
-                filter_params = {'purchase_order_id': obj.purchase_order.id}
+                filter_params = {'purchase_order__order_id': obj.purchase_order.order_id, 'purchase_order__open_po__sku__user': user.id}
                 if obj.receipt_number:
                     filter_params['receipt_number'] = obj.receipt_number
                 seller_po_summary = SellerPOSummary.objects.filter(**filter_params)
@@ -2206,15 +2219,21 @@ def print_descrepancy_note(request, user=''):
                         price = seller_po_obj.batch_detail.buy_price
                         mrp = seller_po_obj.batch_detail.mrp
                 if not updated_discrepancy:
-                    updated_discrepancy=True
+                    updated_discrepancy = True
                     invoice_number, invoice_date = '', ''
+                    order_date = obj.purchase_order.creation_date
                     if seller_po_summary.exists():
                         invoice_number = seller_po_summary[0].invoice_number
                         invoice_date =  seller_po_summary[0].invoice_date.strftime('%d/%m/%y')
+                        order_date = seller_po_summary[0].creation_date
                     supplier = obj.purchase_order.open_po.supplier
-                    order_date = get_local_date(request.user, obj.purchase_order.creation_date)
+                    order_date = get_local_date(request.user, order_date)
                     order_date = datetime.datetime.strftime(
                         datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+                    if not invoice_number and obj.new_data:
+                        data_dict = json.loads(obj.new_data)
+                        invoice_number = data_dict.get('invoice_number', '')
+                        invoice_date = data_dict.get('invoice_date', '')
                     report_data_dict = {'supplier_id':supplier.id, 'address':supplier.address,
                                         'supplier_name':supplier.name, 'supplier_gst':supplier.tin_number,
                                         'company_name': profile.company_name, 'company_address': profile.address,
@@ -2449,3 +2468,22 @@ def print_credit_note_report(request, user=''):
 
     return render(request, 'templates/toggle/sales_return_print.html',
                   {'show_data_invoice': return_sales_print})
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_approval_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_approval_summary_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_approval_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_approval_detail_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

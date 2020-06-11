@@ -1,4 +1,6 @@
 from miebach_admin.models import *
+from miebach_utils import *
+
 
 
 def generate_grn_pagination(sku_list):
@@ -30,8 +32,13 @@ def generate_grn_pagination(sku_list):
     return sku_slices
 
 
-def check_margin_percentage(sku_id, supplier_id):
+def check_margin_percentage(sku_id, supplier_id, user):
     status = ''
+    if user.username in MILKBASKET_USERS:
+        sku_attr = SKUAttributes.objects.filter(sku__user=user.id, sku_id=sku_id, attribute_name='Vendor')
+        if sku_attr.exists():
+            if str(sku_attr[0].attribute_value.lower()) == 'daily procurement':
+                return status
     if not SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id,
                                       costing_type='Margin Based').exists():
         status = "No Margin Cost Found"

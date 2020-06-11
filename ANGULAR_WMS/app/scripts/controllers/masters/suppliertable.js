@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   var vm = this;
   vm.apply_filters = colFilters;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type
 
@@ -79,7 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.filter_enable = true;
 
   var empty_data = {id: "", name: "", email_id: "", address: "", phone_number: "", status: "Active",
-                    create_login: false, login_created: false};
+                    create_login: false, login_created: false, currency_code: ""};
   vm.status_data = ["Inactive", "Active"];
   vm.title = "Add Supplier";
   vm.update = false;
@@ -105,6 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall("get_supplier_master_data/").then(function(data){
       if(data.message) {
         vm.all_taxes = data.data.tax_data;
+        vm.all_currency_codes = data.data.currency_codes;
       }
     });
   }
@@ -147,6 +149,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
+  vm.readonly_permission = function(){
+      if(!vm.permissions.change_suppliermaster){
+        $(':input').attr('readonly','readonly');
+      }
+    }
+
 
   vm.submit = function(data) {
     if (data.$valid) {

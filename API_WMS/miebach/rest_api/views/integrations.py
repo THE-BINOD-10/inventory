@@ -858,7 +858,8 @@ def update_cancelled(orders, user='', company_name=''):
 
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
-                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list):
+                             new_ean_objs, load_file, columns, exist_sku_eans, exist_ean_list,
+                             create_sku_attrs, sku_attr_mapping, remove_attr_ids):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -868,7 +869,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         error_message = 'SKU Code should not be empty'
         update_error_message(failed_status, 5022, error_message, sku_data[sku_mapping['sku_desc']],
                              field_key='sku_desc')
-        return sku_master, insert_status, new_ean_objs
+        return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
     if sku_ins.exists():
         sku_master = sku_ins[0]
@@ -1002,7 +1003,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             setattr(sku_master, key, value)
 
     if sku_code in sum(insert_status.values(), []):
-        return sku_master, insert_status, new_ean_objs
+        return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
     product_type = ''
     if taxes_dict :
         product_type_dict = {}
@@ -1078,11 +1079,16 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 error_message = 'Ascii code characters Value found'
                 update_error_message(failed_status, 5033, error_message, sku_code,
                                      field_key='sku_code')
-            column_vals = [str(sku_master.id), option['name'], option['value']]
-            update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
-            date_string = 'NOW(), NOW()'
-            mysql_query_to_file(load_file, 'SKU_ATTRIBUTES', columns,
-                                column_vals, date_string=date_string, update_string=update_string)
+            create_sku_attrs, sku_attr_mapping, remove_attr_ids = \
+                            update_sku_attributes_data(sku_master, option['name'], option['value'], is_bulk_create=True,
+                                       create_sku_attrs=create_sku_attrs,
+                                       sku_attr_mapping=sku_attr_mapping, allow_multiple=False, remove_existing=True,
+                                        remove_attr_ids=remove_attr_ids)
+            # column_vals = [str(sku_master.id), option['name'], option['value']]
+            # update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
+            # date_string = 'NOW(), NOW()'
+            # mysql_query_to_file(load_file, 'SKU_ATTRIBUTES', columns,
+            #                     column_vals, date_string=date_string, update_string=update_string)
             # sku_attributes = sku_master.skuattributes_set.filter(attribute_name=option['name'])
             # if sku_attributes.exists():
             #     sku_attributes = sku_attributes[0]
@@ -1141,7 +1147,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             pass
     if update_sku_obj:
         sku_master.save()
-    return sku_master, insert_status, new_ean_objs
+    return sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids
 
 
 def update_skus (skus, user='', company_name=''):
@@ -1149,6 +1155,9 @@ def update_skus (skus, user='', company_name=''):
     NOW = datetime.datetime.now()
     insert_status = {'SKUS Created': [], 'SKUS updated': []}
     failed_status = OrderedDict()
+    create_sku_attrs = []
+    sku_attr_mapping = []
+    remove_attr_ids = []
     try:
         token_user = user
         sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -1194,10 +1203,12 @@ def update_skus (skus, user='', company_name=''):
         exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                               only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
         for sku_data in skus:
-            sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
+            sku_master, insert_status, new_ean_objs, create_sku_attrs, sku_attr_mapping, remove_attr_ids = \
+                sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
                                                                  new_ean_objs, load_file, columns, exist_sku_eans,
-                                                                               exist_ean_list)
+                                                                exist_ean_list, create_sku_attrs, sku_attr_mapping,
+                                                                remove_attr_ids)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 exist_member_ids = list(SKURelation.objects.filter(parent_sku_id=sku_master.id, relation_type='combo').\
@@ -1248,10 +1259,15 @@ def update_skus (skus, user='', company_name=''):
                 log.debug(traceback.format_exc())
                 log.info("Ean Numbers update failed")
         insert_update_brands(user)
+        if remove_attr_ids:
+            SKUAttributes.objects.filter(id__in=remove_attr_ids).delete()
+        # Bulk Create SKU Attributes
+        if create_sku_attrs:
+            SKUAttributes.objects.bulk_create(create_sku_attrs)
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
-        load_by_file(load_file_path, 'SKU_ATTRIBUTES', columns)
+        #load_by_file(load_file_path, 'SKU_ATTRIBUTES', columns)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
             create_update_sku(all_sku_masters, all_users)
         return insert_status, failed_status.values()
@@ -2167,6 +2183,181 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         str(user.username), str(orders), str(e)))
     return insert_status, failed_status.values(), final_data_dict
 
+def check_and_update_payment(payment_info, order_details, user):
+    NOW = datetime.datetime.now()
+    original_order_id = order_details[0].original_order_id
+    payment_summary = PaymentSummary.objects.filter(order__user=user.id, order__original_order_id = original_order_id)
+    payment_date = payment_info.get('payment_date', '')
+    if payment_date:
+        payment_date = parser.parse(payment_date)
+    else:
+        payment_date = NOW
+    transaction_id = payment_info.get('transaction_id', '')
+    paid_amount = payment_info.get('paid_amount',  0)
+    method_of_payment = payment_info.get('method', '')
+    payment_mode = payment_info.get('payment_mode', '')
+    payment_dict = {'method_of_payment':method_of_payment, 'payment_date':payment_date,
+                    'paid_amount':paid_amount, 'payment_mode':payment_mode,'transaction_id':transaction_id}
+    payment_dict['aux_info'] = json.dumps(payment_info)
+    if payment_summary.exists():
+        payment_ids = list(payment_summary.values_list('payment_info', flat=True))
+        if payment_ids:
+            payment_obj = PaymentInfo.objects.filter(id__in=payment_ids)
+            payment_dict['payment_mode'] = payment_info.get('payment_mode', payment_obj[0].payment_mode)
+            payment_date = payment_info.get('payment_date', '')
+            if payment_date:
+                payment_date = parser.parse(payment_date)
+                payment_dict['payment_date'] = payment_date
+            payment_dict['transaction_id'] = payment_info.get('transaction_id',  payment_obj[0].transaction_id)
+            payment_dict['paid_amount'] = payment_info.get('paid_amount',  payment_obj[0].paid_amount)
+            payment_dict['method_of_payment'] = payment_info.get('method',  payment_obj[0].method_of_payment)
+            payment_obj.update(**payment_dict)
+    else:
+        for order in order_details:
+            payment_id = get_incremental(user, "payment_summary", 1)
+            payment = PaymentInfo.objects.create(**payment_dict)
+            PaymentSummary.objects.create(order_id=order.id, payment_id=payment_id, payment_info=payment)
+
+def cancel_order(order_details, original_order_id, user):
+    from rest_api.views.common import order_cancel_functionality
+    admin_user = get_admin(user)
+    order_detail_ids = list(order_details.values_list('id', flat=True))
+    IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    # if order_detail_ids and not picklists:
+    order_cancel_functionality(order_detail_ids, admin_user=admin_user)
+        # for order_detail_id in order_detail_ids:
+        #     order_obj = OrderDetail.objects.get(id=order_detail_id)
+        #     order_obj.cancelled_quantity = order_obj.cancelled_quantity + order_obj.quantity
+        #     if order_obj.original_quantity == order_obj.cancelled_quantity:
+        #         order_obj.status = 3
+        #     elif order_obj.shipmentinfo_set.filter().exists() and not order_obj.picklist_set.filter(reserved_quantity__gt=0).exists():
+        #         order_obj.status = 2
+        #     else:
+        #         order_obj.status = 0
+        #     order_obj.save()
+        #     if admin_user:
+        #         OrderFields.objects.filter(user=admin_user.id, original_order_id=original_order_id).delete()
+
+
+def return_order(order_details, original_order_id, request, user, return_quantity=0, failed_status=''):
+    from rest_api.views.inbound import create_return_order, save_return_locations, returns_order_tracking
+    credit_note_number = ''
+    admin_user = get_admin(user)
+    order_detail_ids = order_details.values_list('id', flat=True)
+    seller_orders = list(
+        SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED',
+                                   status=1). \
+        values_list('order_id', flat=True))
+    order_detail_ids = list(order_detail_ids)
+    #IntermediateOrders.objects.filter(order__id__in=order_detail_ids).update(status = 3)
+    picklists = Picklist.objects.filter(order_id__in=order_detail_ids, order__user=user.id)
+    if seller_orders:
+        OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
+        SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
+        order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
+    final_data = []
+    for order in order_details:
+        #order_quantity = order.original_quantity - order.cancelled_quantity
+        order_returned = OrderTracking.objects.filter(order_id=order.id, status='returned').aggregate(Sum('quantity'))['quantity__sum']
+        if not order_returned:
+            order_returned = 0
+        if get_permission(user, 'add_shipmentinfo'):
+            shipping_qty = ShipmentInfo.objects.filter(order_id=order.id).\
+                                                aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+        else:
+            shipping_qty = picklists.filter(order_id=order.id).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not return_quantity:
+            return_quantity = shipping_qty - order_returned
+        if not return_quantity:
+            continue
+        if return_quantity > (shipping_qty - order_returned):
+            error_message = "Return Quantity Exceeding the Shipping quantity for SKU %s" % str(order.sku.sku_code)
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+        final_data.append({"order": order, "return_quantity": return_quantity, "order_returned": order_returned})
+    updated_records = 0
+    if not failed_status:
+        for order_data in final_data:
+            return_quantity = order_data['return_quantity']
+            order = order_data['order']
+            order_quantity = order.original_quantity - order.cancelled_quantity
+            if str(order.status) == '4' or order_returned == order_quantity:
+                continue
+            if (order_returned + return_quantity) >= order_quantity:
+                order.status = 4
+            order.save()
+            data_dict = {'sku_code': order.sku.sku_code, 'return': return_quantity, 'damaged': 0, 'order_imei_id': '',
+                         'order_id': order.original_order_id, 'order_detail_id': order.id}
+            data_dict['id'], status, seller_order_ids, credit_note_number = create_return_order(data_dict, user.id,
+                                                                                                credit_note_number)
+            order_returns = OrderReturns.objects.filter(id=data_dict['id'])
+            if not order_returns:
+                return HttpResponse("Failed")
+            order_returns = order_returns[0]
+            save_return_locations([order_returns], [], 0, request, user, locations='')
+            returns_order_tracking(order_returns, user, return_quantity, 'returned', imei='', invoice_no='')
+            updated_records += 1
+    if not updated_records:
+        error_message = "Record not found or returned already"
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    return failed_status
+
+
+def validate_update_order(request_data, user='', company_name=''):
+    search_params = {'user': user.id}
+    sister_whs = []
+    original_order_id = ''
+    status = ''
+    failed_status = OrderedDict()
+    sister_whs1 = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+    for sister_wh1 in sister_whs1:
+        sister_whs.append(str(sister_wh1).lower())
+    if request_data.has_key('order_id'):
+        original_order_id = str(request_data['order_id'])
+    else:
+        error_message = 'Order ID required'
+        update_error_message(failed_status, 5024, error_message, original_order_id)
+    if request_data.has_key('warehouse'):
+        warehouse = request_data['warehouse']
+        sister_whs.append(user.username)
+        if warehouse.lower() in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            error_message = 'Invalid Warehouse Name'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    search_params = {'user': user.id}
+    if request_data.has_key('sku_code'):
+        search_params['sku__sku_code'] = request_data['sku_code']
+    if request_data.has_key('status'):
+        status = request_data['status'].lower()
+    return_quantity = request_data.get('return_quantity', 0)
+
+
+    # else:
+    #     error_message = 'Please mention status'
+    #     update_error_message(failed_status, 5024, error_message, original_order_id)
+    if not failed_status:
+        order_details = OrderDetail.objects.filter(original_order_id=original_order_id, **search_params)
+        if order_details:
+            if request_data.has_key('payment_status'):
+                payment_status = request_data.get('payment_status')
+                if payment_status.lower() == 'paid':
+                    for order in order_details:
+                        invoice_amount = order.invoice_amount
+                        order.payment_received = invoice_amount
+                        order.save()
+            if request_data.has_key('payment_info'):
+                payment_info = request_data['payment_info']
+                check_and_update_payment(payment_info, order_details, user)
+            if status == 'cancel':
+                cancel_order(order_details, original_order_id,user)
+            elif status == 'return':
+                failed_status = return_order(order_details, original_order_id, request_data, user,
+                                       return_quantity=return_quantity, failed_status=failed_status)
+        else:
+            error_message = 'Please check the data'
+            update_error_message(failed_status, 5024, error_message, original_order_id)
+    return failed_status.values()
+
 def validate_create_orders(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
@@ -2389,7 +2580,8 @@ def validate_create_orders(orders, user='', company_name='', is_cancelled=False)
                         if not tax and igst_tax:
                             tax = igst_tax
                         if order_create and not invoice_amount:
-                            amt = float(order_details['quantity']) * order_details['unit_price']
+                            amt = (float(order_details['quantity']) * order_details['unit_price']) -\
+                                  order_summary_dict['discount']
                             order_details['invoice_amount'] = amt + ((amt/100)*tax)
 
                         if order.has_key('payment_status'):

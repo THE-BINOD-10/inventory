@@ -121,6 +121,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         ean_number: "",
                         load_unit_handle: "0",
                         hot_release: 0,
+                        batch_based: 0,
                         image_url:"images/wms/dflt.jpg",
                         measurement_type: "",
                         block_options: "No"
@@ -238,14 +239,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.attributes = data.attributes;
                   vm.model_data.measurement_type = data.sku_data.measurement_type;
                   //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
-                  if (vm.permissions.show_vehiclemaster) {
+                  //if (vm.permissions.show_vehiclemaster) {
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
                     {
                       attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
                     }
                   });
-                  }
+                  //}
                   for (var j=0; j<vm.model_data.market_data.length; j++) {
                     var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
                     vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];

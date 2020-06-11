@@ -7,7 +7,7 @@
           <h4 class="modal-title">{{showCase.title}}</h4>
         </div>
         <!-- body-->
-        <div class="modal-body">
+        <div class="modal-body" ng-mouseover="showCase.readonly_permission()">
           <div class="clearfix">
             <div class="row" ng-if="!(showCase.model_data.login_created)">
               <div class="col-md-11 col-sm-11 col-xs-10">
@@ -135,6 +135,15 @@
                   <select class="form-control" ng-model="showCase.model_data.tax_type" name="tax_type" required>
                     <option value=""> None </option>
                     <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_value}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Currency Code</label>
+                  <select class="form-control" ng-model="showCase.model_data.currency_code" name="currency_code" required>
+                    <option value=""> None </option>
+                    <option ng-repeat="one in showCase.all_currency_codes" value="{{one}}" ng-selected="one == showCase.model_data.currency_code">{{one}}</option>
                   </select>
                 </div>
               </div>
@@ -308,9 +317,9 @@
         <!-- body end-->
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="show_tab('change_suppliermaster')" ng-disabled="process">
             <span>Save</span>
-            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
           </button>
         </div>
       </div><!-- /.modal-content -->

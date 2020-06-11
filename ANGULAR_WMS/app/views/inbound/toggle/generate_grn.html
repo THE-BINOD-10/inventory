@@ -8,9 +8,6 @@
   .sidebar-panel{
     z-index: 1000;
   }
-  /* .ng-invalid-required {
-    border: 1px solid red;
-  } */
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
@@ -29,12 +26,15 @@
                 <div class="col-xs-4"><b>{{showCase.grn_details[model_name]}}</b></div>
                 <div class="col-xs-8">: {{showCase.model_data[model_name]}}</div>
               </div>
+              <div class="row" ng-if="showCase.product_type">
+                <div class="col-xs-4"><b>Product Category</b></div>
+                <div class="col-xs-8">: {{showCase.product_type}}</div>
+              </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
               <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
                 ng-click="showCase.gen_barcode()">Generate Barcodes</button>
             </div>
-
 			<div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
 			  <p style="float:right">DC Level GRN :
 			  <label class="switch switch-sm square mt5">
@@ -117,23 +117,34 @@
 
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
               <div class="form-group">
-                <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user'|| showCase.permissions.mandate_invoice_number">*</span></label>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number" required>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number">
+                <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check">
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false || showCase.permissions.mandate_invoice_number">
               <div class="form-group">
-                <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number">*</span></label>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number" required readonly>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'&& !showCase.permissions.mandate_invoice_number "readonly>
+                <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check">*</span></label>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user' || showCase.permissions.mandate_invoice_number || showCase.permissions.receive_po_inv_value_qty_check" required readonly>
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user' && !showCase.permissions.mandate_invoice_number && !showCase.permissions.receive_po_inv_value_qty_check" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check && !showCase.permissions.receive_po_inv_value_qty_check">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
                 <input class="form-control" ng-readonly="showCase.invoice_readonly_option" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
-                <!-- <input class="form-control" ng-if="showCase.invoice_readonly == 'True'" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" readonly> -->
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Value *</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Quantity *</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_quantity" type="text" ng-class="service.get_decimal_perm()" name="invoice_quantity" required>
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
@@ -167,7 +178,13 @@
               <hr>
             </div>
           </div>
-          <div class="row">
+          <div class="row" ng-if="showCase.product_type=='Kits&Consumables'">
+            <div ng-include="'views/inbound/toggle/GRN/kits_consumables.html'"></div>
+          </div>
+          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets' || showCase.product_type=='OtherItems'" >
+            <div ng-include="'views/inbound/toggle/GRN/grn_services_assets.html'"></div>
+          </div>
+          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables' && showCase.product_type!='OtherItems'">
             <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
@@ -186,7 +203,6 @@
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type !='FMCG'">GRN Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
-
                     <!--<th ng-if="showCase.industry_type=='FMCG'">MRP</th>-->
                     <th>MRP</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Weight</th>
@@ -201,8 +217,7 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Return Quantity</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Discrepancy Reason</th>
                     <th>Total</th>
-                    <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
-
+                    <th ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')" class="plus"></th>
                     <th class="detail"></th>
                   <tr>
                 </thead>
@@ -217,7 +232,6 @@
                              style="color:red;"
                       >
                       <input type="hidden" name="wrong_sku" value="{{data.wrong_sku}}">
-
                       <input type="text" autocomplete="off" name="wms_code" size="30" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" ng-if="data.is_new">
                       <input type="hidden" name="batch_ref" value="{{data.batch_ref}}">
                       <!-- out of elements start -->
@@ -322,18 +336,14 @@
                                ng-keyup= "showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-<!--                      <input type="text" ng-model="data.discrepency_reason"-->
-<!--                             size="15" title="{{ data.discrepency_reason }}"-->
-<!--                             name="discrepency_reason" class="form-control detectTab"-->
-<!--                             value="{{data.discrepency_reason}}"-->
                        <select class="show-menu-arrow form-control pull-left" ng-model="data.discrepency_reason" name="discrepency_reason">
                       <option value="">Select</option>
-                      <option ng-repeat="reason in showCase.model_data.discrepancy_reasons" value="{{ reason }}"> {{ reason }}</option>
+                      <option  ng-repeat="reason in showCase.model_data.discrepancy_reasons" ng-selected="data.discrepency_reason == reason"  value="{{ reason }}"> {{ reason }}</option>
                       </select>
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
 
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
@@ -403,7 +413,7 @@
                     </td>
                     <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt | number:2}}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt | number:2}}" readonly>
                     <!-- <input type="text" size="40" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" name="total_amt" class="form-control detectTab" value="{{data.total_amt}}" desabled> --></td>
-                    <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>
@@ -411,10 +421,30 @@
               </table>
             </div>
           </div>
-          <div class="row" ng-hide="showCase.permissions.use_imei">
+          <div class="row" ng-hide="showCase.permissions.use_imei || showCase.product_type">
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>
+          </div>
+          <div class="row mr10 ml10 mb10">
+            <div class="col-md-12">
+              <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0})">Add Other Charges(+)</a>
+            </div>
+            <div class="col-md-12">
+              <div class="row mt20" ng-repeat="charge in showCase.model_data.other_charges">
+                <div class="col-md-3 col-sm-4 col-xs-6">
+                  Charge Name :
+                  <input type="text" class="form-control" placeholder="Enter Charge Name *" ng-model="charge.name" required>
+                </div>
+                <div class="col-md-2 col-sm-2 col-xs-3">
+                  Amount:
+                  <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.amount" ng-change="showCase.update_grn_total(charge, 'add')" decimal-number>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-2">
+                  <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.other_charges.splice($index, 1);showCase.update_grn_total(charge, 'remove');"></i>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-4">
@@ -437,7 +467,7 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;"  ng-show="showCase.central_po">
+          <div class="row" style="padding-top: 35px;"  ng-show="showCase.central_po && !showCase.model_data.dc_level_grn">
               <div class="form-group col-md-3">
                 <div>File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
@@ -473,7 +503,7 @@
         <div ng-show="showCase.central_po" >
         <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
         <button ng-if="(!(showCase.print_enable)) && showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Send for Approval</button>
-        <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
+        <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">{{showCase.product_type=='Services' ? 'Generate SRN' : 'Generate GRN'}}</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>

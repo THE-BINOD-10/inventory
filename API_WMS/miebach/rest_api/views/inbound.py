@@ -3151,7 +3151,7 @@ def convert_pr_to_po(request, user=''):
                     pendingPoObj.pending_prs.add(existingPRObj)
                 else:
                     sub_pr_number = PendingPR.objects.filter(pr_number=existingPRObj.pr_number,
-                                    wh_user=existingPRObj.wh_user, 
+                                    wh_user=existingPRObj.wh_user,
                                     full_pr_number=existingPRObj.full_pr_number).aggregate(Max('sub_pr_number'))
                     if sub_pr_number:
                         sub_pr_number = sub_pr_number['sub_pr_number__max']
@@ -3268,7 +3268,7 @@ def netsuite_pr(user, PRQs, full_pr_number):
         pr_datas.append(pr_data)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegratePurchaseRequizition(pr_datas , pr_number, is_multiple=True)
+        intObj.IntegratePurchaseRequizition(pr_datas , "full_pr_number", is_multiple=True)
     except Exception as e:
         print(e)
 
@@ -3280,7 +3280,7 @@ def send_pr_to_parent_store(request, user=''):
     skuQtyMap = {}
     skuPrIdsMap = {}
     prIdSkusMap = {}
-    log.info("Send To Parent Store from user %s and request params are %s" % (user.username, 
+    log.info("Send To Parent Store from user %s and request params are %s" % (user.username,
                     str(request.POST.dict())))
     myDict = dict(request.POST.iterlists())
     for i in range(0, len(myDict['sku_code'])):
@@ -3295,14 +3295,14 @@ def send_pr_to_parent_store(request, user=''):
     try:
         for prId, skus in prIdSkusMap.items():
             prObj = PendingPR.objects.get(id=prId)
-            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                                 wh_user=prObj.wh_user, final_status='store_sent')
             existingLineItems = PendingLineItems.objects.filter(pending_pr_id=prId)
             if not existingParentSentPR.exists() and existingLineItems.count() == len(skus):
                 prObj.final_status = 'store_sent'
                 prObj.save()
             else:
-                # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+                # existingParentSentPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                 #                 wh_user=prObj.wh_user, final_status='store_sent')
                 if existingParentSentPR.exists():
                     existingParentStorePRObj = existingParentSentPR[0]
@@ -3442,7 +3442,7 @@ def get_pr_preview_data(request, user=''):
 def send_back_po_to_pr(request, user=''):
     myDict = dict(request.POST.iterlists())
     po_id = myDict.get('purchase_id')[0]
-    log.info("PO Sending back to PR: from user %s and request params are %s" % (user.username, 
+    log.info("PO Sending back to PR: from user %s and request params are %s" % (user.username,
                     str(request.POST.dict())))
     try:
         pendingPoObj = PendingPO.objects.get(id=po_id)
@@ -3457,7 +3457,7 @@ def send_back_po_to_pr(request, user=''):
                 if get_admin(prObj.wh_user).userprofile.warehouse_type == 'SUB_STORE':
                     final_status_flag = 'store_sent'
 
-            existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number, 
+            existingApprovedPR = PendingPR.objects.filter(pr_number=prObj.pr_number,
                                 wh_user=prObj.wh_user, final_status=final_status_flag)
             if not existingApprovedPR.exists():
                 if poItems == prItems:
@@ -3500,7 +3500,7 @@ def send_back_po_to_pr(request, user=''):
                             'utgst_tax': lineItem.utgst_tax,
                         }
                         PendingLineItems.objects.create(**lineItemMap)
-                    lineItems.delete()            
+                    lineItems.delete()
             else:
                 existingApprovedPRObj = existingApprovedPR[0]
                 poLineItems = existingLineItems.filter(sku__sku_code__in=poItems)
@@ -3517,14 +3517,14 @@ def send_back_po_to_pr(request, user=''):
                         'igst_tax': lineItem.igst_tax,
                         'utgst_tax': lineItem.utgst_tax,
                     }
-                    PendingLineItems.objects.create(**lineItemMap)            
+                    PendingLineItems.objects.create(**lineItemMap)
         pendingPoObj.final_status = 'po_converted_back_to_pr'
         pendingPoObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("PO Sending back to PR: failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
-        return HttpResponse('PO Sending back to PR is Failed')    
+        return HttpResponse('PO Sending back to PR is Failed')
     return HttpResponse("Sent Back Successfully")
 
 @csrf_exempt
@@ -3740,7 +3740,7 @@ def cancel_pr(request, user=''):
 @login_required
 @get_admin_user
 def submit_pending_approval_enquiry(request, user=''):
-    log.info("Enquiry Submission for pending PO by user %s and request params are %s" 
+    log.info("Enquiry Submission for pending PO by user %s and request params are %s"
         % (user.username, str(request.POST.dict())))
     is_purchase_request = request.POST.get('is_purchase_request')
     purchase_id = request.POST.get('purchase_id')
@@ -5798,7 +5798,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         grn_data['items'].append(item)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegrateGRN(grn_data, grn_number, is_multiple=False)
+        intObj.IntegrateGRN(grn_data, "grn_number", is_multiple=False)
     except Exception as e:
         print(e)
 
@@ -8196,7 +8196,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegratePurchaseOrder(po_data, po_number, is_multiple=False)
+        intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:
         print(e)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
@@ -10655,7 +10655,7 @@ def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
         dc_data.append(grn_info)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegrateGRN(dc_data, dc_data[0]["grn_number"], is_multiple=True)
+        intObj.IntegrateGRN(dc_data, "grn_number", is_multiple=True)
     except Exception as e:
         print(e)
     return {"data": dc_data}
@@ -10774,7 +10774,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
         invoice_data = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in invoice_data)]
-        intObj.IntegrateGRN(invoice_data, invoice_data[0]["grn_number"], is_multiple=True)
+        intObj.IntegrateGRN(invoice_data, "grn_number", is_multiple=True)
     except Exception as e:
         print(e)
     return {"data": invoice_data }
@@ -12258,7 +12258,7 @@ def create_rtv(request, user=''):
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice["po_number"]=request_data["po_number"][0]
-                intObj.IntegrateRTV(show_data_invoice, show_data_invoice["rtv_number"], is_multiple=False)
+                intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
@@ -13539,7 +13539,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         creditnote_data.append(grn_data)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegrateGRN(creditnote_data, creditnote_data[0]["grn_number"], is_multiple=True)
+        intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True)
     except Exception as e:
         print(e)
 

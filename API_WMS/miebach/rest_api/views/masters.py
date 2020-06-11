@@ -1303,17 +1303,17 @@ def netsuite_sku(data, user, instanceName=''):
         sku_data_dict=intObj.gatherSkuData(data)
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
             # intObj.initiateAuthentication()
             sku_data_dict.update(sku_attr_dict)
-            intObj.integrateSkuMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
     except Exception as e:
         print(e)
 

@@ -2040,7 +2040,7 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
             sku_list_dict.append(sku_attr_dict)
-        intObj.integrateSkuMaster(sku_list_dict, sku_list_dict[0]["sku_code"], is_multiple= True)
+        intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
         print(e)
 
@@ -2060,7 +2060,7 @@ def upload_netsuite_sku(data, user, instanceName=''):
         else:
             # # intObj.initiateAuthentication()
             # sku_data_dict.update(sku_attr_dict)
-            intObj.integrateSkuMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
     except Exception as e:
         print(e)
 

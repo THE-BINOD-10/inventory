@@ -16,7 +16,6 @@ import json,os
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
 
-
 Batched = True
 TEMPFOLDER = '/tmp'
 
@@ -193,17 +192,11 @@ class Integrations():
     def IntegratePurchaseRequizition(self, prData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-<<<<<<< HEAD
-                self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseRequizition', unique_variable)
-            else:
-                for dataDict in skuObject:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition', unique_variable)
-=======
-                self.storeIntegrationDataForLaterUser(prData, 'PurchaseRequizition')
+                self.storeIntegrationDataForLaterUser(prData, 'PurchaseRequizition', unique_variable)
             else:
                 for dataDict in prData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition')
->>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
+                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseRequizition', unique_variable)
+
         else:
             result = []
             if not is_multiple:
@@ -224,17 +217,11 @@ class Integrations():
     def IntegratePurchaseOrder(self, poData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-<<<<<<< HEAD
-                self.storeIntegrationDataForLaterUser(skuObject, 'PurchaseOrder', unique_variable)
-            else:
-                for dataDict in skuObject:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder', unique_variable)
-=======
-                self.storeIntegrationDataForLaterUser(poData, 'PurchaseOrder')
+                self.storeIntegrationDataForLaterUser(poData, 'PurchaseOrder', unique_variable)
             else:
                 for dataDict in poData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder')
->>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
+                    self.storeIntegrationDataForLaterUser(dataDict, 'PurchaseOrder', unique_variable)
+
         else:
             result = []
             if not is_multiple:
@@ -255,17 +242,10 @@ class Integrations():
     def IntegrateRTV(self, rtvData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-<<<<<<< HEAD
-                self.storeIntegrationDataForLaterUser(skuObject, 'rtv', unique_variable)
-            else:
-                for dataDict in skuObject:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'rtv', unique_variable)
-=======
-                self.storeIntegrationDataForLaterUser(rtvData, 'rtv')
+                self.storeIntegrationDataForLaterUser(rtvData, 'rtv', unique_variable)
             else:
                 for dataDict in rtvData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'rtv')
->>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
+                    self.storeIntegrationDataForLaterUser(dataDict, 'rtv', unique_variable)
         else:
             result = []
             if not is_multiple:
@@ -286,17 +266,10 @@ class Integrations():
     def IntegrateGRN(self, grnData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-<<<<<<< HEAD
-                self.storeIntegrationDataForLaterUser(skuObject, 'grn', unique_variable)
-            else:
-                for dataDict in skuObject:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'grn', unique_variable)
-=======
-                self.storeIntegrationDataForLaterUser(grnData, 'grn')
+                self.storeIntegrationDataForLaterUser(grnData, 'grn', unique_variable)
             else:
                 for dataDict in grnData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'grn')
->>>>>>> 53c5ea08922520fa8f318e10121a269af36e6d1b
+                    self.storeIntegrationDataForLaterUser(dataDict, 'grn', unique_variable)
         else:
             result = []
             if not is_multiple:

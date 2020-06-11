@@ -9,7 +9,7 @@ def send_mail(send_to, subject, body):
     if not send_to:
         return
 
-    fromaddr = 'noreply@mieone.com'
+    fromaddr = 'sai@mieone.com'
 
     msg = MIMEMultipart()
 
@@ -24,7 +24,7 @@ def send_mail(send_to, subject, body):
 
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(fromaddr, "no*reply!59")
+        server.login(fromaddr, "sucklife")
         text = msg.as_string()
 
         server.sendmail(fromaddr, send_to, text)

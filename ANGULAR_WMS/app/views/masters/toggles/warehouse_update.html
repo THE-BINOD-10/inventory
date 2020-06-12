@@ -153,7 +153,7 @@
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label" ng-if="showCase.warehouse_type_name != 'Department'">{{showCase.warehouse_type_name}} Code </label>
-                    <label class="control-label" ng-if="showCase.warehouse_type_name == 'Department'"> Department Type {{ showCase.model_data.stockone_code}}</label>
+                    <label class="control-label" ng-if="showCase.warehouse_type_name == 'Department'"> Department Type </label>
                     <input type="text" name="stockone_code" class="form-control" ng-model="showCase.model_data.stockone_code" ng-if="showCase.warehouse_type_name != 'Department'">
                     <select class="form-control" ng-model="showCase.model_data.stockone_code" name="stockone_code" ng-if="showCase.warehouse_type_name == 'Department'" ng-init="showCase.model_data.stockone_code=='All'">
                       <option value=""> All </option>

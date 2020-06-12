@@ -5163,3 +5163,41 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', row.id), ('mrp', skuObj.mrp),
                                                 ('model_id', row.model_id))))
+
+
+def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
+    lis = ['name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    purchase_type =  request.POST.get('special_key', '')
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = PurchaseApprovalConfig.objects.filter(Q(name__icontains=search_term) |
+                                                                Q(product_category__icontains=search_term) |
+                                                                Q(plant__icontains=search_term) |
+                                                                Q(department_type__icontains=search_term),
+                                                                company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params).\
+                                        values('name', 'product_category', 'plant', 'department_type',
+                                               'min_Amt', 'max_Amt').distinct().\
+                                        order_by(order_data)
+
+    else:
+        mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params).\
+                                        values('name', 'product_category', 'plant', 'department_type',
+                                               'min_Amt', 'max_Amt').distinct().\
+                                        order_by(order_data)
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for result in mapping_results[start_index: stop_index]:
+        temp_data['aaData'].append(OrderedDict((('name', result['name']), ('product_category', result['product_category']),
+                                                ('plant', result['plant']),
+                                                ('department_type', department_mapping.get(result['department_type'], '')),
+                                                ('min_Amt', result['min_Amt']), ('max_Amt', result['max_Amt']),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', result['name']))))

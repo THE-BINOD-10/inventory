@@ -199,6 +199,11 @@
             <span>Staff Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_purchaseapprovalconfig')">
+          <a ui-sref="app.masters.PurchaseApproval">
+            <span>Purchase Approvals</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' && show_tab('add_pushnotifications')" >
           <a ui-sref="app.masters.NotificationMaster">
             <span>Notification Master</span>

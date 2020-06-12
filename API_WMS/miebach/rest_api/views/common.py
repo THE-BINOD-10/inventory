@@ -568,6 +568,7 @@ data_datatable = {  # masters
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
     'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -1084,21 +1085,22 @@ def add_update_pr_config(request,user=''):
         purchase_type = 'PO'
     company_id = get_company_id(user)
     if toBeUpdateData:
-        data = toBeUpdateData[0]
+        data = toBeUpdateData
         pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=data['name'], purchase_type=purchase_type)
         existingLevels = list(pr_approvals.values_list('level', flat=True))
-        mailsMap = data.get('mail_id', {})
-        updatingLevels = mailsMap.keys()
-        # tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
-        # if tobeDeletedLevels:
-        #     for eachLevel in tobeDeletedLevels:
-        #         tobeDeleteQs = pr_approvals.filter(level=eachLevel)
-        #         if tobeDeleteQs.exists():
-        #             tobeDeleteId = tobeDeleteQs[0].id
-        #             MasterEmailMapping.objects.filter(master_id=tobeDeleteId).delete()
-        #             tobeDeleteQs.delete()
+        mailsMap = data.get('level_data', {})
+        updatingLevels = map(lambda d: d['level'], mailsMap)
+        tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
+        if tobeDeletedLevels:
+            for eachLevel in tobeDeletedLevels:
+                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
+                if tobeDeleteQs.exists():
+                    tobeDeleteId = tobeDeleteQs[0].id
+                    tobeDeleteQs.delete()
 
-        for level, roles in mailsMap.items():
+        for level_dat in mailsMap:
+            level = level_dat['level']
+            roles = level_dat['roles']
             PRApprovalMap = {
                     'user': user,
                     'company_id': company_id,
@@ -1166,12 +1168,12 @@ def delete_pr_config(request, user=''):
     else:
         purchase_type = 'PO'
     if toBeDeleteData:
-        configName = toBeDeleteData[0].get('name')
+        configName = toBeDeleteData.get('name')
         pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type)
         if pacQs.exists():
             for pacObj in pacQs:
                 configId = pacObj.id
-                MasterEmailMapping.objects.filter(master_id=configId).delete()
+                #MasterEmailMapping.objects.filter(master_id=configId).delete()
             pacQs.delete()
         status = 'Deleted Successfully'
     else:
@@ -12318,3 +12320,41 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
                                                                       str(mail_list)))
     return mail_list
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_product_categories_list(request, user=''):
+    product_categories = list(PRODUCT_CATEGORIES)
+    return HttpResponse(json.dumps({'product_categories': product_categories}))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_purchase_config_data(request, user=''):
+    name = request.GET['name']
+    purchase_type = request.GET['purchase_type']
+    company_id = get_company_id(user)
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=name, purchase_type=purchase_type)
+    config_dict = {}
+    if purchase_config_data:
+        purchase_config = purchase_config_data[0]
+        config_dict = {'name': purchase_config.name, 'product_category': purchase_config.product_category,
+                       'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
+                       'min_Amt': purchase_config.min_Amt, 'max_Amt': purchase_config.max_Amt,
+                       'level_data': []}
+        for config in purchase_config_data:
+            roles = list(config.user_role.filter().values_list('role_name', flat=True))
+            config_dict['level_data'].append({'level': config.level, 'roles': ','.join(roles)})
+    return HttpResponse(json.dumps({'data': config_dict}))
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def all_purchase_approval_config_data(request, user=''):
+    config_dict = {}
+    config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
+    config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
+    return HttpResponse(HttpResponse(json.dumps({'config_data': config_dict})))

@@ -249,6 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
                   if (oldQty != parseInt(eachField.fields.order_quantity)){
                     vm.is_resubmitted = true
+                    vm.update = true;
                   }
                 })
               }

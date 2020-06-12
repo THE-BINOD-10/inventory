@@ -43,5 +43,5 @@ def executeAutomatedTaskForUser(userObj, row):
             log.info('Empty For Queue %s' % (row.get('objType')))
     except Exception as e:
         import traceback
-        log.debug(traceback.format_exc())
-        log.info('Faied Executing %s' % row.get('objType'))
+        log_err.debug(traceback.format_exc())
+        log_err.info('Faied Executing %s' % row.get('objType'))

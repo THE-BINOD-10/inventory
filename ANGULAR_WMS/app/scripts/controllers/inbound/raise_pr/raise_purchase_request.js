@@ -253,6 +253,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   }
                 })
               }
+            } else {
+              if (sku_data.order_quantity){
+                angular.forEach(vm.model_data.data, function(eachField){
+                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                  if (oldQty != parseInt(eachField.fields.order_quantity)){
+                    vm.update = true;
+                  }
+                })
+              }
             }
           }
 

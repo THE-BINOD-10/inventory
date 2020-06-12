@@ -255,10 +255,14 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number')
+    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number', 
+                                        'pending_po__pending_prs__sub_pr_number')
     POtoPRsMap = {}
-    for eachPO, pr_number in approvedPRQs:
-        POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
+    for eachPO, pr_number, sub_pr_number in approvedPRQs:
+        if sub_pr_number:
+            POtoPRsMap.setdefault(eachPO, []).append(str(pr_number) + '/' + str(sub_pr_number))
+        else:
+            POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
     POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__first_name'))
     for result in results[start_index: stop_index]:
@@ -301,7 +305,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 else:
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
                                         pr_user=wh_user, level=result['pending_po__pending_level'])
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')       
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),
@@ -2855,13 +2859,16 @@ def approve_pr(request, user=''):
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
         prefix = pendingPRObj.prefix
-        full_pr_number = pendingPRObj.full_pr_number
+        wh_user = pendingPRObj.wh_user
         if is_actual_pr == 'true':
-            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
+            full_pr_number = pendingPRObj.full_pr_number
+            createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
                     full_pr_number, orderStatus=orderStatus)
         else:
-            createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel, prefix,
-                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, supplier=PRQs[0].supplier.supplier_id)
+            full_pr_number = pendingPRObj.full_po_number
+            createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, 
+                    supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:
@@ -2969,8 +2976,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.remarks = remarks
         pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
-        if supplier:
-            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
+        pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -3729,7 +3735,7 @@ def cancel_pr(request, user=''):
         reversion.set_comment("CancelPR")
     else:
         model_name = PendingPO
-        filtersMap['po_number'] = pr_number
+        filtersMap['id'] = pr_number
         reversion.set_comment("CancelPO")
     prQs = model_name.objects.filter(**filtersMap)
     if prQs.exists():

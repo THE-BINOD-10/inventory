@@ -28,7 +28,7 @@
         <td>
           <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                  ng-class="service.get_decimal_perm()" 
-                 ng-readonly="showCase.permissions.change_pendingpr"
+                 ng-readonly="showCase.permissions.change_pendingpr && !showCase.permissions.po_or_pr_edit_permission_approver"
                  ng-change="showCase.checkResubmit(product.fields)"
                  size="12">
         </td>

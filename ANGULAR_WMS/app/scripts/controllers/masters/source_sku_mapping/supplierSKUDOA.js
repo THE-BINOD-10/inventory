@@ -58,9 +58,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('td', nRow).bind('click', function() {
           $scope.$apply(function() {
               // vm.model_data['create_login'] = false;
+              var margin_perc = parseInt(aData['margin_percentage'])
+              var mark_perc = parseInt(aData['markup_percentage'])
+              var lead_time = parseInt(aData['lead_time'])
+              aData['margin_percentage'] = margin_perc?margin_perc:0;
+              aData['markup_percentage'] = mark_perc?mark_perc:0;
+              aData['lead_time'] = lead_time?lead_time:0
               angular.copy(aData, vm.model_data);
               vm.update = true;
               vm.title = "Supplier SKU DOA";
+              vm.is_doa = true;
               $state.go('app.masters.sourceSKUMapping.mapping');
           });
       });
@@ -110,13 +117,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(valid)
       {
        delete(vm.model_data.mrp)
-       if ("Supplier SKU DOA" == vm.title) {
-           vm.supplier_sku('insert_mapping/');
-          }
-        else {
-           vm.model_data['data-id'] = vm.model_data.DT_RowId;
-           vm.supplier_sku('update_sku_supplier_values/');
-        }
+       // if ("Supplier SKU DOA" == vm.title) {
+       //     vm.supplier_sku('insert_mapping/');
+       //    }
+       //  else {
+       //     vm.model_data['data-id'] = vm.model_data.DT_RowId;
+       //     vm.supplier_sku('update_sku_supplier_values/');
+       //  }
+       if (parseInt(vm.model_data.model_id) == 0){
+        vm.supplier_sku('insert_mapping/');
+       } else {
+        vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
+        vm.supplier_sku('update_sku_supplier_values/');
+       }
+
       }
     }
   }

@@ -106,7 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
+        DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
@@ -364,7 +364,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-
+      elem.push({'name': 'grn_number', 'value': vm.model_data.grn_number});
+      elem.push({'name': 'po_number', 'value': vm.model_data.po_reference});
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
           elem.push({'name': 'sku_code', 'value': sku.sku_code});

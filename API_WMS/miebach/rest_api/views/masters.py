@@ -17,7 +17,7 @@ from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
-
+from stockone_integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 
@@ -1297,16 +1297,25 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
-    if instanceName == ServiceMaster:
-        response = netsuite_update_create_service(data, user)
-    elif instanceName == AssetMaster:
-        response = netsuite_update_create_assetmaster(data, user)
-    elif instanceName == OtherItemsMaster:
-        response = netsuite_update_create_otheritem_master(data, user)
-    else:
-        response = netsuite_update_create_sku(data, sku_attr_dict, user)
-    # if response.has_key('__values__') and not netsuite_map_obj.exists():
-    #     internal_external_map(response, type_name='sku_master')
+    # from integrations.views import Integrations
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
+        else:
+            # intObj.initiateAuthentication()
+            sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -1576,6 +1585,11 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
+    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+    if doa_qs.exists():
+        doa_obj = doa_qs[0]
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 
@@ -2464,7 +2478,8 @@ def get_warehouse_user_data(request, user=''):
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
-            'zone': user_profile.zone, 'reference_id': user_profile.reference_id}
+            'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -2871,7 +2886,6 @@ def insert_sku(request, user=''):
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-
             sku_master = instanceName(**data_dict)
             sku_master.save()
             update_sku_attributes(sku_master, request)
@@ -4997,21 +5011,35 @@ def send_supplier_doa(request, user=''):
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
+    req_user = request.user
+    if not request.user.is_staff:
+        req_user = user
     doa_dict = {
-        'requested_user': request.user,
+        'requested_user': req_user,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),
         'doa_status': 'pending'
     }
-    doa_obj = MastersDOA(**doa_dict)
-    doa_obj.save()
+    if not data_dict.has_key('DT_RowId'):
+        doa_obj = MastersDOA(**doa_dict)
+        doa_obj.save()
+    else:
+        doa_dict['model_id'] = data_dict['DT_RowId']
+        doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            doa_obj.json_data = json.dumps(data_dict)
+            doa_obj.save()
+        else:
+            doa_obj = MastersDOA(**doa_dict)
+            doa_obj.save()
     return HttpResponse("Added Successfully")
 
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 
-            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq', 
+    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
+            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
             'lead_time', 'sku__user', 'status']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
@@ -5032,11 +5060,11 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
     else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
 
@@ -5067,4 +5095,5 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('warehouse', warehouse.username),
                                                 ('status', row.doa_status),
                                                 ('DT_RowClass', 'results'),
-                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp))))
+                                                ('DT_RowId', row.id), ('mrp', skuObj.mrp),
+                                                ('model_id', row.model_id))))

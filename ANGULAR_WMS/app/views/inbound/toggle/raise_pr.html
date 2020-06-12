@@ -122,7 +122,7 @@
 </style>
 
 <div id="page-pop" class="modal fade in over-x">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
@@ -193,6 +193,14 @@
             </div>
             <div class="col-md-10 col-sm-10 col-xs-10">
               <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
+            </div>
+          </div>
+
+          <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables'">
+            <div class="form-group col-md-3" style="padding-top: 30px;">
+               <span>
+                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
+               </span>
             </div>
           </div>
     		</div>

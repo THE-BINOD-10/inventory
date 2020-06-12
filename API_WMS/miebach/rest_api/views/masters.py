@@ -17,7 +17,7 @@ from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
 from rest_api.views.common import internal_external_map
-
+from stockone_integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
 
@@ -1315,16 +1315,25 @@ def netsuite_sku(data, user, instanceName=''):
     #     external_id = netsuite_map_obj[0].external_id
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
-    if instanceName == ServiceMaster:
-        response = netsuite_update_create_service(data, user)
-    elif instanceName == AssetMaster:
-        response = netsuite_update_create_assetmaster(data, user)
-    elif instanceName == OtherItemsMaster:
-        response = netsuite_update_create_otheritem_master(data, user)
-    else:
-        response = netsuite_update_create_sku(data, sku_attr_dict, user)
-    # if response.has_key('__values__') and not netsuite_map_obj.exists():
-    #     internal_external_map(response, type_name='sku_master')
+    # from integrations.views import Integrations
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
+        else:
+            # intObj.initiateAuthentication()
+            sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -1594,9 +1603,11 @@ def update_sku_supplier_values(request, user=''):
 
         setattr(data, key, value)
     data.save()
-    doa_obj = MastersDOA.objects.get(model_id=data_id, model_name='SKUSupplier')
-    doa_obj.doa_status = 'created'
-    doa_obj.save()
+    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+    if doa_qs.exists():
+        doa_obj = doa_qs[0]
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
     return HttpResponse('Updated Successfully')
 
 
@@ -2893,7 +2904,6 @@ def insert_sku(request, user=''):
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-
             sku_master = instanceName(**data_dict)
             sku_master.save()
             update_sku_attributes(sku_master, request)
@@ -5050,7 +5060,7 @@ def get_company_list(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def send_supplier_doa(request, user=''):    
+def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     for key, value in request.POST.iteritems():
@@ -5104,8 +5114,8 @@ def send_supplier_doa(request, user=''):
 
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price', 
-            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq', 
+    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
+            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
             'lead_time', 'sku__user', 'status']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
@@ -5126,11 +5136,11 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
     else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users, 
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="SKUSupplier",
                     doa_status="pending").order_by(order_data)
 

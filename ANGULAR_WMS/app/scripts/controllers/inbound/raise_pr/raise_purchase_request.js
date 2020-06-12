@@ -243,13 +243,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
           vm.checkResubmit = function(sku_data){
             vm.is_resubmitted = false;
-            if (sku_data.order_quantity){
-              angular.forEach(vm.model_data.data, function(eachField){
-                var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                if (oldQty != parseInt(eachField.fields.order_quantity)){
-                  vm.is_resubmitted = true
-                }
-              })
+            if (!vm.permissions.change_pendingpr){
+              if (sku_data.order_quantity){
+                angular.forEach(vm.model_data.data, function(eachField){
+                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                  if (oldQty != parseInt(eachField.fields.order_quantity)){
+                    vm.is_resubmitted = true
+                    vm.update = true;
+                  }
+                })
+              }
+            } else {
+              if (sku_data.order_quantity){
+                angular.forEach(vm.model_data.data, function(eachField){
+                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+                  if (oldQty != parseInt(eachField.fields.order_quantity)){
+                    vm.update = true;
+                  }
+                })
+              }
             }
           }
 
@@ -571,8 +583,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.getFirstSupplier = function(data){
-      vm.getsupBasedPriceDetails(Object.keys(data.supplierDetails)[0], data)
-      return Object.keys(data.supplierDetails)[0];
+      vm.getsupBasedPriceDetails(data["preferred_supplier"], data)
+      return data["preferred_supplier"];
 
     }
     vm.getsupBasedPriceDetails = function(supplier_id_name, sup_data){

@@ -21,7 +21,7 @@ from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from inbound_common_operations import *
-
+from stockone_integrations.views import Integrations
 
 log = init_logger('logs/uploads.log')
 
@@ -1560,6 +1560,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -1933,14 +1935,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_data.save()
         if sku_data:
             sku_data.save()
-            if instanceName == ServiceMaster:
-                response = netsuite_update_create_service(sku_data, user)
-            elif instanceName == AssetMaster:
-                response = netsuite_update_create_assetmaster(sku_data, user)
-            elif instanceName == OtherItemsMaster:
-                response = netsuite_update_create_otheritem_master(sku_data, user)
-            else:
-                data= netsuite_update_create_sku(sku_data, attr_dict, user)
+            upload_netsuite_sku(sku_data, user,instanceName)
             all_sku_masters.append(sku_data)
             if _size_type:
                 check_update_size_type(sku_data, _size_type)
@@ -1996,7 +1991,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))
         sku_key_map = OrderedDict(new_sku_master.values_list('sku_code', 'id'))
-        res= netsuite_sku_bulk_create(instanceName, sku_key_map, new_skus)
+        res=upload_bulk_insert_sku(instanceName, sku_key_map, new_skus, user)
+        # res= netsuite_sku_bulk_create(instanceName, sku_key_map, new_skus)
         for sku_code, sku_id in sku_key_map.items():
             sku_data = SKUMaster.objects.get(id=sku_id)
             if new_skus[sku_code].get('size_type', ''):
@@ -2034,6 +2030,39 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 
     return 'success'
 
+def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
+    try:
+        sku_list_dict=[]
+        intObj = Integrations(user,'netsuiteIntegration')
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_master_data=intObj.gatherSkuData(sku_master_data)
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            sku_attr_dict.update(sku_master_data)
+            sku_list_dict.append(sku_attr_dict)
+        intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
+    except Exception as e:
+        print(e)
+
+def upload_netsuite_sku(data, user, instanceName=''):
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        else:
+            # # intObj.initiateAuthentication()
+            # sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+    except Exception as e:
+        print(e)
 
 @csrf_exempt
 @login_required
@@ -2949,7 +2978,7 @@ def supplier_sku_upload(request, user=''):
 
         mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
         if user.userprofile.warehouse_level != 0:
-            del mapping['Warehouse']        
+            del mapping['Warehouse']
         headers = mapping.keys()
         file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
         for col_idx in range(0, open_sheet.ncols):

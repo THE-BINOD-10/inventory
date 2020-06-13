@@ -2002,12 +2002,18 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 hot_release = 1 if (hot_release == 'enable') else 0
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
-                if attributes[attr_key] == 'Multi Input':
-                    attr_vals = attr_val.split(',')
+                if attr_val:
+                    if attributes[attr_key] == 'Multi Input':
+                        attr_vals = attr_val.split(',')
+                        allow_multiple = True
+                    else:
+                        attr_vals = [attr_val]
+                        allow_multiple = False
                 else:
-                    attr_vals = [attr_val]
-                create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
-                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+                    attr_vals = []
+                for attr_key_val in attr_vals:
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_key_val, is_bulk_create=True,
+                                               create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping, allow_multiple=allow_multiple)
 
             if new_skus[sku_code].get('ean_numbers', ''):
                 ean_numbers = new_skus[sku_code].get('ean_numbers', '')

@@ -63,6 +63,7 @@ class netsuiteIntegration(object):
             invitem.itemtype = data.get('batch_based','')
             invitem.purchaseunit = data.get('measurement_type','')
             invitem.includeChildren = 'Y'
+            invitem.cost= data.get('cost_price','')
             # invitem.taxtype = data.product_type
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
@@ -135,12 +136,14 @@ class netsuiteIntegration(object):
             ns = self.nc.raw_client
             rtvitem = ns.VendorReturnAuthorization()
             rtvitem.entity = str(rtv_data["supplier_name"])
-            rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
+            rtvitem.tranId = rtv_data['rtv_number']
+            # rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
             # rtvitem.location = ns.RecordRef(internalId=108)
             custom_field_list=[]
             custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
+            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value="Approved"))
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
             for idx, data in enumerate(rtv_data['item_details']):
@@ -243,7 +246,7 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=28))
+                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
             ])
             for data in po_data['items']:
                 line_item = {'item': ns.RecordRef(externalId=data['sku_code']),

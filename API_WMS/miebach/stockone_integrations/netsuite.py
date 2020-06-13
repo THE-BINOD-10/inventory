@@ -45,7 +45,7 @@ class netsuiteIntegration(object):
             data_response =  ns.upsertList(records)
         else:
             data_response =  ns.upsert(records)
-        print(data_response)
+        return data_response
 
     def initiate_item(self, data, item_type):
         data_response = {}
@@ -143,10 +143,10 @@ class netsuiteIntegration(object):
             custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
-            for data in rtv_data['item_details']:
+            for idx, data in enumerate(rtv_data['item_details']):
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
-                'orderLine': 1,
+                'orderLine': idx+1,
                 'quantity': data['order_qty'],
                 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
@@ -199,10 +199,11 @@ class netsuiteIntegration(object):
                     'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
                     'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True}
                     item.append(line_item)
-                grnrec.itemList = {'item':item}
+                grnrec.itemList = {'item':item, 'replaceAll': False}
                 grnrec.tranId = grn_data['grn_number']
                 grnrec.tranDate = grn_data["grn_date"]
             grnrec.externalId = grn_data['grn_number']
+            print(grnrec)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

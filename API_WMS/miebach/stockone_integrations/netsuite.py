@@ -197,8 +197,8 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
             if(grn_data.get("items",None)):
-                grn_custom_field_list=[]
                 for idx, data in enumerate(grn_data['items']):
+                    grn_custom_field_list=[]
                     if(data.get("batch_no",None)):
                         grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
                     if(data.get("mfg_date",None)):

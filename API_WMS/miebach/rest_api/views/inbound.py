@@ -5812,12 +5812,14 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
         if(data.get("mfg_date",None)):
-            mfg_date = datetime.strptime(data["mfg_date"], '%d-%m-%Y')
-            mfg_date= mfg_date.isoformat()
+            mfg_date = datetime.strptime(data["mfg_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
+            m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+            mfg_date= m_date.isoformat()
             item.update({"mfg_date":mfg_date})
         if(data.get("exp_date",None)):
-            exp_date = datetime.strptime(data["exp_date"], '%d-%m-%Y')
-            exp_date= exp_date.isoformat()
+            exp_date = datetime.strptime(data["exp_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
+            e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+            exp_date= e_date.isoformat()
             item.update({"exp_date":exp_date})
         grn_data['items'].append(item)
     try:

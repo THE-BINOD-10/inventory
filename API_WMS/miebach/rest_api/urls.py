@@ -85,11 +85,6 @@ urlpatterns = [
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
 
-
-
-
-
-
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
     # url(r'^update_custom_sku_template/$',update_custom_sku_template),
@@ -683,6 +678,8 @@ urlpatterns += [
     url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
     url(r'^user_prefixes_form/$', user_prefixes_form),
     url(r'^user_prefixes_upload/$', user_prefixes_upload),
+    url(r'^staff_master_form/$', staff_master_form),
+    url(r'^staff_master_upload/$', staff_master_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -753,6 +750,7 @@ urlpatterns += [
     url(r'^get_sku_attributes_data/$', get_sku_attributes_data),
     url(r'^get_company_warehouses/$', get_company_warehouses),
     url(r'^get_company_roles_list/$', get_company_roles_list),
+    url(r'^get_sku_category_list/$', get_sku_category_list),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

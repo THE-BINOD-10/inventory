@@ -1106,6 +1106,7 @@ def add_update_pr_config(request,user=''):
                     'company_id': company_id,
                     'name': data['name'],
                     'product_category': data['product_category'],
+                    'sku_category': data.get('sku_category', ''),
                     'plant': data.get('plant', ''),
                     'department_type': data.get('department_type', ''),
                     'min_Amt': data['min_Amt'],
@@ -1208,7 +1209,8 @@ def get_pr_approvals_configuration_data(user, purchase_type='PO'):
     elif purchase_type == 'PR':
         master_type = 'actual_pr_approvals_conf_data'
     pr_conf_obj = PurchaseApprovalConfig.objects.filter(user=user, purchase_type=purchase_type).order_by('creation_date')
-    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt', 'level')
+    pr_conf_data = pr_conf_obj.values('id', 'name', 'product_category', 'sku_category', 'plant', 'department_type',
+                                      'min_Amt', 'max_Amt', 'level')
     mailsMap = {}
     totalConfigData = OrderedDict()
     for eachConfData in pr_conf_data:
@@ -12343,7 +12345,7 @@ def get_purchase_config_data(request, user=''):
         config_dict = {'name': purchase_config.name, 'product_category': purchase_config.product_category,
                        'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
                        'min_Amt': purchase_config.min_Amt, 'max_Amt': purchase_config.max_Amt,
-                       'level_data': []}
+                       'level_data': [], 'sku_category': purchase_config.sku_category}
         for config in purchase_config_data:
             roles = list(config.user_role.filter().values_list('role_name', flat=True))
             config_dict['level_data'].append({'level': config.level, 'roles': ','.join(roles)})
@@ -12358,3 +12360,11 @@ def all_purchase_approval_config_data(request, user=''):
     config_dict['pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PO')
     config_dict['actual_pr_approvals_conf_data'] = get_pr_approvals_configuration_data(user, purchase_type='PR')
     return HttpResponse(HttpResponse(json.dumps({'config_data': config_dict})))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_sku_category_list(request, user=''):
+    category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
+                      values_list('sku_category', flat=True).distinct())
+    return HttpResponse(json.dumps({'category_list': category_list}))

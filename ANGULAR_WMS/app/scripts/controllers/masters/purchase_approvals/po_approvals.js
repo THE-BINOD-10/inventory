@@ -70,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {name: '', product_category: '', plant: '', department_type: '', min_Amt: '', max_Amt: '',
+  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '', min_Amt: '', max_Amt: '',
   level_data: [{level: 'level0', roles: ''}]};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
@@ -181,7 +181,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var prConfigData = vm.all_purchase_approval_data['pr_approvals_conf_data'] //vm.model_data['total_actual_pr_config_ranges'];
     angular.forEach(prConfigData, function(record, index){
       if(record.product_category == configData.product_category && record.plant == configData.plant &&
-            record.department_type == configData.department_type){
+            record.department_type == configData.department_type && record.sku_category == configData.sku_category){
         maxAmtsList.push(record.max_Amt);
       }
     });
@@ -197,5 +197,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   }
+
+  vm.category_list = [];
+  vm.service.apiCall('get_sku_category_list/').then(function(data){
+    if(data.message) {
+      vm.category_list = data.data.category_list;
+    }
+  });
 
 }

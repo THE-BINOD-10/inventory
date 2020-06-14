@@ -3260,7 +3260,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
         approval1 = ''
         allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
         if allApproavls:
-            approval1 = allApproavls[0]
+            if(allApproavls[0]):
+                approval1 = allApproavls[0]
+            else:
+                approval1 =  user.first_name
 
         pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}

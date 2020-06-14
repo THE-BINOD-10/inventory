@@ -143,7 +143,7 @@ class netsuiteIntegration(object):
             # rtvitem.location = ns.RecordRef(internalId=108)
             custom_field_list=[]
             custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
-            custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value="Approved"))
+            custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value=ns.ListOrRecordRef(internalId=2)))
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
             for idx, data in enumerate(rtv_data['item_details']):

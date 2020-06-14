@@ -197,10 +197,19 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
             if(grn_data.get("items",None)):
+                grn_custom_field_list=[]
                 for idx, data in enumerate(grn_data['items']):
+                    if(data.get("batch_no",None)):
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
+                    if(data.get("mfg_date",None)):
+                        grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
+                    if(data.get("exp_date",None)):
+                        grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                     line_item = {
                     'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
-                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True}
+                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True,
+                    "customFieldList": ns.CustomFieldList(grn_custom_field_list)
+                    }
                     item.append(line_item)
                 grnrec.itemList = {'item':item, 'replaceAll': False}
                 grnrec.tranId = grn_data['grn_number']

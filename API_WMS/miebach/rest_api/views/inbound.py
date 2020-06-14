@@ -5267,6 +5267,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         purchase_data['apmc_tax'] = sku_row_apmc_percent
         purchase_data['remarks'] = remarks
         purchase_data["order_idx"]= i+1
+        purchase_data["exp_date"]=""
+        purchase_data["mfg_date"]=""
+        if "exp_date" in myDict:
+            purchase_data["exp_date"]= myDict['exp_date'][i]
+        if "mfg_date" in myDict:
+            purchase_data["mfg_date"]= myDict['mfg_date'][i]
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -5291,12 +5297,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp, purchase_data["order_idx"])
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp, purchase_data["order_idx"],purchase_data["mfg_date"],purchase_data["exp_date"])
             else:
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"])
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"],purchase_data["mfg_date"],purchase_data["exp_date"])
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
@@ -5611,7 +5617,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
-                                               'mrp': key[13], "order_idx": key[14]})
+                                               'mrp': key[13], "order_idx": key[14], "mfg_date":key[15],"exp_date":key[16]})
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
                 #                               key[6], key[7], entry_price, key[8], key[9], ''))
@@ -5621,7 +5627,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
-                                              'mrp': key[12],"order_idx": key[13]})
+                                              'mrp': key[12],"order_idx": key[13], "mfg_date":"","exp_date":""})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -5765,7 +5771,6 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)
     invoice_value= grn_params.POST.get('invoice_value', 0.0)
     if(bill_date):
-        import dateutil.parser as parser
         bill_date = datetime.strptime(bill_date, '%d-%m-%Y')
         bill_date= bill_date.isoformat()
     if(dc_level_grn=="on"):
@@ -5806,6 +5811,14 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
+        if(data.get("mfg_date",None)):
+            mfg_date = datetime.strptime(data["mfg_date"], '%d-%m-%Y')
+            mfg_date= mfg_date.isoformat()
+            item.update({"mfg_date":mfg_date})
+        if(data.get("exp_date",None)):
+            exp_date = datetime.strptime(data["exp_date"], '%d-%m-%Y')
+            exp_date= exp_date.isoformat()
+            item.update({"exp_date":exp_date})
         grn_data['items'].append(item)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')

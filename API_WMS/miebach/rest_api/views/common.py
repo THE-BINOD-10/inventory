@@ -8092,7 +8092,7 @@ def get_warehouse_admin(user):
 def get_warehouse_user_from_sub_user(user_id):
     warehouseId = None
     subUser = User.objects.get(id=user_id)
-    permGroup = AdminGroups.objects.filter(group_id=subUser.groups.all()[0].id)
+    permGroup = AdminGroups.objects.filter(group_id__in=subUser.groups.all().values_list('id', flat=True))
     if permGroup.exists():
         warehouseId = permGroup[0].user
     return warehouseId

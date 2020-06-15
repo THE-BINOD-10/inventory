@@ -1,5 +1,5 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate" autocomplete="off">
   <div class="modal-dialog model-custom modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -45,7 +45,7 @@
                 <label class="control-label"> Department Type </label>
                 <input ng-if="showCase.update" type="hidden" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" value="{{showCase.model_data.department_type}}">
                 <input ng-if="showCase.update" type="text" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department_type" name="department_type">
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department_type" name="department_type" style="pointer-events: none" readonly>
                   <option value="">All</option>
                   <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}">{{dept_type}}</option>
                 </select>
@@ -71,12 +71,12 @@
             <div class="col-md-4" ng-if="!showCase.update">
               <div class="form-group">
                 <label class="control-label"> Password * </label>
-                <input name="password" type="password" class="form-control" ng-model="showCase.model_data.password" maxlength="64"> </div>
+                <input name="password" type="password" class="form-control" ng-model="showCase.model_data.password" maxlength="64" autocomplete="new-password"> </div>
             </div>
             <div class="col-md-4" ng-if="!showCase.update">
               <div class="form-group">
                 <label class="control-label"> Retype Password * </label>
-                <input name="re_password" type="password" class="form-control" ng-model="showCase.model_data.re_password" maxlength="64"> </div>
+                <input name="re_password" type="password" class="form-control" ng-model="showCase.model_data.re_password" maxlength="64" autocomplete="new-password"> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">

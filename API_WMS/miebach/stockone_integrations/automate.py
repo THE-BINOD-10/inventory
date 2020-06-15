@@ -19,6 +19,7 @@ ListOfExecution = [
 today = datetime.datetime.now().strftime("%Y%m%d")
 log = init_logger('logs/automated_tasks_' + today + '.log')
 log_err = init_logger('logs/automated_tasks_errors.log')
+batch = 50
 
 @app.task
 def runStoredAutomatedTasks():
@@ -36,7 +37,15 @@ def executeAutomatedTaskForUser(userObj, row):
         log.info('Executing %s' % (row.get('objType')))
         if len(currentData):
             log.info('Executing %s' % (row.get('objType')))
-            getattr(intObj, row.get('function'))(currentData, row.get('unique_param'), is_multiple=True)
+            dataToSend = []
+            for drow in currentData:
+                dataToSend.append(drow)
+                if len(dataToSend) >= batch:
+                    getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)
+                    dataToSend = []
+            if len(dataToSend):
+                getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)
+
             log.info('Executed %s' % (row.get('objType')))
             # intObj.writeJsonToFile(row.get('objType'), [])
         else:

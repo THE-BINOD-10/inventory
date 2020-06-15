@@ -258,7 +258,8 @@ class netsuiteIntegration(object):
                 ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
             ])
             for data in po_data['items']:
-                line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                #line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                line_item = {'item': ns.RecordRef(internalId=17453),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],

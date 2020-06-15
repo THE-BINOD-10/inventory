@@ -13,7 +13,7 @@ from automate import runStoredAutomatedTasks
 class IntegrationMasterAdmin(admin.ModelAdmin):
     search_fields = ['user', 'integration_type', 'stockone_reference', 'integration_reference']
     list_display = ['user', 'integration_type', 'stockone_reference', 'integration_reference', 'module_type', 'status', 'creation_date', 'updation_date']
-    list_filter = ('integration_type', 'status')
+    list_filter = ('integration_type', 'status', 'user', 'module_type')
 
     actions = ["execute_queue"]
 

@@ -23,33 +23,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.grn_details_keys = Object.keys(vm.grn_details);
 
   vm.report_data = {};
-
+  vm.cancel_button = true;
   vm.row_call = function(aData) {
-    // $http.get(Session.url+'get_grn_level_data/', {withCredential: true, 'po_number': aData['PO Number']}).success(function(data, status, headers, config) {
-    //   console.log(data)
-    // });
-    var data_to_send = {
-      'po_number': aData['PO Number'],
-      'prefix': aData['prefix']
-    }
-    vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
-      vm.model_data = data.data;
-      if (vm.industry_type == 'FMCG') {
-        vm.extra_width = {
-          'width': '1200px'
-        };
-      } else {
-        vm.extra_width = {
-          'width': '900px'
-        };
+    if (aData['Product Category'].includes('class="label label-success"')) {
+      vm.cancel_button = true;
+      vm.model_data = {};
+      var data_to_send = {
+        'po_number': aData['PO Number'],
+        'prefix': aData['prefix']
       }
-      angular.forEach(vm.model_data.data, function(mainSku){
-        angular.forEach(mainSku, function(subSku){
-          subSku['total_amt'] = vm.sku_total_amt(subSku);
+      vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
+        vm.model_data = data.data;
+        if (vm.industry_type == 'FMCG') {
+          vm.extra_width = {
+            'width': '1200px'
+          };
+        } else {
+          vm.extra_width = {
+            'width': '900px'
+          };
+        }
+        angular.forEach(vm.model_data.data, function(mainSku){
+          angular.forEach(mainSku, function(subSku){
+            subSku['total_amt'] = vm.sku_total_amt(subSku);
+          })
         })
+        $state.go('app.inbound.GrnEdit.GrnEditPopup');
       })
-    })
-    $state.go('app.inbound.GrnEdit.GrnEditPopup');
+    } else {
+      colFilters.showNoty("Please Select Same Calender Month !! ");
+    }
   }
   vm.reports = {}
 
@@ -139,7 +142,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
   }
-
+  vm.cancel_available = function(value) {
+    vm.cancel_button= false;
+  }
   vm.confirm_grn = function(form) {
     if (form.$valid) {
       // if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){

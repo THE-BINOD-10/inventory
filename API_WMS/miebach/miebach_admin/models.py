@@ -770,6 +770,7 @@ class POLocation(models.Model):
     quantity = models.FloatField(default=0)
     original_quantity = models.FloatField(default=0)
     status = models.CharField(max_length=32)
+    receipt_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -841,6 +842,7 @@ class StockDetail(models.Model):
     quantity = models.FloatField(default=0)
     unit_price = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    grn_number =models.CharField(max_length =128 , default ='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     remarks =models.CharField(max_length =128 , default ='')
@@ -3093,6 +3095,7 @@ class StockStats(models.Model):
     cancelled_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     closing_stock_value = models.FloatField(default=0)
+    grn_cancelled_qty = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

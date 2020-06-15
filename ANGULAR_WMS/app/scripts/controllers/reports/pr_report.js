@@ -21,9 +21,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var send = {};
     var name ='';
   	if (vm.toggle_detail) {
-      name = 'get_pr_detail_report';
+      name = 'pr_detail_report';
     } else {
-      name = 'get_pr_report';
+      name = 'pr_report';
     }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
     	if (data.message) {
@@ -35,8 +35,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       	  angular.copy(data.data.data, vm.report_data)
           vm.report_data["row_call"] = vm.row_call;
           vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
-            vm.empty_data = datam.empty_data;
-            angular.copy(vm.empty_data, vm.filters_dt_data)
+             vm.empty_data = datam.empty_data;
+             angular.copy(vm.empty_data, vm.model_data);
+//            vm.empty_data = datam.empty_data;
+//            angular.copy(vm.empty_data, vm.filters_dt_data)
             vm.dtOptions = datam.dtOptions;
             vm.dtColumns = datam.dtColumns;
             vm.datatable = true;
@@ -47,7 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             vm.report_data['excel_name'] = 'get_pr_detail_report'
             }
             else{
-            vm.vm.report_data['excel_name'] = 'get_pr_report'
+            vm.report_data['excel_name'] = 'get_pr_report'
             }
           })
         }
@@ -69,9 +71,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                   'sister_warehouse': '',
                   'supplier_id': '',
                   };
+    vm.model_data = {};
+    angular.copy(vm.empty_data, vm.model_data);
 
-  vm.filters_dt_data = {};
-  angular.copy(vm.empty_data, vm.filters_dt_data);
+//  vm.filters_dt_data = {};
+//  angular.copy(vm.empty_data, vm.filters_dt_data);
 
   vm.close = close;
   function close() {

@@ -496,6 +496,7 @@ urlpatterns = [
     url(r'^get_inventory_adjust_filter/$', get_inventory_adjust_filter),
     url(r'^get_inventory_aging_filter/$', get_inventory_aging_filter),
     url(r'^sku_category_list/$', sku_category_list),
+    url(r'^department_warehouse/$', department_warehouse),
     url(r'^print_po_reports/$', print_po_reports),
     url(r'^print_sku/$', print_sku),
     url(r'^excel_reports/$', excel_reports),

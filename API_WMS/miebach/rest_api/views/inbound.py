@@ -255,7 +255,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number', 
+    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number',
                                         'pending_po__pending_prs__sub_pr_number')
     POtoPRsMap = {}
     for eachPO, pr_number, sub_pr_number in approvedPRQs:
@@ -305,7 +305,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 else:
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
                                         pr_user=wh_user, level=result['pending_po__pending_level'])
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')       
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),
@@ -2867,7 +2867,7 @@ def approve_pr(request, user=''):
         else:
             full_pr_number = pendingPRObj.full_po_number
             createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
-                    full_pr_number, orderStatus=orderStatus, is_po_creation=True, 
+                    full_pr_number, orderStatus=orderStatus, is_po_creation=True,
                     supplier=PRQs[0].supplier.supplier_id)
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
@@ -3260,7 +3260,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
         approval1 = ''
         allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
         if allApproavls:
-            approval1 = allApproavls[0]
+            if(allApproavls[0]):
+                approval1 = allApproavls[0]
+            else:
+                approval1 =  user.first_name
 
         pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
@@ -5264,6 +5267,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         purchase_data['apmc_tax'] = sku_row_apmc_percent
         purchase_data['remarks'] = remarks
         purchase_data["order_idx"]= i+1
+        purchase_data["exp_date"]=""
+        purchase_data["mfg_date"]=""
+        if "exp_date" in myDict:
+            purchase_data["exp_date"]= myDict['exp_date'][i]
+        if "mfg_date" in myDict:
+            purchase_data["mfg_date"]= myDict['mfg_date'][i]
         if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
             sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
@@ -5288,12 +5297,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp, purchase_data["order_idx"])
+                    purchase_data['apmc_tax'],myDict['batch_no'][i], mrp, purchase_data["order_idx"],purchase_data["mfg_date"],purchase_data["exp_date"])
             else:
                 cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                     purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                     purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent,
-                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"])
+                    purchase_data['apmc_tax'], purchase_data['sku'].mrp, purchase_data["order_idx"],purchase_data["mfg_date"],purchase_data["exp_date"])
 
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
@@ -5608,7 +5617,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                                'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
-                                               'mrp': key[13], "order_idx": key[14]})
+                                               'mrp': key[13], "order_idx": key[14], "mfg_date":key[15],"exp_date":key[16]})
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
                 #                               key[6], key[7], entry_price, key[8], key[9], ''))
@@ -5618,7 +5627,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
-                                              'mrp': key[12],"order_idx": key[13]})
+                                              'mrp': key[12],"order_idx": key[13], "mfg_date":"","exp_date":""})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
@@ -5753,7 +5762,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     # grn_number = data_dict.get('po_number', '')
-    Now = datetime.now().isoformat()
+    grn_date = datetime.now().isoformat()
     po_data = data_dict['data'].values()[0]
     dc_number=""
     dc_date=""
@@ -5762,9 +5771,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     invoice_quantity=grn_params.POST.get('invoice_quantity', 0.0)
     invoice_value= grn_params.POST.get('invoice_value', 0.0)
     if(bill_date):
-        import dateutil.parser as parser
-        date = parser.parse(bill_date)
-        bill_date= date.isoformat()
+        bill_date = datetime.strptime(bill_date, '%d-%m-%Y')
+        bill_date= bill_date.isoformat()
     if(dc_level_grn=="on"):
         dc_number=bill_no
         dc_date=bill_date
@@ -5790,7 +5798,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     grn_data = {'po_number': po_number,
                 'grn_number': grn_number,
                 'items':[],
-                'grn_date': Now,
+                'grn_date': grn_date,
                 "invoice_no": bill_no,
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
@@ -5803,6 +5811,16 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no']}
+        if(data.get("mfg_date",None)):
+            mfg_date = datetime.strptime(data["mfg_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
+            m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+            mfg_date= m_date.isoformat()
+            item.update({"mfg_date":mfg_date})
+        if(data.get("exp_date",None)):
+            exp_date = datetime.strptime(data["exp_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
+            e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+            exp_date= e_date.isoformat()
+            item.update({"exp_date":exp_date})
         grn_data['items'].append(item)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
@@ -8186,7 +8204,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     due_date =data_dict.get('delivery_date', '')
     supplier_id = _purchase_order.open_po.supplier.supplier_id
     if due_date:
-        due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
+        due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
+        # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
         due_date = due_date.isoformat()
     po_data = {'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
@@ -10745,7 +10764,7 @@ def move_to_invoice(request, user=''):
                         if os.path.exists(exist_master_doc.uploaded_file.path):
                             os.remove(exist_master_doc.uploaded_file.path)
                         exist_master_doc.delete()
-        netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary, user)
+        netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note, seller_summary, user)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -10753,7 +10772,7 @@ def move_to_invoice(request, user=''):
         log.info("Exception raised wile updating status of Seller Order Summary: %s" %str(e))
         return HttpResponse(json.dumps({'message': 'failed'}))
 
-def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date, credit_note, inv_receipt_date, seller_summary,user=''):
+def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note, seller_summary,user=''):
     # from api_calls.netsuite import netsuite_create_grn
     invoice_url=""
     extra_flag= req_data[0]["receipt_number"]
@@ -10763,7 +10782,15 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
     invoice_url=""
     if master_docs_obj:
         invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-    invoice_date=invoice_date.isoformat()
+    invoice_date = request.POST.get('inv_date', '')
+    inv_receipt_date = request.POST.get('inv_receipt_date', '')
+    from datetime import datetime
+    if(invoice_date):
+        i_date = datetime.strptime(invoice_date, '%d-%m-%Y')
+        invoice_date = i_date.isoformat()
+    if(inv_receipt_date):
+        in_r_date = datetime.strptime(inv_receipt_date, '%d-%m-%Y')
+        inv_receipt_date = in_r_date.isoformat()
     if(not credit_note=="false"):
         invoice_number=""
         invoice_url=""
@@ -10774,8 +10801,8 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, invoice_date
                     "grn_number":seller_po_data.grn_number,
                     "po_number": seller_po_data.purchase_order.po_number,
                     "invoice_no": invoice_number,
-                    "invoice_date":invoice_date,
-                    "inv_receipt_date": inv_receipt_date.isoformat(),
+                    "invoice_date": invoice_date,
+                    "inv_receipt_date": inv_receipt_date,
                     "vendorbill_url" : invoice_url
         }
         invoice_data.append(grn_info)
@@ -13513,8 +13540,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     if(master_file):
         url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/static/master_docs/PO_CREDIT_FILE/"+str(master_file._name)
     if invoice_date:
-        invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%m/%d/%Y')
-        date=parser.parse(invoice_date)
+        invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%d-%m-%Y')
+        date=datetime.datetime.strptime(invoice_date, '%d-%m-%Y')
         invoice_date= date.isoformat()
     if credit_date:
         date = parser.parse(credit_date)

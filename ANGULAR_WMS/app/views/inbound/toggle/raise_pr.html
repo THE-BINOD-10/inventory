@@ -153,6 +153,19 @@
               </select>
             </div>
           </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Category</label>
+              <select class="form-control" name="sku_category" 
+              ng-init="showCase.model_data.sku_category=showCase.model_data.prodcatg_map[showCase.model_data.product_category][0]"
+              ng-model="showCase.model_data.sku_category"
+              >
+                <option ng-repeat="sku_catg in showCase.model_data.sku_categories" 
+                        value="{{sku_catg}}">{{sku_catg}}
+                </option>
+              </select>
+            </div>
+          </div>
           <div class="col-md-6 col-sm-6 col-xs-8">
             <div class="form-group">
                <div class="col-md-3 mt30" align="right">

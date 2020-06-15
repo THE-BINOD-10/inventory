@@ -4712,6 +4712,7 @@ def get_file_content(request, user=''):
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
     product_type = request.GET.get('type')
+    sku_catg = request.GET.get('sku_catg', '')
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -4728,6 +4729,8 @@ def search_wms_data(request, user=''):
     lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id)
+    if sku_catg:
+        query_objects = query_objects.filter(sku_category=sku_catg)
 
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
@@ -5388,8 +5391,22 @@ def get_sellers_list(request, user=''):
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
     user_list = get_all_warehouses(user)
+    sku_master, sku_master_ids = get_sku_master(user, user)
+    kc_catgs = list(sku_master.exclude(sku_category='').values_list('sku_category', flat=True).distinct())
+    ser_catgs = list(ServiceMaster.objects.filter(user=user.id).exclude(sku_category='').
+                    values_list('sku_category', flat=True).distinct())
+    asset_catgs = list(AssetMaster.objects.filter(user=user.id).exclude(sku_category='').
+                    values_list('sku_category', flat=True).distinct())
+    ot_catgs = list(OtherItemsMaster.objects.filter(user=user.id).exclude(sku_category='').
+                    values_list('sku_category', flat=True).distinct())
+    prod_catg_map = OrderedDict((
+                ('Kits&Consumables', kc_catgs), ('Services', ser_catgs),
+                ('Assets', asset_catgs), ('OtherItems', ot_catgs)
+            ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list, 'raise_po_terms_conditions' : raise_po_terms_conditions, 'shipment_addresses' : ship_address_details}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list, 
+                                    'raise_po_terms_conditions' : raise_po_terms_conditions, 
+                                    'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 
 def update_filled_capacity(locations, user_id):

@@ -998,7 +998,7 @@ def sku_form(request, user=''):
 def asset_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(ASSET_HEADERS)
     wb, ws = get_work_sheet('assets', headers)
     return xls_to_response(wb, '%s.asset_form.xls' % str(user.username))
@@ -1009,7 +1009,7 @@ def asset_form(request, user=''):
 def service_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(SERVICE_HEADERS)
     wb, ws = get_work_sheet('service', headers)
     return xls_to_response(wb, '%s.service_form.xls' % str(user.username))
@@ -1020,7 +1020,7 @@ def service_form(request, user=''):
 def otheritems_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(OTHER_ITEM_HEADERS)
     wb, ws = get_work_sheet('other_items', headers)
     return xls_to_response(wb, '%s.otheritems_form.xls' % str(user.username))

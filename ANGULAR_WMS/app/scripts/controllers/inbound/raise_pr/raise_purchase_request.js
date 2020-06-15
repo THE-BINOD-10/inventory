@@ -212,7 +212,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
               vm.model_data["receipt_types"] = data.data.receipt_types;
               vm.model_data.seller_type = vm.dedicated_seller;
-              vm.model_data.warehouse_names = data.data.warehouse
+              vm.model_data.warehouse_names = data.data.warehouse;
+              vm.model_data.prodcatg_map = data.data.prodcatg_map;
+              vm.model_data.product_categories = Object.keys(vm.model_data.prodcatg_map);
               angular.forEach(seller_data, function(seller_single){
                 vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
               });
@@ -320,7 +322,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
+      // vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -333,6 +335,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.shipment_addresses = data.data.shipment_addresses
           vm.model_data.warehouse_names = data.data.warehouse
           vm.model_data["receipt_types"] = data.data.receipt_types;
+          vm.model_data.prodcatg_map = data.data.prodcatg_map;
+          vm.model_data.product_categories = Object.keys(vm.model_data.prodcatg_map);
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
@@ -400,6 +404,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
                             "sku": {"wms_code": "", "price":""}
                           }
+      vm.model_data.sku_categories = vm.model_data.prodcatg_map[product_category];
       if (product_category == 'Kits&Consumables'){
         vm.model_data.data.push({"fields": emptylineItems});
       } else if (product_category == 'Assets'){

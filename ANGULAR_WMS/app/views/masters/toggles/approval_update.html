@@ -107,7 +107,7 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <button type="submit" class="btn pop pop-red col-xs-12 col-sm-3 col-md-2" ng-click="showCase.delete_config()" ng-disabled="process">
+        <button type="submit" class="btn pop pop-red col-xs-12 col-sm-3 col-md-2" ng-click="showCase.delete_config()" ng-show="showCase.update" ng-disabled="process">
           <span>Delete</span>
           <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
         </button>

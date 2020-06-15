@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.warehouse_type = Session.user_profile.warehouse_type;
     vm.current_level = 0;
+    vm.roles_type_name = 'po';
     vm.filters = {'datatable': 'PRApprovalTable', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'',
                     'special_key': 'PO'}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -100,7 +101,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(valid)
       {
         angular.forEach(vm.model_data.level_data, function(level_dat, level_index){
-          vm.model_data.level_data[level_index]['roles'] = $('.roles-'+level_index).val()
+          vm.model_data.level_data[level_index]['roles'] = $('.poroles-'+level_index).val()
         });
         vm.service.apiCall('add_update_pr_config/', 'POST', {'data':JSON.stringify(vm.model_data), 'type': 'pr_save'}).then(function(data){
           if(data.message) {

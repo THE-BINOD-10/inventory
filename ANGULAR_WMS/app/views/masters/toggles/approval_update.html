@@ -86,7 +86,7 @@
                 </td>
                 <td>
                  <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
-                   <input id="roles-{{$index}}" class="form-control roles-{{$index}}" type="text" ng-model="level_dat.roles" value="{{showCase.model_data.level_data.roles}}" ui-jq="tagsInput"/>
+                   <input id="roles-{{$index}}" class="form-control {{showCase.roles_type_name}}roles-{{$index}}" type="text" ng-model="level_dat.roles" value="{{showCase.model_data.level_data.roles}}" ui-jq="tagsInput"/>
                  </div>
                 </td>
                 <td><i ng-if="$last" ng-click="showCase.update_data($index)" class="fa fa-minus-square-o"></i></td>

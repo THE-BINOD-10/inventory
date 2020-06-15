@@ -2002,12 +2002,18 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 hot_release = 1 if (hot_release == 'enable') else 0
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
-                if attributes[attr_key] == 'Multi Input':
-                    attr_vals = attr_val.split(',')
+                if attr_val:
+                    if attributes[attr_key] == 'Multi Input':
+                        attr_vals = attr_val.split(',')
+                        allow_multiple = True
+                    else:
+                        attr_vals = [attr_val]
+                        allow_multiple = False
                 else:
-                    attr_vals = [attr_val]
-                create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
-                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+                    attr_vals = []
+                for attr_key_val in attr_vals:
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_key_val, is_bulk_create=True,
+                                               create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping, allow_multiple=allow_multiple)
 
             if new_skus[sku_code].get('ean_numbers', ''):
                 ean_numbers = new_skus[sku_code].get('ean_numbers', '')
@@ -2031,32 +2037,38 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     return 'success'
 
 def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
-    sku_list_dict=[]
-    intObj = Integrations(user,'netsuiteIntegration')
-    for sku_code, sku_id in sku_key_map.items():
-        sku_master_data=new_skus[sku_code].get('sku_obj', {})
-        sku_master_data=intObj.gatherSkuData(sku_master_data)
-        sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
-        sku_attr_dict.update(sku_master_data)
-        sku_list_dict.append(sku_attr_dict)
-    intObj.integrateSkuMaster(sku_list_dict, is_multiple= True)
+    try:
+        sku_list_dict=[]
+        intObj = Integrations(user,'netsuiteIntegration')
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_master_data=intObj.gatherSkuData(sku_master_data)
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            sku_attr_dict.update(sku_master_data)
+            sku_list_dict.append(sku_attr_dict)
+        intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
+    except Exception as e:
+        print(e)
 
 def upload_netsuite_sku(data, user, instanceName=''):
-    intObj = Integrations(user,'netsuiteIntegration')
-    sku_data_dict=intObj.gatherSkuData(data)
-    if instanceName == ServiceMaster:
-        sku_data_dict.update({"ServicePurchaseItem":True})
-        intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)
-    elif instanceName == AssetMaster:
-        sku_data_dict.update({"non_inventoryitem":True})
-        intObj.integrateAssetMaster(sku_data_dict, is_multiple=False)
-    elif instanceName == OtherItemsMaster:
-        sku_data_dict.update({"non_inventoryitem":True})
-        intObj.integrateOtherItemsMaster(sku_data_dict, is_multiple=False)
-    else:
-        # # intObj.initiateAuthentication()
-        # sku_data_dict.update(sku_attr_dict)
-        intObj.integrateSkuMaster(sku_data_dict, is_multiple=False)
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        else:
+            # # intObj.initiateAuthentication()
+            # sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+    except Exception as e:
+        print(e)
 
 @csrf_exempt
 @login_required

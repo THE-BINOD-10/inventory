@@ -19,7 +19,7 @@ app.conf.timezone = 'Asia/Kolkata'
 app.conf.CELERYBEAT_SCHEDULE = {
     'integrate_data': {
         'task': 'stockone_integrations.automate.runStoredAutomatedTasks',
-        'schedule': crontab(minute=50, hour=17),
+        'schedule': crontab(minute=01, hour=15),
         'args': None
     },
 }

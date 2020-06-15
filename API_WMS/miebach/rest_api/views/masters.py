@@ -1298,24 +1298,24 @@ def netsuite_sku(data, user, instanceName=''):
     # if not external_id:
     #     external_id = get_incremental(user, 'netsuite_external_id')
     # from integrations.views import Integrations
-    intObj = Integrations(user,'netsuiteIntegration')
-    sku_data_dict=intObj.gatherSkuData(data)
-    if instanceName == ServiceMaster:
-        sku_data_dict.update({"ServicePurchaseItem":True})
-        intObj.integrateServiceMaster(sku_data_dict, is_multiple=False)
-    elif instanceName == AssetMaster:
-        sku_data_dict.update({"non_inventoryitem":True})
-        intObj.integrateAssetMaster(sku_data_dict, is_multiple=False)
-    elif instanceName == OtherItemsMaster:
-        sku_data_dict.update({"non_inventoryitem":True})
-        intObj.integrateOtherItemsMaster(sku_data_dict, is_multiple=False)
-    else:
-        # intObj.initiateAuthentication()
-        sku_data_dict.update(sku_attr_dict)
-        intObj.integrateSkuMaster(sku_data_dict, is_multiple=False)
-        # response = netsuite_update_create_sku(data, sku_attr_dict, user)
-    # if response.has_key('__values__') and not netsuite_map_obj.exists():
-    #     internal_external_map(response, type_name='sku_master')
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
+        else:
+            # intObj.initiateAuthentication()
+            sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+    except Exception as e:
+        print(e)
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):

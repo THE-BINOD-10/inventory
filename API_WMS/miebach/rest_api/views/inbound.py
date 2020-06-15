@@ -2949,7 +2949,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
-        # filtersMap['product_category'] = firstEntryValues['product_category']
         sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
@@ -2961,7 +2960,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
-        # filtersMap['product_category'] = firstEntryValues['product_category']
         sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
@@ -2970,7 +2968,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
 
 
     if myDict.get('purchase_id') and not convertPRtoPO:
-        # pr_number = int(myDict.get('pr_number')[0])
         remarks = firstEntryValues['approval_remarks']
         pendingPurchaseObj = model_name.objects.get(**filtersMap)
         if request.user.id == pendingPurchaseObj.requested_user.id:

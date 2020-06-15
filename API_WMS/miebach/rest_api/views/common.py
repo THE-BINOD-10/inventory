@@ -11820,7 +11820,7 @@ def get_stocktransfer_picknumber(user , picklist):
     else:
         return 1
 
-def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type):
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
     put_zone = purchase_data['zone']
@@ -11840,18 +11840,20 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if not location_quantity:
             continue
         processed_qty += location_quantity
-        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': location_quantity,
+        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': location_quantity, 'receipt_number': receipt_number,
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
-        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id)
+        seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
+        full_grn_number = ''
         if seller_po_summary_obj.exists():
             grn_price = seller_po_summary_obj[0].price
+            full_grn_number = seller_po_summary_obj[0].grn_number
         if not grn_price:
             grn_price = purchase_data['price']
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
                             'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
-                            'unit_price': grn_price, 'receipt_type': receipt_type}
+                            'unit_price': grn_price, 'receipt_type': receipt_type, 'grn_number':full_grn_number}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
             stock_dict = stock_dict[0]
@@ -11860,10 +11862,10 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
             stock_dict.save()
         else:
             stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
-                                                    status=1, location_id=loc.id,
+                                                    status=1, location_id=loc.id, grn_number=full_grn_number,
                                                     sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
                                                     receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
-        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'po', location_quantity, stock_dict)
+        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'PO', location_quantity, stock_dict)
         if int(quantity) == int(processed_qty):
             break
 
@@ -11883,7 +11885,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
                                                                        purchase_order_id=po_data.id,
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'])
-    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type)
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id)
     po_data.received_quantity += quantity
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'

@@ -173,6 +173,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
+              vm.extra_width = {
+                'width': '1350px'
+              };
               vm.title = "Create RTV";
               vm.print_enable = false;
               $state.go('app.inbound.rtv.details');

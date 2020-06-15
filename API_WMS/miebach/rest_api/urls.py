@@ -213,6 +213,7 @@ urlpatterns = [
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
+    url(r'^cancel_existing_grn/$', cancel_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
     url(r'^get_grn_extra_fields/$', get_grn_extra_fields),

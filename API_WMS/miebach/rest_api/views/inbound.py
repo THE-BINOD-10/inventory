@@ -3986,6 +3986,7 @@ def get_supplier_data(request, user=''):
     sample_order = int(request.GET.get('sample_order', ''))
     remainder_mail = 0
     invoice_value = 0
+    invoice_quantity = 0
     qc_items_qs = UserAttributes.objects.filter(user_id=user.id, attribute_model='dispatch_qc', status=1).values_list('attribute_name', flat=True)
     qc_items = list(qc_items_qs)
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
@@ -4155,6 +4156,7 @@ def get_supplier_data(request, user=''):
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
             invoice_value = temp_json.get('invoice_value', '')
+            invoice_quantity = temp_json.get('invoice_quantity', '')
             lr_number = temp_json.get('lr_number', '')
             carrier_name = temp_json.get('carrier_name', '')
             overall_discount = temp_json.get('overall_discount', '')
@@ -4177,7 +4179,7 @@ def get_supplier_data(request, user=''):
                                     'invoice_date': invoice_date, 'dc_number': dc_number,'discrepancy_reasons':discrepancy_reasons,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
-                                    'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items,
+                                    'round_off_total': 0, 'invoice_value': invoice_value, 'qc_items': qc_items, 'invoice_quantity': invoice_quantity,
                                     'returnable_serials': returnable_serials,'lr_number': lr_number, 'payment_received': payment_received}))
 
 
@@ -5609,6 +5611,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    extra_charges_amt = 0
     fmcg = False
     po_product_category = request.POST.get('product_category', '')
     if user.userprofile.industry_type == 'FMCG':
@@ -5687,6 +5690,7 @@ def confirm_grn(request, confirm_returns='', user=''):
         if grn_other_charges:
             all_other_charges = json.loads(grn_other_charges)
             for charge in all_other_charges:
+                extra_charges_amt += float(charge['amount'])
                 order_charge_dict = {}
                 order_charge_dict['order_id'] = data.po_number #get_po_reference(data)
                 order_charge_dict['order_type'] = 'po'
@@ -5761,8 +5765,8 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
                                 'tax_value': tax_value, 'receipt_number':seller_receipt_id,
-                                'overall_discount':overall_discount,
-                                'net_amount':float(total_price) - float(overall_discount),
+                                'overall_discount':overall_discount, 'other_charges': float(extra_charges_amt),
+                                'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
@@ -10515,7 +10519,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans', 'status':0}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix', 'grn_number']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -10567,6 +10571,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
 
         po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
+        full_grn_number = data['grn_number']
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
@@ -10595,7 +10600,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
             tot_amt += (tot_price + tot_tax)
         if seller_sum.overall_discount:
             tot_amt -= seller_sum.overall_discount
-        data_dict = OrderedDict((('GRN No', grn_number),
+        data_dict = OrderedDict((('GRN No', grn_number), ('GRN NO', full_grn_number),
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
                                  ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
@@ -10685,7 +10690,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         if seller_sum.overall_discount:
             tot_amt -= seller_sum.overall_discount
 
-        data_dict = OrderedDict((('GRN No', grn_number),
+        data_dict = OrderedDict((('GRN NO', grn_number),
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
                                  ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
@@ -10825,7 +10830,10 @@ def move_to_invoice(request, user=''):
                         if os.path.exists(exist_master_doc.uploaded_file.path):
                             os.remove(exist_master_doc.uploaded_file.path)
                         exist_master_doc.delete()
-        netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note, seller_summary, user)
+        try:
+            netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note, seller_summary, user)
+        except Exception as e:
+            pass
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback
@@ -11846,9 +11854,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     if 'supplier_id' in filters:
         search_params['purchase_order__open_po__supplier__supplier_id'] = filters['supplier_id']
     if 'open_po' in filters and filters['open_po']:
-        temp = re.findall('\d+', filters['open_po'])
-        if temp:
-            search_params['purchase_order__order_id'] = temp[-1]
+        search_params['purchase_order__po_number'] = filters['open_po']
     if 'invoice_number' in filters and enable_dc_returns != 'true':
         search_params['invoice_number'] = filters['invoice_number']
     if 'challan_number' in filters and enable_dc_returns == 'true':
@@ -11878,7 +11884,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         db_results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
                                             filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
+                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date','challan_number',
                    'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price',
                     'grn_number').order_by(order_data).distinct()
 
@@ -11887,7 +11893,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         po_datum = POLocation.objects.filter(purchase_order= result.purchase_order, status=0, receipt_number= result.receipt_number)
         if po_datum.exists():
             grouping_key = (result.purchase_order.open_po.supplier_id, result.purchase_order.order_id,
-                            getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date)
+                            getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date, result.challan_number)
             supplier = result.purchase_order.open_po.supplier
             grouping_data.setdefault(grouping_key, {'supplier_id': supplier.supplier_id,
                                                     'supplier_name': supplier.name,
@@ -11896,8 +11902,10 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                     inv_or_dc_number: getattr(result, inv_or_dc_number),
                                                     'invoice_date': result.invoice_date,
                                                     'challan_date': result.challan_date,
+                                                    'po_number': result.purchase_order.po_number,
                                                     'total': 0, 'purchase_order_date': result.purchase_order.creation_date.date(),
                                                     'seller_summary_objs': [],
+                                                    'challan_number': result.challan_number,
                                                     'grn_number': result.grn_number })
             grouping_data[grouping_key]['total'] += result.quantity
             grouping_data[grouping_key]['seller_summary_objs'].append(result)
@@ -11940,7 +11948,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id), ('prefix', result['prefix']),
                                                 ('Supplier ID', result['supplier_id']),
-                                                ('Supplier Name', result['supplier_name']),
+                                                ('Supplier Name', result['supplier_name']), ('Purchase Order ID', result['po_number']),
                                                 ('GRN Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
@@ -11956,9 +11964,10 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
+    challan_number = request.GET['challan_number']
     summary_filter = {'purchase_order__open_po__sku__user': user.id, 'purchase_order__order_id': order_id, 'purchase_order__prefix':po_order_prefix, 'status':0}
-    if invoice_num:
-        summary_filter['invoice_number'] = invoice_num
+    summary_filter['invoice_number'] = invoice_num
+    summary_filter['challan_number'] = challan_number
     seller_summary_objs = SellerPOSummary.objects.filter(**summary_filter)
     if not seller_summary_objs:
         return HttpResponse("No Data found")
@@ -12517,7 +12526,7 @@ def get_saved_rtv_data(request, user=''):
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
-                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location,
+                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location, 'grn_number': seller_summary.grn_number,
                      'return_qty': rtv_obj.quantity}
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + \
                                    open_po.utgst_tax + open_po.cess_tax
@@ -13678,7 +13687,7 @@ def save_credit_note_po_data(request, user=''):
     credit_quantity = request.POST.get('credit_quantity', 0)
     credit_files = request.FILES.get('credit_files', '')
     if not credit_number or not credit_date or not credit_ids or not credit_files:
-        return HttpResponse("Please fill * fields")
+        return HttpResponse("Upload File Is Mandatory")
     if credit_date:
         credit_date = datetime.datetime.strptime(credit_date, "%m/%d/%Y").date()
     credit_note = {

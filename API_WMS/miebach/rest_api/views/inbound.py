@@ -11872,7 +11872,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         db_results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
                                             filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
+                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date','challan_number',
                    'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price',
                     'grn_number').order_by(order_data).distinct()
 
@@ -11881,7 +11881,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         po_datum = POLocation.objects.filter(purchase_order= result.purchase_order, status=0, receipt_number= result.receipt_number)
         if po_datum.exists():
             grouping_key = (result.purchase_order.open_po.supplier_id, result.purchase_order.order_id,
-                            getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date)
+                            getattr(result, inv_or_dc_number), result.invoice_date, result.challan_date, result.challan_number)
             supplier = result.purchase_order.open_po.supplier
             grouping_data.setdefault(grouping_key, {'supplier_id': supplier.supplier_id,
                                                     'supplier_name': supplier.name,
@@ -11893,6 +11893,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                     'po_number': result.purchase_order.po_number,
                                                     'total': 0, 'purchase_order_date': result.purchase_order.creation_date.date(),
                                                     'seller_summary_objs': [],
+                                                    'challan_number': result.challan_number,
                                                     'grn_number': result.grn_number })
             grouping_data[grouping_key]['total'] += result.quantity
             grouping_data[grouping_key]['seller_summary_objs'].append(result)
@@ -11951,9 +11952,10 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 def get_po_putaway_summary(request, user=''):
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
+    challan_number = request.GET['challan_number']
     summary_filter = {'purchase_order__open_po__sku__user': user.id, 'purchase_order__order_id': order_id, 'purchase_order__prefix':po_order_prefix, 'status':0}
-    if invoice_num:
-        summary_filter['invoice_number'] = invoice_num
+    summary_filter['invoice_number'] = invoice_num
+    summary_filter['challan_number'] = challan_number
     seller_summary_objs = SellerPOSummary.objects.filter(**summary_filter)
     if not seller_summary_objs:
         return HttpResponse("No Data found")
@@ -12512,7 +12514,7 @@ def get_saved_rtv_data(request, user=''):
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
-                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location,
+                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location, 'grn_number': seller_summary.grn_number,
                      'return_qty': rtv_obj.quantity}
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + \
                                    open_po.utgst_tax + open_po.cess_tax

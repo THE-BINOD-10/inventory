@@ -21,6 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.warehouse_level = vm.user_profile.warehouse_level;
     vm.multi_level_system = vm.user_profile.multi_level_system;
+    vm.is_contracted_supplier = false;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -1014,6 +1015,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             sku_data["capacity"] = data.data.available_quantity;
             sku_data["intransit_quantity"] = data.data.intransit_quantity;
             sku_data["openpr_qty"] = data.data.openpr_qty;
+            if (data.data.is_contracted_supplier) {
+              vm.is_contracted_supplier = true;
+            } else if ((!data.data.is_contracted_supplier) && vm.is_contracted_supplier){
+              vm.service.showNoty('Contracted Supplier is already selected');
+            }
           // }
           if (vm.permissions.sku_pack_config) {
             sku_data["skuPack_quantity"] = data.data.skuPack_quantity;

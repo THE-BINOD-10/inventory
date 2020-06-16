@@ -3595,12 +3595,17 @@ def add_pr(request, user=''):
 
         baseLevel = 'level0'
         mailsList = []
+        is_contract_supplier = False
+        for sku_code in all_data.keys():
+            is_contract_supplier = findIfContractedSupplier(user, sku_code)
+            if is_contract_supplier:
+                break
         if is_actual_pr == 'true':
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category)
-            if not reqConfigName:
+            if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
             else:
@@ -3628,7 +3633,7 @@ def add_pr(request, user=''):
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
                                                 product_category=product_category)
-                if not reqConfigName:
+                if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
@@ -3637,7 +3642,7 @@ def add_pr(request, user=''):
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
-                if not reqConfigName:
+                if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
                     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,

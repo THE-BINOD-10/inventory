@@ -5966,6 +5966,14 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
     return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data
 
 
+def findIfContractedSupplier(user, sku_code):
+    supQs = SKUSupplier.objects.filter(sku__user=user.id, sku__sku_code=sku_code)
+    contracted_supplier = False
+    if supQs.exists():
+        supObj = supQs[0]
+        contracted_supplier = supObj.supplier.is_contracted
+    return contracted_supplier
+
 
 @csrf_exempt
 @login_required
@@ -5993,15 +6001,17 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
         skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
+    is_contracted_supplier = findIfContractedSupplier(user, sku_code)
     if not stock_data:
         if sku_pack_config:
             return HttpResponse(json.dumps({'status': 1, 'available_quantity': 0,
                 'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty}))
+                'openpr_qty': openpr_qty, 'available_quantity': st_avail_qty,
+                'is_contracted_supplier': is_contracted_supplier}))
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                                    'openpr_qty': openpr_qty}))
+                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier}))
 
 
 def sku_level_stock_data(request, user):

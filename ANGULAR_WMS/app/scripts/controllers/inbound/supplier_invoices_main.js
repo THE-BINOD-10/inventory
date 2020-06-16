@@ -120,7 +120,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             status = true;
           }
           field_name = temp['check_field'];
-          var grn_no = temp['GRN No'];
+          var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
 
           var send_data = JSON.stringify({

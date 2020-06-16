@@ -169,7 +169,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             Service.showNoty(data.data);
             vm.close();
             vm.reloadData();
-          } else if ( data.data == 'Please fill * fields') {
+          } else if ( data.data == 'Upload File Is Mandatory') {
             Service.showNoty(data.data);
           } else {
             Service.showNoty('Success');

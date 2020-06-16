@@ -44,7 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             vm.datatable = true;
             vm.dtInstance = {};
     		vm.report_data['row_click'] = true;
-    		if (name =="get_pr_detail_report")
+    		if (name =="pr_detail_report")
     		{
             vm.report_data['excel_name'] = 'get_pr_detail_report'
             }

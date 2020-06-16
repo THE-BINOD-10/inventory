@@ -878,7 +878,7 @@ PR_DETAIL_REPORT_DICT = {
     'filters': [
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
          {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-         {'label': 'PR Number', 'name': 'pr_number', 'type': 'supplier_search'},
+         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
          {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
          {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
          {'label': 'PR Status', 'name': 'final_status', 'type': 'select'},

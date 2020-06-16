@@ -1197,6 +1197,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
         pac_filter1['plant'] = admin_user.username
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        pac_filter1['department_type'] = ''
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
+    if not purchase_config:
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -12316,7 +12319,11 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
         emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=user, department_type=app_config.department_type,
                                    position=user_role).values_list('email_id', flat=True))
         if not emails:
-            emails = list(StaffMaster.objects.filter(company_id=company_id, department_type='', position=user_role).\
+            admin_user = get_admin(user)
+            emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\
+                    values_list('email_id', flat=True))
+        if not emails:
+            emails = list(StaffMaster.objects.filter(company_id__in=company_list, department_type='', position=user_role).\
                     values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),

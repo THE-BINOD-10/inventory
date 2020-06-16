@@ -46,6 +46,8 @@ def get_filtered_params(filters, data_list):
     return filter_params
 
 
+
+
 @csrf_exempt
 def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR'}
@@ -68,7 +70,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                     prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='store_sent')
                     all_prIds.extend(prIds)
             filtersMap['pending_pr_id__in'] = all_prIds
-    elif request.user.id != user.id:
+    if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId)

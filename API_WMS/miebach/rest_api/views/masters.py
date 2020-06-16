@@ -369,6 +369,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
+                                                ('is_contracted', data.is_contracted),
                                                 )))
 
 
@@ -1422,6 +1423,11 @@ def update_supplier_values(request, user=''):
                     value = 1
                 else:
                     value = 0
+            if key == 'is_contracted':
+                if value == 'true':
+                    value = True
+                else:
+                    value = False
             update_dict[key] = value
             #setattr(data, key, value)
         filter_dict = {'supplier_id': data.supplier_id }

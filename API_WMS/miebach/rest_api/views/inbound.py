@@ -2949,7 +2949,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
-        # filtersMap['product_category'] = firstEntryValues['product_category']
         sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['prefix'] = prefix
@@ -2961,7 +2960,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchase_type = 'PR'
         apprType = 'pending_pr'
         filtersMap['pr_number'] = purchase_number
-        # filtersMap['product_category'] = firstEntryValues['product_category']
         sku, filtersMap['product_category'] = get_product_category_from_sku(user, all_data.keys()[0])
         purchaseMap['product_category'] = firstEntryValues['product_category']
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
@@ -2970,7 +2968,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
 
 
     if myDict.get('purchase_id') and not convertPRtoPO:
-        # pr_number = int(myDict.get('pr_number')[0])
         remarks = firstEntryValues['approval_remarks']
         pendingPurchaseObj = model_name.objects.get(**filtersMap)
         if request.user.id == pendingPurchaseObj.requested_user.id:
@@ -3394,7 +3391,6 @@ def get_pr_preview_data(request, user=''):
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
         supplierDetailsMap = OrderedDict()
-        parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
 
         reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc,
                       'quantity': quantity, 'checkbox': False,
@@ -3405,11 +3401,14 @@ def get_pr_preview_data(request, user=''):
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                                 sku__user=user.id).order_by('preference')
         if not supplierMappings.exists():
-            is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
-                    model_name='SKUSupplier', requested_user=user,
-                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
-            if is_doa_sent.exists():
-                reqLineMap['is_doa_sent'] = True
+            parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if parentSkuQs.exists():
+                parent_sku_id = parentSkuQs[0].id
+                is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+                        model_name='SKUSupplier', requested_user=user,
+                        json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+                if is_doa_sent.exists():
+                    reqLineMap['is_doa_sent'] = True
         else:
             for supplierMapping in supplierMappings:
                 supplierId = supplierMapping.supplier.supplier_id
@@ -3601,12 +3600,17 @@ def add_pr(request, user=''):
 
         baseLevel = 'level0'
         mailsList = []
+        is_contract_supplier = False
+        for sku_code in all_data.keys():
+            is_contract_supplier = findIfContractedSupplier(user, sku_code)
+            if is_contract_supplier:
+                break
         if is_actual_pr == 'true':
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category)
-            if not reqConfigName:
+            if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
             else:
@@ -3634,7 +3638,7 @@ def add_pr(request, user=''):
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
                                                 product_category=product_category)
-                if not reqConfigName:
+                if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
@@ -3643,7 +3647,7 @@ def add_pr(request, user=''):
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
-                if not reqConfigName:
+                if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
                     prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,

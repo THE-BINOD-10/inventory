@@ -431,6 +431,20 @@
           </table>
         </div>
       </div> -->
+          <div class = "row">
+            <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+              <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+                Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+              </a>
+            </div>
+          </div>          
+          <div class = "row">
+            <div class="col-md-3" ng-if="showCase.model_data.pr_uploaded_file_dict.file_url">
+              <a class="btn btn btn-success" href="{{showCase.model_data.pr_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+                PR File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+              </a>
+            </div>
+          </div>
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>

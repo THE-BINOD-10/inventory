@@ -3388,7 +3388,6 @@ def get_pr_preview_data(request, user=''):
         tax, sgst_tax, cgst_tax, igst_tax, price, total, moq, amount, total = [0]*9
         supplierId = ''; supplierName = ''
         supplierDetailsMap = OrderedDict()
-        parent_sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)[0].id
 
         reqLineMap = {'sku_code': sku_code, 'sku_desc': sku_desc,
                       'quantity': quantity, 'checkbox': False,
@@ -3399,11 +3398,14 @@ def get_pr_preview_data(request, user=''):
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                                 sku__user=user.id).order_by('preference')
         if not supplierMappings.exists():
-            is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
-                    model_name='SKUSupplier', requested_user=user,
-                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
-            if is_doa_sent.exists():
-                reqLineMap['is_doa_sent'] = True
+            parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if parentSkuQs.exists():
+                parent_sku_id = parentSkuQs[0].id
+                is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+                        model_name='SKUSupplier', requested_user=user,
+                        json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+                if is_doa_sent.exists():
+                    reqLineMap['is_doa_sent'] = True
         else:
             for supplierMapping in supplierMappings:
                 supplierId = supplierMapping.supplier.supplier_id

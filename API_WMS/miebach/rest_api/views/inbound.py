@@ -1378,8 +1378,8 @@ def generated_pr_data(request, user=''):
     if record[0].supplier:
         supplier_id = record[0].supplier.supplier_id
         supplier_name = record[0].supplier.name
-        if record[0].supplier.payment:
-            supplier_payment_desc = record[0].supplier.payment.payment_description
+        if record[0].supplier_payment:
+            supplier_payment_desc = "%s:%s" % (record[0].supplier_payment.payment_code, record[0].supplier_payment.payment_description)
 
     return HttpResponse(json.dumps({'supplier_id': supplier_id, 'supplier_name': supplier_name, 'supplier_payment_desc': supplier_payment_desc,
                                     'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
@@ -2362,11 +2362,12 @@ def get_mapping_values(request, user=''):
 def get_supplier_payment_terms(request, user=''):
     payment_desc = ''
     supplier_id = request.POST.get('supplier_id', '')
-    data = SupplierMaster.objects.filter(supplier_id = supplier_id, user=user.id)
-    if data.exists():
-        if data[0].payment:
-            payment_desc = data[0].payment.payment_description
-    return HttpResponse(payment_desc, content_type='application/json')
+    payment_terms = []
+    payments = PaymentTerms.objects.filter(supplier_id = supplier_id, supplier__user=user.id)
+    if payments.exists():
+        for data in payments:
+           payment_terms.append("%s:%s:%s" %(str(data.id), str(data.payment_code), data.payment_description))
+    return HttpResponse(json.dumps(payment_terms))
 
 
 @csrf_exempt
@@ -2500,6 +2501,7 @@ def get_raisepo_group_data(user, myDict):
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
         supplierId = myDict.get('supplier_id', [])
+        supplier_payment_id = myDict.get('payment_term', '')
         if supplierId:
             supplierId = supplierId[0]
         if not supplierId and receipt_type == 'Hosted Warehouse' and myDict['dedicated_seller'][0] and myDict.get('wh_purchase_order', '') != 'true':
@@ -2510,11 +2512,12 @@ def get_raisepo_group_data(user, myDict):
             if myDict['wh_purchase_order'][0] == 'true':
                 myDict['supplier_id'][0] = check_and_create_wh_supplier(user, myDict['supplier_id'][0])
                 supplierId = myDict['supplier_id'][0]
-
+        if supplier_payment_id:
+            supplier_payment_id = supplier_payment_id[0].split(':')[0]
         if not myDict['wms_code'][i]:
             continue
         cond = (myDict['wms_code'][i])
-        all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': supplierId,
+        all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': supplierId, 'supplier_payment': supplier_payment_id,
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
@@ -2982,6 +2985,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=supplier).id#supplier
         else:
             purchaseMap['supplier_id'] = SupplierMaster.objects.get(user=user.id, supplier_id=firstEntryValues.get('supplier_id', '')).id#firstEntryValues.get('supplier_id', '')
+            if firstEntryValues.get('supplier_payment', None):
+                purchaseMap['supplier_payment'] = PaymentTerms.objects.get(id=firstEntryValues.get('supplier_payment'))
         purchase_type = 'PO'
         apprType = 'pending_po'
         filtersMap['po_number'] = purchase_number
@@ -3001,8 +3006,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         purchaseMap['priority_type'] = firstEntryValues['priority_type']
         purchaseMap['prefix'] = prefix
         purchaseMap['full_pr_number'] = full_pr_number
-
-
     if myDict.get('purchase_id') and not convertPRtoPO:
         remarks = firstEntryValues['approval_remarks']
         pendingPurchaseObj = model_name.objects.get(**filtersMap)
@@ -3011,7 +3014,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
         if purchaseMap.has_key('supplier_id'):
-            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
+            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id'] 
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)

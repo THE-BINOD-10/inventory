@@ -12404,3 +12404,12 @@ def get_sku_category_list(request, user=''):
     category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
                       values_list('sku_category', flat=True).distinct())
     return HttpResponse(json.dumps({'category_list': category_list}))
+
+def payment_supplier_mapping(payment_code, payment_desc, supplier):
+    filters = {
+        'payment_code': payment_code,
+        'payment_description': payment_desc,
+        'supplier': supplier
+    }
+    payment_obj = PaymentTerms.objects.get_or_create(**filters)
+    return payment_obj

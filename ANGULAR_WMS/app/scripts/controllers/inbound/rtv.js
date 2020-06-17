@@ -106,7 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('GRN Number').withTitle('GRN Number'),
+        DTColumnBuilder.newColumn('Purchase Order ID').withTitle('Purchase Order ID'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
@@ -153,11 +153,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var flag = false;
       var id = '';
       var order_prefix = '';
+      var challan_number = '';
       angular.forEach(vm.selected, function(value, key){
         if (value && !flag) {
           flag = true;
           id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
           order_prefix = vm.dtInstance.DataTable.context[0].aoData[key]._aData.prefix;
+          challan_number = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] ? vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] : '';
         } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
           flag = false;
@@ -168,11 +170,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (flag) {
         var data_to_send = {
           'data_id': id,
-          'prefix': order_prefix
+          'prefix': order_prefix,
+          'challan_number': challan_number
         }
         vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
+              vm.extra_width = {
+                'width': '1350px'
+              };
               vm.title = "Create RTV";
               vm.print_enable = false;
               $state.go('app.inbound.rtv.details');
@@ -364,7 +370,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
-
+      elem.push({'name': 'grn_number', 'value': vm.model_data.grn_number});
+      elem.push({'name': 'po_number', 'value': vm.model_data.po_reference});
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
           elem.push({'name': 'sku_code', 'value': sku.sku_code});

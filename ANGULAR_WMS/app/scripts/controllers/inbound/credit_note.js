@@ -145,7 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = function(form) {
       if (!vm.model_data.credit_number || !vm.model_data.credit_date || !vm.model_data.credit_value) {
         Service.showNoty('Please Fill * Fields');
-      } else if ((parseInt(vm.model_data['GRN Price']) + parseInt(vm.model_data.credit_value)) != vm.model_data['Invoice Value']) {
+      } else if ((parseFloat(vm.model_data['GRN Price']) + parseFloat(vm.model_data.credit_value)) != vm.model_data['Invoice Value']) {
         Service.showNoty('Credit Note Value Does Not Match Difference Between Invoice Value & GRN Value');
       } else {
         var elem = angular.element($('form'));
@@ -160,13 +160,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
         });
+        form_data.append("po_data", JSON.stringify(vm.model_data["po_data"]));
+        form_data.append("invoice_number", vm.model_data["Invoice Number"]);
+        form_data.append("invoice_date", vm.model_data["Invoice Date"]);
         form_data.append("credit_quantity", vm.model_data["credit_quantity"]);
         vm.service.apiCall('save_credit_note_po_data/', 'POST', form_data, true, true).then(function(data){
           if (data.data == "success"){
             Service.showNoty(data.data);
             vm.close();
             vm.reloadData();
-          } else if ( data.data == 'Please fill * fields') {
+          } else if ( data.data == 'Upload File Is Mandatory') {
             Service.showNoty(data.data);
           } else {
             Service.showNoty('Success');

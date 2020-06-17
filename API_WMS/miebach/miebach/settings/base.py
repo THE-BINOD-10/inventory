@@ -40,13 +40,15 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_results',
     'corsheaders',
     'miebach_admin',
     #'maintenancemode',
     'api_calls',
     'rest_api',
     'oauth2_provider',
-    'reversion'
+    'reversion',
+    'stockone_integrations'
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -55,6 +57,11 @@ AUTHENTICATION_BACKENDS = (
 'oauth2_provider.backends.OAuth2Backend',
 )
 '''
+
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
+
+
 MIDDLEWARE_CLASSES = (
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
     #'reversion.middleware.RevisionMiddleware',
@@ -68,7 +75,7 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
 )
 '''
-MIDDLEWARE_CLASSES = [ 
+MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -132,7 +139,7 @@ FILE_UPLOAD_PERMISSIONS = 0644
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 

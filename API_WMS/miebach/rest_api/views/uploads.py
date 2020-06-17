@@ -21,7 +21,7 @@ from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from inbound_common_operations import *
-
+from stockone_integrations.views import Integrations
 
 log = init_logger('logs/uploads.log')
 
@@ -998,7 +998,7 @@ def sku_form(request, user=''):
 def asset_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(ASSET_HEADERS)
     wb, ws = get_work_sheet('assets', headers)
     return xls_to_response(wb, '%s.asset_form.xls' % str(user.username))
@@ -1009,7 +1009,7 @@ def asset_form(request, user=''):
 def service_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(SERVICE_HEADERS)
     wb, ws = get_work_sheet('service', headers)
     return xls_to_response(wb, '%s.service_form.xls' % str(user.username))
@@ -1020,7 +1020,7 @@ def service_form(request, user=''):
 def otheritems_form(request, user=''):
     asset_file = request.GET['download-sku-file']
     if asset_file:
-        return error_file_download(sku_file)
+        return error_file_download(asset_file)
     headers = copy.deepcopy(OTHER_ITEM_HEADERS)
     wb, ws = get_work_sheet('other_items', headers)
     return xls_to_response(wb, '%s.otheritems_form.xls' % str(user.username))
@@ -1560,6 +1560,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -1933,14 +1935,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_data.save()
         if sku_data:
             sku_data.save()
-            if instanceName == ServiceMaster:
-                response = netsuite_update_create_service(sku_data, user)
-            elif instanceName == AssetMaster:
-                response = netsuite_update_create_assetmaster(sku_data, user)
-            elif instanceName == OtherItemsMaster:
-                response = netsuite_update_create_otheritem_master(sku_data, user)
-            else:
-                data= netsuite_update_create_sku(sku_data, attr_dict, user)
+            upload_netsuite_sku(sku_data, user,instanceName)
             all_sku_masters.append(sku_data)
             if _size_type:
                 check_update_size_type(sku_data, _size_type)
@@ -1996,7 +1991,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         new_sku_master = SKUMaster.objects.filter(user=user.id, sku_code__in=new_skus.keys())
         all_sku_masters = list(chain(all_sku_masters, new_sku_master))
         sku_key_map = OrderedDict(new_sku_master.values_list('sku_code', 'id'))
-        res= netsuite_sku_bulk_create(instanceName, sku_key_map, new_skus)
+        res=upload_bulk_insert_sku(instanceName, sku_key_map, new_skus, user)
+        # res= netsuite_sku_bulk_create(instanceName, sku_key_map, new_skus)
         for sku_code, sku_id in sku_key_map.items():
             sku_data = SKUMaster.objects.get(id=sku_id)
             if new_skus[sku_code].get('size_type', ''):
@@ -2006,12 +2002,18 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 hot_release = 1 if (hot_release == 'enable') else 0
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
-                if attributes[attr_key] == 'Multi Input':
-                    attr_vals = attr_val.split(',')
+                if attr_val:
+                    if attributes[attr_key] == 'Multi Input':
+                        attr_vals = attr_val.split(',')
+                        allow_multiple = True
+                    else:
+                        attr_vals = [attr_val]
+                        allow_multiple = False
                 else:
-                    attr_vals = [attr_val]
-                create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_vals, is_bulk_create=True,
-                                           create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+                    attr_vals = []
+                for attr_key_val in attr_vals:
+                    create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_data, attr_key, attr_key_val, is_bulk_create=True,
+                                               create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping, allow_multiple=allow_multiple)
 
             if new_skus[sku_code].get('ean_numbers', ''):
                 ean_numbers = new_skus[sku_code].get('ean_numbers', '')
@@ -2034,6 +2036,39 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 
     return 'success'
 
+def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
+    try:
+        sku_list_dict=[]
+        intObj = Integrations(user,'netsuiteIntegration')
+        for sku_code, sku_id in sku_key_map.items():
+            sku_master_data=new_skus[sku_code].get('sku_obj', {})
+            sku_master_data=intObj.gatherSkuData(sku_master_data)
+            sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
+            sku_attr_dict.update(sku_master_data)
+            sku_list_dict.append(sku_attr_dict)
+        intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
+    except Exception as e:
+        print(e)
+
+def upload_netsuite_sku(data, user, instanceName=''):
+    try:
+        intObj = Integrations(user,'netsuiteIntegration')
+        sku_data_dict=intObj.gatherSkuData(data)
+        if instanceName == ServiceMaster:
+            sku_data_dict.update({"ServicePurchaseItem":True})
+            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == AssetMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        elif instanceName == OtherItemsMaster:
+            sku_data_dict.update({"non_inventoryitem":True})
+            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+        else:
+            # # intObj.initiateAuthentication()
+            # sku_data_dict.update(sku_attr_dict)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+    except Exception as e:
+        print(e)
 
 @csrf_exempt
 @login_required
@@ -2949,7 +2984,7 @@ def supplier_sku_upload(request, user=''):
 
         mapping = copy.deepcopy(SUPPLIER_SKU_HEADERS)
         if user.userprofile.warehouse_level != 0:
-            del mapping['Warehouse']        
+            del mapping['Warehouse']
         headers = mapping.keys()
         file_mapping = OrderedDict(zip(mapping.values(), range(0, len(mapping))))
         for col_idx in range(0, open_sheet.ncols):
@@ -9122,7 +9157,7 @@ def user_prefixes_form(request, user=''):
     excel_mapping = copy.deepcopy(USER_PREFIXES_MAPPING)
     excel_headers = excel_mapping.keys()
     wb, ws = get_work_sheet('User Prefixes', excel_headers)
-    return xls_to_response(wb, '%s.user_prefixes_form.xls' % str(user.id))
+    return xls_to_response(wb, '%s.user_prefixes_form.xls' % str(user.username))
 
 
 @csrf_exempt
@@ -9235,3 +9270,198 @@ def save_user_prefixes(data_list):
                     prefix_dict['prefix'] = val
                     new_obj = UserPrefixes(**prefix_dict)
                     new_obj.save()
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def staff_master_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(STAFF_MASTER_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Staff Master', excel_headers)
+    return xls_to_response(wb, '%s.staff_master_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(STAFF_MASTER_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['warehouse', 'staff_code', 'name', 'email_id', 'password', 'phone_number', 'position', 'status']).\
+            issubset(excel_mapping.keys()):
+        return 'Invalid File'
+    company_id = get_company_id(user)
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
+    # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
+    staff_master = None
+    company_id = get_company_id(user)
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
+                                    values_list('role_name', flat=True))
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'warehouse':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    all_users = get_related_users(user.id)
+                    all_user_objs = User.objects.filter(id__in=all_users)
+                    warehouse = all_user_objs.filter(username=cell_data)
+                    if not warehouse:
+                        index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+                    else:
+                        data_dict['user'] = warehouse[0]
+                        user = warehouse[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Warehouse is Mandatory')
+            elif key == 'staff_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    exist_obj = StaffMaster.objects.filter(company_id__in=company_list, staff_code=cell_data)
+                    if exist_obj:
+                        staff_master = exist_obj[0]
+                    else:
+                        data_dict['staff_code'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Staff Code is Mandatory')
+            elif key == 'name':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
+                else:
+                    index_status.setdefault(row_idx, set()).add('Staff Name is Mandatory')
+            elif key == 'email_id':
+                if cell_data and not staff_master:
+                    all_sub_users = get_company_sub_users(user, company_id=company_id)
+                    sub_user_email = all_sub_users.filter(email=cell_data)
+                    if sub_user_email.exists():
+                        index_status.setdefault(row_idx, set()).add('Email exists already')
+                    else:
+                        data_dict[key] = cell_data
+                elif not staff_master:
+                    index_status.setdefault(row_idx, set()).add('Email ID is Mandatory')
+            elif key == 'password':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                elif not staff_master:
+                    index_status.setdefault(row_idx, set()).add('Password is Mandatory')
+            elif key == 'phone_number':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
+            elif key == 'position':
+                if cell_data:
+                    if cell_data not in roles_list:
+                        index_status.setdefault(row_idx, set()).add('Invalid Position')
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
+                elif not staff_master:
+                    index_status.setdefault(row_idx, set()).add('Position is Mandatory')
+            elif key == 'status':
+                if cell_data:
+                    if str(cell_data).lower() == 'inactive':
+                        cell_data = 0
+                    else:
+                        cell_data = 1
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
+        data_dict['staff_master'] = staff_master
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def staff_master_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_staff_master_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        for final_data in data_list:
+            if final_data['staff_master']:
+                data = final_data['staff_master']
+                old_position = data.position
+                position = final_data.get('position', '')
+                if position:
+                    if old_position != position:
+                        sub_user = User.objects.get(username=data.email_id)
+                        update_user_role(user, sub_user, position, old_position=old_position)
+                final_data['staff_master'].save()
+            else:
+                staff_code = final_data['staff_code']
+                email = final_data['email_id']
+                staff_name = final_data['name']
+                password = final_data['password']
+                phone = final_data.get('phone_number', '')
+                staff_status = final_data.get('status', 1)
+                position = final_data.get('position', '')
+                user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
+                parent_username = final_data['user'].username
+                warehouse_type = final_data['user'].userprofile.warehouse_type
+                main_company_id = get_company_id(user)
+                company_id = final_data['user'].userprofile.company_id
+                department_type = ''
+                if final_data['user'].userprofile.warehouse_type == 'DEPT':
+                    department_type = final_data['user'].userprofile.stockone_code
+                wh_user_obj = User.objects.get(username=parent_username)
+                add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
+                if 'Added' not in add_user_status:
+                    log.info(add_user_status)
+                StaffMaster.objects.create(company_id=company_id, staff_name=staff_name, \
+                                           phone_number=phone, email_id=email, status=staff_status,
+                                           position=position, department_type=department_type,
+                                           user_id=wh_user_obj.id, warehouse_type=warehouse_type,
+                                           staff_code=staff_code)
+                sub_user = User.objects.get(username=email)
+                update_user_role(user, sub_user, position, old_position='')
+            print final_data
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Save Staff Master failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data_list), str(e)))
+    return HttpResponse('Success')

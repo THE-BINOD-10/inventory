@@ -812,7 +812,30 @@ var app = angular.module('urbanApp')
         .state('app.masters.StaffMaster.Staff', {
              url: '/Staff',
              templateUrl: 'views/masters/toggles/staff_update.html'
-           })
+        })
+        .state('app.masters.PurchaseApproval', {
+          url: '/PurchaseApproval',
+          // permission: 'add_staffmaster',
+          templateUrl: 'views/masters/PurchaseApproval.html',
+                    resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/masters/purchase_approvals/pr_approvals.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/purchase_approvals/po_approvals.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Purchase Approval',
+          }
+        })
+        .state('app.masters.PurchaseApproval.updateApproval', {
+             url: '/updateApproaval',
+             templateUrl: 'views/masters/toggles/approval_update.html'
+        })
         .state('app.masters.NotificationMaster', {
           url: '/NotificationMaster',
           // permission: 'add_staffmaster',

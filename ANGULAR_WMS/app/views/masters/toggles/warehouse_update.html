@@ -152,8 +152,13 @@
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
-                    <label class="control-label">Stockone Code </label>
-                    <input type="text" name="stockone_code" class="form-control" ng-model="showCase.model_data.stockone_code">
+                    <label class="control-label" ng-if="showCase.warehouse_type_name != 'Department'">{{showCase.warehouse_type_name}} Code </label>
+                    <label class="control-label" ng-if="showCase.warehouse_type_name == 'Department'"> Department Type </label>
+                    <input type="text" name="stockone_code" class="form-control" ng-model="showCase.model_data.stockone_code" ng-if="showCase.warehouse_type_name != 'Department'">
+                    <select class="form-control" ng-model="showCase.model_data.stockone_code" name="stockone_code" ng-if="showCase.warehouse_type_name == 'Department'" ng-init="showCase.model_data.stockone_code=='All'">
+                      <option value=""> All </option>
+                      <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="showCase.model_data.stockone_code==dept_code">{{dept_type}}</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -163,7 +168,7 @@
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label"> Company List </label>
-                    <select class="form-control customer_status" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="status">
+                    <select class="form-control customer_status" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id">
                       <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
                     </select>
                   </div>

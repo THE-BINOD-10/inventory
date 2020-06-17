@@ -100,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
-            var grn_no = temp['GRN No'];
+            var grn_no = temp['GRN NO'];
             grn_no = grn_no.split('/');
 
             if(click_type == 'edit'){
@@ -202,7 +202,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             status = true;
           }
           field_name = temp['check_field'];
-          var grn_no = temp['GRN No'];
+          var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
 
           if(click_type == 'cancel_poc'){
@@ -256,7 +256,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.move_to_api = function(click_type, data){
     var send = data.join(",");
-    var credit = (((vm.inv_value ? vm.inv_value : 0) > vm.pdf_data.rounded_invoice_amount) && ((vm.inv_quantity ? vm.inv_quantity : 0) > vm.pdf_data.total_quantity)) ? true : false;
+    var credit = ((vm.inv_value ? vm.inv_value : 0) > (vm.pdf_data.rounded_invoice_amount + vm.pdf_data.extra_other_charges)) ? true : false
     send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date, inv_value: vm.inv_value, inv_quantity: vm.inv_quantity, inv_receipt_date: vm.inv_receipt_date, credit: credit}
     var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;
@@ -308,7 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(value) {
           sel_items.push(key);
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          var grn_no = temp['GRN No'];
+          var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
 
           send_data = JSON.stringify({

@@ -56,6 +56,10 @@ urlpatterns = [
     url(r'^create_user/$', create_user),
     url(r'^get_supplier_list/$', get_supplier_list),
     url(r'^get_warehouse_list/$', get_warehouse_list),
+    url(r'^get_department_list/$', get_department_list),
+    url(r'^get_product_categories_list/$', get_product_categories_list),
+    url(r'^get_purchase_config_data/$', get_purchase_config_data),
+    url(r'^all_purchase_approval_config_data/$', all_purchase_approval_config_data),
     url(r'^search_customer_sku_mapping/$', search_customer_sku_mapping),
     url(r'^delete_bom_data/$', delete_bom_data),
     url(r'^delete_market_mapping/$', delete_market_mapping),
@@ -80,11 +84,6 @@ urlpatterns = [
     url(r'^insert_company_master/$', insert_company_master),
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
-
-
-
-
-
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -213,6 +212,7 @@ urlpatterns = [
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
+    url(r'^cancel_existing_grn/$', cancel_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
     url(r'^get_grn_extra_fields/$', get_grn_extra_fields),
@@ -682,6 +682,8 @@ urlpatterns += [
     url(r'^brand_level_barcode_configuration_upload/$', brand_level_barcode_configuration_upload),
     url(r'^user_prefixes_form/$', user_prefixes_form),
     url(r'^user_prefixes_upload/$', user_prefixes_upload),
+    url(r'^staff_master_form/$', staff_master_form),
+    url(r'^staff_master_upload/$', staff_master_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -750,7 +752,9 @@ urlpatterns += [
     url(r'^get_new_barcode_configurations/$', get_new_barcode_configurations),
     url(r'^get_distnict_brands/$', get_distnict_brands),
     url(r'^get_sku_attributes_data/$', get_sku_attributes_data),
-
+    url(r'^get_company_warehouses/$', get_company_warehouses),
+    url(r'^get_company_roles_list/$', get_company_roles_list),
+    url(r'^get_sku_category_list/$', get_sku_category_list),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

@@ -23,13 +23,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback)
+       .withOption('order', [1, 'asc'])
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('staff_id').withTitle('Staff ID'),
+        DTColumnBuilder.newColumn('staff_code').withTitle('Staff Code'),
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
+        DTColumnBuilder.newColumn('company').withTitle('Subsidary'),
+        DTColumnBuilder.newColumn('warehouse').withTitle('Plant'),
+        DTColumnBuilder.newColumn('department').withTitle('Department'),
+        DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
+        DTColumnBuilder.newColumn('position').withTitle('Position'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
         DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
@@ -62,7 +68,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
-  var empty_data = {staff_id: "", name: "", email_id: "", phone_number: "", status: "", margin: 0};
+  var empty_data = {name: "", email_id: "", phone_number: "", status: "", margin: 0, company_id: '',
+                    plant: '', department_id: '', department_type: '', postion: ''};
   vm.model_data = {};
 
   vm.base = function() {
@@ -90,7 +97,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.customer = function(url) {
 
     var send = {}
-    var send = $("form").serializeArray()
+    var send = $("form").serializeArray();
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {
         if(data.data == 'New Staff Added' || data.data == 'Updated Successfully') {
@@ -118,6 +125,69 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     } else {
       vm.service.pop_msg('Please fill required fields');
     }
+  }
+
+  vm.company_list = [];
+  function get_company_list() {
+    vm.service.apiCall("get_company_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.company_list = data.data.company_list;
+      }
+    });
+  }
+  get_company_list();
+
+  vm.warehouse_list = [];
+  vm.get_company_warehouse_list = get_company_warehouse_list;
+  function get_company_warehouse_list() {
+    var wh_data = {};
+    wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse_type'] = 'STORE,SUB_STORE';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.warehouse_list = data.data.warehouse_list;
+      }
+    });
+  }
+
+  vm.department_list = [];
+  vm.get_warehouse_department_list = get_warehouse_department_list;
+  function get_warehouse_department_list() {
+    var wh_data = {};
+    wh_data['company_id'] = vm.model_data.company_id;
+    wh_data['warehouse'] = vm.model_data.warehouse;
+    wh_data['warehouse_type'] = 'DEPT';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.department_list = data.data.warehouse_list;
+      }
+    });
+  }
+
+  vm.department_type_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_type_list = data.data.department_list;
+    }
+  });
+
+  vm.roles_list = [];
+  function get_roles_list() {
+    vm.service.apiCall("get_company_roles_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.roles_list = data.data.roles_list;
+      }
+    });
+  }
+  get_roles_list();
+
+  vm.update_department_type = function() {
+    angular.forEach(vm.department_list, function(dept){
+      console.log(dept);
+      if(dept.username == vm.model_data.department){
+        vm.model_data.department_type = dept.stockone_code;
+      }
+    });
   }
 
 }

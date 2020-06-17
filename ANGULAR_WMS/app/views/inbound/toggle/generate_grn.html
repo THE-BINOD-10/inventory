@@ -181,10 +181,10 @@
           <div class="row" ng-if="showCase.product_type=='Kits&Consumables'">
             <div ng-include="'views/inbound/toggle/GRN/kits_consumables.html'"></div>
           </div>
-          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets'" >
+          <div class="row" ng-if="showCase.product_type=='Services' || showCase.product_type=='Assets' || showCase.product_type=='OtherItems'" >
             <div ng-include="'views/inbound/toggle/GRN/grn_services_assets.html'"></div>
           </div>
-          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables'">
+          <div class="row" ng-if="showCase.product_type !='Services' && showCase.product_type !='Assets' && showCase.product_type !='Kits&Consumables' && showCase.product_type!='OtherItems'">
             <div class="col-md-12 in_header">
               <table class="table">
                 <thead>
@@ -503,7 +503,7 @@
         <div ng-show="showCase.central_po" >
         <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
         <button ng-if="(!(showCase.print_enable)) && showCase.display_approval_button" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Send for Approval</button>
-        <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
+        <button ng-if="(!(showCase.print_enable)) && !showCase.display_approval_button" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">{{showCase.product_type=='Services' ? 'Generate SRN' : 'Generate GRN'}}</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>

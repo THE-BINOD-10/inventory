@@ -9,8 +9,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.statesList = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu Kashmir', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Orissa', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Tripura', 'Uttar Pradesh', 'West Bengal', 'Chhattisgarh', 'Uttarakhand', 'Jharkhand', 'Telangana'];
     vm.warehouse_type = Session.user_profile.warehouse_type;
+    vm.warehouse_type_name = Session.user_profile.warehouse_type_name;
     vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.company_id = Session.user_profile.company_id;
+    vm.page_title = Session.user_profile.warehouse_type_name + ' Master';
     vm.filters = {'datatable': 'WarehouseMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -27,14 +29,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Username').withTitle('Username'),
+        //DTColumnBuilder.newColumn('Username').withTitle('Username'),
         DTColumnBuilder.newColumn('Name').withTitle('Name'),
         DTColumnBuilder.newColumn('Email').withTitle('Email'),
         DTColumnBuilder.newColumn('City').withTitle('City'),
-        DTColumnBuilder.newColumn('Type').withTitle('Type'),
-        DTColumnBuilder.newColumn('Level').withTitle('Level'),
-        DTColumnBuilder.newColumn('Min Order Value').withTitle('Min Order Value'),
-        DTColumnBuilder.newColumn('Zone').withTitle('Zone')
+        //DTColumnBuilder.newColumn('Type').withTitle('Type'),
+        //DTColumnBuilder.newColumn('Level').withTitle('Level'),
+        //DTColumnBuilder.newColumn('Min Order Value').withTitle('Min Order Value'),
+        //DTColumnBuilder.newColumn('Zone').withTitle('Zone')
     ];
 
     vm.dtInstance = {};
@@ -181,5 +183,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   get_company_list()
 
+  vm.department_type_list = [];
+  vm.service.apiCall('get_department_list/').then(function(data){
+    if(data.message) {
+      vm.department_type_list = data.data.department_list;
+    }
+  });
 
 }

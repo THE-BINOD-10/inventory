@@ -61,10 +61,5 @@ admin.site.register(UserPrefixes, UserPrefixesAdmin)
 admin.site.register(CompanyRoles, CompanyRolesAdmin)
 admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)
 admin.site.register(CompanyMaster, CompanyMasterAdmin)
-<<<<<<< HEAD
 admin.site.register(SupplierMaster)
 admin.site.register(PaymentTerms)
-=======
-admin.site.register(PaymentTerms)
-admin.site.register(SupplierMaster)
->>>>>>> 5a739841ce6d309af52a54252e5c3d52ab6e1cc8

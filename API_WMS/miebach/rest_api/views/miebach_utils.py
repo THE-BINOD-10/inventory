@@ -167,8 +167,6 @@ PR_REPORT_PR_STATUS = ['Pending', 'Approved', 'Rejected', 'Pr_Converted_To_Po', 
 
 PR_REPORT_PRIORITY_STATUS = ['normal', 'urgent']
 
-PR_REPORT_PRODUCT_CATEGORY = ['Kits&Consumables', 'Assets', 'Services', 'Other Items']
-
 
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
@@ -11634,7 +11632,6 @@ def get_pr_report_data(search_params, user, sub_user):
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -11650,6 +11647,8 @@ def get_pr_report_data(search_params, user, sub_user):
         search_parameters['pending_pr__pr_number'] = search_params['pr_number']
     if 'product_category' in search_params:
         search_parameters['pending_pr__product_category'] = search_params['product_category']
+        if search_parameters['pending_pr__product_category'] == 'KitsConsumables':
+            search_parameters['pending_pr__product_category'] = 'Kits&Consumables'
     if 'final_status' in search_params:
         search_parameters['pending_pr__final_status'] = search_params['final_status']
 

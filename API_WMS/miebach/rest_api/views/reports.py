@@ -117,7 +117,7 @@ def get_report_data(request, user=''):
         if 'product_category' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = PR_REPORT_PRODUCT_CATEGORY
+            data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
 
         if 'sku_category' in filter_keys:
             data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])

@@ -697,6 +697,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
+                                 ('department_code', data.department_type),
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),

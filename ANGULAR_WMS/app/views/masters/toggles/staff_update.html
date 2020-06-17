@@ -43,11 +43,9 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Department Type </label>
-                <input ng-if="showCase.update" type="hidden" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" value="{{showCase.model_data.department_type}}">
-                <input ng-if="showCase.update" type="text" name="department_type" class="form-control" ng-model="showCase.model_data.department_type" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department_type" name="department_type" style="pointer-events: none" readonly>
+                <select class="form-control" ng-model="showCase.model_data.department_type" name="department_type" style="pointer-events: none" readonly>
                   <option value="">All</option>
-                  <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}">{{dept_type}}</option>
+                  <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
                 </select>
               </div>
             </div>

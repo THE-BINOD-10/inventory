@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -634,16 +634,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 if key == 'place_of_supply':
                     value = address.get('placeofsupply', '')
                 if key == 'payment':
-                    if value:
-                        try:
-                            paymentT, status = PaymentTerms.objects.get_or_create(payment_code=value)
-                            value = paymentT
-                        except Exception as e:
-                            traceback.print_exc()
-                            log_err.debug(traceback.format_exc())
-                            update_error_message(failed_status, 5024, 'Invalid Paymnet Term', supplier_id, 'supplierid')
-                    else:
-                        value = None
+                    payment_term_arr = value
                 gst_check.append(address['gstno'])
                 data_dict[key] = value
                 # if supplier_master and value:

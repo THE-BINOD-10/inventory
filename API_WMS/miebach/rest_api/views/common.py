@@ -12411,5 +12411,5 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
         'payment_description': payment_desc,
         'supplier': supplier
     }
-    payment_obj = PaymentTerms.objects.get_or_create(**filters)
+    payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj

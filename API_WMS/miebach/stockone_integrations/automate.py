@@ -7,6 +7,7 @@ import datetime
 from stockone_integrations.utils import init_logger
 
 ListOfExecution = [
+    { 'function': 'IntegrateUOM', 'objType': 'uom', 'unique_param': 'name'},
     { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
     { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
     { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
@@ -23,8 +24,9 @@ batch = 50
 
 @app.task
 def runStoredAutomatedTasks():
+    users = User.objects.filter()
     for row in ListOfExecution:
-        for userObj in User.objects.filter():
+        for userObj in users:
             executeAutomatedTaskForUser(userObj, row)
 
 @app.task
@@ -54,3 +56,12 @@ def executeAutomatedTaskForUser(userObj, row):
         import traceback
         log_err.debug(traceback.format_exc())
         log_err.info('Faied Executing %s' % row.get('objType'))
+def getFunctionName(moduleType):
+    for row in ListOfExecution:
+        if row['objType'] == moduleType:
+            return row
+
+def executeTaskForRow(userObj, moduleType, integration_type, rows):
+    row = getFunctionName(moduleType)
+    intObj = Integrations(userObj, intType=integration_type, executebatch=True)
+    getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)

@@ -264,21 +264,12 @@ class LocationMaster(models.Model):
         return self.location
 
 
-class PaymentTerms(models.Model):
-    id = BigAutoField(primary_key=True)
-    payment_code = models.CharField(max_length=64, default='')
-    payment_description = models.CharField(max_length=256, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PAYMENT_TERMS'
-
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
     supplier_id = models.CharField(max_length=64, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
+    address_id = models.CharField(max_length=256, null=True)
     address = models.CharField(max_length=256)
     city = models.CharField(max_length=64)
     state = models.CharField(max_length=64)
@@ -314,7 +305,6 @@ class SupplierMaster(models.Model):
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
     reference_id = models.CharField(max_length=64, default='')
-    payment = models.ForeignKey(PaymentTerms, blank=True, null=True)
     subsidiary = models.CharField(max_length=64, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
@@ -325,7 +315,20 @@ class SupplierMaster(models.Model):
         index_together = ('name', 'user')
 
     def __unicode__(self):
-        return str(self.name)
+        return '%s-%s' % (self.name, self.supplier_id)
+
+
+class PaymentTerms(models.Model):
+    id = BigAutoField(primary_key=True)
+    payment_code = models.CharField(max_length=64, default='')
+    payment_description = models.CharField(max_length=256, default='')
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PAYMENT_TERMS'
+        unique_together = ('payment_code', 'payment_description', 'supplier')
 
 
 class SKUSupplier(models.Model):
@@ -641,6 +644,7 @@ class PendingPR(models.Model):
 class PendingPO(models.Model):
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
+    supplier_payment = models.ForeignKey(PaymentTerms, blank=True, null=True, db_index=True, related_name='pendingpos')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True, related_name='pendingpos')
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')

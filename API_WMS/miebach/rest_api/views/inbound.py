@@ -2363,7 +2363,8 @@ def get_supplier_payment_terms(request, user=''):
     payment_desc = ''
     supplier_id = request.POST.get('supplier_id', '')
     payment_terms = []
-    payments = PaymentTerms.objects.filter(supplier_id = supplier_id, supplier__user=user.id)
+    supplier_ids = list(SupplierMaster.objects.filter(supplier_id= supplier_id, user=user.id).values_list('id', flat=True))
+    payments = PaymentTerms.objects.filter(supplier__in = supplier_ids)
     if payments.exists():
         for data in payments:
            payment_terms.append("%s:%s:%s" %(str(data.id), str(data.payment_code), data.payment_description))

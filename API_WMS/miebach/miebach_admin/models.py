@@ -279,6 +279,7 @@ class SupplierMaster(models.Model):
     supplier_id = models.CharField(max_length=64, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
+    address_id = models.CharField(max_length=256, null=True)
     address = models.CharField(max_length=256)
     city = models.CharField(max_length=64)
     state = models.CharField(max_length=64)
@@ -324,7 +325,7 @@ class SupplierMaster(models.Model):
         index_together = ('name', 'user')
 
     def __unicode__(self):
-        return str(self.name)
+        return '%s-%s' % (self.name, self.supplier_id)
 
 
 class SKUSupplier(models.Model):

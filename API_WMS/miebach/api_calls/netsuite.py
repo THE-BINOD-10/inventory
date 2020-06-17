@@ -580,7 +580,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 error_message = 'Invalid Warehouse Name'
                 update_error_message(failed_status, 5024, error_message, '')
         if supplier.has_key('supplierid'):
-            supplier_id = supplier.get('supiplierid')
+            supplier_id = supplier.get('supplierid')
             # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
         else:
             error_message = 'supplier id missing'
@@ -592,15 +592,15 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
-                         'payment':'paymentterms', 'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply'
+                         'payment':'paymentterms', 'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
         for address in supplier['addresses']:
-            if supplier_count and address['gstno'] not in gst_check:
-                supplier_id = supplier_id+'-'+str(supplier_count)
+            # if supplier_count and address['gstno'] not in gst_check:
+            supplier_id = supplier_id + '-' + str(address['addressid'])
             filter_dict = {'supplier_id': supplier_id }
             for key,val in supplier_dict.iteritems():
                 value = supplier.get(val, '')
@@ -621,6 +621,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         value = 0
                 if key == 'address':
                     value = address.get('address', '')
+                if key == 'address_id':
+                    value = address.get('addressid', '')
                 if key == 'state':
                     value = address.get('state', '')
                 if key == 'city':
@@ -632,13 +634,16 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 if key == 'place_of_supply':
                     value = address.get('placeofsupply', '')
                 if key == 'payment':
-                    try:
-                        paymentT, status = PaymentTerms.objects.get_or_create(payment_code=value)
-                        value = paymentT
-                    except Exception as e:
-                        traceback.print_exc()
-                        log_err.debug(traceback.format_exc())
-                        update_error_message(failed_status, 5024, 'Invalid Paymnet Term', supplier_id, 'supplierid')
+                    if value:
+                        try:
+                            paymentT, status = PaymentTerms.objects.get_or_create(payment_code=value)
+                            value = paymentT
+                        except Exception as e:
+                            traceback.print_exc()
+                            log_err.debug(traceback.format_exc())
+                            update_error_message(failed_status, 5024, 'Invalid Paymnet Term', supplier_id, 'supplierid')
+                    else:
+                        value = None
                 gst_check.append(address['gstno'])
                 data_dict[key] = value
                 # if supplier_master and value:

@@ -136,11 +136,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var flag = false;
       var id = '';
       var order_prefix = '';
+      var challan_number = '';
       angular.forEach(vm.selected, function(value, key){
         if (value && !flag) {
           flag = true;
           id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
           order_prefix = vm.dtInstance.DataTable.context[0].aoData[key]._aData.prefix;
+          challan_number = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] ? vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] : '';
         } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
           flag = false;
@@ -151,7 +153,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (flag) {
         var data_to_send = {
           'data_id': id,
-          'prefix': order_prefix
+          'prefix': order_prefix,
+          'challan_number': challan_number
         }
         vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {

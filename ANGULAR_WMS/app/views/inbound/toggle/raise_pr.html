@@ -140,7 +140,7 @@
         </div>
         <div class="modal-body" style="padding:5px">
           <div class="row">
-          <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Product Category</label>
               <select class="form-control" name="product_category" 
@@ -153,7 +153,19 @@
               </select>
             </div>
           </div>
-          <div class="col-md-6 col-sm-6 col-xs-8">
+          <div class="col-md-3 col-sm-3 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Category</label>
+              <select class="form-control" name="sku_category" 
+                      ng-model="showCase.model_data.sku_category">
+                <option value="">all</option>
+                <option ng-repeat="sku_catg in showCase.model_data.sku_categories" 
+                        value="{{sku_catg}}">{{sku_catg}}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6 col-sm-8">
             <div class="form-group">
                <div class="col-md-3 mt30" align="right">
                  <label class="container">Normal Request

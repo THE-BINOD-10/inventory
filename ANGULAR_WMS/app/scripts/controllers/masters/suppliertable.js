@@ -128,6 +128,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	var elem = angular.element($('form'));
 	elem = elem[0];
 	elem = $(elem).serializeArray();
+  if (vm.model_data.is_contracted) {
+    elem.push({name: "is_contracted", value:true})
+  }
 	var send = vm.uploadFile(elem);
     //var send = $("form").serializeArray();
     vm.service.apiCall(url, 'POST', send, true, true).then(function(data){

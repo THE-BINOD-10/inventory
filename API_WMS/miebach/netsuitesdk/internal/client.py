@@ -322,6 +322,10 @@ class NetSuiteClient:
         if include_search_preferences:
             soapheaders['searchPreferences'] = self._search_preferences
 
+        soapheaders['preferences'] = {
+            'runServerSuiteScriptAndTriggerWorkflows' : True
+        }
+        print(soapheaders)
         return soapheaders
 
     def request(self, name, *args, **kwargs):
@@ -554,6 +558,8 @@ class NetSuiteClient:
             else:
                 record_ref = response['baseRef']
                 record_ref.error = True
+                record_ref.error_msg = status['statusDetail'][0]
                 record_refs.append(record_ref)
+
                 
         return record_refs

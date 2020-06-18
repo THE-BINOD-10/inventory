@@ -8225,6 +8225,27 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
+def get_plant_subsidary_and_department(user):
+    department=""
+    plant=""
+    subsidary=""
+    user_profile= UserProfile.objects.get(user_id=user.id)
+    if(user_profile.warehouse_type=="DEPT"):
+        department= user_profile.reference_id
+        admin_user= get_admin(user)
+        p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+        plant= p_user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("DEPT")
+    elif(user_profile.warehouse_type=="SUB_STORE"):
+        plant= user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("SUB_STORE")
+    elif(user_profile.warehouse_type=="STORE"):
+        plant= user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("STORE")
+    return department, plant, subsidary
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
@@ -8234,7 +8255,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     full_pr_number = ''
     requested_by= ""
     approval1 = ''
-    import pdb; pdb.set_trace()
+    department, plant, subsidary=get_plant_subsidary_and_department(user)
     if prQs:
         if prQs[0].pending_prs.all():
             pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
@@ -8272,7 +8293,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
         # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
         due_date = due_date.isoformat()
-    po_data = {'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
+    po_data = { 'department': department, "subsidiary":subsidary, "plant":plant,
+                'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                 'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                 'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                 'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,

@@ -100,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
-            var grn_no = temp['GRN No'];
+            var grn_no = temp['GRN NO'];
             grn_no = grn_no.split('/');
 
             if(click_type == 'edit'){
@@ -202,7 +202,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             status = true;
           }
           field_name = temp['check_field'];
-          var grn_no = temp['GRN No'];
+          var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
 
           if(click_type == 'cancel_poc'){
@@ -308,7 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(value) {
           sel_items.push(key);
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          var grn_no = temp['GRN No'];
+          var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
 
           send_data = JSON.stringify({

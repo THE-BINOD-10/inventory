@@ -341,8 +341,8 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
-        if data.phone_number:
-            data.phone_number = int(float(data.phone_number))
+        #if data.phone_number:
+            #data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -698,6 +698,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
+                                 ('department_code', data.department_type),
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),

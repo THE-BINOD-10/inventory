@@ -257,6 +257,7 @@ class netsuiteIntegration(object):
             # purorder.taxRegOverride = True
             # purorder.taxDetailsOverride = True
             # purorder.entityTaxRegNum = ns.RecordRef(internalId= 437)
+
             # purorder.purchaseordertype = po_data['order_type']
             if po_data['product_category'] == 'Services':
                 product_list_id = 2
@@ -265,14 +266,21 @@ class netsuiteIntegration(object):
             else:
                 product_list_id = 3
 
+
             # purorder.location = warehouse_id
             purorder.approvalstatus = ns.RecordRef(internalId=2)
             # purorder.subsidiary = '1'
             purorder.subsidiary = po_data['subsidiary']
             # purorder.department = po_data['user_id']
             purorder.department = po_data['department']
+            
+            if (data.get("payment_code", None)):
+                purorder.terms = data.get("payment_code")
+            if (data.get("address_id", None)):
+                purorder.billAddress = ns.RecordRef(internalId=data.get("address_id"))
             # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-            purorder.customFieldList =  ns.CustomFieldList([
+            
+            purorder.po_custom_field_list =  [
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
@@ -280,7 +288,11 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
                 ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27)),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant'])
-            ])
+            ]
+            if (data.get("supplier_gstin", None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_in_vendor_gstin', value=data["supplier_gstin"]))
+
+            purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
                  'description': data['sku_desc'],

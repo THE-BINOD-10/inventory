@@ -348,6 +348,7 @@
                   <th><b> UOM Type </b></th>
                   <th><b> UOM </b></th>
                   <th><b> Conversion </b></th>
+                  <th><b> Name </b></th>
                   <th class="plus"></td>
                 </tr>
               </thead>
@@ -359,8 +360,9 @@
                       <option ng-repeat="uom_type in showCase.model_data.uom_type_list" value="{{uom_type}}" ng-selected="uom_type.toLowerCase()==uom.uom_type.toLowerCase()">{{uom_type}}</option>
                     </select>
                   </td>
-                  <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-readonly="uom.disable"></td>
-                  <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-readonly="uom.disable"></td>
+                  <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-readonly="uom.disable" ng-change="showCase.update_uom_name(uom)"></td>
+                  <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-readonly="uom.disable" ng-change="showCase.update_uom_name(uom)"></td>
+                  <td><input type="text" name="name" class="form-control" ng-model="uom.name" readonly></td>
                   <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_uom($index, uom.uom_id)" ng-readonly="uom.disable"></i></td>
                 </tr>
               </tbody>

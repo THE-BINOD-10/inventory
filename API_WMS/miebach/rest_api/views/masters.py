@@ -901,9 +901,10 @@ def get_sku_data(request, user=''):
     uom_data = []
     if uom_master:
         base_uom_name = uom_master[0].base_uom
-        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1})
+        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
+                         'name': '%s-%s'% (base_uom_name, '1')})
     for uom in uom_master:
-        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom,
+        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom, 'name': uom.name,
                         'conversion': uom.conversion, 'uom_id': uom.id})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
@@ -1373,7 +1374,7 @@ def update_uom_master(user, data_dict={}, data=''):
     company_id = get_company_id(user)
     for i in range(len(data_dict['uom_type'])):
         uom_type = data_dict['uom_type'][i]
-        uom_name = data_dict['uom_name'][i]
+        uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
         uom_id = data_dict['uom_id'][i]
         if uom_type.lower() == 'base':

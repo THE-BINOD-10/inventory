@@ -322,6 +322,10 @@ class NetSuiteClient:
         if include_search_preferences:
             soapheaders['searchPreferences'] = self._search_preferences
 
+        soapheaders['preferences'] = {
+            'runServerSuiteScriptAndTriggerWorkflows' : True
+        }
+        print(soapheaders)
         return soapheaders
 
     def request(self, name, *args, **kwargs):

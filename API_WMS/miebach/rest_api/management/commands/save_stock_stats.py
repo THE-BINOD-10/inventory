@@ -91,6 +91,8 @@ class Command(BaseCommand):
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     src_substitue = dict(all_sku_stats.filter(transact_type='src_substitute').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+                    cancel_grn = dict(all_sku_stats.filter(transact_type='cancel-grn').\
+                                                        values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
 
                     putaway_quantity = putaway_objs.get(sku.id, 0)
                     uploaded_quantity = stock_uploaded_objs.get(sku.id, 0)
@@ -104,6 +106,7 @@ class Command(BaseCommand):
                     consumed = rm_picklist_objs.get(sku.id, 0)
                     dest_substitute_quantity = dest_substitute.get(sku.id, 0)
                     src_substitue_quantity = src_substitue.get(sku.id, 0)
+                    cancel_grn_quantity = cancel_grn.get(sku.id, 0)
                     produced_quantity += dest_substitute_quantity
                     consumed += src_substitue_quantity
                     rtv_quantity = rtv_objs.get(sku.id,0)
@@ -120,7 +123,7 @@ class Command(BaseCommand):
                     #                                    produced_quantity) + (dispatched + consumed) - adjusted
                     stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
                     data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity, 'opening_stock_value': opening_stock_value,
-                                 'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
+                                 'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity, 'grn_cancelled_qty': cancel_grn_quantity,
                                  'dispatch_qty': dispatched, 'return_qty': return_quantity,'rtv_quantity':rtv_quantity,
                                  'adjustment_qty': adjusted, 'closing_stock': stock_quantity,'closing_stock_value': closing_stock_value,
                                   'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed, 'cancelled_qty':cancelled_quantity,

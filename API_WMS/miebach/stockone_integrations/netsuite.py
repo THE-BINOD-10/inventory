@@ -247,18 +247,21 @@ class netsuiteIntegration(object):
 
             # purorder.location = warehouse_id
             purorder.approvalstatus = ns.RecordRef(internalId=2)
-            # purorder.subsidiary = '1'
-            # purorder.department = po_data['user_id']
+            purorder.subsidiary = '1'
+            purorder.department = po_data['user_id']
             # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
             purorder.customFieldList =  ns.CustomFieldList([
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
+                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27)),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
             ])
             for data in po_data['items']:
-                line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                #line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                line_item = {'item': ns.RecordRef(internalId=17453),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],

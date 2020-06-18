@@ -39,6 +39,10 @@ class CompanyMasterAdmin(admin.ModelAdmin):
     search_fields = ['company_name']
     list_display = ('company_name', 'creation_date', 'parent')
 
+@admin.register(SupplierMaster)
+class SupplierMasterAdmin(admin.ModelAdmin):
+    search_fields = ['supplier_id','name']
+    list_display = ('supplier_id', 'user', 'address_id')
 admin.site.register(Integrations)
 admin.site.register(UserBrand)
 admin.site.register(Brands)
@@ -50,5 +54,4 @@ admin.site.register(GroupBrand)
 admin.site.register(GroupStages)
 admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)
 admin.site.register(CompanyMaster, CompanyMasterAdmin)
-admin.site.register(SupplierMaster)
 admin.site.register(PaymentTerms)

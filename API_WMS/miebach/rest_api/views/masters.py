@@ -1331,6 +1331,8 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)

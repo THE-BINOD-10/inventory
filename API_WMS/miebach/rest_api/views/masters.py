@@ -896,6 +896,15 @@ def get_sku_data(request, user=''):
     for market in market_map:
         market_data.append({'market_sku_type': market.sku_type, 'marketplace_code': market.marketplace_code,
                             'description': market.description, 'market_id': market.id})
+    company_id = get_company_id(user)
+    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code)
+    uom_data = []
+    if uom_master:
+        base_uom_name = uom_master[0].base_uom
+        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1})
+    for uom in uom_master:
+        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom,
+                        'conversion': uom.conversion, 'uom_id': uom.id})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
@@ -1005,7 +1014,7 @@ def get_sku_data(request, user=''):
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
-                    'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
+                    'sku_attributes': sku_attributes, 'uom_data': uom_data}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -1266,6 +1275,7 @@ def update_sku(request, user=''):
         update_sku_attributes(data, request)
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
+        update_uom_master(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
         #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
         #if "python" not in status:
@@ -1357,6 +1367,30 @@ def update_marketplace_mapping(user, data_dict={}, data=''):
                             'creation_date': datetime.datetime.now()}
             map_data = MarketplaceMapping(**mapping_data)
             map_data.save()
+
+def update_uom_master(user, data_dict={}, data=''):
+    base_uom_name = ''
+    company_id = get_company_id(user)
+    for i in range(len(data_dict['uom_type'])):
+        uom_type = data_dict['uom_type'][i]
+        uom_name = data_dict['uom_name'][i]
+        conversion = data_dict['conversion'][i]
+        uom_id = data_dict['uom_id'][i]
+        if uom_type.lower() == 'base':
+            base_uom_name = uom_name
+            continue
+        name = '%s-%s' % (uom_name, str(int(conversion)))
+        if uom_id:
+            uom_master = UOMMaster.objects.filter(id=uom_id)
+            uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
+        else:
+            uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, name=name,
+                                                  base_uom=base_uom_name)
+            if uom_master:
+                uom_master.update(conversion=conversion)
+            else:
+                UOMMaster.objects.create(company_id=company_id, sku_code=data.sku_code, name=name, base_uom=base_uom_name,
+                                         uom_type=uom_type, uom=uom_name, conversion=conversion)
 
 
 def get_supplier_update(request):
@@ -2929,6 +2963,7 @@ def insert_sku(request, user=''):
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            update_uom_master(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
             ean_numbers = request.POST.get('ean_numbers', '')
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
@@ -5218,3 +5253,12 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
                                                 ('min_Amt', result['min_Amt']), ('max_Amt', result['max_Amt']),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result['name']))))
+
+
+@csrf_exempt
+@login_required
+def delete_uom_master(request):
+    data_id = request.GET.get('data_id', '')
+    if data_id:
+        UOMMaster.objects.get(id=data_id).delete()
+    return HttpResponse("Deleted Successfully")

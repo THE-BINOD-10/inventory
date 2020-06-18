@@ -84,6 +84,7 @@ urlpatterns = [
     url(r'^insert_company_master/$', insert_company_master),
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
+    url(r'^delete_uom_master/$', delete_uom_master),
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -681,6 +682,8 @@ urlpatterns += [
     url(r'^user_prefixes_upload/$', user_prefixes_upload),
     url(r'^staff_master_form/$', staff_master_form),
     url(r'^staff_master_upload/$', staff_master_upload),
+    url(r'^uom_master_form/$', uom_master_form),
+    url(r'^uom_master_upload/$', uom_master_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -2836,6 +2836,11 @@ USER_PREFIXES_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Product Cate
                                       ('Invoice Prefix', 'invoice_prefix')
                         ))
 
+UOM_MASTER_MAPPING = OrderedDict(( ('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'),
+                                      ('UOM Type', 'uom_type'), ('UOM', 'uom'),
+                                      ('Conversion', 'conversion')
+                        ))
+
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
 
 DEPARTMENT_TYPES_MAPPING = OrderedDict([('ALLDE', 'All Department'), ('COVID', 'COVID-19'), ('MOLBI', 'Molecular Biology'),

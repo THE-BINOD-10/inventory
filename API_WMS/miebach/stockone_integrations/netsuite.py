@@ -354,8 +354,8 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
             ]
-            # if(pr_data.get('plant', None)):
-            #     custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
+            if(pr_data.get('plant', None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
             purreq.customFieldList =  ns.CustomFieldList(custom_list)
             for data in pr_data['items']:
                 line_item = {

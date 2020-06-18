@@ -302,11 +302,36 @@ class Integrations():
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
+
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
                     self.markResults('grn', row)
 
+    def IntegrateUOM(self, uomData, unique_variable, is_multiple=False):
+        if not self.executebatch and Batched:
+            if not is_multiple:
+                self.storeIntegrationDataForLaterUser(uomData, 'uom', unique_variable)
+            else:
+                for dataDict in uomData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'uom', unique_variable)
+        else:
+            result = []
+            if not is_multiple:
+                recordDict = uomData #self.gatherSkuData(skuObject)
+                record = self.connectionObject.netsuite_create_uom(recordDict)
+                result = self.connectionObject.complete_transaction(record, is_multiple)
+            else:
+                records = []
+                for row in uomData:
+                    recordDict = row
+                    record = self.connectionObject.netsuite_create_uom(recordDict)
+                    records.append(record)
+
+                result = self.connectionObject.complete_transaction(records, is_multiple)
+            if len(result):
+                for row in result:
+                    self.markResults('uom', row)
 
     def getRelatedJson(self, recordType):
         rows = IntegrationMaster.objects.filter(

@@ -64,6 +64,20 @@ class netsuiteIntegration(object):
             invitem.purchaseunit = data.get('measurement_type','')
             invitem.includeChildren = 'Y'
             invitem.cost= data.get('cost_price','')
+            if data.get('unitypeexid', None):
+                invitem.unitsType = ns.RecordRef(externalId=data.get('unitypeexid'))
+            if data.get('stock_unit', None) and data.get('unitypeexid', None):
+                internId = self.netsuite_get_uom(data['stock_unit'], data['unitypeexid'])
+                if internId:
+                    invitem.stockUnit = ns.RecordRef(internalId=internId)
+            if data.get('purchase_unit', None) and data.get('unitypeexid', None):
+                internId = self.netsuite_get_uom(data['purchase_unit'], data['unitypeexid'])
+                if internId:
+                    invitem.purchaseUnit = ns.RecordRef(internalId=internId)
+            if data.get('sale_unit', None) and data.get('unitypeexid', None):
+                internId = self.netsuite_get_uom(data['sale_unit'], data['unitypeexid'])
+                if internId:
+                    invitem.saleUnit = ns.RecordRef(internalId=internId)
             # invitem.taxtype = data.product_type
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
@@ -137,6 +151,7 @@ class netsuiteIntegration(object):
             rtvitem = ns.VendorReturnAuthorization()
             rtvitem.entity = str(rtv_data["supplier_name"])
             rtvitem.tranId = rtv_data['rtv_number']
+            rtvitem.orderStatus = ns.RecordRef(internalId='B')
             # rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
@@ -237,6 +252,11 @@ class netsuiteIntegration(object):
             purorder.externalId = po_data['po_number']
             purorder.tranId = po_data['po_number']
             purorder.memo = po_data['remarks']
+            # purorder.nexus = ns.RecordRef(internalId= , type="")
+            # purorder.subsidiaryTaxRegNum = ns.RecordRef(internalId= "", type="")
+            # purorder.taxRegOverride = True
+            # purorder.taxDetailsOverride = True
+            # purorder.entityTaxRegNum = ns.RecordRef(internalId= 437)
             # purorder.purchaseordertype = po_data['order_type']
             if po_data['product_category'] == 'Services':
                 product_list_id = 2
@@ -263,16 +283,19 @@ class netsuiteIntegration(object):
             ])
             for data in po_data['items']:
                 line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
-                # line_item = {'item': ns.RecordRef(internalId=17453),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
                  'location':ns.RecordRef(internalId=297),
                  'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                   ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
-                 }
+                }
+                if po_data.get('uom_name', None) and po_data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(po_data['uom_name'], po_data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': internId})
                 item.append(line_item)
-            purorder.itemList = {'item':item}
+            purorder.itemList = { 'item': item }
 
         except Exception as e:
             import traceback
@@ -292,7 +315,7 @@ class netsuiteIntegration(object):
             purreq.tranDate = pr_data['pr_date']
             purreq.tranId = pr_data['full_pr_number']
             purreq.tranDate = pr_data['pr_date']
-            purreq.subsidiary = ns.RecordRef(internalId=16)
+            # purreq.subsidiary = ns.RecordRef(internalId=16)
             purreq.customFieldList =  ns.CustomFieldList([
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
@@ -300,11 +323,15 @@ class netsuiteIntegration(object):
             ])
             for data in pr_data['items']:
                 line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']),
+                    'item': ns.RecordRef(internalId=17453),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
                     'location':ns.RecordRef(internalId=297)
                 }
+                if pr_data.get('uom_name', None) and pr_data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(pr_data['uom_name'], pr_data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': internId})
                 item.append(line_item)
             purreq.itemList = { 'purchaseRequisitionItem': item }
             purreq.externalId = pr_data['full_pr_number']
@@ -313,3 +340,49 @@ class netsuiteIntegration(object):
             log.debug(traceback.format_exc())
             log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
         return purreq
+
+    def netsuite_create_uom(self, uom_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            item = []
+
+            UnitsType = ns.UnitsType()
+            UnitsType.name = uom_data['name']
+            for data in uom_data['uom_items']:
+                line_item = {
+                    'internalId': data['unit_name'],
+                    'unitName': data['unit_name'],
+                    'abbreviation': data['unit_name'],
+                    'pluralName': data['unit_name'],
+                    'pluralAbbreviation': data['unit_name'],
+                    'conversionRate': data['unit_conversion']
+                }
+                if data['is_base']:
+                    line_item.update({'baseUnit': True})
+                item.append(line_item)
+
+            # import pdb;pdb.set_trace()
+            UnitsType.uomList = { 'uom': item }
+            UnitsType.externalId = uom_data['name']
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            log.debug(traceback.format_exc())
+            log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
+        return UnitsType
+
+    def netsuite_get_uom(self, uomname, unitypeexid):
+        try:
+            ns = self.nc.raw_client
+            uoms = ns.get('UnitsType', externalId=unitypeexid).uomList.uom
+            for row in uoms:
+                if row.unitName == uomname:
+                    return row.internalId
+            return False
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            log.debug(traceback.format_exc())
+            log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
+        return False        

@@ -1,9 +1,9 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", 
+  angular.module("auth", []).service("Auth", ["$q", "$http", "Session", "$state","$rootScope", "$location", "$window",
 
-    function ($q, $http, Session, $state, $rootScope) {
+    function ($q, $http, Session, $state, $rootScope, $location, $window) {
 
       var deferredStatus = null;
 
@@ -46,10 +46,14 @@
       this.logout = function () {
 
         return $http.get(Session.url + "logout/", {withCredentials: true}).then(function () {
-
+          localStorage.clear();
           Session.unset();
+          if ($rootScope.$redirect) {
+            deferredStatus = null;
+            $state.go("user.signin");
+            $window.location.reload();
+          }
           deferredStatus = null;
-          //deleteDB();
         });
       };
 
@@ -94,24 +98,6 @@
           }
           deferredStatus.resolve(resp.message);
         }).catch(function(err){
-            /*getloginStatus().then(function(resp){
-              if((resp.message != "Fail") && resp.data.userId) {
-                 //TODO add the statusinto indexDb
-                 Session.set(resp.data);
-                  if(resp.data.roles.permissions["setup_status"] == "true") {
-                   $state.go("app.Register");
-                  }
-
-               }else{
-                 $state.go("user.signin");
-               }
-
-               if(resp.message == "Success") {
-                 if(resp.data.user_profile["user_type"] == "customer") {
-                   deferredStatus.resolve(resp.message);
-                 }
-               }
-           });*/
        });
         return deferredStatus.promise;
       };

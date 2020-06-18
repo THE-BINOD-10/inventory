@@ -211,6 +211,8 @@ class netsuiteIntegration(object):
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            grnrec.subsidiary = ns.RecordRef(internalId=grn_data['subsidiary'])
+            grnrec.department = grn_data['department']
             if(grn_data.get("items",None)):
                 for idx, data in enumerate(grn_data['items']):
                     grn_custom_field_list=[]
@@ -270,16 +272,17 @@ class netsuiteIntegration(object):
             # purorder.location = warehouse_id
             purorder.approvalstatus = ns.RecordRef(internalId=2)
             # purorder.subsidiary = '1'
-            purorder.subsidiary = po_data['subsidiary']
+            purorder.subsidiary = ns.RecordRef(internalId=po_data['subsidiary'])
+            # purorder.subsidiary = po_data['subsidiary']
             # purorder.department = po_data['user_id']
             purorder.department = po_data['department']
-            
+
             if (data.get("payment_code", None)):
                 purorder.terms = data.get("payment_code")
             if (data.get("address_id", None)):
                 purorder.billAddress = ns.RecordRef(internalId=data.get("address_id"))
             # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-            
+
             purorder.po_custom_field_list =  [
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
@@ -328,10 +331,14 @@ class netsuiteIntegration(object):
             purreq.tranId = pr_data['full_pr_number']
             purreq.tranDate = pr_data['pr_date']
             # purreq.subsidiary = ns.RecordRef(internalId=16)
+            purreq.subsidiary = ns.RecordRef(internalId=pr_data['subsidiary'])
+            # purorder.department = po_data['user_id']
+            purreq.department = pr_data['department']
             purreq.customFieldList =  ns.CustomFieldList([
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']),
             ])
             for data in pr_data['items']:
                 line_item = {
@@ -397,4 +404,4 @@ class netsuiteIntegration(object):
             print(traceback.format_exc())
             log.debug(traceback.format_exc())
             log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
-        return False        
+        return False

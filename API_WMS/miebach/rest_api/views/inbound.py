@@ -3015,7 +3015,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
         if purchaseMap.has_key('supplier_id'):
-            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id'] 
+            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -8259,60 +8259,70 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     full_pr_number = ''
     requested_by= ""
     approval1 = ''
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
-    if prQs:
-        if prQs[0].pending_prs.all():
-            pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-            pr_obj= prQs[0].pending_prs.all()[0]
-            if pr_number_list:
-                pr_number = pr_number_list[0]
-            pr_id = pr_obj.id
-            pr_prefix = pr_obj.prefix
-            pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
-            pr_date = pr_created_date.strftime('%d-%m-%Y')
-            dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-            if pr_number_list:
-                pr_number = pr_number_list[0]
-                full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
-            full_pr_number= pr_obj.full_pr_number
-            prApprQs = prQs[0].pending_poApprovals
-            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-            requested_by = prQs[0].requested_user.first_name
-            if validated_users:
-                approval1 = validated_users[0]
-        else:
-            requested_by = prQs[0].requested_user.first_name
-            if(user.email):
-                approval1 = user.email
-            else:
-                approval1 = user.first_name
-    company_id = get_company_id(user)
-    purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
-    _purchase_order = purchase_objs[0]
-    po_date = _purchase_order.creation_date
-    po_date = po_date.isoformat()
-    due_date =data_dict.get('delivery_date', '')
-    supplier_id = _purchase_order.open_po.supplier.supplier_id
-    if due_date:
-        due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
-        # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
-        due_date = due_date.isoformat()
-    po_data = { 'department': department, "subsidiary":subsidary, "plant":plant,
-                'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
-                'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
-                'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
-    for purchase_order in purchase_objs:
-        _open = purchase_order.open_po
-        item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                'quantity':_open.order_quantity, 'unit_price':_open.price,
-                'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
-        po_data['items'].append(item)
-    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
+    payment_code=''
+    address_id=''
+    supplier_gstin=''
     try:
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        if prQs:
+            if (prQs[0].supplier_payment):
+                payment_code= prQs[0].supplier_payment.payment_code
+            if prQs[0].pending_prs.all():
+                pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+                pr_obj= prQs[0].pending_prs.all()[0]
+                if pr_number_list:
+                    pr_number = pr_number_list[0]
+                pr_id = pr_obj.id
+                pr_prefix = pr_obj.prefix
+                pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+                pr_date = pr_created_date.strftime('%d-%m-%Y')
+                dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+                if pr_number_list:
+                    pr_number = pr_number_list[0]
+                    full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+                full_pr_number= pr_obj.full_pr_number
+                prApprQs = prQs[0].pending_poApprovals
+                validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+                requested_by = prQs[0].requested_user.first_name
+                if validated_users:
+                    approval1 = validated_users[0]
+            else:
+                requested_by = prQs[0].requested_user.first_name
+                if(user.email):
+                    approval1 = user.email
+                else:
+                    approval1 = user.first_name
+        company_id = get_company_id(user)
+        purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
+        _purchase_order = purchase_objs[0]
+        po_date = _purchase_order.creation_date
+        po_date = po_date.isoformat()
+        due_date =data_dict.get('delivery_date', '')
+        supplier_id = _purchase_order.open_po.supplier.supplier_id
+        if(_purchase_order.open_po.supplier.tin_number):
+            supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        if(_purchase_order.open_po.supplier.address_id):
+            address_id= _purchase_order.open_po.supplier.address_id
+        if due_date:
+            due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
+            # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
+            due_date = due_date.isoformat()
+        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
+                    'department': department, "subsidiary":subsidary, "plant":plant,
+                    'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
+                    'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
+                    'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
+                    'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                    'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
+                    'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+        for purchase_order in purchase_objs:
+            _open = purchase_order.open_po
+            item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
+                    'quantity':_open.order_quantity, 'unit_price':_open.price,
+                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
+            po_data['items'].append(item)
+        # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:

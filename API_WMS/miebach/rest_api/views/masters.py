@@ -369,6 +369,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('ep_supplier', data.ep_supplier),
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
+                                                ('is_contracted', data.is_contracted),
                                                 )))
 
 
@@ -636,8 +637,10 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['id', 'staff_name', 'email_id', 'phone_number', 'status']
+    lis = ['staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id', 'phone_number', 'status']
 
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
     search_params = get_filtered_params(filters, lis)
     if 'status__icontains' in search_params.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
@@ -653,20 +656,21 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         search_dict = {'active': 1, 'inactive': 0}
         if search_term.lower() in search_dict:
             search_terms = search_dict[search_term.lower()]
-            master_data = StaffMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+            master_data = StaffMaster.objects.filter(status=search_terms, company_id__in=company_list, **search_params).order_by(
                 order_data)
 
         else:
             master_data = StaffMaster.objects.filter(
                 Q(staff_name__icontains=search_term) | Q(phone_number__icontains=search_term) |
                 Q(email_id__icontains=search_term),
-                user=user.id, **search_params).order_by(order_data)
+                company_id__in=company_list, **search_params).order_by(order_data)
 
     else:
-        master_data = StaffMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+        master_data = StaffMaster.objects.filter(company_id__in=company_list, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
         if data.status:
@@ -680,11 +684,27 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        temp_data['aaData'].append(
-            OrderedDict((('staff_id', data.id), ('name', data.staff_name), ('phone_number', phone_number),
-                         ('email_id', data.email_id), ('status', status),
+        sub_user = User.objects.get(username=data.email_id)
+        wh_user = data.user
+        plant = ''
+        department = ''
+        if wh_user:
+            if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+                plant = wh_user.username
+            elif wh_user.userprofile.warehouse_type in ['DEPT']:
+                plant = get_admin(wh_user).username
+                department = wh_user.username
+        data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
+                                 ('company', data.company.company_name),
+                                 ('warehouse', plant), ('department', department),
+                                 ('department_type', department_type_mapping.get(data.department_type, '')),
+                                 ('department_code', data.department_type),
+                                 ('position', data.position),
+                                 ('email_id', data.email_id), ('phone_number', phone_number),
+                                 ('status', status), ('company_id', data.company.id),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
-                         )))
+                         ))
+        temp_data['aaData'].append(data_dict)
 
 
 @csrf_exempt
@@ -876,6 +896,15 @@ def get_sku_data(request, user=''):
     for market in market_map:
         market_data.append({'market_sku_type': market.sku_type, 'marketplace_code': market.marketplace_code,
                             'description': market.description, 'market_id': market.id})
+    company_id = get_company_id(user)
+    uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code)
+    uom_data = []
+    if uom_master:
+        base_uom_name = uom_master[0].base_uom
+        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1})
+    for uom in uom_master:
+        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom,
+                        'conversion': uom.conversion, 'uom_id': uom.id})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
     for combo in combo_skus:
@@ -985,7 +1014,7 @@ def get_sku_data(request, user=''):
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
-                    'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
+                    'sku_attributes': sku_attributes, 'uom_data': uom_data}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -1246,6 +1275,7 @@ def update_sku(request, user=''):
         update_sku_attributes(data, request)
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
+        update_uom_master(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
         #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
         #if "python" not in status:
@@ -1338,6 +1368,30 @@ def update_marketplace_mapping(user, data_dict={}, data=''):
             map_data = MarketplaceMapping(**mapping_data)
             map_data.save()
 
+def update_uom_master(user, data_dict={}, data=''):
+    base_uom_name = ''
+    company_id = get_company_id(user)
+    for i in range(len(data_dict['uom_type'])):
+        uom_type = data_dict['uom_type'][i]
+        uom_name = data_dict['uom_name'][i]
+        conversion = data_dict['conversion'][i]
+        uom_id = data_dict['uom_id'][i]
+        if uom_type.lower() == 'base':
+            base_uom_name = uom_name
+            continue
+        name = '%s-%s' % (uom_name, str(int(conversion)))
+        if uom_id:
+            uom_master = UOMMaster.objects.filter(id=uom_id)
+            uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
+        else:
+            uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, name=name,
+                                                  base_uom=base_uom_name)
+            if uom_master:
+                uom_master.update(conversion=conversion)
+            else:
+                UOMMaster.objects.create(company_id=company_id, sku_code=data.sku_code, name=name, base_uom=base_uom_name,
+                                         uom_type=uom_type, uom=uom_name, conversion=conversion)
+
 
 def get_supplier_update(request):
     data_id = request.GET['data_id']
@@ -1422,6 +1476,11 @@ def update_supplier_values(request, user=''):
                     value = 1
                 else:
                     value = 0
+            if key == 'is_contracted':
+                if value == 'true':
+                    value = True
+                else:
+                    value = False
             update_dict[key] = value
             #setattr(data, key, value)
         filter_dict = {'supplier_id': data.supplier_id }
@@ -2904,6 +2963,7 @@ def insert_sku(request, user=''):
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            update_uom_master(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
             ean_numbers = request.POST.get('ean_numbers', '')
             if ean_numbers:
                 ean_numbers = ean_numbers.split(',')
@@ -4380,18 +4440,62 @@ def insert_staff(request, user=''):
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
     phone = request.POST.get('phone_number', '')
+    company_id = request.POST.get('company_id', '')
+    position = request.POST.get('position', '')
+    password = request.POST.get('password', '')
+    re_password = request.POST.get('re_password', '')
+    warehouse = request.POST.get('warehouse', '')
+    department = request.POST.get('department', '')
+    department_type = request.POST.get('department_type', '')
+    staff_code = request.POST.get('staff_code', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
-    if not staff_name:
+    if not (staff_name or email):
         return HttpResponse('Missing Required Fields')
-    data = filter_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
+    if password != re_password:
+        return HttpResponse('Password and Retype passwords not matching')
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
+    all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
+    if str(staff_code).lower() in all_staff_codes:
+        return HttpResponse("Duplicate Staff Code")
+    all_sub_users = get_company_sub_users(user, company_id=company_id)
+    sub_user_email = all_sub_users.filter(email=email)
+    if sub_user_email.exists():
+        return HttpResponse('Email exists already')
+    data = filter_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     status_msg = 'Staff Exists'
 
     if not data:
-        StaffMaster.objects.create(user=user.id, staff_name=staff_name,\
-                            phone_number=phone, email_id=email, status=status)
-
-
+        user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
+        parent_username = user.username
+        warehouse_type = 'ADMIN'
+        main_company_id = get_company_id(user)
+        if department:
+            parent_username = department
+            warehouse_type = 'DEPT'
+        elif warehouse:
+            parent_username = warehouse
+            warehouse_type = 'STORE'
+        elif str(main_company_id) != str(company_id):
+            warehouse_type = 'ST_HUB'
+            st_hub_wh = UserProfile.objects.filter(company_id=company_id, warehouse_type='ST_HUB')
+            if not st_hub_wh:
+                return HttpResponse("Warehouse Mapping not found")
+            else:
+                parent_username = st_hub_wh[0].user.username
+        wh_user_obj = User.objects.get(username=parent_username)
+        add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
+        if 'Added' not in add_user_status:
+            return HttpResponse(add_user_status)
+        StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
+                            phone_number=phone, email_id=email, status=status,
+                            position=position, department_type=department_type,
+                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
+                            staff_code=staff_code)
         status_msg = 'New Staff Added'
+        sub_user = User.objects.get(username=email)
+        update_user_role(user, sub_user, position, old_position='')
     return HttpResponse(status_msg)
 
 
@@ -4401,15 +4505,29 @@ def insert_staff(request, user=''):
 def update_staff_values(request, user=''):
     """ Update Staff values"""
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
+    # staff_name = request.POST.get('name', '')
+    # email = request.POST.get('email_id', '')
+    # phone = request.POST.get('phone_number', '')
+    # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
     phone = request.POST.get('phone_number', '')
+    company_id = request.POST.get('company_id', '')
+    department_type = request.POST.get('department_type', '')
+    position = request.POST.get('position', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
-    data = get_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
-    data.email_id = email
+    data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
+    data.staff_name = staff_name
+    data.department_type = department_type
+    old_position = data.position
+    if old_position != position:
+        sub_user = User.objects.get(username=data.email_id)
+        update_user_role(user, sub_user, position, old_position=old_position)
+    data.position = position
     data.phone_number = phone
     data.status = status
     data.save()
+
     return HttpResponse("Updated Successfully")
 
 
@@ -4910,7 +5028,7 @@ def insert_supplier_attribute(request, user=''):
 @login_required
 @get_admin_user
 def get_company_list(request, user=''):
-    data = get_companies_list(user)
+    data = get_companies_list(user, send_parent=True)
     return HttpResponse(json.dumps({'company_list': data}))
 
 # @csrf_exempt
@@ -5097,3 +5215,50 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', row.id), ('mrp', skuObj.mrp),
                                                 ('model_id', row.model_id))))
+
+
+def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
+    lis = ['name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    purchase_type =  request.POST.get('special_key', '')
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = PurchaseApprovalConfig.objects.filter(Q(name__icontains=search_term) |
+                                                                Q(product_category__icontains=search_term) |
+                                                                Q(plant__icontains=search_term) |
+                                                                Q(department_type__icontains=search_term),
+                                                                company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params).\
+                                        values('name', 'product_category', 'plant', 'department_type',
+                                               'min_Amt', 'max_Amt').distinct().\
+                                        order_by(order_data)
+
+    else:
+        mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params).\
+                                        values('name', 'product_category', 'plant', 'department_type',
+                                               'min_Amt', 'max_Amt').distinct().\
+                                        order_by(order_data)
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for result in mapping_results[start_index: stop_index]:
+        temp_data['aaData'].append(OrderedDict((('name', result['name']), ('product_category', result['product_category']),
+                                                ('plant', result['plant']),
+                                                ('department_type', department_mapping.get(result['department_type'], '')),
+                                                ('min_Amt', result['min_Amt']), ('max_Amt', result['max_Amt']),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', result['name']))))
+
+
+@csrf_exempt
+@login_required
+def delete_uom_master(request):
+    data_id = request.GET.get('data_id', '')
+    if data_id:
+        UOMMaster.objects.get(id=data_id).delete()
+    return HttpResponse("Deleted Successfully")

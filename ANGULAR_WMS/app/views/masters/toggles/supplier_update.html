@@ -240,6 +240,13 @@
                   <textarea rows="5" cols="27" class="form-control" ng-model="showCase.model_data.address" name="address" ng-required="true">{{showCase.model_data.address}}</textarea>
                 </div>
               </div>
+              <div class="class-md-4">
+                <div class="form-group">
+                  <label class="control-label">Contracted Supplier</label>
+                    <toggle ng-model="showCase.model_data.is_contracted" on="Yes" off="No" onstyle="btn-success" offstyle="btn-warning" size="btn-sm"></toggle>
+                </div>
+              </div>
+
               <!-- <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Markdown Percentage </label>

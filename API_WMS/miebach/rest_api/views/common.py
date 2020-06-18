@@ -11592,7 +11592,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
     edit_tax = False
     ep_supplier = False
     if suppli_id:
-        supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
+        supplier_master = SupplierMaster.objects.filter(supplier_id=suppli_id, user=user.id)
         if supplier_master:
             tax_type = supplier_master[0].tax_type
             inter_state = inter_state_dict.get(tax_type, 2)

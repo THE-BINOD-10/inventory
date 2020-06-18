@@ -46,7 +46,7 @@ class Integrations():
     def removeUnnecessaryData(self, skuDict):
         result = {}
         for key, value in skuDict.iteritems():
-            if isinstance(value, (basestring, str, int, float, datetime.datetime)):
+            if isinstance(value, (basestring, str, int, float)):
                 result[key] = value
             else:
                 continue
@@ -72,19 +72,23 @@ class Integrations():
     def integrateSkuMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 self.storeIntegrationDataForLaterUser(skuObject, 'InventoryItem', unique_variable)
             else:
                 for dataDict in skuObject:
+                    dataDict = self.removeUnnecessaryData(dataDict)
                     self.storeIntegrationDataForLaterUser(dataDict, 'InventoryItem', unique_variable)
         else:
             result = []
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 recordDict = skuObject #self.gatherSkuData(skuObject)
                 record = self.connectionObject.initiate_item(recordDict, 'InventoryItem')
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:
                 records = []
                 for row in skuObject:
+                    row = self.removeUnnecessaryData(row)
                     recordDict = row #self.gatherSkuData(skuObject)
                     record = self.connectionObject.initiate_item(recordDict, 'InventoryItem')
                     records.append(record)
@@ -96,19 +100,23 @@ class Integrations():
     def integrateServiceMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 self.storeIntegrationDataForLaterUser(skuObject, 'ServicePurchaseItem', unique_variable)
             else:
                 for dataDict in skuObject:
+                    dataDict = self.removeUnnecessaryData(dataDict)
                     self.storeIntegrationDataForLaterUser(dataDict, 'ServicePurchaseItem', unique_variable)
         else:
             result = []
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 recordDict = skuObject#self.gatherSkuData(skuObject)
                 record = self.connectionObject.initiate_item(recordDict, 'ServicePurchaseItem')
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:
                 records = []
                 for row in skuObject:
+                    row = self.removeUnnecessaryData(row)
                     recordDict = row#self.gatherSkuData(skuObject)
                     record = self.connectionObject.initiate_item(recordDict, 'ServicePurchaseItem')
                     records.append(record)
@@ -120,19 +128,23 @@ class Integrations():
     def integrateAssetMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 self.storeIntegrationDataForLaterUser(skuObject, 'NonInventoryPurchaseItem', unique_variable)
             else:
                 for dataDict in skuObject:
+                    dataDict = self.removeUnnecessaryData(dataDict)
                     self.storeIntegrationDataForLaterUser(dataDict, 'NonInventoryPurchaseItem', unique_variable)
         else:
             result = []
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 recordDict = skuObject#self.gatherSkuData(skuObject)
                 record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:
                 records = []
                 for row in skuObject:
+                    row = self.removeUnnecessaryData(row)
                     recordDict = row#self.gatherSkuData(skuObject)
                     record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                     records.append(record)
@@ -144,19 +156,23 @@ class Integrations():
     def integrateNonInventoryMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 self.storeIntegrationDataForLaterUser(skuObject, 'NonInventoryPurchaseItem', unique_variable)
             else:
                 for dataDict in skuObject:
+                    dataDict = self.removeUnnecessaryData(dataDict)
                     self.storeIntegrationDataForLaterUser(dataDict, 'NonInventoryPurchaseItem', unique_variable)
         else:
             result = []
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 recordDict = skuObject#self.gatherSkuData(skuObject)
                 record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:
                 records = []
                 for row in skuObject:
+                    row = self.removeUnnecessaryData(row)
                     recordDict = row#self.gatherSkuData(skuObject)
                     record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                     records.append(record)
@@ -168,19 +184,23 @@ class Integrations():
     def integrateOtherItemsMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 self.storeIntegrationDataForLaterUser(skuObject, 'NonInventoryPurchaseItem', unique_variable)
             else:
                 for dataDict in skuObject:
+                    dataDict = self.removeUnnecessaryData(dataDict)
                     self.storeIntegrationDataForLaterUser(dataDict, 'NonInventoryPurchaseItem', unique_variable)
         else:
             result = []
             if not is_multiple:
+                skuObject = self.removeUnnecessaryData(skuObject)
                 recordDict = skuObject#self.gatherSkuData(skuObject)
                 record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                 result = self.connectionObject.complete_transaction(record, is_multiple)
             else:
                 records = []
                 for row in skuObject:
+                    row = self.removeUnnecessaryData(row)
                     recordDict = row#self.gatherSkuData(skuObject)
                     record = self.connectionObject.initiate_item(recordDict, 'NonInventoryPurchaseItem')
                     records.append(record)
@@ -282,11 +302,36 @@ class Integrations():
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
+
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
                     self.markResults('grn', row)
 
+    def IntegrateUOM(self, uomData, unique_variable, is_multiple=False):
+        if not self.executebatch and Batched:
+            if not is_multiple:
+                self.storeIntegrationDataForLaterUser(uomData, 'uom', unique_variable)
+            else:
+                for dataDict in uomData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'uom', unique_variable)
+        else:
+            result = []
+            if not is_multiple:
+                recordDict = uomData #self.gatherSkuData(skuObject)
+                record = self.connectionObject.netsuite_create_uom(recordDict)
+                result = self.connectionObject.complete_transaction(record, is_multiple)
+            else:
+                records = []
+                for row in uomData:
+                    recordDict = row
+                    record = self.connectionObject.netsuite_create_uom(recordDict)
+                    records.append(record)
+
+                result = self.connectionObject.complete_transaction(records, is_multiple)
+            if len(result):
+                for row in result:
+                    self.markResults('uom', row)
 
     def getRelatedJson(self, recordType):
         rows = IntegrationMaster.objects.filter(
@@ -321,7 +366,8 @@ class Integrations():
                 stockone_reference=data.externalId
             )
         status = True
-        if data.error:
+        print(data)
+        if hasattr(data, 'error'):
             status = False
         resultArr.update(
             integration_reference = data.internalId,

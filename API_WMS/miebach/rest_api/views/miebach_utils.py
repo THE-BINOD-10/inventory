@@ -583,7 +583,7 @@ GRN_EDIT_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type':
                   {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                   {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                   ],
-      'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+      'dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Product Category'],
       'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
       'dt_url': 'get_grn_edit_filter', 'excel_name': '', 'print_url': ''
     }
@@ -716,7 +716,7 @@ STOCK_LEDGER_REPORT_DICT = {
     'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                    'Size', 'Opening Stock', 'Opening Stock Value', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
                    'RTV Quantity','Cancelled Quantity',
-                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock', 'Closing Stock Value'],
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'GRN Cancelled Quantity', 'Closing Stock', 'Closing Stock Value'],
     'mk_dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                     'Manufacturer', 'Searchable', 'Bundle',
                    'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
@@ -2523,7 +2523,7 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 # Supplier Invoices page headers based on user type
 
 WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
-WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN NO', 'Supplier Name', 'PO Quantity', 'Received Quantity',
                                   'Order Date', 'Total Amount']
 
 DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
@@ -2836,8 +2836,37 @@ USER_PREFIXES_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Product Cate
                                       ('Invoice Prefix', 'invoice_prefix')
                         ))
 
+UOM_MASTER_MAPPING = OrderedDict(( ('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'),
+                                      ('UOM Type', 'uom_type'), ('UOM', 'uom'),
+                                      ('Conversion', 'conversion')
+                        ))
+
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']
 
+DEPARTMENT_TYPES_MAPPING = OrderedDict([('ALLDE', 'All Department'), ('COVID', 'COVID-19'), ('MOLBI', 'Molecular Biology'),
+                                     ('IMMUN', 'Immunochemistry'), ('BIOCHE', 'Bio Chemistry'),
+                                     ('CLITRL', 'Clinical Trial'), ('CLITRP', 'Clinical Trial Project'),
+                                     ('RE&DE', 'Research & Development'), ('MEDGE', 'Medical Genetics'),
+                                     ('IFADE', 'IFA'), ('MOLPA', 'Molecular Pathology'), ('NACOP', 'NACO'),
+                                     ('ACCES', 'Accession'), ('MICRO', 'Microbiology'), ('ELISA', 'Elisa'),
+                                     ('SPCHE', 'Special Chemistry'), ('ANACH', 'Analytical Chemistry'),
+                                     ('COAGU', 'Coagulation'), ('HEMAT', 'Hematology'), ('SEROL', 'Serology'),
+                                     ('HISTO', 'Histopathology'), ('HLADE', 'HLA'), ('REPOR', 'Reports'),
+                                     ('QUAAU', 'Quality Assurance'), ('CUSCA', 'Customer Care'), ('LOGIS', 'Logistics'),
+                                     ('HOMVO', 'Home Visit'), ('COLCO', 'Collection Centers'), ('HUBDE', 'HUB'),
+                                     ('HEALC', 'Health Checkup'), ('SCMMM', 'Supply Chain/Materials Management'),
+                                     ('ADMIN', 'Administration'), ('HRDDE', 'Human Resources'),
+                                     ('ACCFI', 'Account & Finance'), ('MARKE', 'Marketing'),
+                                     ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
+                                     ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
+                                     ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
+                                     ('HEADW', 'Head Office - Worli')])
+
+STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Staff Code', 'staff_code'), ('Name', 'name'),
+                                      ('Email', 'email_id'), ('Password', 'password'),
+                                      ('Phone Number', 'phone_number'), ('Position', 'position'),
+                                      ('Status', 'status')
+                        ))
 
 def fn_timer(function):
     @wraps(function)
@@ -6547,7 +6576,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
     lis = [
             'creation_date', 'sku__sku_code', 'sku__sku_desc', 'sku__style_name', 'sku__sku_brand', 'sku__sku_category','sku__sub_category',
             'sku__sku_size', 'opening_stock', 'opening_stock_value','receipt_qty', 'produced_qty', 'dispatch_qty', 'return_qty','cancelled_qty',
-            'adjustment_qty', 'closing_stock','adjustment_qty', 'closing_stock', 'closing_stock_value', 'creation_date'
+            'adjustment_qty', 'closing_stock','adjustment_qty', 'grn_cancelled_qty', 'closing_stock', 'closing_stock_value', 'creation_date'
           ]
     if len(status_filter):
         stock_stats = stock_stats.filter(**status_filter)
@@ -6588,7 +6617,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
                                  ('Produced Quantity', obj.produced_qty),
                                  ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
                                  ('Consumed Quantity', obj.consumed_qty),('RTV Quantity',obj.rtv_quantity),('Cancelled Quantity', obj.cancelled_qty),
-                                 ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock), ('Closing Stock Value', obj.closing_stock_value)
+                                 ('Adjustment Quantity', obj.adjustment_qty), ('GRN Cancelled Quantity', obj.grn_cancelled_qty), ('Closing Stock', obj.closing_stock), ('Closing Stock Value', obj.closing_stock_value)
                                  ))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
@@ -9026,9 +9055,9 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
 def get_grn_edit_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty']
+    lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'order_id', 'order_id']
     unsorted_dict = {}
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id',
@@ -9036,7 +9065,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
                      'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix',
                      'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
     result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
-           'sellerposummary__receipt_number']
+           'sellerposummary__receipt_number', 'sellerposummary__grn_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'
     rec_quan = 'received_quantity'
@@ -9061,6 +9090,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0
+    search_parameters['sellerposummary__status'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku','open_po__supplier').select_related('open_po', 'open_po__sku','open_po__supplier').exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                    total_received=Sum(rec_quan),
@@ -9070,7 +9100,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
-                order_data = "-%s" % order_data
+            order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -9086,20 +9116,27 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
         if not total_ordered:
             total_ordered = 0
-        po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
-                                    data[field_mapping['order_id']])
         receipt_no = data['sellerposummary__receipt_number']
         if not receipt_no:
             receipt_no = ''
         else:
-            po_number = '%s/%s' % (po_number, receipt_no)
+            po_number = '%s/%s' % (result.po_number, receipt_no)
         received_qty = data['total_received']
         if data['grn_rec']:
             received_qty = data['grn_rec']
-        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
+        productType = ''
+        productQs = PendingPO.objects.filter(po_number=result.order_id, prefix=result.prefix, wh_user=result.open_po.sku.user).values_list('product_category', flat=True)
+        if productQs.exists():
+            productType = productQs[0]
+        grn_calender_month = '<span class="label bg-red">'+ productType +'</span>'
+        spos = SellerPOSummary.objects.filter(purchase_order_id=result.id)
+        if spos.exists():
+            if spos[0].creation_date.strftime("%Y%m") == datetime.datetime.now().strftime("%Y%m"):
+                grn_calender_month = '<span class="label label-success">'+ productType +'</span>'
+        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),('GRN Number', data['sellerposummary__grn_number']),
                                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                                 ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                ('Order Quantity', total_ordered),('prefix', data['prefix']),
+                                                ('Order Quantity', total_ordered),('prefix', data['prefix']), ('Product Category', grn_calender_month),
                                                 ('Received Quantity', received_qty),
                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),

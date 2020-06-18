@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -634,20 +634,13 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 if key == 'place_of_supply':
                     value = address.get('placeofsupply', '')
                 if key == 'payment':
-                    if value:
-                        try:
-                            paymentT, status = PaymentTerms.objects.get_or_create(payment_code=value)
-                            value = paymentT
-                        except Exception as e:
-                            traceback.print_exc()
-                            log_err.debug(traceback.format_exc())
-                            update_error_message(failed_status, 5024, 'Invalid Paymnet Term', supplier_id, 'supplierid')
-                    else:
-                        value = None
+                    payment_term_arr = value
+                    for row in payment_term_arr:
+                        if not (row.has_key('reference_id') and row.has_key('description')):
+                            update_error_message(failed_status, 5024, 'Required Parameter Missing In Payment Terms', supplier_id, 'supplierid')
+                else:
+                    data_dict[key] = value
                 gst_check.append(address['gstno'])
-                data_dict[key] = value
-                # if supplier_master and value:
-                #     setattr(supplier_master, key, value)
             secondary_email_id = supplier.get('secondaryemailid', '')
             if secondary_email_id:
                 secondary_email_id = secondary_email_id.split(',')
@@ -656,6 +649,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
+                createPaymentTermsForSuppliers(master_objs, payment_term_arr)
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
@@ -666,3 +660,15 @@ def netsuite_validate_supplier(request, supplier, user=''):
         log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         failed_status = [{'status': 0,'message': 'Internal Server Error'}]
         return failed_status
+        
+def createPaymentTermsForSuppliers(master_objs, paymentterms):
+    for userId, supplier_obj in master_objs.iteritems():
+        for paymentTerm in paymentterms:
+            try:
+                payment_supplier_mapping(
+                    paymentTerm.get('reference_id'), 
+                    paymentTerm.get('description'), 
+                    supplier_obj
+                )
+            except Exception as e:
+                log_err.info('Payment Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))

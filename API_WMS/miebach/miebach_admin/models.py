@@ -264,16 +264,6 @@ class LocationMaster(models.Model):
         return self.location
 
 
-class PaymentTerms(models.Model):
-    id = BigAutoField(primary_key=True)
-    payment_code = models.CharField(max_length=64, default='')
-    payment_description = models.CharField(max_length=256, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PAYMENT_TERMS'
-
 class SupplierMaster(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
     supplier_id = models.CharField(max_length=64, default='')
@@ -315,10 +305,10 @@ class SupplierMaster(models.Model):
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
     reference_id = models.CharField(max_length=64, default='')
-    payment = models.ForeignKey(PaymentTerms, blank=True, null=True)
     subsidiary = models.CharField(max_length=64, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
+    is_contracted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -326,6 +316,19 @@ class SupplierMaster(models.Model):
 
     def __unicode__(self):
         return '%s-%s' % (self.name, self.supplier_id)
+
+
+class PaymentTerms(models.Model):
+    id = BigAutoField(primary_key=True)
+    payment_code = models.CharField(max_length=64, default='')
+    payment_description = models.CharField(max_length=256, default='')
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PAYMENT_TERMS'
+        unique_together = ('payment_code', 'payment_description', 'supplier')
 
 
 class SKUSupplier(models.Model):
@@ -576,6 +579,44 @@ class GenericEnquiry(models.Model):
         db_table = 'GENERIC_ENQUIRY'
 
 
+class CompanyMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company_name = models.CharField(max_length=256, default='')
+    address = models.CharField(max_length=256, default='', blank=True)
+    city = models.CharField(max_length=64, default='', blank=True)
+    state = models.CharField(max_length=64, default='', blank=True)
+    country = models.CharField(max_length=64, default='', blank=True)
+    pincode = models.CharField(max_length=64, default='', blank=True)
+    phone_number = models.CharField(max_length=32, blank=True)
+    email_id = models.EmailField(max_length=64, default='', blank=True)
+    gstin_number = models.CharField(max_length=64, default='', blank=True)
+    cin_number = models.CharField(max_length=64, default='', blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
+    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
+    parent = models.ForeignKey("self", blank=True, null=True)
+    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'COMPANY_MASTER'
+
+    def __unicode__(self):
+        return str(self.company_name)
+
+
+class CompanyRoles(models.Model):
+    company = models.ForeignKey(CompanyMaster)
+    role_name = models.CharField(max_length=64, default='')
+    group = models.ForeignKey(Group, default=None, blank=True, null=True)
+
+    class Meta:
+        db_table = 'COMPANY_ROLES'
+
+    def __unicode__(self):
+        return self.role_name
+
+
 @reversion.register()
 class PendingPR(models.Model):
     id = BigAutoField(primary_key=True)
@@ -603,6 +644,7 @@ class PendingPR(models.Model):
 class PendingPO(models.Model):
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True, related_name='pendingpos')
+    supplier_payment = models.ForeignKey(PaymentTerms, blank=True, null=True, db_index=True, related_name='pendingpos')
     open_po = models.ForeignKey(OpenPO, blank=True, null=True, related_name='pendingpos')
     pending_prs = models.ManyToManyField(PendingPR)
     requested_user = models.ForeignKey(User, related_name='pendingPO_RequestedUser')
@@ -668,12 +710,17 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=64, default='')
+    plant = models.CharField(max_length=64, default='')
+    department_type = models.CharField(max_length=64, default='')
+    user_role = models.ManyToManyField(CompanyRoles, default=None)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -686,6 +733,7 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
     id = BigAutoField(primary_key=True)
     pr_approval = models.ForeignKey(PurchaseApprovals)
     email = models.EmailField(max_length=64)
+    level  = models.CharField(max_length=64, default='')
     # approval_user = models.ForeignKey(User, blank=True, related_name='approval_user')
     hash_code = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=32, default='')
@@ -771,6 +819,7 @@ class POLocation(models.Model):
     quantity = models.FloatField(default=0)
     original_quantity = models.FloatField(default=0)
     status = models.CharField(max_length=32)
+    receipt_number = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -842,6 +891,7 @@ class StockDetail(models.Model):
     quantity = models.FloatField(default=0)
     unit_price = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    grn_number =models.CharField(max_length =128 , default ='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     remarks =models.CharField(max_length =128 , default ='')
@@ -1208,32 +1258,6 @@ class CustomerUserMapping(models.Model):
 
     class Meta:
         db_table = 'CUSTOMER_USER_MAPPING'
-
-
-class CompanyMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    company_name = models.CharField(max_length=256, default='')
-    address = models.CharField(max_length=256, default='', blank=True)
-    city = models.CharField(max_length=64, default='', blank=True)
-    state = models.CharField(max_length=64, default='', blank=True)
-    country = models.CharField(max_length=64, default='', blank=True)
-    pincode = models.CharField(max_length=64, default='', blank=True)
-    phone_number = models.CharField(max_length=32, blank=True)
-    email_id = models.EmailField(max_length=64, default='', blank=True)
-    gstin_number = models.CharField(max_length=64, default='', blank=True)
-    cin_number = models.CharField(max_length=64, default='', blank=True)
-    pan_number = models.CharField(max_length=64, default='', blank=True)
-    logo = models.ImageField(upload_to='static/images/companies/', default='', blank=True)
-    parent = models.ForeignKey("self", blank=True, null=True)
-    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'COMPANY_MASTER'
-
-    def __unicode__(self):
-        return str(self.company_name)
 
 
 class UserProfile(models.Model):
@@ -2321,6 +2345,7 @@ class SellerPOSummary(models.Model):
     invoice_receipt_date = models.DateField(blank=True, null=True)
     credit_type = models.CharField(max_length=32, default='Invoice')
     credit_status = models.IntegerField(default=0)
+    status = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3093,6 +3118,7 @@ class StockStats(models.Model):
     cancelled_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     closing_stock_value = models.FloatField(default=0)
+    grn_cancelled_qty = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3121,16 +3147,23 @@ class IntransitOrders(models.Model):
 
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    staff_name = models.CharField(max_length=256, default='')
-    phone_number = models.CharField(max_length=32)
+    staff_name = models.CharField(max_length=64, default='')
+    staff_code = models.CharField(max_length=64, default='')
+    company = models.ForeignKey(CompanyMaster, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    warehouse_type = models.CharField(max_length=64, default='')
+    department_type = models.CharField(max_length=64, default='')
+    position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32)
     status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'STAFF_MASTER'
-        unique_together = ('user', 'staff_name')
-        index_together = ('user', 'staff_name')
+        unique_together = ('company', 'email_id')
+        index_together = ('company', 'email_id')
 
 
 class MastersMapping(models.Model):
@@ -3896,3 +3929,20 @@ class UserPrefixes(models.Model):
 
     class Meta:
         db_table = 'USER_PREFIXES'
+
+
+class UOMMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company = models.ForeignKey(CompanyMaster)
+    name = models.CharField(max_length=128, default='')
+    sku_code = models.CharField(max_length=128, default='')
+    base_uom = models.CharField(max_length=32, default='')
+    uom_type = models.CharField(max_length=64, default='')
+    uom = models.CharField(max_length=64, default='')
+    conversion = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'UOM_MASTER'
+        unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')

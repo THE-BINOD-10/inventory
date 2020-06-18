@@ -2253,6 +2253,18 @@ var app = angular.module('urbanApp')
             title: 'Stock Transfer Goods Receipt Note',
           }
         })
+        .state('app.reports.MetroPOReport', {
+          url: '/POReport',
+          templateUrl: 'views/reports/metro_po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/metro_po_report.js');
+              }]
+          },
+          data: {
+            title: 'PO Report',
+          }
+        })
         .state('app.reports.ApprovalPOReport', {
           url: '/ApprovalPOReport',
           templateUrl: 'views/reports/approval_reports.html',

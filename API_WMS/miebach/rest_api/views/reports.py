@@ -2487,3 +2487,12 @@ def get_approval_detail_report(request, user=''):
     temp_data = get_approval_detail_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+

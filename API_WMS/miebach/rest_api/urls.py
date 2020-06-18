@@ -527,6 +527,7 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^get_po_report/$', get_po_report),
+    url(r'^get_metro_po_report/$', get_metro_po_report),
     url(r'^get_open_order_report/$', get_open_order_report),
     url(r'^print_shipment_report/$', print_shipment_report),
     url(r'^print_po_report/$', print_po_report),

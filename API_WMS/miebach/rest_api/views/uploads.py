@@ -1560,8 +1560,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
+                #if not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))

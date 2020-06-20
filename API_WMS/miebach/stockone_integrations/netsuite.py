@@ -182,6 +182,10 @@ class netsuiteIntegration(object):
                 # 'itemReceive': True
                 'description': data['sku_desc']
                 }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': internId})
                 item.append(line_item)
             rtvitem.itemList = {'item':item}
             rtvitem.externalId = rtv_data['rtv_number']
@@ -319,8 +323,8 @@ class netsuiteIntegration(object):
                  'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                   ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                 }
-                if po_data.get('uom_name', None) and po_data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(po_data['uom_name'], po_data['unitypeexid'])
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
                         line_item.update({'units': internId})
                 item.append(line_item)
@@ -364,8 +368,8 @@ class netsuiteIntegration(object):
                     'quantity':data['quantity'],
                     'location':ns.RecordRef(internalId=297)
                 }
-                if pr_data.get('uom_name', None) and pr_data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(pr_data['uom_name'], pr_data['unitypeexid'])
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
                         line_item.update({'units': internId})
                 item.append(line_item)
@@ -387,14 +391,13 @@ class netsuiteIntegration(object):
             UnitsType.name = uom_data['name']
             for data in uom_data['uom_items']:
                 line_item = {
-                    'internalId': data['unit_name'],
                     'unitName': data['unit_name'],
                     'abbreviation': data['unit_name'],
                     'pluralName': data['unit_name'],
                     'pluralAbbreviation': data['unit_name'],
                     'conversionRate': data['unit_conversion']
                 }
-                if data['is_base']:
+                if data.get('is_base', False):
                     line_item.update({'baseUnit': True})
                 item.append(line_item)
 

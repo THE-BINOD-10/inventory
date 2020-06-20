@@ -3304,8 +3304,8 @@ def netsuite_pr(user, PRQs, full_pr_number):
                     approval1 = user.email
                 else:
                     approval1 = user.first_name
-
-        pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
@@ -5849,7 +5849,11 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
+    department, plant, subsidary=get_plant_subsidary_and_department(user)
     grn_data = {'po_number': po_number,
+                'department': department,
+                "subsidiary": subsidary,
+                "plant": plant,
                 'grn_number': grn_number,
                 'items':[],
                 'grn_date': grn_date,
@@ -8229,27 +8233,7 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def get_plant_subsidary_and_department(user):
-    department=""
-    plant=""
-    subsidary=""
-    user_profile= UserProfile.objects.get(user_id=user.id)
-    if(user_profile.warehouse_type=="DEPT"):
-        department= user_profile.reference_id
-        admin_user= get_admin(user)
-        p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
-        plant= p_user_profile.reference_id
-        subsidary=user_profile.company.reference_id
-        print("DEPT")
-    elif(user_profile.warehouse_type=="SUB_STORE"):
-        plant= user_profile.reference_id
-        subsidary=user_profile.company.reference_id
-        print("SUB_STORE")
-    elif(user_profile.warehouse_type=="STORE"):
-        plant= user_profile.reference_id
-        subsidary=user_profile.company.reference_id
-        print("STORE")
-    return department, plant, subsidary
+
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
@@ -12399,8 +12383,10 @@ def create_rtv(request, user=''):
             if(len(attachments)>0):
                 show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
+            department, plant, subsidary=get_plant_subsidary_and_department(user)
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
+                show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
                 show_data_invoice["po_number"]=request_data["po_number"][0]
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:

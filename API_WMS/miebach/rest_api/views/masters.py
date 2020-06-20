@@ -1346,6 +1346,7 @@ def netsuite_sku(data, user, instanceName=''):
             # intObj.initiateAuthentication()
             sku_data_dict.update(sku_attr_dict)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+            integrateUOM(user, data.sku_code)
     except Exception as e:
         print(e)
 
@@ -5264,3 +5265,28 @@ def delete_uom_master(request):
     if data_id:
         UOMMaster.objects.get(id=data_id).delete()
     return HttpResponse("Deleted Successfully")
+
+
+def integrateUOM(user, sku_code):
+    uom_data = gather_uom_master_for_sku(user, sku_code)
+    intObj = Integrations(user,'netsuiteIntegration')
+    intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
+
+
+
+def gather_uom_master_for_sku(user, sku_code):
+    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=user.userprofile.company)
+    dataDict = {}
+    dataDict['uom_items'] = []
+    for uom in UOMs:
+        dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
+        uom_item = {
+            'unit_name': uom.uom,
+            'unit_conversion': uom.conversion
+        }
+        if uom.name == uom.base_uom:
+            uom_item['is_base'] = True
+        dataDict['uom_items'].append(uom_item)
+
+    return dataDict
+

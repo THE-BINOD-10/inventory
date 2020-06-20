@@ -1332,7 +1332,18 @@ def netsuite_sku(data, user, instanceName=''):
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
         department, plant, subsidary=get_plant_subsidary_and_department(user)
-        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
+        uom_type, stock_uom, purchase_uom, sale_uom = get_uom_detais(user, data.sku_code)
+        sku_data_dict.update(
+            {   
+                'department': department, 
+                "subsidiary": subsidary, 
+                "plant": plant,
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom
+            }
+        )
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
@@ -5273,16 +5284,35 @@ def integrateUOM(user, sku_code):
     intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
 
 
+def get_uom_detais(user, sku_code):
+    uom_data = gather_uom_master_for_sku(user, sku_code)
+    uom_type = '%s-%s' % uom_data['name']
+    for values in uom_data.get('uom_items', []):
+        if values.get('unit_type') == 'Storage':
+            stock_uom = values.get('unit_name')
+        if values.get('unit_type') == 'Purchase':
+            purchase_uom = values.get('unit_name')
+        if values.get('unit_type') == 'Sale':
+            sale_uom = values.get('unit_name')
+
+    return uom_type, stock_uom, purchase_uom, sale_uom
+
+def get_parent_company(companyObj):
+    if companyObj.parent:
+        return get_parent_company(companyObj.parent)
+    else:
+        return companyObj
 
 def gather_uom_master_for_sku(user, sku_code):
-    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=user.userprofile.company)
+    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=get_parent_company(user.userprofile.company))
     dataDict = {}
     dataDict['uom_items'] = []
     for uom in UOMs:
         dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
         uom_item = {
             'unit_name': uom.uom,
-            'unit_conversion': uom.conversion
+            'unit_conversion': uom.conversion,
+            'unit_type': uom.uom_type
         }
         if uom.name == uom.base_uom:
             uom_item['is_base'] = True

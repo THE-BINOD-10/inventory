@@ -93,9 +93,10 @@ class netsuiteIntegration(object):
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=data.get('No. of flex'))
                 )
             if data.get('Conversion Factor', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
-                )
+                if(data.get('Conversion Factor')!="['']"):
+                    customFieldList.append(
+                    ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
+                    )
             if data.get('sku_class', None):
                 if("non_inventoryitem" not in data):
                     customFieldList.append(

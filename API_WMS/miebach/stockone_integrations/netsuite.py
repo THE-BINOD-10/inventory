@@ -270,9 +270,11 @@ class netsuiteIntegration(object):
             # purorder.location = warehouse_id
             purorder.approvalstatus = ns.RecordRef(internalId=2)
             # purorder.subsidiary = '1'
-            purorder.subsidiary = po_data['subsidiary']
+            if po_data.get('subsidiary',None):
+                purorder.subsidiary = po_data.get('subsidiary')
             # purorder.department = po_data['user_id']
-            purorder.department = po_data['department']
+            if po_data.get('department',None):
+                purorder.department = po_data.get('department')
             
             if (data.get("payment_code", None)):
                 purorder.terms = data.get("payment_code")

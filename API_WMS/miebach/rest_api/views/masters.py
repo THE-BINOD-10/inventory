@@ -4658,7 +4658,6 @@ def update_sku_warehouse_values(request, user=''):
                                                                           sku__user=user.id)
             if sku_wh:
                 return HttpResponse('Preference matched with existing WMS Code')
-
         setattr(data, key, value)
     data.save()
     return HttpResponse('Updated Successfully')
@@ -5274,18 +5273,29 @@ def integrateUOM(user, sku_code):
 
 
 
+def get_parent_company(companyObj):
+    if companyObj.parent:
+        return get_parent_company(companyObj.parent)
+    else:
+        return companyObj
+        
 def gather_uom_master_for_sku(user, sku_code):
-    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=user.userprofile.company)
+    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=get_parent_company(user.userprofile.company))
     dataDict = {}
-    dataDict['uom_items'] = []
+    dataDict['uom_items'] = [
+        {
+            'unit_name': 'base',
+            'unit_conversion': 1,
+            'is_base': True
+        }
+    ]
     for uom in UOMs:
         dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
         uom_item = {
             'unit_name': uom.uom,
             'unit_conversion': uom.conversion
         }
-        if uom.name == uom.base_uom:
-            uom_item['is_base'] = True
+        
         dataDict['uom_items'].append(uom_item)
 
     return dataDict

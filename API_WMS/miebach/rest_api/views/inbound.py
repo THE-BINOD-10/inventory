@@ -8310,7 +8310,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             purchaseUOMname = None
             for row in unitdata['uom_items']:
                 if unit_type == 'Purchase':
-                    purchaseUOMname = row['name']
+                    purchaseUOMname = row['unit_name']
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,

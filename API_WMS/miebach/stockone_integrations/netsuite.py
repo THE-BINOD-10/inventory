@@ -185,7 +185,7 @@ class netsuiteIntegration(object):
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': internId})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             rtvitem.itemList = {'item':item}
             rtvitem.externalId = rtv_data['rtv_number']
@@ -244,6 +244,10 @@ class netsuiteIntegration(object):
                     'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True,
                     "customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
+                    if data.get('uom_name', None) and data.get('unitypeexid', None):
+                        internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                        if internId:
+                            line_item.update({'units': ns.RecordRef(internalId=internId)})
                     item.append(line_item)
                 grnrec.itemList = {'item':item, 'replaceAll': False}
                 grnrec.tranId = grn_data['grn_number']
@@ -315,8 +319,8 @@ class netsuiteIntegration(object):
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 line_item = {
-                 # 'item': ns.RecordRef(externalId=data['sku_code']),
-                 'item': ns.RecordRef(internalId=17346),
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 # 'item': ns.RecordRef(internalId=17346),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
@@ -327,7 +331,7 @@ class netsuiteIntegration(object):
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': internId})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purorder.itemList = { 'item': item }
         except Exception as e:
@@ -372,7 +376,7 @@ class netsuiteIntegration(object):
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': internId})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purreq.itemList = { 'purchaseRequisitionItem': item }
             purreq.externalId = pr_data['full_pr_number']

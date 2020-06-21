@@ -8301,7 +8301,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
 
-        gather_uom_master_for_sku(user, sku_code)
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
@@ -8309,8 +8308,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             unitexid = unitdata['name']
             purchaseUOMname = None
             for row in unitdata['uom_items']:
-                if unit_type == 'Purchase':
-                    purchaseUOMname = row['name']
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row['unit_name']
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,

@@ -301,12 +301,12 @@ class netsuiteIntegration(object):
             # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
 
             po_custom_field_list =  [
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
+                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
+                # ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
+                # ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
+                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
+                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
+                # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
             ]
             purorder.location= ns.RecordRef(internalId=297)
             if(po_data.get("plant", None)):
@@ -316,7 +316,8 @@ class netsuiteIntegration(object):
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 line_item = {
-                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 # 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'item': ns.RecordRef(internalId=17346),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],

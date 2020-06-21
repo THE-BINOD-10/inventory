@@ -1332,7 +1332,11 @@ def netsuite_sku(data, user, instanceName=''):
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
         department, plant, subsidary=get_plant_subsidary_and_department(user)
-        uom_type, stock_uom, purchase_uom, sale_uom = get_uom_detais(user, data.sku_code)
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+        except Exception as e:
+            pass
         sku_data_dict.update(
             {   
                 'department': department, 
@@ -1359,7 +1363,7 @@ def netsuite_sku(data, user, instanceName=''):
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
             integrateUOM(user, data.sku_code)
     except Exception as e:
-        print(e)
+        pass
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -5283,9 +5287,10 @@ def integrateUOM(user, sku_code):
     intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
 
 
-def get_uom_detais(user, sku_code):
+def get_uom_details(user, sku_code):
     uom_data = gather_uom_master_for_sku(user, sku_code)
-    uom_type = '%s-%s' % uom_data['name']
+    uom_type, stock_uom, purchase_uom, sale_uom = None, None, None, None
+    uom_type = uom_data['name']
     for values in uom_data.get('uom_items', []):
         if values.get('unit_type') == 'Storage':
             stock_uom = values.get('unit_name')

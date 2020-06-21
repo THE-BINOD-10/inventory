@@ -62,6 +62,7 @@ class netsuiteIntegration(object):
             invitem.isinactive = data.get('status','')
             invitem.itemtype = data.get('batch_based','')
             invitem.purchaseunit = data.get('measurement_type','')
+            invitem.salesDescription = data.get('sku_desc','')
             if data.get('subsidiary', None):
                 invitem.subsidiary = ns.ListOrRecordRef(internalId=data["subsidiary"])
             if data.get('department', None):
@@ -135,14 +136,12 @@ class netsuiteIntegration(object):
               ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
             )
             customFieldList.append(
-              ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1)),
+              ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1))
             )
             customFieldList.append(
-              ns.StringCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.RecordRef(internalId=1))
+              ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
             )
-
             invitem.customFieldList = ns.CustomFieldList(customFieldList)
-
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -392,6 +391,7 @@ class netsuiteIntegration(object):
             UnitsType.name = uom_data['name']
             for data in uom_data['uom_items']:
                 line_item = {
+                    'externalId': '%s-%s' % (uom_data['name'], data['unit_name']),
                     'unitName': data['unit_name'],
                     'abbreviation': data['unit_name'],
                     'pluralName': data['unit_name'],
@@ -402,7 +402,7 @@ class netsuiteIntegration(object):
                     line_item.update({'baseUnit': True})
                 item.append(line_item)
 
-            UnitsType.uomList = { 'uom': item }
+            UnitsType.uomList = { 'uom': item, 'replaceAll': False}
             UnitsType.externalId = uom_data['name']
         except Exception as e:
             import traceback

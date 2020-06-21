@@ -71,6 +71,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                     prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='store_sent')
                     all_prIds.extend(prIds)
             filtersMap['pending_pr_id__in'] = all_prIds
+    else:
+        filtersMap['pending_pr__wh_user'] = user
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -103,8 +105,6 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         else: # Creator Sub Users
             filtersMap['pending_pr__requested_user'] = request.user.id
-    else:
-        filtersMap['pending_pr__wh_user'] = user
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -8301,7 +8301,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
 
-        gather_uom_master_for_sku(user, sku_code)
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
@@ -8309,7 +8308,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             unitexid = unitdata['name']
             purchaseUOMname = None
             for row in unitdata['uom_items']:
+<<<<<<< HEAD
                 if unit_type == 'Purchase':
+=======
+                if row.get('unit_type', '') == 'Purchase':
+>>>>>>> cbc6a50822868364718e2ad13b35711dcf2efa1b
                     purchaseUOMname = row['unit_name']
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,

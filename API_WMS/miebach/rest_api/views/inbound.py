@@ -27,6 +27,7 @@ from inbound_descrepancy import *
 from inbound_common_operations import *
 from django.db import transaction
 from stockone_integrations.views import Integrations
+from masters import gather_uom_master_for_sku
 
 log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
@@ -8299,12 +8300,23 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+
+        gather_uom_master_for_sku(user, sku_code)
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
+            user_obj = User.objects.get(pk=_open.sku.user)
+            unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+            unitexid = unitdata['name']
+            purchaseUOMname = None
+            for row in unitdata['uom_items']:
+                if unit_type == 'Purchase':
+                    purchaseUOMname = row['name']
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, 
+                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
+
             po_data['items'].append(item)
         # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
         intObj = Integrations(user, 'netsuiteIntegration')

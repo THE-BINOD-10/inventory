@@ -3315,7 +3315,22 @@ def netsuite_pr(user, PRQs, full_pr_number):
         lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
         for rec in lineItems:
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
-            item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
+            user_obj = user
+            unitdata = gather_uom_master_for_sku(user_obj, sku_code)
+            unitexid = unitdata.get('name',None)
+            purchaseUOMname = None
+            for row in unitdata['uom_items']:
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row.get('unit_name',None)
+            item = {
+                'sku_code': sku_code, 
+                'sku_desc':sku_desc, 
+                'quantity':qty, 
+                'price':price, 
+                'uom':uom
+                'unitypeexid': unitexid,
+                'uom_name': purchaseUOMname
+            }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
     try:
@@ -8308,11 +8323,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             unitexid = unitdata['name']
             purchaseUOMname = None
             for row in unitdata['uom_items']:
-<<<<<<< HEAD
-                if unit_type == 'Purchase':
-=======
                 if row.get('unit_type', '') == 'Purchase':
->>>>>>> cbc6a50822868364718e2ad13b35711dcf2efa1b
                     purchaseUOMname = row['unit_name']
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
@@ -12402,7 +12413,18 @@ def create_rtv(request, user=''):
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
+                user_obj = user
+                unitdata = gather_uom_master_for_sku(user, sku_codes)
+                unitexid = unitdata.get('name', None)
+                purchaseUOMname = None
+                for row in unitdata.get('uom_items', []):
+                    if row.get('unit_type', '') == 'Purchase':
+                        purchaseUOMname = row.get('unit_name', False)
                 show_data_invoice["po_number"]=request_data["po_number"][0]
+                show_data_invoice.update({
+                    'unitypeexid': unitexid,
+                    'uom_name': purchaseUOMname
+                })
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)

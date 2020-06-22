@@ -12131,6 +12131,18 @@ def get_debit_note_data(rtv_number, user):
         data_dict.setdefault('item_details', [])
         data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
                           'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
+
+        user_obj = user
+        unitdata = gather_uom_master_for_sku(user_obj, get_po.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', []):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', False)
+        data_dict_item.update({
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname
+        })
         if obj.seller_po_summary.batch_detail:
             data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
@@ -12416,18 +12428,8 @@ def create_rtv(request, user=''):
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
-                user_obj = user
-                unitdata = gather_uom_master_for_sku(user, sku_codes)
-                unitexid = unitdata.get('name', None)
-                purchaseUOMname = None
-                for row in unitdata.get('uom_items', []):
-                    if row.get('unit_type', '') == 'Purchase':
-                        purchaseUOMname = row.get('unit_name', False)
                 show_data_invoice["po_number"]=request_data["po_number"][0]
-                show_data_invoice.update({
-                    'unitypeexid': unitexid,
-                    'uom_name': purchaseUOMname
-                })
+                
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)

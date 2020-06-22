@@ -104,7 +104,9 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         #     filtersMap.setdefault('pending_pr__pr_number__in', [])
         #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         else: # Creator Sub Users
-            filtersMap['pending_pr__requested_user'] = request.user.id
+            pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+            #filtersMap['pending_pr__requested_user'] = request.user.id
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',

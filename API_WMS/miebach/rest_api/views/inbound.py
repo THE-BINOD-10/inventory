@@ -3322,7 +3322,7 @@ def netsuite_pr(user, PRQs, full_pr_number):
             unitdata = gather_uom_master_for_sku(user_obj, sku_code)
             unitexid = unitdata.get('name',None)
             purchaseUOMname = None
-            for row in unitdata['uom_items']:
+            for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name',None)
             item = {
@@ -8323,11 +8323,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
             unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
-            unitexid = unitdata['name']
+            unitexid = unitdata.get('name', None)
             purchaseUOMname = None
-            for row in unitdata['uom_items']:
+            for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
-                    purchaseUOMname = row['unit_name']
+                    purchaseUOMname = row.get('unit_name', None)
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,

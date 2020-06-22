@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('MetroPOReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('MetropolisPOReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
@@ -16,7 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.toggle_detail = false;
   vm.report_data = {};
   vm.reports = {}
-  vm.title = "PO Report";
+  vm.title = "Metropolis PO Report";
   vm.toggle_po = function() {
     var send = {};
     var name ='';
@@ -37,12 +37,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
              vm.empty_data = datam.empty_data;
              angular.copy(vm.empty_data, vm.model_data);
-             vm.dtOptions = datam.dtOptions;
-             vm.dtColumns = datam.dtColumns;
-             vm.datatable = true;
-             vm.dtInstance = {};
-    		 vm.report_data['row_click'] = true;
-    		if (name =="pr_detail_report")
+//            vm.empty_data = datam.empty_data;
+//            angular.copy(vm.empty_data, vm.filters_dt_data)
+            vm.dtOptions = datam.dtOptions;
+            vm.dtColumns = datam.dtColumns;
+            vm.datatable = true;
+            vm.dtInstance = {};
+    		vm.report_data['row_click'] = true;
+    		if (name =="metro_po_detail_report")
     		{
             vm.report_data['excel_name'] = 'get_metro_po_detail_report'
             }
@@ -72,16 +74,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
+//  vm.filters_dt_data = {};
+//  angular.copy(vm.empty_data, vm.filters_dt_data);
+
   vm.close = close;
   function close() {
-    vm.title = "PO Report";
+    vm.title = "Metropolis PO Report";
     $state.go('app.reports.MetroPOReport');
   }
 
   vm.print = print;
   function print() {
     console.log(vm.print_page);
-    vm.service.print_data(vm.print_page, "PO Report");
+    vm.service.print_data(vm.print_page, "Metropolis PO Report");
   }
 
 

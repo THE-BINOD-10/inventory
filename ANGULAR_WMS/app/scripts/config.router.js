@@ -2277,7 +2277,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.reports.MetroPOReport', {
-          url: '/POReport',
+          url: '/MetropolisPOReport',
           templateUrl: 'views/reports/metro_po_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -2285,7 +2285,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'PO Report',
+            title: 'Metropolis PO Report',
           }
         })
         .state('app.reports.ApprovalPOReport', {

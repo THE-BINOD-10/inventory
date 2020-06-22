@@ -94,6 +94,37 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
+
+    elif report_name in ['metro_po_report', 'metro_po_detail_report']:
+
+        if 'sister_warehouse' in filter_keys:
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(
+                filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            sister_warehouses = [user.username]
+            sister_warehouses1 = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
+
+        if 'final_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'final_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PR_REPORT_PR_STATUS
+
+        if 'priority_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'priority_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PR_REPORT_PRIORITY_STATUS
+
+        if 'product_category' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
+
+        if 'sku_category' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
+                                                         .values_list('sku_category', flat=True).distinct())
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',
                          'corporate_reseller_mapping_report', 'financial_report', ''):
@@ -2494,5 +2525,13 @@ def get_approval_detail_report(request, user=''):
 def get_metro_po_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_metro_po_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_detail_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

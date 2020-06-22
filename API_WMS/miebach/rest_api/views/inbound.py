@@ -3330,7 +3330,7 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 'sku_desc':sku_desc, 
                 'quantity':qty, 
                 'price':price, 
-                'uom':uom
+                'uom':uom,
                 'unitypeexid': unitexid,
                 'uom_name': purchaseUOMname
             }

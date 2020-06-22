@@ -3330,7 +3330,7 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 'sku_desc':sku_desc, 
                 'quantity':qty, 
                 'price':price, 
-                'uom':uom
+                'uom':uom,
                 'unitypeexid': unitexid,
                 'uom_name': purchaseUOMname
             }
@@ -12131,7 +12131,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict.setdefault('item_details', [])
         data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
                           'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
-                          
+
         user_obj = user
         unitdata = gather_uom_master_for_sku(user_obj, get_po.sku.sku_code)
         unitexid = unitdata.get('name', None)

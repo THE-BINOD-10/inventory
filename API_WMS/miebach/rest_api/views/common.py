@@ -127,6 +127,27 @@ def service_worker_check(request):
     else:
         return HttpResponse(json.dumps({'reload': False}))
 
+def get_plant_subsidary_and_department(user):
+    department=""
+    plant=""
+    subsidary=""
+    user_profile= UserProfile.objects.get(user_id=user.id)
+    if(user_profile.warehouse_type=="DEPT"):
+        department= user_profile.reference_id
+        admin_user= get_admin(user)
+        p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+        plant= p_user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("DEPT")
+    elif(user_profile.warehouse_type=="SUB_STORE"):
+        plant= user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("SUB_STORE")
+    elif(user_profile.warehouse_type=="STORE"):
+        plant= user_profile.reference_id
+        subsidary=user_profile.company.reference_id
+        print("STORE")
+    return department, plant, subsidary
 
 @fn_timer
 def get_user_permissions(request, user):
@@ -338,12 +359,12 @@ def add_user_type_permissions(user_profile):
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
                      'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
                      'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes', 'uommaster', 'purchaseapprovalconfig']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
                     'corporatemaster', 'corpresellermapping', 'staffmaster', 'barcodebrandmappingmaster',
-                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes']
+                     'companymaster', 'pendingpr', 'pendingpo', 'userprefixes', 'uommaster', 'purchaseapprovalconfig']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -511,7 +532,7 @@ def get_search_params(request, user=''):
                     'grn_from_date':'grn_from_date','grn_to_date':'grn_to_date',
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
-                    'customer':'customer','plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
+                    'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
                     'priority_type': 'priority_type','pr_number': 'pr_number',
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
@@ -583,7 +604,7 @@ data_datatable = {  # masters
     'InboundPaymentReport': 'get_inbound_payment_report',\
     'ReturnToVendor': 'get_po_putaway_data', \
     'CreatedRTV': 'get_saved_rtvs', \
-    'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions', 
+    'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
@@ -856,7 +877,7 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
-    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type, 
+    configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
                                     product_category=product_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
@@ -924,7 +945,7 @@ def pr_request(request):
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
-                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id', 
+                        'pending_po__delivery_date', 'pending_po__supplier__supplier_id',
                         'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number']
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
@@ -2566,7 +2587,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
                         batch_dict['buy_price'] = batch_obj.buy_price
                         batch_dict['tax_percent'] = batch_obj.tax_percent
                         add_ean_weight_to_batch_detail(sku[0], batch_dict)
-       
+
                 if price:
                     batch_dict['buy_price'] = price
                 elif not (price or batch_dict.get('buy_price', 0)):
@@ -4797,7 +4818,7 @@ def search_wms_data(request, user=''):
             asset_code = master_data.asset_code
             service_start_date = master_data.service_start_date
             service_end_date = master_data.service_end_date
-            data_dict.update({'asset_code': asset_code, 
+            data_dict.update({'asset_code': asset_code,
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
         elif instanceName == OtherItemsMaster:
@@ -5054,7 +5075,7 @@ def build_search_data(to_data, from_data, limit):
                     service_end_date = data.service_end_date.strftime('%d-%m-%Y')
                 else:
                     service_end_date = ''
-                data_dict.update({'asset_code': asset_code, 
+                data_dict.update({'asset_code': asset_code,
                                 'service_start_date': service_start_date,
                                 'service_end_date': service_end_date})
             if (len(to_data) >= limit):
@@ -5452,8 +5473,8 @@ def get_sellers_list(request, user=''):
                 ('Assets', asset_catgs), ('OtherItems', ot_catgs)
             ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
-                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list, 
-                                    'raise_po_terms_conditions' : raise_po_terms_conditions, 
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
+                                    'raise_po_terms_conditions' : raise_po_terms_conditions,
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 
@@ -5985,7 +6006,7 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
                             filter(sku__user=storeUser.id, sku__sku_code=sku_code)
             st_zones_data, st_available_quantity = get_sku_stock_summary(store_stock_data, '', storeUser)
             st_avail_qty = sum(map(lambda d: st_available_quantity[d] if st_available_quantity[d] > 0 else 0, st_available_quantity))
-            
+
     po_search_params = {'open_po__sku__user': user.id,
                         'open_po__sku__sku_code': sku_code,
                         }
@@ -5998,9 +6019,9 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
         poReceivedQty = poQs[0]['total_received']
         intransitQty = poOrderedQty - poReceivedQty
     openpr_qty = 0
-    openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=user.id, 
+    openPRQtyQs = PendingLineItems.objects.filter(pending_pr__wh_user=user.id,
                             purchase_type='PR',
-                            sku__sku_code=sku_code, 
+                            sku__sku_code=sku_code,
                             pending_pr__final_status__in=['pending', 'approved']). \
                         aggregate(openpr_qty=Sum('quantity'))
     openpr_qty = openPRQtyQs['openpr_qty']
@@ -10005,7 +10026,7 @@ def get_product_category_from_sku(user, sku_code):
         if sku.otheritemsmaster:
             product_category = 'OtherItems'
     except:
-        pass    
+        pass
     return sku, product_category
 
 
@@ -11593,7 +11614,7 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
     edit_tax = False
     ep_supplier = False
     if suppli_id:
-        supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
+        supplier_master = SupplierMaster.objects.filter(supplier_id=suppli_id, user=user.id)
         if supplier_master:
             tax_type = supplier_master[0].tax_type
             inter_state = inter_state_dict.get(tax_type, 2)
@@ -12003,7 +12024,7 @@ def get_related_users(user_id, level=0, company_id=''):
     main_company_id = get_company_id(user)
     if not level:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
-    else: 
+    else:
         user_groups = UserGroups.objects.filter(Q(admin_user__userprofile__warehouse_level=level) |
                                                 Q(user__userprofile__warehouse_level=level), company_id=main_company_id)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
@@ -12018,7 +12039,7 @@ def get_related_users(user_id, level=0, company_id=''):
 
 def get_related_user_objs(user_id, level=0, ):
     user_ids = get_related_users(user_id, level=level)
-    users = User.objects.filter(id__in=user_ids) 
+    users = User.objects.filter(id__in=user_ids)
     return users
 
 def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False):

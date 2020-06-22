@@ -27,6 +27,7 @@ from inbound_descrepancy import *
 from inbound_common_operations import *
 from django.db import transaction
 from stockone_integrations.views import Integrations
+from masters import gather_uom_master_for_sku
 
 log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
@@ -70,6 +71,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                     prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='store_sent')
                     all_prIds.extend(prIds)
             filtersMap['pending_pr_id__in'] = all_prIds
+    else:
+        filtersMap['pending_pr__wh_user'] = user
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -101,9 +104,10 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         #     filtersMap.setdefault('pending_pr__pr_number__in', [])
         #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
         else: # Creator Sub Users
-            filtersMap['pending_pr__requested_user'] = request.user.id
-    else:
-        filtersMap['pending_pr__wh_user'] = user
+            filtersMap.setdefault('pending_pr_id__in', [])
+            pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+            #filtersMap['pending_pr__requested_user'] = request.user.id
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -3015,7 +3019,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.delivery_date = pr_delivery_date
         pendingPurchaseObj.final_status = orderStatus
         if purchaseMap.has_key('supplier_id'):
-            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id'] 
+            pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -3304,8 +3308,8 @@ def netsuite_pr(user, PRQs, full_pr_number):
                     approval1 = user.email
                 else:
                     approval1 = user.first_name
-
-        pr_data = {'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
@@ -3314,7 +3318,22 @@ def netsuite_pr(user, PRQs, full_pr_number):
         lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
         for rec in lineItems:
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
-            item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
+            user_obj = user
+            unitdata = gather_uom_master_for_sku(user_obj, sku_code)
+            unitexid = unitdata.get('name',None)
+            purchaseUOMname = None
+            for row in unitdata.get('uom_items', None):
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row.get('unit_name',None)
+            item = {
+                'sku_code': sku_code, 
+                'sku_desc':sku_desc, 
+                'quantity':qty, 
+                'price':price, 
+                'uom':uom,
+                'unitypeexid': unitexid,
+                'uom_name': purchaseUOMname
+            }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
     try:
@@ -5849,7 +5868,11 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
+    department, plant, subsidary=get_plant_subsidary_and_department(user)
     grn_data = {'po_number': po_number,
+                'department': department,
+                "subsidiary": subsidary,
+                "plant": plant,
                 'grn_number': grn_number,
                 'items':[],
                 'grn_date': grn_date,
@@ -8229,6 +8252,7 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse("Confirm Add PO Failed")
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
+
 def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
@@ -8238,59 +8262,80 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     full_pr_number = ''
     requested_by= ""
     approval1 = ''
-    import pdb; pdb.set_trace()
-    if prQs:
-        if prQs[0].pending_prs.all():
-            pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
-            pr_obj= prQs[0].pending_prs.all()[0]
-            if pr_number_list:
-                pr_number = pr_number_list[0]
-            pr_id = pr_obj.id
-            pr_prefix = pr_obj.prefix
-            pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
-            pr_date = pr_created_date.strftime('%d-%m-%Y')
-            dateInPR = str(pr_date).split(' ')[0].replace('-', '')
-            if pr_number_list:
-                pr_number = pr_number_list[0]
-                full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
-            full_pr_number= pr_obj.full_pr_number
-            prApprQs = prQs[0].pending_poApprovals
-            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-            requested_by = prQs[0].requested_user.first_name
-            if validated_users:
-                approval1 = validated_users[0]
-        else:
-            requested_by = prQs[0].requested_user.first_name
-            if(user.email):
-                approval1 = user.email
-            else:
-                approval1 = user.first_name
-    company_id = get_company_id(user)
-    purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
-    _purchase_order = purchase_objs[0]
-    po_date = _purchase_order.creation_date
-    po_date = po_date.isoformat()
-    due_date =data_dict.get('delivery_date', '')
-    supplier_id = _purchase_order.open_po.supplier.supplier_id
-    if due_date:
-        due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
-        # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
-        due_date = due_date.isoformat()
-    po_data = {'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
-                'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
-                'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
-                'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
-    for purchase_order in purchase_objs:
-        _open = purchase_order.open_po
-        item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                'quantity':_open.order_quantity, 'unit_price':_open.price,
-                'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax}
-        po_data['items'].append(item)
-    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
+    payment_code=''
+    address_id=''
+    supplier_gstin=''
     try:
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        if prQs:
+            if (prQs[0].supplier_payment):
+                payment_code= prQs[0].supplier_payment.payment_code
+            if prQs[0].pending_prs.all():
+                pr_number_list = list(prQs[0].pending_prs.all().values_list('pr_number', flat=True))
+                pr_obj= prQs[0].pending_prs.all()[0]
+                if pr_number_list:
+                    pr_number = pr_number_list[0]
+                pr_id = pr_obj.id
+                pr_prefix = pr_obj.prefix
+                pr_created_date = PendingLineItems.objects.filter(pending_pr__id=pr_id)[0].creation_date
+                pr_date = pr_created_date.strftime('%d-%m-%Y')
+                dateInPR = str(pr_date).split(' ')[0].replace('-', '')
+                if pr_number_list:
+                    pr_number = pr_number_list[0]
+                    full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
+                full_pr_number= pr_obj.full_pr_number
+                prApprQs = prQs[0].pending_poApprovals
+                validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+                requested_by = prQs[0].requested_user.first_name
+                if validated_users:
+                    approval1 = validated_users[0]
+            else:
+                requested_by = prQs[0].requested_user.first_name
+                if(user.email):
+                    approval1 = user.email
+                else:
+                    approval1 = user.first_name
+        company_id = get_company_id(user)
+        purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
+        _purchase_order = purchase_objs[0]
+        po_date = _purchase_order.creation_date
+        po_date = po_date.isoformat()
+        due_date =data_dict.get('delivery_date', '')
+        supplier_id = _purchase_order.open_po.supplier.supplier_id
+        if(_purchase_order.open_po.supplier.tin_number):
+            supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        if(_purchase_order.open_po.supplier.address_id):
+            address_id= _purchase_order.open_po.supplier.address_id
+        if due_date:
+            due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
+            # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
+            due_date = due_date.isoformat()
+        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
+                    'department': department, "subsidiary":subsidary, "plant":plant,
+                    'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
+                    'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
+                    'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
+                    'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
+                    'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
+                    'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+
+        for purchase_order in purchase_objs:
+            _open = purchase_order.open_po
+            user_obj = User.objects.get(pk=_open.sku.user)
+            unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+            unitexid = unitdata.get('name', None)
+            purchaseUOMname = None
+            for row in unitdata.get('uom_items', None):
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row.get('unit_name', None)
+            item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
+                    'quantity':_open.order_quantity, 'unit_price':_open.price,
+                    'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, 
+                    'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
+
+            po_data['items'].append(item)
+        # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='PO')
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:
@@ -12086,6 +12131,18 @@ def get_debit_note_data(rtv_number, user):
         data_dict.setdefault('item_details', [])
         data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
                           'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
+
+        user_obj = user
+        unitdata = gather_uom_master_for_sku(user_obj, get_po.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', []):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', False)
+        data_dict_item.update({
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname
+        })
         if obj.seller_po_summary.batch_detail:
             data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
@@ -12367,9 +12424,12 @@ def create_rtv(request, user=''):
             if(len(attachments)>0):
                 show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
+            department, plant, subsidary=get_plant_subsidary_and_department(user)
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
+                show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
                 show_data_invoice["po_number"]=request_data["po_number"][0]
+                
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)

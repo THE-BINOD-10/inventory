@@ -3929,3 +3929,23 @@ class UserPrefixes(models.Model):
 
     class Meta:
         db_table = 'USER_PREFIXES'
+
+
+class UOMMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    company = models.ForeignKey(CompanyMaster)
+    name = models.CharField(max_length=128, default='')
+    sku_code = models.CharField(max_length=128, default='')
+    base_uom = models.CharField(max_length=32, default='')
+    uom_type = models.CharField(max_length=64, default='')
+    uom = models.CharField(max_length=64, default='')
+    conversion = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'UOM_MASTER'
+        unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+
+    def __unicode__(self):
+        return '%s-%s' % (self.company, self.name)

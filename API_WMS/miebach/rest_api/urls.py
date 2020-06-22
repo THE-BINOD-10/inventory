@@ -84,6 +84,7 @@ urlpatterns = [
     url(r'^insert_company_master/$', insert_company_master),
     url(r'^update_company_master/$', update_company_master),
     url(r'^get_company_list/$', get_company_list),
+    url(r'^delete_uom_master/$', delete_uom_master),
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -496,6 +497,7 @@ urlpatterns = [
     url(r'^get_inventory_adjust_filter/$', get_inventory_adjust_filter),
     url(r'^get_inventory_aging_filter/$', get_inventory_aging_filter),
     url(r'^sku_category_list/$', sku_category_list),
+    url(r'^department_warehouse/$', department_warehouse),
     url(r'^print_po_reports/$', print_po_reports),
     url(r'^print_sku/$', print_sku),
     url(r'^excel_reports/$', excel_reports),
@@ -590,6 +592,8 @@ urlpatterns = [
     url(r'get_approval_summary_report/$', get_approval_summary_report),
     url(r'get_approval_detail_report/$', get_approval_detail_report),
     url(r'^get_st_po_filter/$', get_st_po_filter),
+    url(r'^get_pr_report/$', get_pr_report),
+    url(r'^get_pr_detail_report/$', get_pr_detail_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -683,6 +687,8 @@ urlpatterns += [
     url(r'^user_prefixes_upload/$', user_prefixes_upload),
     url(r'^staff_master_form/$', staff_master_form),
     url(r'^staff_master_upload/$', staff_master_upload),
+    url(r'^uom_master_form/$', uom_master_form),
+    url(r'^uom_master_upload/$', uom_master_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

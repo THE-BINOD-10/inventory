@@ -5324,6 +5324,7 @@ def gather_uom_master_for_sku(user, sku_code):
         }
     ]
     for uom in UOMs:
+        dataDict['uom_items'][0]['unit_name'] = uom.base_uom
         dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
         uom_item = {
             'unit_name': uom.uom,

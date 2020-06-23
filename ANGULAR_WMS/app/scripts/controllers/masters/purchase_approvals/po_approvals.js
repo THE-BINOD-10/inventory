@@ -57,6 +57,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.current_level = vm.model_data.level_data.length - 1;
                   vm.title = "Update Purchase Approval";
                   $state.go('app.masters.PurchaseApproval.updateApproval');
+                  angular.forEach(vm.model_data.level_data, function(level_dat, level_index){
+                    $('#'+vm.roles_type_name+'roles-'+level_index).val(vm.model_data.level_data[level_index]['roles']);
+                    $timeout(function(){$('#'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
+                  });
                 }
               });
             });
@@ -90,9 +94,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
     vm.update = false;
     vm.get_company_warehouses();
-    vm.all_purchase_approval_data_api();
     vm.current_level = 0;
+    vm.all_purchase_approval_data_api();
+    vm.getProdMaxValue(vm.model_data);
     $state.go('app.masters.PurchaseApproval.updateApproval');
+    $timeout(function(){$('#'+vm.roles_type_name+'roles-0').selectpicker();}, 100);
   }
 
   vm.submit = function(data) {
@@ -101,7 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(valid)
       {
         angular.forEach(vm.model_data.level_data, function(level_dat, level_index){
-          vm.model_data.level_data[level_index]['roles'] = $('.poroles-'+level_index).val()
+          vm.model_data.level_data[level_index]['roles'] = $('#poroles-'+level_index).val().join(',');
         });
         vm.service.apiCall('add_update_pr_config/', 'POST', {'data':JSON.stringify(vm.model_data), 'type': 'pr_save'}).then(function(data){
           if(data.message) {
@@ -150,7 +156,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.addLevel = function() {
-    vm.model_data.level_data.push({level: 'level' + (vm.current_level + 1), roles: ''})
+    var new_level = (vm.current_level + 1);
+    vm.model_data.level_data.push({level: 'level' + new_level, roles: ''})
+    $('#'+vm.roles_type_name+'roles-'+new_level).val();
+    $timeout(function(){$('#'+vm.roles_type_name+'roles-'+new_level).selectpicker();}, 100);
     vm.current_level += 1;
   }
 
@@ -205,5 +214,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.category_list = data.data.category_list;
     }
   });
+
+  vm.roles_list = [];
+  function get_roles_list() {
+    vm.service.apiCall("get_company_roles_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.roles_list = data.data.roles_list;
+      }
+    });
+  }
+  get_roles_list();
+
+  vm.check_selected = function(data, role){
+
+    return (data.roles.indexOf(role) > -1)? true : false;
+  }
 
 }

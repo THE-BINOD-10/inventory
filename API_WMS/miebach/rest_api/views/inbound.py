@@ -3326,10 +3326,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name',None)
             item = {
-                'sku_code': sku_code, 
-                'sku_desc':sku_desc, 
-                'quantity':qty, 
-                'price':price, 
+                'sku_code': sku_code,
+                'sku_desc':sku_desc,
+                'quantity':qty,
+                'price':price,
                 'uom':uom,
                 'unitypeexid': unitexid,
                 'uom_name': purchaseUOMname
@@ -5884,12 +5884,21 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "dc_date" : dc_date,
                 "vendorbill_url": vendorbill_url
      }
-    for data in po_data:
+    purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    for index, data in  enumerate(po_data):
+        _open = purchase_order[index].open_po
+        user_obj = User.objects.get(pk=_open.sku.user)
+        unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', None):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', None)
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],"order_idx":data["order_idx"],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
-                'batch_no':data['batch_no']}
+                'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
         if(data.get("mfg_date",None)):
             mfg_date = datetime.strptime(data["mfg_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
             m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
@@ -8320,7 +8329,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
-
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
@@ -8333,7 +8341,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, 
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,
                     'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
 
             po_data['items'].append(item)
@@ -12431,7 +12439,7 @@ def create_rtv(request, user=''):
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
                 show_data_invoice["po_number"]=request_data["po_number"][0]
-                
+
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)

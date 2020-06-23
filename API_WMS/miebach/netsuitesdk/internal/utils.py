@@ -18,7 +18,6 @@ class PaginatedSearch:
         self._ns = client
         self._result = None
         self._type_name = type_name
-        import pdb;pdb.set_trace()
         self.search_record = search_record or self._ns.search_factory(type_name=self._type_name)
         self.basic_search = basic_search
         if self.basic_search is not None:

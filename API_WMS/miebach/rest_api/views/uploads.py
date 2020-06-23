@@ -1560,8 +1560,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
+                #if not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -2040,11 +2040,13 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
         for sku_code, sku_id in sku_key_map.items():
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_master_data=intObj.gatherSkuData(sku_master_data)
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
+            sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
@@ -2054,15 +2056,17 @@ def upload_netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
         else:
             # # intObj.initiateAuthentication()
             # sku_data_dict.update(sku_attr_dict)

@@ -3946,3 +3946,6 @@ class UOMMaster(models.Model):
     class Meta:
         db_table = 'UOM_MASTER'
         unique_together = ('company', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+
+    def __unicode__(self):
+        return '%s-%s' % (self.company, self.name)

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes
+GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster
 
 # Register your models here.
 
@@ -52,6 +52,13 @@ class CompanyRolesAdmin(admin.ModelAdmin):
     search_fields = ['company', 'role_name']
     list_display = ('company', 'role_name')
 
+@admin.register(UOMMaster)
+class UOMMasterAdmin(admin.ModelAdmin):
+    search_fields = ['company', 'name']
+    list_display = ('company', 'name', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+    list_filter = ('company',)
+
+# admin.site.register(UOMMaster)
 admin.site.register(Integrations)
 admin.site.register(UserBrand)
 admin.site.register(Brands)

@@ -1332,6 +1332,23 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+        except Exception as e:
+            pass
+        sku_data_dict.update(
+            {   
+                'department': department, 
+                "subsidiary": subsidary, 
+                "plant": plant,
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom
+            }
+        )
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
@@ -1345,8 +1362,9 @@ def netsuite_sku(data, user, instanceName=''):
             # intObj.initiateAuthentication()
             sku_data_dict.update(sku_attr_dict)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+            integrateUOM(user, data.sku_code)
     except Exception as e:
-        print(e)
+        pass
 
 
 def update_marketplace_mapping(user, data_dict={}, data=''):
@@ -1372,7 +1390,7 @@ def update_marketplace_mapping(user, data_dict={}, data=''):
 def update_uom_master(user, data_dict={}, data=''):
     base_uom_name = ''
     company_id = get_company_id(user)
-    for i in range(len(data_dict['uom_type'])):
+    for i in range(len(data_dict.get('uom_type', []))):
         uom_type = data_dict['uom_type'][i]
         uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
@@ -1386,7 +1404,7 @@ def update_uom_master(user, data_dict={}, data=''):
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
         else:
             uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, name=name,
-                                                  base_uom=base_uom_name)
+                                                  base_uom=base_uom_name, uom_type=uom_type, uom=uom_name)
             if uom_master:
                 uom_master.update(conversion=conversion)
             else:
@@ -4656,7 +4674,6 @@ def update_sku_warehouse_values(request, user=''):
                                                                           sku__user=user.id)
             if sku_wh:
                 return HttpResponse('Preference matched with existing WMS Code')
-
         setattr(data, key, value)
     data.save()
     return HttpResponse('Updated Successfully')
@@ -5263,3 +5280,60 @@ def delete_uom_master(request):
     if data_id:
         UOMMaster.objects.get(id=data_id).delete()
     return HttpResponse("Deleted Successfully")
+
+
+def integrateUOM(user, sku_code):
+    uom_data = gather_uom_master_for_sku(user, sku_code)
+    intObj = Integrations(user,'netsuiteIntegration')
+    intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
+
+
+def get_uom_details(user, sku_code):
+    uom_data = gather_uom_master_for_sku(user, sku_code)
+    uom_type, stock_uom, purchase_uom, sale_uom = None, None, None, None
+    uom_type = uom_data['name']
+    for values in uom_data.get('uom_items', []):
+        if values.get('unit_type') == 'Storage':
+            stock_uom = values.get('unit_name')
+        if values.get('unit_type') == 'Purchase':
+            purchase_uom = values.get('unit_name')
+        if values.get('unit_type') == 'Sale':
+            sale_uom = values.get('unit_name')
+
+    return uom_type, stock_uom, purchase_uom, sale_uom
+
+def get_parent_company(companyObj):
+    if companyObj.parent:
+        return get_parent_company(companyObj.parent)
+    else:
+        return companyObj
+
+def get_parent_company(companyObj):
+    if companyObj.parent:
+        return get_parent_company(companyObj.parent)
+    else:
+        return companyObj
+        
+def gather_uom_master_for_sku(user, sku_code):
+    UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=get_parent_company(user.userprofile.company))
+    dataDict = {}
+    dataDict['uom_items'] = [
+        {
+            'unit_name': 'base',
+            'unit_conversion': 1,
+            'is_base': True
+        }
+    ]
+    for uom in UOMs:
+        dataDict['uom_items'][0]['unit_name'] = uom.base_uom
+        dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
+        uom_item = {
+            'unit_name': uom.uom,
+            'unit_conversion': uom.conversion,
+            'unit_type': uom.uom_type
+        }
+        
+        dataDict['uom_items'].append(uom_item)
+
+    return dataDict
+

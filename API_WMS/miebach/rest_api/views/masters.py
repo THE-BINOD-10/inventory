@@ -1403,7 +1403,7 @@ def update_uom_master(user, data_dict={}, data=''):
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
         else:
             uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, name=name,
-                                                  base_uom=base_uom_name)
+                                                  base_uom=base_uom_name, uom_type=uom_type, uom=uom_name)
             if uom_master:
                 uom_master.update(conversion=conversion)
             else:

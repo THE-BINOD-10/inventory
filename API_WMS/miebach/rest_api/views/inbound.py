@@ -5834,8 +5834,10 @@ def confirm_grn(request, confirm_returns='', user=''):
 def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_params,myDict):
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
+    from pytz import timezone
+
     # grn_number = data_dict.get('po_number', '')
-    grn_date = datetime.now().isoformat()
+    grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     po_data = data_dict['data'].values()[0]
     dc_number=""
     dc_date=""

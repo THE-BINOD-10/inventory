@@ -1444,6 +1444,7 @@ def generated_actual_pr_data(request, user=''):
     validated_users = list(record[0].pending_prApprovals.values_list('validated_by', flat=True).order_by('level'))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
+        updatedJson = {}
         sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, asset_code, service_stdate, service_edate = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
@@ -1456,6 +1457,18 @@ def generated_actual_pr_data(request, user=''):
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
+        updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails', 
+            model_id=lineItemId)
+
+        if updatedLineItem.exists():
+            updatedJson = eval(updatedLineItem[0].model_json)
+        if updatedJson.has_key('description'):
+            sku_desc = updatedJson['description']
+        if updatedJson.has_key('service_start_date'):
+            service_stdate = updatedJson['service_start_date']
+        if updatedJson.has_key('description'):
+            service_edate = updatedJson['service_end_date']
+
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
@@ -2511,6 +2524,9 @@ def get_raisepo_group_data(user, myDict):
         apmc_tax = 0
         product_category = ''
         priority_type = ''
+        description = ''
+        service_start_date = ''
+        service_end_date = ''
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'approval_remarks' in myDict.keys():
@@ -2565,6 +2581,12 @@ def get_raisepo_group_data(user, myDict):
             if myDict['apmc_tax'][i]:
                 apmc_tax = float(myDict['apmc_tax'][i])
                 show_apmc_tax = True
+        if 'description' in myDict.keys():
+            description = myDict['description'][i]
+        if 'service_start_date' in myDict.keys():
+            service_start_date = myDict['service_start_date'][i]
+        if 'service_end_date' in myDict.keys():
+            service_end_date = myDict['service_end_date'][i]                                    
         if 'product_category' in myDict.keys():
             product_category = myDict['product_category'][0]
         if 'priority_type' in myDict.keys():
@@ -2597,7 +2619,9 @@ def get_raisepo_group_data(user, myDict):
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax, 'apmc_tax': apmc_tax, 'po_delivery_date': po_delivery_date,
                                    'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date,
-                                   'product_category': product_category, 'priority_type': priority_type})
+                                   'product_category': product_category, 'priority_type': priority_type,
+                                   'description': description, 'service_start_date': service_start_date,
+                                   'service_end_date': service_end_date})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3189,7 +3213,19 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['igst_tax'] = value['igst_tax']
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
-        PendingLineItems.objects.update_or_create(**pendingLineItems)
+        lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
+        if value['description']:
+            misc_json = {
+                'description': value['description'],
+                'service_start_date': value['service_start_date'],
+                'service_end_date': value['service_end_date']
+            }
+            TempJson.objects.create(
+                model_id=lineObj.id, 
+                model_name='PendingLineItemMiscDetails', 
+                model_json=misc_json
+            )
+
 
     file_obj = request.FILES.get('files-0', '')
     if file_obj:

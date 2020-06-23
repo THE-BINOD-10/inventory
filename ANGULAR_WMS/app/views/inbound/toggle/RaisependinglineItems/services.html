@@ -25,7 +25,8 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.description" title="{{ product.fields.description }}" 
+            type="text" name="description" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
           </td>
           <td>
             <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="50">

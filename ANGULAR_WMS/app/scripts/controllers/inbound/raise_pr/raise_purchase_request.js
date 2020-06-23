@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.extra_width = { 'width': '1250px' };
+    vm.extra_width = { 'width': '1450px' };
     vm.selected = {};
     vm.selectAll = false;
     vm.date = new Date();
@@ -83,7 +83,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       $('td:not(td:first)', nRow).unbind('click');
       $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
-          vm.extra_width = { 'width': '1250px' };
+          vm.extra_width = { 'width': '1450px' };
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'],
                       pending_level:aData['LevelToBeApproved']};
@@ -321,7 +321,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.base();
 
     vm.add = function () {
-      vm.extra_width = { 'width': '1250px' };
+      vm.extra_width = { 'width': '1450px' };
       vm.model_data.seller_types = [];
       // vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';

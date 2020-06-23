@@ -12434,3 +12434,11 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def find_purchase_approver_permission(user):
+    change_pendinglineitem = get_permission(user, 'change_pendinglineitems')
+    change_pr = get_permission(user, 'change_pendingpr')
+    is_purchase_approver = False
+    if change_pendinglineitem and change_pr:
+        is_purchase_approver = True
+    return is_purchase_approver

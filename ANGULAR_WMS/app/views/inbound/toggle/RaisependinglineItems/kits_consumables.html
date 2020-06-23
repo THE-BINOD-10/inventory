@@ -9,10 +9,10 @@
           <th>No.Of Tests</th>
           <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
           <th>OpenPR Qty</th>
-          <th>Last 3M Avg Consumption</th>
+          <!-- <th>Last 3M Avg Consumption</th> -->
           <th>Available Stock</th>
           <th>OpenPO Qty</th>
-          <th>Suggested PR Qty</th>
+          <!-- <th>Suggested PR Qty</th> -->
           <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
           <th class="plus"></th>
         </tr>
@@ -47,10 +47,10 @@
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
-          <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td>
+          <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
-          <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td>
+          <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
           <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
           <td>
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

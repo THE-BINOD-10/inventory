@@ -103,8 +103,9 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         #         pr_numbers = []
         #     filtersMap.setdefault('pending_pr__pr_number__in', [])
         #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
-        else: # Creator Sub Users
-            filtersMap['pending_pr__requested_user'] = request.user.id
+
+        # else: # Creator Sub Users
+        #     filtersMap['pending_pr__requested_user'] = request.user.id
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -1434,14 +1435,14 @@ def generated_actual_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
-        'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit',
+        'id', 'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
     ]
     validated_users = list(record[0].pending_prApprovals.values_list('validated_by', flat=True).order_by('level'))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
-        sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, asset_code, service_stdate, service_edate = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1456,6 +1457,71 @@ def generated_actual_pr_data(request, user=''):
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
+
+        is_purchase_approver = find_purchase_approver_permission(request.user)
+        supplierDetailsMap = OrderedDict()
+        pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
+                                        model_id=lineItemId)
+        if pr_supplier_data.exists():
+            json_data = eval(pr_supplier_data[0].model_json)
+            supplierId = json_data['supplier_id']
+            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+                                    sku__user=user.id, supplier__supplier_id=supplierId)            
+            supplierName = supplierMappings[0].supplier.name
+            preferred_supplier = '%s:%s' %(supplierId, supplierName)
+            supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+                                                    'supplier_name': supplierName,
+                                                    'moq': json_data['moq'],
+                                                    'unit_price': json_data['unit_price'],
+                                                    'amount': json_data['amount'],
+                                                    'tax': json_data['tax'],
+                                                    'total': json_data['total'],
+                                                    }
+
+        elif is_purchase_approver:
+            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
+                        sku__user=user.id).order_by('preference')
+            preferred_supplier = None
+            if supplierMappings.exists():
+                for supplierMapping in supplierMappings:
+                    supplierId = supplierMapping.supplier.supplier_id
+                    supplierName = supplierMapping.supplier.name
+                    skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id, sku_code, user)
+                    if skuTaxes:
+                        skuTaxVal = skuTaxes[0]
+                        taxes = skuTaxVal['taxes']
+                        if taxes:
+                            sgst_tax = taxes[0]['sgst_tax']
+                            cgst_tax = taxes[0]['cgst_tax']
+                            igst_tax = taxes[0]['igst_tax']
+                        else:
+                            sgst_tax, cgst_tax, igst_tax = 0, 0, 0
+                        if skuTaxVal.get('sku_supplier_price', ''):
+                            price = skuTaxVal.get('sku_supplier_price', '')
+                        else:
+                            price = skuTaxVal['mrp']
+                        if skuTaxVal.get('sku_supplier_moq', ''):
+                            moq = skuTaxVal['sku_supplier_moq']
+                        else:
+                            moq = 0
+                        tax = sgst_tax + cgst_tax + igst_tax
+                        amount = qty * price
+                        total = amount + (amount * (tax/100))
+                        supplier_id_name = '%s:%s' %(supplierId, supplierName)
+                    supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
+                                                              'supplier_name': supplierName,
+                                                              'moq': moq,
+                                                              'unit_price': price,
+                                                              'amount': amount,
+                                                              'tax': tax,
+                                                              'total': total,
+                                                              }
+                if not preferred_supplier:
+                    preferred_supplier = supplier_id_name
+        else:
+            supplierDetailsMap = {}
+            preferred_supplier = None
+
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -1469,7 +1535,9 @@ def generated_actual_pr_data(request, user=''):
                                     'asset_code': asset_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,
-                                    }, 'pk': apprId})
+                                    'supplierDetails': supplierDetailsMap,
+                                    'preferred_supplier': preferred_supplier,
+                                    }, 'pk': lineItemId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'warehouse': pr_user.first_name,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
@@ -2816,6 +2884,7 @@ def approve_pr(request, user=''):
     reversion.set_user(request.user)
     log.info("Approve PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
     urlPath = request.META.get('HTTP_ORIGIN')
+    myDict = dict(request.POST.iterlists())
     status = 'Approved Failed'
     full_pr_number = request.POST.get('pr_number', '')
     purchase_id = request.POST.get('purchase_id', '')
@@ -2895,7 +2964,7 @@ def approve_pr(request, user=''):
 
     editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
     if editPermission == 'true':
-        myDict = dict(request.POST.iterlists())
+        # myDict = dict(request.POST.iterlists())
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
@@ -2916,6 +2985,35 @@ def approve_pr(request, user=''):
         temp_jsons = TempJson.objects.filter(model_id=central_data_id, model_name='CENTRAL_PO')
         if temp_jsons.exists():
             central_po_data = temp_jsons[0].model_json
+
+    # change_pendinglineitem = get_permission(request.user, 'change_pendinglineitems')
+    # change_pr = get_permission(request.user, 'change_pendingpr')
+    # is_purchase_approver = False
+    # if change_pendinglineitem and change_pr:
+    #     is_purchase_approver = True
+    is_purchase_approver = find_purchase_approver_permission(request.user)
+    if is_purchase_approver:
+        lineItems = pendingPRObj.pending_prlineItems
+        for i in range(0, len(myDict['wms_code'])):
+            eachSku = myDict['wms_code'][i]
+            amount = myDict['amount'][i]
+            tax = myDict['tax'][i]
+            total = myDict['total'][i]
+            unit_price = myDict['unit_price'][i]
+            moq = myDict['moq'][i]
+            supplier_id = myDict['supplier_id'][i]
+            pr_approver_data = {
+                'supplier_id': supplier_id,
+                'tax': tax,
+                'amount': amount,
+                'unit_price': unit_price,
+                'moq': moq,
+                'total': total
+            }
+            lineItemObj = lineItems.filter(sku__sku_code=eachSku)
+            TempJson.objects.create(model_id=lineItemObj[0].id, 
+                                    model_name='PENDING_PR_PURCHASE_APPROVER', 
+                                    model_json=pr_approver_data)
     if pending_level == lastLevel: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
         # PRQs.update(remarks=remarks)
@@ -3426,6 +3524,7 @@ def get_pr_preview_data(request, user=''):
         'sku__sku_desc', 'pending_pr__product_category').annotate(Sum('quantity'))
     skuPrNumsMap = {}
     skuPrIdsMap = {}
+    skulineItemIds = {}
     for lineItem in lineItemsQs:
          skuPrNumsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.full_pr_number))
          skuPrIdsMap.setdefault(lineItem.sku.sku_code, []).append(str(lineItem.pending_pr.id))
@@ -3442,6 +3541,24 @@ def get_pr_preview_data(request, user=''):
                       'pr_number': ','.join(skuPrNumsMap[sku_code]),
                       'product_category': prod_catg,
                       'supplierDetails': {}}
+        # pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
+        #                                 model_id=lineItemId)
+        # if pr_supplier_data.exists():
+        #     json_data = eval(pr_supplier_data[0].model_json)
+        #     supplierId = json_data['supplier_id']
+        #     supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+        #                             sku__user=user.id, supplier__supplier_id=supplierId)            
+        #     supplierName = supplierMappings[0].supplier.name
+        #     preferred_supplier = '%s:%s' %(supplierId, supplierName)
+        #     supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+        #                                             'supplier_name': supplierName,
+        #                                             'moq': json_data['moq'],
+        #                                             'unit_price': json_data['unit_price'],
+        #                                             'amount': json_data['amount'],
+        #                                             'tax': json_data['tax'],
+        #                                             'total': json_data['total'],
+        #                                             }
+        # else:
         supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                                 sku__user=user.id).order_by('preference')
         if not supplierMappings.exists():
@@ -3485,7 +3602,7 @@ def get_pr_preview_data(request, user=''):
                                                           }
                 if not reqLineMap.has_key('preferred_supplier'):
                     reqLineMap['preferred_supplier'] = supplier_id_name
-            reqLineMap['supplierDetails'] = supplierDetailsMap
+        reqLineMap['supplierDetails'] = supplierDetailsMap
         preview_data['data'].append(reqLineMap)
     return HttpResponse(json.dumps(preview_data))
 

@@ -205,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
           console.log(vm.resubmitCheckObj);
 
-          vm.getTotals();
+          // vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
               var seller_data = data.data.sellers;
@@ -443,7 +443,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       } else {
         vm.model_data.data.splice(index,1);
-        vm.getTotals();
+        // vm.getTotals();
       }
     }
 
@@ -1075,7 +1075,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.openpo_qty = item.openpo_qty;
       product.fields.edit_tax = false;
       product.taxes = [];
-      vm.getTotals();
+      // vm.getTotals();
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
         vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
       }
@@ -1108,7 +1108,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 product.fields.supplier_code = data.supplier_code;
                 product.fields.weight = data.weight;
                 vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-                vm.getTotals();
+                // vm.getTotals();
               }
             }
           }
@@ -1249,24 +1249,33 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.getTotals(vm.model_data, true);
     }
 
-    vm.getTotals = function(data, not_update_tax) {
-      if(not_update_tax === undefined) {
-        not_update_tax = false;
+    vm.getTotals = function(data) {
+      // if(not_update_tax === undefined) {
+      //   not_update_tax = false;
+      // }
+      // vm.model_data.total_price = 0;
+      // vm.model_data.sub_total = 0;
+      data.fields.amount = 0
+      data.fields.total = 0
+      data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
+      if (!data.fields.tax) {
+          data.fields.tax = 0;
       }
-      vm.model_data.total_price = 0;
-      vm.model_data.sub_total = 0;
-      angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * sku_data.fields.price;
+      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      // angular.forEach(vm.model_data.data, function(sku_data){
+        // var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        // sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
         //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
-        if(sku_data.taxes && !not_update_tax) {
-            vm.get_tax_value(sku_data);
-        }
-        if (!sku_data.fields.tax) {
-          sku_data.fields.tax = Number(sku_data.fields.cgst_tax) + Number(sku_data.fields.sgst_tax) + Number(sku_data.fields.igst_tax) + Number(sku_data.fields.cess_tax) + Number(sku_data.fields.apmc_tax) +Number(sku_data.fields.utgst_tax);
-        }
-        vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
-      })
+        // if(sku_data.taxes && !not_update_tax) {
+        //     vm.get_tax_value(sku_data);
+        // }
+        // if (!sku_data.fields.tax) {
+        //   sku_data.fields.tax = 0;
+        // }
+        // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
+        // vm.model_data.total_price = vm.model_data.total_price + temp;
+        // vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      // })
     }
 
     vm.getCompany = function() {

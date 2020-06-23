@@ -20,15 +20,19 @@
         </tr>
       </thead>
       <tbody>
-        product.fields.supplierDetails::{{product.fields.supplierDetails}}
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
           <td>
+            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
+            ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, '', 'Supplier');"
+            >
             <select ui-select class="form-control" name="supplier" style="width:140px;"
             ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
             ng-model="product.fields.supplier_id_name" 
             ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
             ng-disabled="!showCase.permissions.change_pendinglineitems" 
-            ng-if="product.fields.supplierDetails">
+            ng-if="product.fields.preferred_supplier">
               <option ng-repeat="(supplier_id_name, sup_details) in product.fields.supplierDetails"
               value="{{supplier_id_name}}">{{supplier_id_name}}
               </option>
@@ -41,7 +45,7 @@
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
                    required
                    typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?', showCase.model_data.product_category)"
-                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0">
+                   typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null" ng-readonly="product.pk > 0" size="35">
             <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
@@ -49,7 +53,7 @@
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="30">
           </td>
           <td>
             <input name="service_start_date" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" ng-readonly="true">
@@ -63,7 +67,7 @@
                    ng-class="service.get_decimal_perm()"
                    ng-readonly="showCase.permissions.change_pendingpr && !showCase.permissions.po_or_pr_edit_permission_approver"
                    ng-change="showCase.checkResubmit(product.fields)"
-                   ng-keyup="showCase.getTotals()" size="12">
+                   ng-keyup="showCase.getTotals()" size="8">
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
@@ -74,8 +78,13 @@
         </td>
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
-          </span> 
+          <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
+          </span> --> 
+          <input id="price1" ng-model="product.fields.price" type="text" name="price" 
+            class="form-control detectTab"
+            ng-class="service.get_decimal_perm()" 
+            ng-keyup="showCase.getTotals(product)" size="12"
+            ng-readonly="product.fields.preferred_supplier">
         </td>
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}

@@ -1487,7 +1487,7 @@ def generated_actual_pr_data(request, user=''):
             supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
                                                     'supplier_name': supplierName,
                                                     'moq': json_data['moq'],
-                                                    'unit_price': json_data['unit_price'],
+                                                    'price': json_data['unit_price'],
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
                                                     'total': json_data['total'],
@@ -1526,7 +1526,7 @@ def generated_actual_pr_data(request, user=''):
                     supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                               'supplier_name': supplierName,
                                                               'moq': moq,
-                                                              'unit_price': price,
+                                                              'price': price,
                                                               'amount': amount,
                                                               'tax': tax,
                                                               'total': total,
@@ -1535,7 +1535,7 @@ def generated_actual_pr_data(request, user=''):
                     preferred_supplier = supplier_id_name
         else:
             supplierDetailsMap = {}
-            preferred_supplier = None
+            preferred_supplier = ''
 
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,

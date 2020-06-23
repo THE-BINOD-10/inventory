@@ -1480,9 +1480,9 @@ def generated_actual_pr_data(request, user=''):
         if pr_supplier_data.exists():
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
-            supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
-                                    sku__user=user.id, supplier__supplier_id=supplierId)            
-            supplierName = supplierMappings[0].supplier.name
+            supplierQs = SupplierMaster.objects.filter(user=user.id, supplier_id=supplierId)
+            if supplierQs.exists():
+                supplierName = supplierQs[0].name
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
             supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
                                                     'supplier_name': supplierName,

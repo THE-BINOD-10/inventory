@@ -3,15 +3,32 @@
     <table class="table" class="pull-left" style="margin-left: 10px;">
       <thead>
         <tr>
+          <th>Supplier</th>
           <th>Asset Code*</th>
           <th>Title</th>
           <th class="w10_">Quantity*</th>
           <th>UOM</th>
+          <th>Unit Rate(INR)</th>
+          <th>Amount(INR)</th>
+          <th>Tax %</th>
+          <th>Total(INR)</th>
           <th class="plus"></th>
         </tr>
       </thead>
       <tbody>
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+          <td>
+            <select ui-select class="form-control" name="supplier" style="width:140px;"
+            ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
+            ng-model="product.fields.supplier_id_name" 
+            ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
+            ng-disabled="!showCase.permissions.change_pendinglineitems">
+              <option ng-repeat="(supplier_id_name, sup_details) in product.fields.supplierDetails"
+              value="{{supplier_id_name}}">{{supplier_id_name}}
+              </option>
+            </select>
+            <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
+          </td>
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
@@ -33,6 +50,26 @@
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          </td>
+          <td class="text-center"> 
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
+            </span> 
+            <input type="text" name="unit_price" ng-model="product.fields.unit_price" class="hide">
+          </td>
+          <td class="text-center"> 
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}
+            </span> 
+            <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
+          </td>
+          <td class="text-center"> 
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+            </span> 
+            <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
+          </td>
+          <td class="text-center"> 
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}
+            </span> 
+            <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
         </tr>
       </tbody>

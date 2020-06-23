@@ -1389,7 +1389,7 @@ def update_marketplace_mapping(user, data_dict={}, data=''):
 def update_uom_master(user, data_dict={}, data=''):
     base_uom_name = ''
     company_id = get_company_id(user)
-    for i in range(len(data_dict['uom_type'])):
+    for i in range(len(data_dict.get('uom_type', []))):
         uom_type = data_dict['uom_type'][i]
         uom_name = data_dict['uom_name'][i]
         conversion = data_dict['conversion'][i]
@@ -5324,6 +5324,7 @@ def gather_uom_master_for_sku(user, sku_code):
         }
     ]
     for uom in UOMs:
+        dataDict['uom_items'][0]['unit_name'] = uom.base_uom
         dataDict['name'] = '%s-%s' % (sku_code, uom.base_uom)
         uom_item = {
             'unit_name': uom.uom,

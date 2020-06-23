@@ -103,9 +103,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         #         pr_numbers = []
         #     filtersMap.setdefault('pending_pr__pr_number__in', [])
         #     filtersMap['pending_pr__pr_number__in'] = list(chain(filtersMap['pending_pr__pr_number__in'], pr_numbers))
-
-        # else: # Creator Sub Users
-        #     filtersMap['pending_pr__requested_user'] = request.user.id
+        else: # Creator Sub Users
+            filtersMap.setdefault('pending_pr_id__in', [])
+            pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+            #filtersMap['pending_pr__requested_user'] = request.user.id
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -3413,7 +3415,22 @@ def netsuite_pr(user, PRQs, full_pr_number):
         lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
         for rec in lineItems:
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
-            item = {'sku_code': sku_code, 'sku_desc':sku_desc, 'quantity':qty, 'price':price, 'uom':uom}
+            user_obj = user
+            unitdata = gather_uom_master_for_sku(user_obj, sku_code)
+            unitexid = unitdata.get('name',None)
+            purchaseUOMname = None
+            for row in unitdata.get('uom_items', None):
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row.get('unit_name',None)
+            item = {
+                'sku_code': sku_code, 
+                'sku_desc':sku_desc, 
+                'quantity':qty, 
+                'price':price, 
+                'uom':uom,
+                'unitypeexid': unitexid,
+                'uom_name': purchaseUOMname
+            }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
     try:
@@ -8422,11 +8439,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
             unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
-            unitexid = unitdata['name']
+            unitexid = unitdata.get('name', None)
             purchaseUOMname = None
-            for row in unitdata['uom_items']:
+            for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
-                    purchaseUOMname = row['unit_name']
+                    purchaseUOMname = row.get('unit_name', None)
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
@@ -12230,6 +12247,18 @@ def get_debit_note_data(rtv_number, user):
         data_dict.setdefault('item_details', [])
         data_dict_item = {'sku_code': get_po.sku.sku_code, 'sku_desc': get_po.sku.sku_desc,
                           'hsn_code': get_po.sku.hsn_code, 'order_qty': obj.quantity, 'mrp':get_po.sku.mrp}
+
+        user_obj = user
+        unitdata = gather_uom_master_for_sku(user_obj, get_po.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', []):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', False)
+        data_dict_item.update({
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname
+        })
         if obj.seller_po_summary.batch_detail:
             data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
@@ -12516,6 +12545,7 @@ def create_rtv(request, user=''):
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
                 show_data_invoice["po_number"]=request_data["po_number"][0]
+                
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)

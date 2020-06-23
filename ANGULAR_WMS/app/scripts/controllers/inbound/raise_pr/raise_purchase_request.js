@@ -599,7 +599,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sup_data.moq = supDetails.moq;
         sup_data.tax = supDetails.tax;
         sup_data.amount = supDetails.amount;
-        sup_data.unit_price = supDetails.unit_price;
+        sup_data.price = supDetails.price;
         sup_data.total = supDetails.total;
         sup_data.supplier_id = supDetails.supplier_id;
       }

@@ -1487,7 +1487,7 @@ def generated_actual_pr_data(request, user=''):
             supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
                                                     'supplier_name': supplierName,
                                                     'moq': json_data['moq'],
-                                                    'price': json_data['unit_price'],
+                                                    'price': json_data['price'],
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
                                                     'total': json_data['total'],
@@ -3025,14 +3025,14 @@ def approve_pr(request, user=''):
             amount = myDict['amount'][i]
             tax = myDict['tax'][i]
             total = myDict['total'][i]
-            unit_price = myDict['unit_price'][i]
+            unit_price = myDict['price'][i]
             moq = myDict['moq'][i]
-            supplier_id = myDict['supplier_id'][i]
+            supplier_id = myDict['supplier'][i]
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,
                 'amount': amount,
-                'unit_price': unit_price,
+                'price': unit_price,
                 'moq': moq,
                 'total': total
             }
@@ -3830,6 +3830,8 @@ def add_pr(request, user=''):
             else:
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
+                    lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds).delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
                 prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,

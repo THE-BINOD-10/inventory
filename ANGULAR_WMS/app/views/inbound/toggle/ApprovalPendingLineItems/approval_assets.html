@@ -18,16 +18,23 @@
       <tbody>
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
           <td>
+            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
+            ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, '', 'Supplier');"
+            >
             <select ui-select class="form-control" name="supplier" style="width:140px;"
             ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
             ng-model="product.fields.supplier_id_name" 
             ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
-            ng-disabled="!showCase.permissions.change_pendinglineitems">
+            ng-disabled="!showCase.permissions.change_pendinglineitems" 
+            ng-if="product.fields.preferred_supplier">
               <option ng-repeat="(supplier_id_name, sup_details) in product.fields.supplierDetails"
               value="{{supplier_id_name}}">{{supplier_id_name}}
               </option>
             </select>
-            <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">
+            <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide"
+            ng-if="product.fields.supplierDetails">
           </td>
           <td>
             <input type="text" autocomplete="off" name="wms_code"
@@ -52,9 +59,14 @@
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
+            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
             </span> 
-            <input type="text" name="unit_price" ng-model="product.fields.unit_price" class="hide">
+            <input type="text" name="unit_price" ng-model="product.fields.unit_price" class="hide"> -->
+            <input id="price1" ng-model="product.fields.price" type="text" name="price" 
+            class="form-control detectTab"
+            ng-class="service.get_decimal_perm()" 
+            ng-keyup="showCase.getTotals(product)" size="12"
+            ng-readonly="product.fields.preferred_supplier">
           </td>
           <td class="text-center"> 
             <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}

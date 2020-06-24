@@ -255,8 +255,8 @@ class netsuiteIntegration(object):
             grnrec.externalId = grn_data['grn_number']
         except Exception as e:
             import traceback
-            log.debug(traceback.format_exc())
-            log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
+            log_error.debug(traceback.format_exc())
+            log_error.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
         return grnrec
 
 
@@ -301,15 +301,14 @@ class netsuiteIntegration(object):
                 purorder.terms = po_data.get("payment_code")
             if (po_data.get("address_id", None)):
                 purorder.billAddress = ns.RecordRef(internalId=po_data.get("address_id"))
-            # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
 
             po_custom_field_list =  [
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
-                # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                # ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
+                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
             ]
             purorder.location= ns.RecordRef(internalId=297)
             if(po_data.get("plant", None)):

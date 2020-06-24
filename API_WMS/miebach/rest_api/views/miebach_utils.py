@@ -786,6 +786,7 @@ METRO_PO_DETAIL_REPORT_DICT = {
     'filters': [
          {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
          {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
          {'label': 'PO Number', 'name': 'pr_number', 'type': 'input'},
          {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
          {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
@@ -12216,6 +12217,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    import pdb;pdb.set_trace()
     search_parameters = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
@@ -12366,7 +12368,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('PR Approved Date', release_date),
             ('PO Number', po_reference),
             ('PO Raised Date', get_local_date(user,result['pending_po__creation_date'])),
-            ('Plant', ''),
+            ('Plant', result['pending_po__wh_user__first_name']),
             ('Department', result['pending_po__wh_user__username']),
             ('Product Category', result['pending_po__product_category']),
             ('Supplier ID', result['pending_po__supplier_id']),

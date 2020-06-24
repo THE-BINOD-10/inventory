@@ -1531,8 +1531,8 @@ def generated_actual_pr_data(request, user=''):
                                                               'tax': tax,
                                                               'total': total,
                                                               }
-                if not preferred_supplier:
-                    preferred_supplier = supplier_id_name
+                    if not preferred_supplier:
+                        preferred_supplier = supplier_id_name
         else:
             supplierDetailsMap = {}
             preferred_supplier = ''

@@ -657,15 +657,19 @@ SKU_WISE_RTV_DICT = {'filters' : [
                         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'Purchase Order ID', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+                        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
                         {'label': 'RTV Number', 'name': 'rtv_number', 'type': 'input'}
             ],
-        'dt_headers': [ "RTV Number", "RTV Date", "Supplier ID", "Supplier Name", "Invoice Number", "Invoice Date",
-                        "SKU Code", "SKU Description", "EAN Number", "MRP", "Unit Price", "CGST(%)", "SGST(%)",
-                        "IGST(%)", "UTGST(%)", "CESS(%)", "HSN Code", "City", "RTV Quantity", "RTV Amount (w/o tax)",
-                        "RTV Tax Amount", "RTV Amount", "PO Number", "PO Date", "GRN Number", "GRN Date","State", "Supplier GST Number",
-                        "GST Number", "Remarks" ],
+        'dt_headers': [ "RTV Number", "RTV Date","PO Number", "PO Date", "GRN Number", "GRN Date",
+                        "Plant", "Department", "Product Category","Category",
+                        "Supplier ID", "Supplier Name", "Invoice Number", "Invoice Date",
+                        "SKU Code", "SKU Description", "SKU Brand", "SKU Category", "SKU Sub-Category","SKU Group", "SKU Class",
+                         "PO Quantity", "Received Qty", "RTV Quantity",
+                         "MRP", "Unit Price pre tax","Tax per unit", "Unit price with tax", "RTV Amount Pre Tax",
+                        "RTV Tax Amount", "RTV Amount with Tax", "DC Number" ],
         'mk_dt_headers': [ "RTV Number", "RTV Date", "Supplier ID", "Supplier Name","Invoice Number", "Invoice Date",
                            "SKU Code", "SKU Description", "EAN Number", "MRP","Unit Price","CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "HSN Code","City", "RTV Quantity","RTV Amount (w/o tax)",
@@ -1119,11 +1123,15 @@ RETURN_TO_VENDOR_REPORT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'Purchase Order ID', 'name': 'open_po', 'type': 'input'},
+        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+        {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
         {'label': 'RTV Number', 'name': 'rtv_number', 'type': 'input'}
     ],
-    'dt_headers': ['RTV Number', 'Supplier ID', 'Supplier Name', 'Order ID', 'Invoice Number', 'Return Date', 'Reason', 'Updated User'],
+    'dt_headers': ['RTV Number', 'RTV Date', 'PO Number', 'PO Date', 'GRN Number', 'GRN Date', 'Plant', 'Department',
+                   'Product Category', 'Category', 'Supplier ID', 'Supplier Name', 'PO Qty', 'Received Qty', 'RTV Qty',
+                   'RTV Amount Pre Tax', 'Tax Amount', 'RTV Amount with Tax', 'Invoice Number', 'Invoice Date','DC Number','Updated User'],
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
@@ -6682,7 +6690,7 @@ def get_stock_ledger_data(search_params, user, sub_user):
 def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_po_reference
+    from rest_api.views.common import get_sku_master, get_po_reference, get_warehouse_user_from_sub_user
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     lis = ['rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
@@ -6718,11 +6726,12 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = ReturnToVendor.objects.filter(**search_parameters).\
-                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier__supplier_id',
-           'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
-           'seller_po_summary__invoice_number').distinct().\
-            annotate(return_date=Cast('creation_date', DateField()))
+    values_list = ['rtv_number', 'creation_date', 'quantity','seller_po_summary__purchase_order__open_po__supplier__supplier_id', 'seller_po_summary__purchase_order__open_po__supplier__name',
+                   'seller_po_summary__purchase_order__po_number','seller_po_summary__purchase_order__creation_date',
+                    'seller_po_summary__grn_number','seller_po_summary__creation_date','seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
+                   'seller_po_summary__purchase_order__open_po__price', 'seller_po_summary__purchase_order__open_po__mrp',
+                   'seller_po_summary__purchase_order__open_po__cgst_tax', 'seller_po_summary__purchase_order__open_po__sgst_tax', 'seller_po_summary__purchase_order__open_po__igst_tax']
+    model_data = ReturnToVendor.objects.filter(**search_parameters).values(*values_list).distinct()
 
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
@@ -6739,21 +6748,62 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     for data in model_data:
         rtv_reason ,updated_user_name = '' ,''
         rtv = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, status=0,
-                                            rtv_number=data['rtv_number'])
+                                            rtv_number=data['rtv_number']).distinct()
         if rtv.exists():
             rtv_reason = rtv[0].return_reason
             version_obj = Version.objects.get_for_object(rtv[0])
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
 
-        order_id = rtv[0].seller_po_summary.purchase_order.po_number #get_po_reference(rtv[0].seller_po_summary.purchase_order)
+        order_id = rtv[0].seller_po_summary.purchase_order.order_id #get_po_reference(rtv[0].seller_po_summary.purchase_order)
         date = get_local_date(user, rtv[0].creation_date)
-        temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
+        po_qty, rec_qty = 0,0
+
+        rtv_wo_amount, rtv_tax_amount, rtv_total_amount = 0, 0, 0
+        final_grn_date, final_invoice_date = '', ''
+        po_data = rtv[0].seller_po_summary.purchase_order.open_po
+        po_qty = po_data.order_quantity
+        rec_qty = rtv[0].seller_po_summary.purchase_order.received_quantity
+        rtv_wo_amount = rtv[0].quantity * po_data.price
+        rtv_tax_amount = ((rtv_wo_amount)  * (po_data.cgst_tax+ po_data.sgst_tax + po_data.igst_tax)/100)
+        rtv_total_amount = rtv_wo_amount + rtv_tax_amount
+        grn_date = get_local_date(user, rtv[0].seller_po_summary.creation_date)
+        grn_date_1 = datetime.datetime.strptime(grn_date, '%d %b, %Y %I:%M %p').date()
+        final_grn_date = grn_date_1.strftime('%d-%m-%Y')
+        invoice_date = data['seller_po_summary__invoice_date'].strftime('%d-%m-%Y')
+        po_date = get_local_date(user, rtv[0].seller_po_summary.purchase_order.creation_date)
+        po_date_1 = datetime.datetime.strptime(po_date, '%d %b, %Y %I:%M %p').date()
+        final_po_date = po_date_1.strftime('%d-%m-%Y')
+        product_category, warehouse, warehouse_type,dc_number,category = '', '', '', '',''
+        product_data = PendingPO.objects.filter(open_po=po_data.id)
+        if product_data.exists():
+            product_category = product_data[0].product_category
+            if product_data[0].requested_user:
+                pr_user = get_warehouse_user_from_sub_user(product_data[0].requested_user.id)
+                warehouse = pr_user.first_name
+                warehouse_type = pr_user.userprofile.warehouse_type
+        temp_data['aaData'].append(OrderedDict((
+                                    ('RTV Number', data['rtv_number']),
+                                    ('RTV Date', date),
+                                    ('GRN Number', data['seller_po_summary__grn_number']),
+                                    ('GRN Date', final_grn_date),
+                                    ('PO Number', data['seller_po_summary__purchase_order__po_number']),
+                                    ('PO Date', final_po_date),
+                                    ('Plant', warehouse),
+                                    ('Product Category', product_category),
+                                    ('Category', category),
+                                    ('Department', warehouse_type),
                                     ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                     ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),
-                                    ('Order ID', order_id),
+                                    ('PO Qty', po_qty),
+                                    ('Received Qty', rec_qty),
+                                    ('RTV Qty', data['quantity']),
+                                    ('RTV Amount Pre Tax', rtv_wo_amount),
+                                    ('Tax Amount', rtv_tax_amount),
+                                    ('RTV Amount with Tax', rtv_total_amount),
                                     ('Invoice Number', data['seller_po_summary__invoice_number']),
-                                    ('Return Date', date), ('Reason',rtv_reason) ,
+                                    ('Invoice Date', invoice_date),
+                                    ('DC Number',dc_number) ,
                                     ('Updated User', updated_user_name)
                                 )))
     return temp_data
@@ -8936,7 +8986,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort,\
-                                      truncate_float, get_sku_ean_list
+                                      truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     unsorted_dict = {17: 'Total Amount'}
     lis = ['rtv_number', 'creation_date', 'seller_po_summary__purchase_order__order_id',
@@ -9050,50 +9100,59 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         final_price = aft_unit_price
         invoice_total_amount = float(final_price) * float(data['total_received'])
         invoice_total_amount = truncate_float(invoice_total_amount, 2)
+        data['debit_wo_tax_amount'], data['debit_note_tax_amount'], data['debit_note_total_amount'] =0,0,0
         data['debit_wo_tax_amount'] = rtv.quantity * price
         data['debit_note_tax_amount'] = (data['debit_wo_tax_amount']) * (data['cgst_tax'] + data['sgst_tax'] + data['igst_tax'])/100
         data['debit_note_total_amount'] = data['debit_wo_tax_amount'] + data['debit_note_tax_amount']
-        hsn_code = ''
-        if open_po.sku.hsn_code:
-            hsn_code = open_po.sku.hsn_code
         invoice_date = ''
         data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)
         ean_numbers = ','.join(ean_numbers)
+        product_category, warehouse, warehouse_type, dc_number, category = '', '', '', '', ''
+        po_qty = open_po.order_quantity
+        rec_qty = rtv.seller_po_summary.purchase_order.received_quantity
+        product_data = PendingPO.objects.filter(open_po=open_po.id)
+        if product_data.exists():
+            product_category = product_data[0].product_category
+            if product_data[0].requested_user:
+                pr_user = get_warehouse_user_from_sub_user(product_data[0].requested_user.id)
+                warehouse = pr_user.first_name
+                warehouse_type = pr_user.userprofile.warehouse_type
         temp_data['aaData'].append(OrderedDict((('RTV Number', rtv.rtv_number),
                             ('RTV Date', final_rtv_date),
-                            ("Remarks", remarks),
                             ('PO Number', po_number),
                             ('PO Date', po_date),
                             ('GRN Number', grn_number),
-                            ('GST Number', gst_number),
-                            ('City', city),
-                            ('State', state),
-                            ('Supplier GST Number', supplier_gst_number),
                             ('GRN Date', data['final_grn_date']),
-                            ('RTV Amount (w/o tax)', data['debit_wo_tax_amount']),
-                            ('RTV Tax Amount', data['debit_note_tax_amount']),
-                            ('RTV Amount', data['debit_note_total_amount']),
+                            ('Plant', warehouse),
+                            ('Department', warehouse_type),
+                            ('Product Category', product_category),
+                            ('Category', open_po.sku.sub_category),
                             ('Supplier ID', open_po.supplier_id),
                             ('Supplier Name', open_po.supplier.name),
                             ('SKU Code', open_po.sku.sku_code),
                             ('SKU Description', open_po.sku.sku_desc),
-                            ('HSN Code', hsn_code),
-                            ('EAN Number', ean_numbers),
+                            ('SKU Brand', open_po.sku.sku_brand),
+                            ('SKU Category', open_po.sku.sku_category),
+                            ('SKU Sub-Category', open_po.sku.sub_category),
+                            ('SKU Group', open_po.sku.sku_group),
+                            ('SKU Class', open_po.sku.sku_class),
+                            ('PO Quantity', po_qty),
+                            ('Received Qty', rec_qty),
+                            ('RTV Quantity', data['total_received']),
+                            ('RTV Amount Pre Tax', data['debit_wo_tax_amount']),
+                            ('RTV Tax Amount', data['debit_note_tax_amount']),
+                            ('RTV Amount with Tax', data['debit_note_total_amount']),
+                            ('Unit Price pre tax', price),
+                            ('Tax per unit', tot_tax),
+                            ('Unit price with tax', aft_unit_price),
                             ('MRP', mrp),
                             ('RTV Quantity', data['total_received']),
-                            ('Unit Price', price),
-                            ('Pre-Tax Received Value', amount),
-                            ('CGST(%)', data['cgst_tax']),
-                            ('SGST(%)', data['sgst_tax']),
-                            ('IGST(%)', data['igst_tax']),
-                            ('UTGST(%)', data['utgst_tax']),
-                            ('CESS(%)', data['cess_tax']),
-                            ('Total Amount', invoice_total_amount),
                             ('Invoice Number', data['invoice_number']),
                             ('Invoice Date', invoice_date),
+                            ('DC Number', ''),
                             ('DT_RowAttr', {'data-id': rtv.id}), ('key', 'po_summary_id'),
     )))
     if stop_index and custom_search:

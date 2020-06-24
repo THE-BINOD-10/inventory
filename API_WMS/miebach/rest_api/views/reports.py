@@ -93,7 +93,7 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
-    elif report_name in ['pr_report', 'pr_detail_report']:
+    elif report_name in ['pr_report', 'pr_detail_report', 'rtv_report', 'sku_wise_rtv_report']:
 
         if 'sister_warehouse' in filter_keys:
             sister_wh = get_sister_warehouse(user)

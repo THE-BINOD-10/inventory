@@ -1494,8 +1494,9 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
         elif is_purchase_approver:
+            parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
-                        sku__user=user.id).order_by('preference')
+                        sku__user=parent_user.id).order_by('preference')
             preferred_supplier = None
             if supplierMappings.exists():
                 for supplierMapping in supplierMappings:
@@ -2391,7 +2392,11 @@ def raise_po_toggle(request, user=''):
 @get_admin_user
 def search_supplier(request, user=''):
     data_id = request.GET['q']
-    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) | Q(name__icontains=data_id), user=user.id)
+    arg_type = request.GET.get('type', '')
+    if arg_type == 'is_parent':
+        user = get_admin(user)
+    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) | 
+                                        Q(name__icontains=data_id), user=user.id)
     suppliers = []
     if data:
         for supplier in data:

@@ -19,9 +19,9 @@
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
           <td>
             <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
-            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
+            typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', 'is_parent')" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
-            ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, '', 'Supplier');"
+            ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');"
             >
             <select ui-select class="form-control" name="supplier" style="width:140px;"
             ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"

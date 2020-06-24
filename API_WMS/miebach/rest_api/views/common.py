@@ -12423,8 +12423,25 @@ def all_purchase_approval_config_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_sku_category_list(request, user=''):
-    category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
-                      values_list('sku_category', flat=True).distinct())
+    product_category = request.GET.get('product_category', '')
+    model_name = SKUMaster
+    if product_category:
+        if product_category.lower() == 'services':
+            model_name = ServiceMaster
+        elif product_category.lower() == 'assets':
+            model_name = AssetMaster
+        elif product_category.lower() == 'otheritems':
+            model_name = OtherItemsMaster
+
+    if model_name == SKUMaster:
+        category_list = list(model_name.objects.filter(user=user.id).exclude(sku_category='').\
+                             exclude(id__in=AssetMaster.objects.all()). \
+                            exclude(id__in=ServiceMaster.objects.all()). \
+                            exclude(id__in=OtherItemsMaster.objects.all()). \
+                              values_list('sku_category', flat=True).distinct())
+    else:
+        category_list = list(model_name.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
     return HttpResponse(json.dumps({'category_list': category_list}))
 
 def payment_supplier_mapping(payment_code, payment_desc, supplier):

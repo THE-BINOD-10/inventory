@@ -86,6 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
     $state.go('app.masters.PurchaseApproval');
     vm.current_level = 0;
+    vm.category_list = [];
   }
 
   vm.add = function() {
@@ -209,11 +210,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.category_list = [];
-  vm.service.apiCall('get_sku_category_list/').then(function(data){
-    if(data.message) {
-      vm.category_list = data.data.category_list;
-    }
-  });
+  vm.get_sku_category_list = function() {
+    vm.category_list = [];
+    vm.model_data.sku_category = '';
+    var cat_data = {'product_category': vm.model_data.product_category};
+    vm.service.apiCall('get_sku_category_list/', 'GET', cat_data).then(function(data){
+      if(data.message) {
+        vm.category_list = data.data.category_list;
+      }
+    });
+  }
 
   vm.roles_list = [];
   function get_roles_list() {

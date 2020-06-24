@@ -38,7 +38,7 @@
               <div class="form-group">
                 <label class="control-label"> Product Category </label>
                 <input ng-if="showCase.update" type="text" name="product_category" class="form-control" ng-model="showCase.model_data.product_category" readonly>
-                <select ng-if="!showCase.update" class="form-control" ng-model="showCase.model_data.product_category" name="product_category" ng-change="showCase.getProdMaxValue(showCase.model_data)">
+                <select ng-if="!showCase.update" class="form-control" ng-model="showCase.model_data.product_category" name="product_category" ng-change="[showCase.get_sku_category_list(), showCase.getProdMaxValue(showCase.model_data)]">
                   <option ng-repeat="product_category in showCase.product_category_list" value="{{product_category}}">{{product_category}}</option>
                 </select>
               </div>

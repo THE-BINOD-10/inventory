@@ -829,7 +829,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Purchase Approval',
+            title: 'Purchase Approval Matrix',
           }
         })
         .state('app.masters.PurchaseApproval.updateApproval', {

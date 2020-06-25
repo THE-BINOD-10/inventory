@@ -5252,15 +5252,13 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
                                                                 Q(department_type__icontains=search_term),
                                                                 company_id__in=company_list, purchase_type=purchase_type,
                                                                 **filter_params).\
-                                        values('name', 'product_category', 'plant', 'department_type',
-                                               'min_Amt', 'max_Amt').distinct().\
+                                        values('name', 'product_category', 'plant', 'department_type').distinct().\
                                         order_by(order_data)
 
     else:
         mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
                                                                 **filter_params).\
-                                        values('name', 'product_category', 'plant', 'department_type',
-                                               'min_Amt', 'max_Amt').distinct().\
+                                        values('name', 'product_category', 'plant', 'department_type').distinct().\
                                         order_by(order_data)
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -5268,7 +5266,6 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
         temp_data['aaData'].append(OrderedDict((('name', result['name']), ('product_category', result['product_category']),
                                                 ('plant', result['plant']),
                                                 ('department_type', department_mapping.get(result['department_type'], '')),
-                                                ('min_Amt', result['min_Amt']), ('max_Amt', result['max_Amt']),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result['name']))))
 

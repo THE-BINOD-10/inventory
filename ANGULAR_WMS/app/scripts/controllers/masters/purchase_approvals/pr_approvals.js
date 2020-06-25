@@ -10,7 +10,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.permissions = Session.roles.permissions;
     vm.warehouse_type = Session.user_profile.warehouse_type;
-    vm.current_level = 0;
+    vm.default_current_level = 0;
+    vm.ranges_current_level = 0;
+    vm.ranges_count = 0;
+    vm.approved_current_level = 0;
     vm.roles_type_name = 'pr';
     vm.filters = {'datatable': 'PRApprovalTable', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'',
                     'special_key': 'PR'}
@@ -37,8 +40,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('product_category').withTitle("Product Category"),
         DTColumnBuilder.newColumn('plant').withTitle("Plant"),
         DTColumnBuilder.newColumn('department_type').withTitle("Department Type"),
-        DTColumnBuilder.newColumn('min_Amt').withTitle("Min Amount"),
-        DTColumnBuilder.newColumn('max_Amt').withTitle("Max Amount"),
     ];
 
     vm.dtInstance = {};
@@ -54,13 +55,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   //angular.copy(aData, vm.model_data);
                   angular.copy(data.data.data, vm.model_data);
                   vm.update = true;
-                  vm.current_level = vm.model_data.level_data.length - 1;
+                  vm.default_current_level = vm.model_data.default_level_data.length - 1;
+                  vm.ranges_current_level = vm.model_data.ranges_level_data.length - 1;
+                  vm.approved_current_level = vm.model_data.approved_level_data.length - 1;
                   vm.title = "Update Purchase Approval";
                   $state.go('app.masters.PurchaseApproval.updateApproval');
-                  angular.forEach(vm.model_data.level_data, function(level_dat, level_index){
-                    $('#'+vm.roles_type_name+'roles-'+level_index).val(vm.model_data.level_data[level_index]['roles']);
-                    $timeout(function(){$('#'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
-                  });
+                  $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 100);
+                  $timeout(function(){$('.selectpicker-default').selectpicker();}, 100);
+                  $timeout(function(){$('.selectpicker-approved').selectpicker();}, 100);
+//                  angular.forEach(vm.model_data.default_level_data, function(level_dat, level_index){
+//                    $timeout(function(){$('#default-'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
+//                  });
+//                  angular.forEach(vm.model_data.ranges_level_data, function(level_dat, level_index){
+//                    $timeout(function(){$('#ranges-'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
+//                  });
+//                  angular.forEach(vm.model_data.approved_level_data, function(level_dat, level_index){
+//                    $timeout(function(){$('#approved-'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
+//                  });
                 }
               });
             });
@@ -75,8 +86,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '', min_Amt: '', max_Amt: '',
-  level_data: [{level: 'level0', roles: ''}]};
+  var empty_data = {name: '', product_category: '', sku_category: '', plant: '', department_type: '',
+  default_level_data: [{level: 'level0', roles: '', data_id: ''}],
+   ranges_level_data: [{min_Amt: 0, max_Amt: 0, range_no: 0, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}] }],
+  approved_level_data: [{level: 'level0', roles: '', data_id: ''}]};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
 
@@ -85,7 +98,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
     angular.copy(empty_data, vm.model_data);
     $state.go('app.masters.PurchaseApproval');
-    vm.current_level = 0;
+    vm.default_current_level = 0;
+    vm.ranges_current_level = 0;
+    vm.approved_current_level = 0;
     vm.category_list = [];
   }
 
@@ -95,11 +110,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
     vm.update = false;
     vm.get_company_warehouses();
-    vm.current_level = 0;
+    vm.default_current_level = 0;
+    vm.ranges_current_level = 0;
+    vm.approved_current_level = 0;
     vm.all_purchase_approval_data_api();
     vm.getProdMaxValue(vm.model_data);
     $state.go('app.masters.PurchaseApproval.updateApproval');
-    $timeout(function(){$('#'+vm.roles_type_name+'roles-0').selectpicker();}, 100);
+    $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 100);
+    $timeout(function(){$('.selectpicker-default').selectpicker();}, 100);
+    $timeout(function(){$('.selectpicker-approved').selectpicker();}, 100);
   }
 
   vm.submit = function(data) {
@@ -107,9 +126,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       if(valid)
       {
-        angular.forEach(vm.model_data.level_data, function(level_dat, level_index){
-          vm.model_data.level_data[level_index]['roles'] = $('#prroles-'+level_index).val().join(',');
-        });
         vm.service.apiCall('add_update_pr_config/', 'POST', {'data':JSON.stringify(vm.model_data), 'type': 'actual_pr_save'}).then(function(data){
           if(data.message) {
             if(data.data == "Updated Successfully" || data.data == "Added Successfully") {
@@ -149,19 +165,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   });
 
-  vm.update_data = function(index) {
-    if(vm.model_data.level_data.length > 1) {
-      vm.model_data.level_data.splice(index,1);
-      vm.current_level -= 1;
+  vm.update_data = function(index, approval_type, data_id) {
+    if(vm.model_data[approval_type+'_level_data'].length > 1) {
+      if(data_id) {
+        vm.service.apiCall('delete_pr_config/', 'POST', {'data_id': data_id, 'type': 'actual_pr_save'}).then(function(data){
+          if(data.message) {
+            if(data.data == "Deleted Successfully") {
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.pop_msg(data.data);
+            }
+          }
+        });
+      }
+      vm.model_data[approval_type+'_level_data'].splice(index,1);
+      vm[approval_type+'_current_level'] -= 1;
     }
   }
 
-  vm.addLevel = function() {
-    var new_level = (vm.current_level + 1);
-    vm.model_data.level_data.push({level: 'level' + new_level, roles: ''})
-    $('#'+vm.roles_type_name+'roles-'+new_level).val();
-    $timeout(function(){$('#'+vm.roles_type_name+'roles-'+new_level).selectpicker();}, 100);
-    vm.current_level += 1;
+  vm.addDefaultLevel = function() {
+    var new_level = (vm.default_current_level + 1);
+    vm.model_data.default_level_data.push({level: 'level' + new_level, roles: '', data_id: ''})
+    $('#default-'+vm.roles_type_name+'roles-'+new_level).val();
+    $timeout(function(){$('.selectpicker-default').selectpicker();}, 2);
+    vm.default_current_level += 1;
+  }
+
+  vm.addRangesLevel = function(range_data, level_dat) {
+    var new_level = level_dat.level_no + 1;
+    range_data.range_levels.push({level: 'level' + new_level, roles: '', data_id: '', level_no: new_level})
+    $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 2);
+  }
+
+  vm.addRangesAmts = function() {
+    var new_range = (vm.ranges_count + 1);
+    vm.model_data.ranges_level_data.push({min_Amt: 0, max_Amt: 0, range_no: new_range, 'range_levels': [{level: 'level0', roles: '', data_id: '', level_no: 0}]})
+    $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 10);
+    vm.ranges_count += 1;
   }
 
   vm.delete_config = function() {
@@ -232,7 +272,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   get_roles_list();
 
   vm.check_selected = function(data, role){
-    return (data.roles.indexOf(role) > -1)? true : false;
+    var selected_val = false;
+    for(var ind=0; ind<data.roles.length; ind++) {
+      if(data.roles[ind] == role) {
+        selected_val = true;
+        break;
+      }
+    }
+    return selected_val;
+  }
+
+  vm.delete_range_levels_data = function(index, range_data, level_dat) {
+    if(level_dat.data_id) {
+      vm.service.apiCall('delete_pr_config/', 'POST', {'data_id': level_dat.data_id, 'type': 'actual_pr_save'}).then(function(data){
+        if(data.message) {
+          if(data.data == "Deleted Successfully") {
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
+    }
+    if(index != 0) {
+      range_data.range_levels.splice(index,1);
+    }
+    if(index == 0 && range_data.range_no != 0){
+        vm.model_data.ranges_level_data.splice(-1);
+    }
   }
 
 }

@@ -715,6 +715,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=32, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=64, default='')
@@ -726,7 +727,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
 
     class Meta:
         db_table = 'PURCHASE_APPROVAL_CONFIG'
-        unique_together = ('user', 'name', 'level')
+        unique_together = ('user', 'name', 'level', 'min_Amt', 'max_Amt', 'approval_type')
 
 
 class PurchaseApprovalMails(models.Model):  #PRApprovalMails

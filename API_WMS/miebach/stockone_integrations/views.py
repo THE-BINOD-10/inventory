@@ -283,6 +283,55 @@ class Integrations():
                 for row in result:
                     self.markResults('rtv', row)
 
+    def IntegrateInventoryAdjustment(self, iaData, unique_variable, is_multiple=False):
+        if not self.executebatch and Batched:
+            if not is_multiple:
+                self.storeIntegrationDataForLaterUser(iaData, 'ia_number', unique_variable)
+            else:
+                for dataDict in iaData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'ia_number', unique_variable)
+        else:
+            result = []
+            if not is_multiple:
+                recordDict = iaData #self.gatherSkuData(skuObject)
+                record = self.connectionObject.netsuite_create_invadj(recordDict)
+                result = self.connectionObject.complete_transaction(record, is_multiple)
+            else:
+                records = []
+                for row in iaData:
+                    recordDict = row
+                    record = self.connectionObject.netsuite_create_invadj(recordDict)
+                    records.append(record)
+                result = self.connectionObject.complete_transaction(records, is_multiple)
+            if len(result):
+                for row in result:
+                    self.markResults('InventoryAdjustment', row)
+
+    def IntegrateInventoryTransfer(self, itData, unique_variable, is_multiple=False):
+        if not self.executebatch and Batched:
+            if not is_multiple:
+                self.storeIntegrationDataForLaterUser(itData, 'it_number', unique_variable)
+            else:
+                for dataDict in itData:
+                    self.storeIntegrationDataForLaterUser(dataDict, 'it_number', unique_variable)
+        else:
+            result = []
+            if not is_multiple:
+                recordDict = itData #self.gatherSkuData(skuObject)
+                record = self.connectionObject.netsuite_create_invtrf(recordDict)
+                result = self.connectionObject.complete_transaction(record, is_multiple)
+            else:
+                records = []
+                for row in itData:
+                    recordDict = row
+                    record = self.connectionObject.netsuite_create_invtrf(recordDict)
+                    records.append(record)
+                result = self.connectionObject.complete_transaction(records, is_multiple)
+            if len(result):
+                for row in result:
+                    self.markResults('InventoryTransfer', row)
+
+
     def IntegrateGRN(self, grnData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
@@ -321,6 +370,7 @@ class Integrations():
                 recordDict = uomData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_uom(recordDict)
                 result = self.connectionObject.complete_transaction(record, is_multiple)
+                return result
             else:
                 records = []
                 for row in uomData:
@@ -332,6 +382,11 @@ class Integrations():
             if len(result):
                 for row in result:
                     self.markResults('uom', row)
+
+
+    def getData(self, rec_type, internalId=None, externalId=None):
+        return self.connectionObject.get_data(rec_type, internalId=internalId, externalId=externalId)
+        
 
     def getRelatedJson(self, recordType):
         rows = IntegrationMaster.objects.filter(

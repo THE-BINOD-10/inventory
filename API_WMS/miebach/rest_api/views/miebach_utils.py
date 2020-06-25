@@ -12132,7 +12132,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                     approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                     approver1_status = approver_data[0].status
 
-        po_con_date, grn_number, release_date, po_status ='', '', '', ''
+        po_con_date, grn_number, release_date, po_status, warehouse, warehouse_type='', '', '', '', '', ''
         if result['pending_po__creation_date']:
             po_con_date = get_local_date(user, result['pending_po__creation_date'])
         if result['pending_po__final_status']:

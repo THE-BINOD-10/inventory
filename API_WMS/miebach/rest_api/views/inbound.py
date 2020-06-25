@@ -1641,6 +1641,7 @@ def print_pending_po_form(request, user=''):
     order = pendingPurchaseQs[0]
     terms_condition = ''
     if is_actual_pr != 'true':
+        title = 'Purchase Order (DRAFT)'
         order_id = order.po_number
         address = order.supplier.address
         address = '\n'.join(address.split(','))
@@ -1663,6 +1664,7 @@ def print_pending_po_form(request, user=''):
         else:
             terms_condition = terms_condition.replace("%^PO_DATE^%", '')
     else:
+        title = 'Purchase Request'
         order_id = order.pr_number
         address = ''
         telephone = ''
@@ -1686,7 +1688,6 @@ def print_pending_po_form(request, user=''):
     round_value = float(round(total) - float(total))
     profile = user.userprofile
     company_name = profile.company.company_name
-    title = 'Purchase Order (DRAFT)'
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
     tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
@@ -1722,7 +1723,9 @@ def print_pending_po_form(request, user=''):
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
         'company_address': company_address,
-        'is_draft': 1
+        'is_draft': 1,
+        'title': title,
+        'is_actual_pr': is_actual_pr,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

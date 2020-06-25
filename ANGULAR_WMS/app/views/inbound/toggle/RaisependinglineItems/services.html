@@ -5,7 +5,7 @@
         <tr>
           <th>Service Code*</th>
           <th>Title</th>
-          <th>Asset Code</th>
+          <!-- <th>Asset Code</th> -->
           <th>Start Date</th>
           <th>End Date</th>
           <th class="w10_">Quantity*</th>
@@ -28,9 +28,9 @@
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" 
             type="text" name="description" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
           </td>
-          <td>
+          <!-- <td>
             <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="50">
-          </td>
+          </td> -->
           <td>
             <input name="service_start_date" ui-jq="datepicker" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
           </td>

@@ -12162,7 +12162,13 @@ def get_metro_po_report_data(search_params, user, sub_user):
             pr_user = get_warehouse_user_from_sub_user(requested_user)
             warehouse = pr_user.first_name
             warehouse_type = pr_user.userprofile.warehouse_type
-        count = +1
+        updated_user_name = ''
+        po_user_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, status=0,open_po=result['pending_po__open_po']).distinct()
+        if po_user_data.exists():
+            version_obj = Version.objects.get_for_object(po_user_data[0])
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Approved Date', release_date),
@@ -12196,7 +12202,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('Approver 4 Date', approver4_date),
             ('Approver 4 Status', approver4_status),
             ('PO Created by',''),
-            ('Last Updated by',result['pending_po__requested_user__username']),
+            ('Last Updated by',updated_user_name),
             ( 'Last Updated Date', po_update_date)
             ))
         temp_data['aaData'].append(ord_dict)
@@ -12355,7 +12361,14 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             pr_user = get_warehouse_user_from_sub_user(requested_user)
             warehouse = pr_user.first_name
             warehouse_type = pr_user.userprofile.warehouse_type
-        count = +1
+        updated_user_name = ''
+        po_user_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, status=0,
+                                                    open_po=result['pending_po__open_po']).distinct()
+        if po_user_data.exists():
+            version_obj = Version.objects.get_for_object(po_user_data[0])
+            if version_obj.exists():
+                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Approved Date', release_date),
@@ -12403,7 +12416,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('Approver 4 Date', approver4_date),
             ('Approver 4 Status', approver4_status),
             ('PO Created by', result['pending_po__wh_user__username']),
-            ('Last Updated by', result['pending_po__requested_user__username']),
+            ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date)
             ))
         temp_data['aaData'].append(ord_dict)

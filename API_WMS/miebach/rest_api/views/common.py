@@ -607,6 +607,7 @@ data_datatable = {  # masters
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
+    'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \

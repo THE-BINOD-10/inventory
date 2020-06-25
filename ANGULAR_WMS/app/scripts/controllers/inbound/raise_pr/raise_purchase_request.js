@@ -194,6 +194,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
 
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
+          vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
+          vm.model_data.validated_users = data.data.validated_users;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {
               data.fields.cess_tax = 0;
@@ -533,6 +535,30 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       })
     }
 
+    vm.submit_enquiry = function(form){
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      // if (vm.is_purchase_request){
+      //   elem.push({name:'is_actual_pr', value:true})
+      // }
+      if (vm.model_data.purchase_id){
+        elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
+      }
+      if (vm.requested_user){
+        elem.push({name:'requested_user', value:vm.requested_user})
+      }
+      vm.service.apiCall('submit_pending_approval_enquiry/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Submitted Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
+        }
+      })
+    }
     vm.customSelectAll = function(allSelected){
       angular.forEach(vm.preview_data.data, function(cbox) {
         allSelected?cbox.checkbox=true:cbox.checkbox=false;

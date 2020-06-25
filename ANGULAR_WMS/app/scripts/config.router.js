@@ -876,7 +876,11 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
-                ])
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_pr_enquiries.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -910,6 +914,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePr.PRemptyPreview', {
           url: '/ConverPRtoPO',
           templateUrl: 'views/inbound/toggle/pr_consolidated_preview.html'
+          })
+          .state('app.inbound.RaisePr.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
           })
 
         .state('app.inbound.RaisePo', {

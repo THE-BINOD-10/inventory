@@ -368,17 +368,24 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
 
 @csrf_exempt
 def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    itemVals = ['supplier__supplier_id', 'product_category', 'final_status', 'pending_level',
+    po_itemVals = ['supplier__supplier_id', 'product_category', 'final_status', 'pending_level',
                 'requested_user__first_name', 'wh_user__first_name', 'po_number', 'supplier__name',
                 'creation_date', 'delivery_date', 'prefix', 'full_po_number']
+    pr_itemVals = ['product_category', 'final_status', 'pending_level',
+                'requested_user__first_name', 'wh_user__first_name', 'pr_number',
+                'creation_date', 'delivery_date', 'prefix', 'full_pr_number']
     enqQs = GenericEnquiry.objects.filter(receiver__email=request.user.email, status='pending')
     for enqObj in enqQs:
         master_id = enqObj.master_id
         master_type = enqObj.master_type
         if master_type == 'pendingPO':
             model_name = PendingPO
+            itemVals = po_itemVals
+            full_purchase_number = 'full_po_number'
         elif master_type == 'pendingPR':
             model_name = PendingPR
+            itemVals = pr_itemVals
+            full_purchase_number = 'full_pr_number'
         else:
             continue
         itemDetQs = model_name.objects.filter(id=master_id)
@@ -386,10 +393,10 @@ def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, sea
             itemDets = model_name.objects.filter(id=master_id).values(*itemVals)[0]
         else:
             continue
-        po_date = itemDets['creation_date'].strftime('%d-%m-%Y')
-        po_delivery_date = itemDets['delivery_date'].strftime('%d-%m-%Y')
-        dateInPO = str(po_date).split(' ')[0].replace('-', '')
-        po_reference = itemDets['full_po_number'] #'%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
+        purchase_date = itemDets['creation_date'].strftime('%d-%m-%Y')
+        purchase_delivery_date = itemDets['delivery_date'].strftime('%d-%m-%Y')
+        dateInPO = str(purchase_date).split(' ')[0].replace('-', '')
+        purchase_reference = itemDets[full_purchase_number] #'%s%s_%s' % (itemDets['prefix'], dateInPO, itemDets['po_number'])
         sender = enqObj.sender.email
         receiver = request.user.email
         enquiry = enqObj.enquiry
@@ -397,12 +404,12 @@ def get_approval_pending_enquiry_results(start_index, stop_index, temp_data, sea
         response = enqObj.response
         enquiryDict = OrderedDict((
                                 ('id', enqObj.id),
-                                ('PO Number', po_reference),
+                                ('Purchase Number', purchase_reference),
                                 ('Product Category', itemDets['product_category']),
-                                ('Supplier ID', itemDets['supplier__supplier_id']),
-                                ('Supplier Name', itemDets['supplier__name']),
-                                ('PO Created Date', po_date),
-                                ('PO Delivery Date', po_delivery_date),
+                                ('Supplier ID', itemDets.get('supplier__supplier_id', '')),
+                                ('Supplier Name', itemDets.get('supplier__name', '')),
+                                ('PO Created Date', purchase_date),
+                                ('PO Delivery Date', purchase_delivery_date),
                                 ('PO Raise By', itemDets['requested_user__first_name']),
                                 ('Validation Status', itemDets['final_status'].title()),
                                 ('Enquiry From', sender),
@@ -426,70 +433,75 @@ def get_pending_enquiry(request, user=''):
         pendingObjId = enqObj.master_id
         pendingObjModel = enqObj.master_type
         if pendingObjModel == 'pendingPO':
-            pendingObj = PendingPO.objects.get(id=pendingObjId)
-            lineItems = pendingObj.pending_polineItems.values()
-            total_data = []
-            ser_data = []
-            levelWiseRemarks = []
-            pr_delivery_date = ''
-            pr_created_date = ''
-            central_po_data = ''
-            validateFlag = 0
-            if pendingObj:
-                if pendingObj.delivery_date:
-                    pr_delivery_date = pendingObj.delivery_date.strftime('%d-%m-%Y')
-                pr_created_date = pendingObj.creation_date.strftime('%d-%m-%Y')
-                levelWiseRemarks.append({"level": 'creator', "validated_by": pendingObj.requested_user.email, "remarks": pendingObj.remarks})
-            prApprQs = pendingObj.pending_poApprovals
-            allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
-            pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
-            if pendingLevelApprovers:
-                if request.user.email in pendingLevelApprovers[0]:
-                    validateFlag = 1
-            for eachRemark in allRemarks:
-                level, validated_by, remarks = eachRemark
-                levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+            model_name = PendingPO
+            lineItemsStr = 'pending_polineItems'
+            purchaseApprls = 'pending_poApprovals'
+        elif pendingObjModel == 'pendingPR':
+            model_name = PendingPR
+            lineItemsStr = 'pending_prlineItems'
+            purchaseApprls = 'pending_prApprovals'
+        else:
+            pass
 
-            # currentPOenquiries = GenericEnquiry.objects.filter(master_id=pendingObj.id, master_type='pendingPO')
-            # if currentPOenquiries.exists():
-            #     for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
-            #         sender, receiver, enquiry, response = eachEnq
-            #         enquiryRemarks.append({"sender":sender, "receiver": receiver,
-            #                     "enquiry": enquiry, "response": response
-            #             })
-
-            validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-            validated_users.insert(0, pendingObj.requested_user.email)
-            lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
-                            'cgst_tax', 'sgst_tax', 'igst_tax']
-            lineItems = pendingObj.pending_polineItems.values_list(*lineItemVals)
-            for rec in lineItems:
-                sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
-                search_params = {'sku__user': user.id}
-                noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
-                                                        attribute_name='No.OfTests')
-                if noOfTestsQs.exists():
-                    noOfTests = int(noOfTestsQs[0].attribute_value)
-                else:
-                    noOfTests = 0
-                stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-                    skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
-                                                            search_params, includeStoreStock=True)
-                ser_data.append({'fields': {'sku': {'wms_code': sku_code,
-                                                    'capacity': st_avail_qty+avail_qty,
-                                                    'intransit_quantity': intransitQty,
-                                                    },
-                                            'description': sku_desc,
-                                            'order_quantity': qty, 'price': price,
-                                            'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
-                                            'igst_tax': igst_tax,
-                                            'measurement_unit': uom,
-                                            }, 'pk': apprId})
-            po_data = {'supplier_id': pendingObj.supplier.supplier_id, 'supplier_name': pendingObj.supplier.name,
-                        'ship_to': pendingObj.ship_to, 'pr_delivery_date': pr_delivery_date,
-                        'pr_created_date': pr_created_date, 'warehouse': pendingObj.wh_user.first_name,
-                        'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
-                        'validateFlag': validateFlag, 'validated_users': validated_users}
+        pendingObj = model_name.objects.get(id=pendingObjId)
+        lineItemQs = getattr(pendingObj, lineItemsStr)
+        total_data = []
+        ser_data = []
+        levelWiseRemarks = []
+        pr_delivery_date = ''
+        pr_created_date = ''
+        central_po_data = ''
+        validateFlag = 0
+        if pendingObj:
+            if pendingObj.delivery_date:
+                pr_delivery_date = pendingObj.delivery_date.strftime('%d-%m-%Y')
+            pr_created_date = pendingObj.creation_date.strftime('%d-%m-%Y')
+            levelWiseRemarks.append({"level": 'creator', "validated_by": pendingObj.requested_user.email, "remarks": pendingObj.remarks})
+        purchaseApprQs = getattr(pendingObj, purchaseApprls)
+        allRemarks = purchaseApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+        pendingLevelApprovers = list(purchaseApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
+        if pendingLevelApprovers:
+            if request.user.email in pendingLevelApprovers[0]:
+                validateFlag = 1
+        for eachRemark in allRemarks:
+            level, validated_by, remarks = eachRemark
+            levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
+        validated_users = list(purchaseApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+        validated_users.insert(0, pendingObj.requested_user.email)
+        lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
+                        'cgst_tax', 'sgst_tax', 'igst_tax']
+        lineItems = lineItemQs.values_list(*lineItemVals)
+        for rec in lineItems:
+            sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
+            search_params = {'sku__user': user.id}
+            noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
+                                                    attribute_name='No.OfTests')
+            if noOfTestsQs.exists():
+                noOfTests = int(noOfTestsQs[0].attribute_value)
+            else:
+                noOfTests = 0
+            stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
+                skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
+                                                        search_params, includeStoreStock=True)
+            ser_data.append({'fields': {'sku': {'wms_code': sku_code,
+                                                'capacity': st_avail_qty+avail_qty,
+                                                'intransit_quantity': intransitQty,
+                                                },
+                                        'description': sku_desc,
+                                        'order_quantity': qty, 'price': price,
+                                        'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
+                                        'igst_tax': igst_tax,
+                                        'measurement_unit': uom,
+                                        }, 'pk': apprId})
+        purchase_data = {
+                    'ship_to': pendingObj.ship_to, 'purchase_delivery_date': pr_delivery_date,
+                    'purchase_created_date': pr_created_date, 'warehouse': pendingObj.wh_user.first_name,
+                    'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
+                    'validateFlag': validateFlag, 'validated_users': validated_users
+                 }
+        if pendingObjModel == 'pendingPO':
+            purchase_data['supplier_id'] = pendingObj.supplier.supplier_id
+            purchase_data['supplier_name'] = pendingObj.supplier.name
 
         pendingEnqData.update({
                 'id': enqObj.id,
@@ -499,7 +511,7 @@ def get_pending_enquiry(request, user=''):
                 'response': enqObj.response,
                 'status': enqObj.status
             })
-        pendingEnqData.update(po_data)
+        pendingEnqData.update(purchase_data)
     return HttpResponse(json.dumps(pendingEnqData))
 
 @csrf_exempt
@@ -1411,6 +1423,7 @@ def generated_actual_pr_data(request, user=''):
     pr_created_date = ''
     validateFlag = 0
     uploaded_file_dict = {}
+    enquiryRemarks = []
     if len(record):
         if record[0].delivery_date:
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
@@ -1441,7 +1454,15 @@ def generated_actual_pr_data(request, user=''):
         'id', 'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
     ]
-    validated_users = list(record[0].pending_prApprovals.values_list('validated_by', flat=True).order_by('level'))
+    currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
+    if currentPOenquiries.exists():
+        for eachEnq in currentPOenquiries.values_list('sender__email', 'receiver__email', 'enquiry', 'response'):
+            sender, receiver, enquiry, response = eachEnq
+            enquiryRemarks.append({"sender":sender, "receiver": receiver,
+                        "enquiry": enquiry, "response": response
+                })    
+    validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+    validated_users.insert(0, record[0].requested_user.email)
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
@@ -1475,12 +1496,13 @@ def generated_actual_pr_data(request, user=''):
 
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
+        parent_user = get_admin(user)
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
-            supplierQs = SupplierMaster.objects.filter(user=user.id, supplier_id=supplierId)
+            supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
@@ -1494,7 +1516,7 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
         elif is_purchase_approver:
-            parent_user = get_admin(user)
+            # parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
             preferred_supplier = None
@@ -1559,7 +1581,8 @@ def generated_actual_pr_data(request, user=''):
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
-                                    'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict}))
+                                    'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
+                                    'enquiryRemarks': enquiryRemarks}))
 
 
 @csrf_exempt
@@ -3032,7 +3055,7 @@ def approve_pr(request, user=''):
             total = myDict['total'][i]
             unit_price = myDict['price'][i]
             moq = myDict['moq'][i]
-            supplier_id = myDict['supplier'][i]
+            supplier_id = myDict['supplier_id'][i]
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,
@@ -3976,7 +3999,7 @@ def cancel_pr(request, user=''):
 @login_required
 @get_admin_user
 def submit_pending_approval_enquiry(request, user=''):
-    log.info("Enquiry Submission for pending PO by user %s and request params are %s"
+    log.info("Enquiry Submission for pending purchase by user %s and request params are %s"
         % (user.username, str(request.POST.dict())))
     is_purchase_request = request.POST.get('is_purchase_request')
     purchase_id = request.POST.get('purchase_id')
@@ -3986,76 +4009,92 @@ def submit_pending_approval_enquiry(request, user=''):
     emailsOfApprovedUsersMap = {}
     try:
         if is_purchase_request == 'true':
-            requested_user = User.objects.get(username=requested_username)
-            pendingPurchaseObj = PendingPO.objects.get(id=purchase_id)
-            emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
             permission_name = 'pending po'
-            admin_user = None
-            user = pendingPurchaseObj.wh_user
-            if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                userQs = UserGroups.objects.filter(user=user)
-                if userQs.exists:
-                    parentCompany = userQs[0].company_id
-                    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-                    admin_user = admin_userQs[0].user
-            if admin_user:
-                user = admin_user
+            model_name = PendingPO
+            master_type = 'pendingPO'
+            purchase_type = 'PO'
+            lineItems_attr = 'pending_polineItems'
+            purchase_number_attr = 'po_number'
+        else:
+            permission_name = 'pending pr'
+            model_name = PendingPR
+            master_type = 'pendingPR'
+            purchase_type = 'PR'
+            lineItems_attr = 'pending_prlineItems'
+            purchase_number_attr = 'pr_number'
 
-            groupQs = user.groups.exclude(name=user.username).filter(permissions__name__contains=permission_name)
-            for grp in groupQs:
-                gp = Group.objects.get(id=grp.id)
-                approved_emails = gp.user_set.filter().exclude(id=user.id).filter(email=enquiry_to).values_list('email','id')
-                emailsOfApprovedUsersMap.update(approved_emails)
-            receiver_userId = emailsOfApprovedUsersMap.get(enquiry_to, '')
-            if not receiver_userId:
-                return HttpResponse('Something Went Wrong')
-            sendEnquiryMap = {
-                'sender_id': request.user.id,
-                'receiver_id': receiver_userId,
-                'master_id': pendingPurchaseObj.id,
-                'master_type': 'pendingPO',
-                'enquiry': enquiry_remarks,
-                'status': 'pending'
-            }
-            GenericEnquiry.objects.create(**sendEnquiryMap)
 
-            lineItems = pendingPurchaseObj.pending_polineItems
-            prefix = pendingPurchaseObj.prefix
-            po_number = pendingPurchaseObj.po_number
+        requested_user = User.objects.get(username=requested_username)
+        pendingPurchaseObj = model_name.objects.get(id=purchase_id)
+        emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
+        # permission_name = 'pending po'
+        admin_user = None
+        user = pendingPurchaseObj.wh_user
+        if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            userQs = UserGroups.objects.filter(user=user)
+            if userQs.exists:
+                parentCompany = userQs[0].company_id
+                admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+                admin_user = admin_userQs[0].user
+        if admin_user:
+            user = admin_user
 
-            if lineItems.exists():
-                result = pendingPurchaseObj
-                dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
-                po_reference = '%s%s_%s' % (prefix, dateforPo, po_number)
-                creation_date = get_local_date(user, result.creation_date)
-                delivery_date = result.delivery_date.strftime('%d-%m-%Y')
-                requestedBy = result.requested_user.first_name
-                warehouseName = user.first_name
-                pendingLevel = result.pending_level
-                totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
-                skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
-                line_sub_heading = "Line Items(Item with Qty)"
-                lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
-                body = "<p> Pending PO Details </p>  \
-                <p>PO Number: %s</p> \
-                <p>Order Value : %s </p> \
-                <p>Warehouse NAME : %s </p> \
-                <p>PO Raised By : %s </p> \
-                <p>PO Created Date: %s</p> \
-                <p>Need By Date : %s </p> \
-                <p>Pending Level : %s </p> \
-                <p>Enquiry : %s </p> \
-                <p>%s : %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy,
-                                creation_date, delivery_date, pendingLevel, enquiry_remarks,
-                                line_sub_heading, lineItemDetails)
-                subject = "Enquiry Submission: Pending PO %s for %s " %(po_reference, requestedBy)
-                send_mail([enquiry_to], subject, body)
+        groupQs = user.groups.exclude(name=user.username). \
+                filter(permissions__name__contains=permission_name)
+        for grp in groupQs:
+            gp = Group.objects.get(id=grp.id)
+            approved_emails = gp.user_set.filter().exclude(id=user.id).filter(email=enquiry_to).values_list('email','id')
+            emailsOfApprovedUsersMap.update(approved_emails)
+        receiver_userId = emailsOfApprovedUsersMap.get(enquiry_to, '')
+        if not receiver_userId:
+            return HttpResponse('Something Went Wrong')
+        sendEnquiryMap = {
+            'sender_id': request.user.id,
+            'receiver_id': receiver_userId,
+            'master_id': pendingPurchaseObj.id,
+            'master_type': master_type,
+            'enquiry': enquiry_remarks,
+            'status': 'pending'
+        }
+        GenericEnquiry.objects.create(**sendEnquiryMap)
+
+        lineItems = getattr(pendingPurchaseObj, lineItems_attr)
+        prefix = pendingPurchaseObj.prefix
+        po_number = getattr(pendingPurchaseObj, purchase_number_attr)
+
+        if lineItems.exists():
+            result = pendingPurchaseObj
+            dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
+            po_reference = '%s%s_%s' % (prefix, dateforPo, po_number)
+            creation_date = get_local_date(user, result.creation_date)
+            delivery_date = result.delivery_date.strftime('%d-%m-%Y')
+            requestedBy = result.requested_user.first_name
+            warehouseName = user.first_name
+            pendingLevel = result.pending_level
+            totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+            skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
+            line_sub_heading = "Line Items(Item with Qty)"
+            lineItemDetails = ', '.join(['%s (%s)' %(skuCode, Qty) for skuCode,Qty in skusWithQty ])
+            body = "<p> Pending %s Details </p>  \
+            <p>%s Number: %s</p> \
+            <p>Order Value : %s </p> \
+            <p>Warehouse NAME : %s </p> \
+            <p>%s Raised By : %s </p> \
+            <p>%s Created Date: %s</p> \
+            <p>Need By Date : %s </p> \
+            <p>Pending Level : %s </p> \
+            <p>Enquiry : %s </p> \
+            <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt, warehouseName, purchase_type,
+                            requestedBy, purchase_type, creation_date, delivery_date, pendingLevel, 
+                            enquiry_remarks, line_sub_heading, lineItemDetails)
+            subject = "Enquiry Submission: Pending %s %s for %s " %(purchase_type, po_reference, requestedBy)
+            send_mail([enquiry_to], subject, body)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info("Enquiry Submission for pending PO " + str(request.POST.dict()) + \
+        log.info("Enquiry Submission for pending Purchase " + str(request.POST.dict()) + \
                 " and error statement is " + str(e))
-        return HttpResponse('Enquiry Submission for pending PO is failed')
+        return HttpResponse('Enquiry Submission for pending purchase is failed')
     return HttpResponse("Submitted Successfully")
 
 @csrf_exempt

@@ -12002,8 +12002,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
-        get_warehouse_user_from_sub_user
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float,get_warehouse_user_from_sub_user
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['pending_po__po_number', 'pending_po__supplier__id', 'pending_po__supplier__name',
            'total_qty', 'total_amt', 'creation_date',
@@ -12032,7 +12031,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         search_parameters['pending_po__supplier_id'] = supp_search[0]
     if 'open_po' in search_params:
         search_parameters['pending_po__po_number'] = search_params['open_po']
-    if user.userprofile.warehouse_type == 'admin':
+    if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -12044,7 +12043,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             warehouse_users[user.id] = user.username
         # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
-        search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
+        search_parameters['pending_po__wh_user__username__in'] = warehouse_users.values()
 
     else:
         search_parameters['pending_po__wh_user__username'] = user.username
@@ -12163,7 +12162,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             warehouse = pr_user.first_name
             warehouse_type = pr_user.userprofile.warehouse_type
         updated_user_name = ''
-        po_user_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, status=0,open_po=result['pending_po__open_po']).distinct()
+        po_user_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], purchase_type='PO').distinct()
         if po_user_data.exists():
             version_obj = Version.objects.get_for_object(po_user_data[0])
             if version_obj.exists():
@@ -12242,7 +12241,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         search_parameters['pending_po__supplier_id'] = supp_search[0]
     if 'open_po' in search_params:
         search_parameters['pending_po__po_number'] = search_params['open_po']
-    if user.userprofile.warehouse_type == 'admin':
+    if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -12254,7 +12253,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             warehouse_users[user.id] = user.username
         # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
-        search_parameters['pending_po__wh_user__in'] = warehouse_users.keys()
+        search_parameters['pending_po__wh_user__username__in'] = warehouse_users.values()
 
     else:
         search_parameters['pending_po__wh_user__username'] = user.username

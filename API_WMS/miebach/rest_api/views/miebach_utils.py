@@ -12161,7 +12161,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('Order Quantity', result['total_qty']),
             ('PO Status', po_status),
             ('GRN Numbers', grn_number),
-            ('PR Numbers', result['pending_po__pending_prs__pr_number']),
+            ('PR Numbers', result['pending_po__pending_prs__full_pr_number']),
             ('Quantity Received', received_quantity),
             ('PO Amount Pre Tax', round(result['quantity'] * result['price'], 4)),
             ('Tax Amount', (round(((result['quantity'] * result['price']) * total_tax) / 100, 4))),

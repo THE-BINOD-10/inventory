@@ -10906,10 +10906,10 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     inv_receipt_date = request.POST.get('inv_receipt_date', '')
     from datetime import datetime
     if(invoice_date):
-        i_date = datetime.strptime(invoice_date, '%d-%m-%Y')
+        i_date = datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
         invoice_date = i_date.isoformat()
     if(inv_receipt_date):
-        in_r_date = datetime.strptime(inv_receipt_date, '%d-%m-%Y')
+        in_r_date = datetime.strptime(inv_receipt_date, "%m/%d/%Y") if inv_receipt_date else None
         inv_receipt_date = in_r_date.isoformat()
     if(not credit_note=="false"):
         invoice_number=""

@@ -1480,11 +1480,12 @@ def generated_actual_pr_data(request, user=''):
             noOfTests = 0
         updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails', 
             model_id=lineItemId)
-
         if updatedLineItem.exists():
             updatedJson = eval(updatedLineItem[0].model_json)
-        if updatedJson.has_key('description'):
-            sku_desc = updatedJson['description']
+        if updatedJson.has_key('description_edited'):
+            sku_desc_edited = updatedJson['description_edited']
+        else:
+            sku_desc_edited = ''
         if updatedJson.has_key('service_start_date'):
             service_stdate = updatedJson['service_start_date']
         if updatedJson.has_key('description'):
@@ -1566,6 +1567,7 @@ def generated_actual_pr_data(request, user=''):
                                             'intransit_quantity': intransitQty,
                                             },
                                     'description': sku_desc,
+                                    'description_edited': sku_desc_edited,
                                     'order_quantity': qty,
                                     'price': price,
                                     'measurement_unit': uom,
@@ -2558,6 +2560,7 @@ def get_raisepo_group_data(user, myDict):
         description = ''
         service_start_date = ''
         service_end_date = ''
+        description_edited = ''
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'approval_remarks' in myDict.keys():
@@ -2614,6 +2617,8 @@ def get_raisepo_group_data(user, myDict):
                 show_apmc_tax = True
         if 'description' in myDict.keys():
             description = myDict['description'][i]
+        if 'description_edited' in myDict.keys():
+            description_edited = myDict['description_edited'][i]
         if 'service_start_date' in myDict.keys():
             service_start_date = myDict['service_start_date'][i]
         if 'service_end_date' in myDict.keys():
@@ -2652,7 +2657,7 @@ def get_raisepo_group_data(user, myDict):
                                    'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date,
                                    'product_category': product_category, 'priority_type': priority_type,
                                    'description': description, 'service_start_date': service_start_date,
-                                   'service_end_date': service_end_date})
+                                   'service_end_date': service_end_date, 'description_edited': description_edited})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3220,6 +3225,19 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 setattr(record, 'measurement_unit', value['measurement_unit'])
             record.save()
             totalAmt += (float(value['order_quantity']) * float(value['price']))
+
+            if value.get('description_edited', ''):
+                misc_json = {
+                    'description_edited': value['description_edited'],
+                    'service_start_date': value['service_start_date'],
+                    'service_end_date': value['service_end_date']
+                }
+                TempJson.objects.update_or_create(
+                    model_id=data_id, 
+                    model_name='PendingLineItemMiscDetails', 
+                    model_json=misc_json
+                )
+
             continue
 
         pendingLineItems = {
@@ -3245,9 +3263,9 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
-        if value['description']:
+        if value.get('description_edited', ''):
             misc_json = {
-                'description': value['description'],
+                'description_edited': value['description_edited'],
                 'service_start_date': value['service_start_date'],
                 'service_end_date': value['service_end_date']
             }
@@ -3256,7 +3274,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 model_name='PendingLineItemMiscDetails', 
                 model_json=misc_json
             )
-
 
     file_obj = request.FILES.get('files-0', '')
     if file_obj:

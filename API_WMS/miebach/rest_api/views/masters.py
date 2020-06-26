@@ -5142,6 +5142,9 @@ def send_supplier_doa(request, user=''):
         if value != '':
             data_dict[key] = value
 
+    skuSupQs = SKUSupplier.objects.filter(sku__user=user.id, sku_id=sku_id[0].id, supplier_id=supplier.id)
+    if skuSupQs.exists() and not data_dict.has_key('DT_RowId'):
+        return HttpResponse("New DOA cant be created, already SKUSupplier exists")
     userQs = UserGroups.objects.filter(user=user)
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')

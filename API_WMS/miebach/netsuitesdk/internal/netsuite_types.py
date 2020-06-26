@@ -64,11 +64,10 @@ COMPLEX_TYPES = {
         'Classification', 'ClassificationSearch',
         'Department', 'DepartmentSearch',
         'Location', 'LocationSearch',
-        'VendorCategory', 'VendorCategorySearch',
-        'Item', 'ItemSearch',
+        'VendorCategory', 'VendorCategorySearch', 
+        'ItemSearch',
         'InventoryItem',
         'UnitsType',
-        'Uom',
         'NonInventoryPurchaseItem',
         'NonInventorySaleItem',
         'NonInventoryResaleItem',
@@ -78,9 +77,12 @@ COMPLEX_TYPES = {
     ],
 
     'ns19': [
-        'TransactionSearch',
+        'TransactionSearch'
     ],
-
+    'ns29': [
+        'InventoryAdjustment',
+        'InventoryTransfer'
+    ],
     # urn:purchases_2017_2.transactions.webservices.netsuite.com
     # https://webservices.netsuite.com/xsd/transactions/v2017_2_0/purchases.xsd
     'ns21': [
@@ -93,8 +95,9 @@ COMPLEX_TYPES = {
         'PurchaseOrder',
         'PurchaseRequisition',
         'ItemReceipt',
-        'VendorReturnAuthorization'
+        'VendorReturnAuthorization',
     ],
+
 }
 
 SIMPLE_TYPES = {

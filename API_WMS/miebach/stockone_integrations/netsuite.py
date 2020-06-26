@@ -177,6 +177,7 @@ class netsuiteIntegration(object):
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
+                'rate': data['price'],
                 'quantity': data['order_qty'],
                 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True

@@ -10789,12 +10789,16 @@ def move_to_poc(request, user=''):
 
 def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     from api_calls.netsuite import netsuite_create_grn
+    from datetime import datetime
+    from pytz import timezone
+    dc_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     dc_data=[]
     for data in req_data:
         grn_info= {
                     "grn_number": data["grn_no"][0],
                     "po_number" : seller_summary[0].purchase_order.po_number,
-                    "dc_number": chn_no
+                    "dc_number": chn_no,
+                    "dc_date" : dc_date 
         }
         dc_data.append(grn_info)
     try:
@@ -13780,7 +13784,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     invoice_number = credit_note_req_data.get('invoice_number', '')
     url=""
     if(master_file):
-        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/static/master_docs/PO_CREDIT_FILE/"+str(master_file._name)
+        master_docs_obj = MasterDocs.objects.filter(master_id=credit_id, user=user.id, master_type="PO_CREDIT_FILE")
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     if invoice_date:
         invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%d-%m-%Y')
         date=datetime.datetime.strptime(invoice_date, '%d-%m-%Y')

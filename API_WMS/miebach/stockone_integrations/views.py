@@ -286,10 +286,10 @@ class Integrations():
     def IntegrateInventoryAdjustment(self, iaData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(iaData, 'ia_number', unique_variable)
+                self.storeIntegrationDataForLaterUser(iaData, 'InventoryAdjustment', unique_variable)
             else:
                 for dataDict in iaData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'ia_number', unique_variable)
+                    self.storeIntegrationDataForLaterUser(dataDict, 'InventoryAdjustment', unique_variable)
         else:
             result = []
             if not is_multiple:
@@ -310,10 +310,10 @@ class Integrations():
     def IntegrateInventoryTransfer(self, itData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
             if not is_multiple:
-                self.storeIntegrationDataForLaterUser(itData, 'it_number', unique_variable)
+                self.storeIntegrationDataForLaterUser(itData, 'InventoryTransfer', unique_variable)
             else:
                 for dataDict in itData:
-                    self.storeIntegrationDataForLaterUser(dataDict, 'it_number', unique_variable)
+                    self.storeIntegrationDataForLaterUser(dataDict, 'InventoryTransfer', unique_variable)
         else:
             result = []
             if not is_multiple:

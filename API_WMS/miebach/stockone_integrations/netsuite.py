@@ -470,6 +470,7 @@ class netsuiteIntegration(object):
                 ia.subsidiary = ns.ListOrRecordRef(internalId=ia_data['subsidiary'])
             if (ia_data.get('department',None)):
                 ia.department = ns.RecordRef(internalId=ia_data['department'])
+            ia.account = ns.RecordRef(internalId=124)
             if (ia_data.get('account',None)):
                 ia.account = ns.RecordRef(internalId=ia_data['account'])
 
@@ -503,7 +504,7 @@ class netsuiteIntegration(object):
             it = ns.InventoryTransfer()
             it.tranDate = it_data['it_date']
             it.externalId = it_data['it_number']
-            # it.tranId = it_data['it_number']
+            #it.tranId = it_data['it_number']
             it.memo = it_data['remarks']
             
             # if po_data['product_category'] == 'Services':

@@ -2341,25 +2341,30 @@ def netsuite_picklist_confirmation(final_data_list, user):
         value = picklist_dict['value']
         key = picklist_dict['key']
         for item in value:
-            open_st= OpenST.objects.get(id=key)
-            price= open_st.price
-            order_quantity= open_st.order_quantity
-            cgst_tax= open_st.cgst_tax
-            sgst_tax= open_st.sgst_tax
-            igst_tax= open_st.igst_tax
-            cess_tax= open_st.cess_tax
-            mrp= open_st.mrp
-            items.append({ "adjustQtyBy": item.get("picked_quantity",0),
+            #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
+           # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
+           # price= open_st.price
+           # order_quantity= open_st.order_quantity
+           # cgst_tax= open_st.cgst_tax
+           # sgst_tax= open_st.sgst_tax
+           # igst_tax= open_st.igst_tax
+           # cess_tax= open_st.cess_tax
+           # mrp= open_st.mrp
+            items.append({ "adjust_qty_by": item.get("picked_quantity",0),
                             "sku_code": item.get("wms_code"),
-                            "price": price,
-                            "order_quantity":order_quantity,
-                            "cgst_tax":cgst_tax,
-                            "sgst_tax":sgst_tax,
-                            "igst_tax":igst_tax,
-                            "cess_tax": cess_tax,
-                            "mrp":mrp
+                            "batchno": item.get("batchno",""),
+                            "mrp" : item.get("mrp",0),
+                            "expiry_date": item.get("expiry_date",""),
+                            "manufactured_date": item.get("manufactured_date",""),
+                            #"price": price,
+                            #"order_quantity":order_quantity,
+                            #"cgst_tax":cgst_tax,
+                            #"sgst_tax":sgst_tax,
+                            #"igst_tax":igst_tax,
+                            #"cess_tax": cess_tax,
+                            #"mrp":mrp
                         })
-    stock_transfer = { 'it_number': final_data_list[0]["picklist_batch"][0].remarks,
+    stock_transfer = { 'it_number': final_data_list[0]["picklist"].remarks,
         'department': department,
         "subsidiary": subsidary,
         "plant": plant,

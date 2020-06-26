@@ -12001,7 +12001,7 @@ def get_pr_detail_report_data(search_params, user, request):
 def get_metro_po_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
-    from common import get_misc_value, get_admin
+    from common import get_misc_value, get_admin,get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float,get_warehouse_user_from_sub_user
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['pending_po__po_number', 'pending_po__supplier__id', 'pending_po__supplier__name',
@@ -12038,11 +12038,9 @@ def get_metro_po_report_data(search_params, user, sub_user):
             warehouses = UserGroups.objects.filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
-            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-            warehouse_users[user.id] = user.username
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-        # sku_master_ids = sku_master.values_list('id', flat=True)
+            warehouses = get_warehouses_data(user)
+            warehouse_users = warehouses
+
         search_parameters['pending_po__wh_user__username__in'] = warehouse_users.values()
 
     else:
@@ -12211,7 +12209,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
 def get_metro_po_detail_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from inbound import findLastLevelToApprove
-    from common import get_misc_value, get_admin
+    from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float,get_warehouse_user_from_sub_user
     temp_data = copy.deepcopy(AJAX_DATA)
     lis = ['pending_po__po_number', 'pending_po__supplier__id', 'pending_po__supplier__name',
@@ -12244,16 +12242,15 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
+            data = get_warehouse_user_from_sub_user(sister_warehouse_name)
             user = User.objects.get(username=sister_warehouse_name)
             warehouses = UserGroups.objects.filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
         else:
-            warehouses = UserGroups.objects.filter(admin_user_id=user.id)
-            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
-            warehouse_users[user.id] = user.username
+            warehouses = get_warehouses_data(user)
         # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
         # sku_master_ids = sku_master.values_list('id', flat=True)
-        search_parameters['pending_po__wh_user__username__in'] = warehouse_users.values()
+        search_parameters['pending_po__wh_user__username__in'] = warehouses.values()
 
     else:
         search_parameters['pending_po__wh_user__username'] = user.username

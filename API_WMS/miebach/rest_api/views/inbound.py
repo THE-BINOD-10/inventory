@@ -3965,7 +3965,7 @@ def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_st
         'department': department,
         "subsidiary": subsidary,
         "plant": plant,
-        'items':[{"sku_code":wmscode, "adjustQtyBy": quantity,"price": price, 'batch_no':batch_no }],
+        'items':[{"sku_code":wmscode, "adjust_qty_by": quantity,"price": price, 'batch_no':batch_no }],
         "ia_date": ia_date,
         "remarks": reason
     }

@@ -3326,10 +3326,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name',None)
             item = {
-                'sku_code': sku_code, 
-                'sku_desc':sku_desc, 
-                'quantity':qty, 
-                'price':price, 
+                'sku_code': sku_code,
+                'sku_desc':sku_desc,
+                'quantity':qty,
+                'price':price,
                 'uom':uom,
                 'unitypeexid': unitexid,
                 'uom_name': purchaseUOMname
@@ -3948,13 +3948,30 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment',price=price)
+        netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
     check_and_update_stock([wmscode], user)
-
     return HttpResponse(status)
+
+def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , user=''):
+    from datetime import datetime
+    from pytz import timezone
+    ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
+    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    inventory_data = {'ia_number': "inventory_adjustment_"+str(cycle_id),
+        'department': department,
+        "subsidiary": subsidary,
+        "plant": plant,
+        'items':[{"sku_code":wmscode, "adjust_qty_by": quantity,"price": price, 'batch_no':batch_no }],
+        "ia_date": ia_date,
+        "remarks": reason
+    }
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateInventoryAdjustment(inventory_data, "ia_number", is_multiple=False)
+
 
 
 @csrf_exempt
@@ -5834,8 +5851,10 @@ def confirm_grn(request, confirm_returns='', user=''):
 def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_params,myDict):
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
+    from pytz import timezone
+
     # grn_number = data_dict.get('po_number', '')
-    grn_date = datetime.now().isoformat()
+    grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     po_data = data_dict['data'].values()[0]
     dc_number=""
     dc_date=""
@@ -5882,12 +5901,21 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "dc_date" : dc_date,
                 "vendorbill_url": vendorbill_url
      }
-    for data in po_data:
+    purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    for index, data in  enumerate(po_data):
+        _open = purchase_order[index].open_po
+        user_obj = User.objects.get(pk=_open.sku.user)
+        unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', None):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', None)
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],"order_idx":data["order_idx"],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
-                'batch_no':data['batch_no']}
+                'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
         if(data.get("mfg_date",None)):
             mfg_date = datetime.strptime(data["mfg_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
             m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
@@ -8318,7 +8346,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
-
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)
@@ -8331,7 +8358,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, 
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,
                     'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
 
             po_data['items'].append(item)
@@ -10787,12 +10814,16 @@ def move_to_poc(request, user=''):
 
 def netsuite_move_to_poc_grn(req_data, chn_no,seller_summary, user=''):
     from api_calls.netsuite import netsuite_create_grn
+    from datetime import datetime
+    from pytz import timezone
+    dc_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     dc_data=[]
     for data in req_data:
         grn_info= {
                     "grn_number": data["grn_no"][0],
                     "po_number" : seller_summary[0].purchase_order.po_number,
-                    "dc_number": chn_no
+                    "dc_number": chn_no,
+                    "dc_date" : dc_date 
         }
         dc_data.append(grn_info)
     try:
@@ -10904,10 +10935,10 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     inv_receipt_date = request.POST.get('inv_receipt_date', '')
     from datetime import datetime
     if(invoice_date):
-        i_date = datetime.strptime(invoice_date, '%d-%m-%Y')
+        i_date = datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
         invoice_date = i_date.isoformat()
     if(inv_receipt_date):
-        in_r_date = datetime.strptime(inv_receipt_date, '%d-%m-%Y')
+        in_r_date = datetime.strptime(inv_receipt_date, "%m/%d/%Y") if inv_receipt_date else None
         inv_receipt_date = in_r_date.isoformat()
     if(not credit_note=="false"):
         invoice_number=""
@@ -12429,7 +12460,7 @@ def create_rtv(request, user=''):
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})
                 show_data_invoice["po_number"]=request_data["po_number"][0]
-                
+
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)
@@ -13778,7 +13809,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     invoice_number = credit_note_req_data.get('invoice_number', '')
     url=""
     if(master_file):
-        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/static/master_docs/PO_CREDIT_FILE/"+str(master_file._name)
+        master_docs_obj = MasterDocs.objects.filter(master_id=credit_id, user=user.id, master_type="PO_CREDIT_FILE")
+        url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     if invoice_date:
         invoice_date=datetime.datetime.strptime(invoice_date, '%d %b, %Y').strftime('%d-%m-%Y')
         date=datetime.datetime.strptime(invoice_date, '%d-%m-%Y')

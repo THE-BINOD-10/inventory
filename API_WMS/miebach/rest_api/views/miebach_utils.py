@@ -669,13 +669,8 @@ SKU_WISE_RTV_DICT = {'filters' : [
                         "SKU Code", "SKU Description", "SKU Brand", "SKU Category", "SKU Sub-Category","SKU Group", "SKU Class",
                          "PO Quantity", "Received Qty", "RTV Quantity",
                          "MRP", "Unit Price pre tax","Tax per unit", "Unit price with tax", "RTV Amount Pre Tax",
-                        "RTV Tax Amount", "RTV Amount with Tax", "DC Number" ],
-        'mk_dt_headers': [ "RTV Number", "RTV Date", "Supplier ID", "Supplier Name","Invoice Number", "Invoice Date",
-                           "SKU Code", "SKU Description", "EAN Number", "MRP","Unit Price","CGST(%)", "SGST(%)",
-                           "IGST(%)", "UTGST(%)", "CESS(%)", "HSN Code","City", "RTV Quantity","RTV Amount (w/o tax)",
-                           "RTV Tax Amount", "RTV Amount", "PO Number","PO Date", "GRN Number", "GRN Date","State", "Supplier GST Number",
-                           "GST Number", "Remarks"],
-        'dt_url': 'get_sku_wise_rtv_filter', 'excel_name': 'sku_wise_rtv_report', 'print_url': '',
+                        "RTV Tax Amount", "RTV Amount with Tax", "DC Number", "Reason"],
+        'dt_url': 'get_sku_wise_rtv_filter', 'excel_name': 'sku_wise_rtv_report', 'print_url': 'sku_wise_rtv_report',
        }
 
 SELLER_INVOICE_DETAILS_DICT = {
@@ -1131,7 +1126,8 @@ RETURN_TO_VENDOR_REPORT = {
     ],
     'dt_headers': ['RTV Number', 'RTV Date', 'PO Number', 'PO Date', 'GRN Number', 'GRN Date', 'Plant', 'Department',
                    'Product Category', 'Category', 'Supplier ID', 'Supplier Name', 'PO Qty', 'Received Qty', 'RTV Qty',
-                   'RTV Amount Pre Tax', 'Tax Amount', 'RTV Amount with Tax', 'Invoice Number', 'Invoice Date','DC Number','Updated User'],
+                   'RTV Amount Pre Tax', 'Tax Amount', 'RTV Amount with Tax', 'Invoice Number', 'Invoice Date','Reason',
+                   'DC Number','Updated User'],
     'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
     'print_url': 'print_rtv_report',
 }
@@ -6804,7 +6800,8 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                                     ('Invoice Number', data['seller_po_summary__invoice_number']),
                                     ('Invoice Date', invoice_date),
                                     ('DC Number',dc_number) ,
-                                    ('Updated User', updated_user_name)
+                                    ('Updated User', updated_user_name),
+                                    ('Reason', rtv_reason)
                                 )))
     return temp_data
 

@@ -56,8 +56,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "PR Number", "Product Category", "Priority Type", "Total Quantity", 
-                    "PR Created Date", "Department", "Department Type",
+    var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
+                    "Total Quantity", "PR Created Date", "Department", "Department Type",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -171,6 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "pr_created_date": data.data.pr_created_date,
                   "product_category": data.data.product_category,
                   "priority_type": data.data.priority_type,
+                  "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "warehouse": data.data.warehouse,

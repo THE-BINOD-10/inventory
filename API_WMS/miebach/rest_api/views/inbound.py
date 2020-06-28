@@ -121,7 +121,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
         'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
-        'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number']
+        'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
+        'pending_pr__sku_category']
 
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_pr__final_status='pr_converted_to_po'). \
@@ -147,6 +148,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         pr_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
+        sku_category = result['pending_pr__sku_category']
         pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         warehouse_type = pr_user.userprofile.warehouse_type
@@ -192,6 +194,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 # ('PR Number', pr_number),
                                                 ('PR Number', full_pr_number),
                                                 ('Product Category', product_category),
+                                                ('Category', sku_category),
                                                 ('Priority Type', result['pending_pr__priority_type']),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
@@ -1584,7 +1587,7 @@ def generated_actual_pr_data(request, user=''):
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
                                     'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
-                                    'enquiryRemarks': enquiryRemarks}))
+                                    'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category}))
 
 
 @csrf_exempt
@@ -2627,6 +2630,8 @@ def get_raisepo_group_data(user, myDict):
             product_category = myDict['product_category'][0]
         if 'priority_type' in myDict.keys():
             priority_type = myDict['priority_type'][0]
+        if 'sku_category' in myDict.keys():
+            sku_category = myDict['sku_category'][0]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -2657,7 +2662,8 @@ def get_raisepo_group_data(user, myDict):
                                    'approval_remarks': approval_remarks, 'pr_delivery_date': pr_delivery_date,
                                    'product_category': product_category, 'priority_type': priority_type,
                                    'description': description, 'service_start_date': service_start_date,
-                                   'service_end_date': service_end_date, 'description_edited': description_edited})
+                                   'service_end_date': service_end_date, 'description_edited': description_edited,
+                                   'sku_category': sku_category})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3138,6 +3144,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             'pending_level': baseLevel,
             'final_status': orderStatus,
             'remarks': firstEntryValues['approval_remarks'],
+            'sku_category': firstEntryValues['sku_category'],
         }
     filtersMap = {'wh_user': user}
     if is_po_creation:
@@ -3199,9 +3206,6 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
 
         if convertPRtoPO and supplier:
             skuTaxes = get_supplier_sku_price_values(supplier, sku_id[0].sku_code, user)
-            # skuSupMapping = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id).values()
-            # if skuSupMapping.exists():
-            #     value['price'] = skuSupMapping['price']
             if skuTaxes:
                 skuTaxVal = skuTaxes[0]
                 taxes = skuTaxVal['taxes']

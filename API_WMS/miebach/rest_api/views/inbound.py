@@ -85,7 +85,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 configName = pa_mail.pr_approval.configName
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
-                                level=currentUserLevel).distinct().values_list('pending_pr_id', flat=True))
+                                level=currentUserLevel,
+                                status='').distinct().values_list('pending_pr_id', flat=True))
                 filtersMap.setdefault('pending_pr_id__in', [])
                 filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
         # memQs = MasterEmailMapping.objects.filter(user=user, master_type='actual_pr_approvals_conf_data',
@@ -3070,6 +3071,8 @@ def approve_pr(request, user=''):
             unit_price = myDict['price'][i]
             moq = myDict['moq'][i]
             supplier_id = myDict['supplier_id'][i]
+            if not supplier_id:
+                return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,

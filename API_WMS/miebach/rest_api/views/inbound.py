@@ -1495,7 +1495,7 @@ def generated_actual_pr_data(request, user=''):
             sku_desc_edited = ''
         if updatedJson.has_key('service_start_date'):
             service_stdate = updatedJson['service_start_date']
-        if updatedJson.has_key('description'):
+        if updatedJson.has_key('service_end_date'):
             service_edate = updatedJson['service_end_date']
 
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
@@ -1526,7 +1526,7 @@ def generated_actual_pr_data(request, user=''):
         elif is_purchase_approver:
             # parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
-                        sku__user=parent_user.id).order_by('preference')
+                        sku__user=pr_user.id).order_by('preference')
             preferred_supplier = None
             if supplierMappings.exists():
                 for supplierMapping in supplierMappings:
@@ -3142,6 +3142,10 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             shipToAddress = ''
     else:
         shipToAddress = firstEntryValues['ship_to']
+    if firstEntryValues['sku_category'] == '':
+        sku_category = 'All'
+    else:
+        sku_category = firstEntryValues['sku_category']
     purchaseMap = {
             'requested_user': request.user,
             'wh_user': user,
@@ -3150,7 +3154,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             'pending_level': baseLevel,
             'final_status': orderStatus,
             'remarks': firstEntryValues['approval_remarks'],
-            'sku_category': firstEntryValues['sku_category'],
+            'sku_category': sku_category,
         }
     filtersMap = {'wh_user': user}
     if is_po_creation:

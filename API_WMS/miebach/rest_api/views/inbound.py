@@ -271,8 +271,8 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                     'pending_po__po_number', 'pending_po__final_status', 'pending_po__pending_level',
                     'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name',
                     'pending_po__prefix', 'pending_po__delivery_date','pending_po__wh_user',
-                    'pending_po__product_category', 'pending_po_id', 'pending_po__full_po_number']
-
+                    'pending_po__product_category', 'pending_po_id', 'pending_po__full_po_number',
+                    'pending_po__sku_category']
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_po__final_status='po_converted_back_to_pr'). \
                 values(*values_list).distinct().\
@@ -307,6 +307,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         wh_user = result['pending_po__wh_user']
         product_category = result['pending_po__product_category']
+        sku_category = result['pending_po__sku_category']
         approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
@@ -349,6 +350,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PO Number', po_reference),
                                                 ('PR No', approvedPRs),
                                                 ('Product Category', product_category),
+                                                ('Category', sku_category),
                                                 ('Supplier ID', result['pending_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['pending_po__supplier__name']),
                                                 ('Total Quantity', result['total_qty']),
@@ -3360,6 +3362,7 @@ def convert_pr_to_po(request, user=''):
                 'pending_level': baseLevel,
                 'final_status': orderStatus,
                 'product_category': existingPRObjs[0].product_category,
+                'sku_category':existingPRObjs[0].sku_category,
             }
             try:
                 dept_code = existingPRObjs[0].wh_user.userprofile.stockone_code
@@ -3400,6 +3403,7 @@ def convert_pr_to_po(request, user=''):
                         'requested_user': existingPRObj.requested_user,
                         'wh_user': existingPRObj.wh_user,
                         'product_category': existingPRObj.product_category,
+                        'sku_category':existingPRObj.sku_category,
                         'priority_type': existingPRObj.priority_type,
                         'delivery_date': existingPRObj.delivery_date,
                         'ship_to': existingPRObj.ship_to,

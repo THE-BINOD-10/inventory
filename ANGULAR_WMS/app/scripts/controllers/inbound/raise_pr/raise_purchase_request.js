@@ -579,12 +579,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var prIds = [];
       var deptTypes = [];
       var prodCatgs = [];
+      var catgs = [];
 
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
           var deptType = temp['_aData']['Department Type'];
           var prodCatg = temp['_aData']['Product Category'];
+          var catg = temp['_aData']['Category'];
           prIds.push(temp['_aData']["Purchase Id"]);
           if (!deptTypes.includes(deptType)){
             deptTypes.push(deptType);
@@ -592,11 +594,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if (!prodCatgs.includes(prodCatg)){
             prodCatgs.push(prodCatg);
           }
+          if (!catgs.includes(catg)){
+            catgs.push(catg);
+          }
         }
         if(Object.keys(vm.selected).length-1 == parseInt(key)){
-          if (deptTypes.length > 1 || prodCatgs.length > 1) {
+          if (deptTypes.length > 1 || prodCatgs.length > 1 || catgs.length > 1) {
             prIds = [];
-            vm.service.showNoty("Same Department/ProductCategory PRs can be consolidated");
+            vm.service.showNoty("Same Department/ProductCategory/Category PRs can be consolidated");
           }
           var data_dict = {
             'prIds': JSON.stringify(prIds)

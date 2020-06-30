@@ -157,7 +157,8 @@
             <div class="form-group">
               <label class="control-label">Category</label>
               <select class="form-control" name="sku_category" 
-                      ng-model="showCase.model_data.sku_category">
+                      ng-model="showCase.model_data.sku_category"
+                      ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
                 <option value="">all</option>
                 <option ng-repeat="sku_catg in showCase.model_data.sku_categories" 
                         value="{{sku_catg}}">{{sku_catg}}

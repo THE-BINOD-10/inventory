@@ -577,6 +577,7 @@ def get_search_params(request, user=''):
 
 data_datatable = {  # masters
     'SKUMaster': 'get_sku_results', 'SupplierMaster': 'get_supplier_results', \
+    'MachineMaster': 'get_machine_master_results',
     'SupplierSKUMappingMaster': 'get_supplier_mapping', 'CustomerMaster': 'get_customer_master', \
     'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', 'SKUPackMaster' :'get_sku_pack_master',\
     'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results', \
@@ -589,8 +590,8 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data',
+    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -607,6 +608,7 @@ data_datatable = {  # masters
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
+    'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
@@ -4795,7 +4797,7 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc', 'mrp']
+    # lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id)
     if sku_catg:
@@ -4822,7 +4824,8 @@ def search_wms_data(request, user=''):
                        'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
-                       'enable_serial_based': master_data.enable_serial_based}
+                       'enable_serial_based': master_data.enable_serial_based,
+                       'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
             asset_code = master_data.asset_code
             service_start_date = master_data.service_start_date
@@ -5082,7 +5085,8 @@ def build_search_data(user, to_data, from_data, limit):
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
-                        'enable_serial_based': data.enable_serial_based}
+                        'enable_serial_based': data.enable_serial_based,
+                        'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
                 asset_code = data.asset_code
                 if data.service_start_date:
@@ -12453,3 +12457,24 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def get_warehouses_data(user):
+    ware_houses_list = []
+    warehouse_users ={}
+    main_warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    main_warehouse_users = dict(main_warehouses.values_list('user_id', 'user__username'))
+    for data in main_warehouse_users.keys():
+        sub_warehouses = UserGroups.objects.filter(admin_user_id=data)
+        sub_warehouses_user = dict(sub_warehouses.values_list('user_id', 'user__username'))
+        warehouse_users[user.id] = user.username
+        ware_houses_list.append(sub_warehouses_user)
+    final_dict = {k:v for element in ware_houses_list for k,v in element.items()}
+    return final_dict
+
+def find_purchase_approver_permission(user):
+    change_pendinglineitem = get_permission(user, 'change_pendinglineitems')
+    change_pr = get_permission(user, 'change_pendingpr')
+    is_purchase_approver = False
+    if change_pendinglineitem and change_pr:
+        is_purchase_approver = True
+    return is_purchase_approver

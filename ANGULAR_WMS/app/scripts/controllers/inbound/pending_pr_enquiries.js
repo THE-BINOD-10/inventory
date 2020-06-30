@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('PendingPOEnquiriesCtrl',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('PendingPREnquiriesCtrl',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
@@ -9,7 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.extra_width = { 'width': '1250px' };
 
-    vm.filters = {'datatable': 'PendingPOEnquiries', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+    vm.filters = {'datatable': 'PendingPREnquiries', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -29,9 +29,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
-        DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Purchase Number').withTitle('PO Number'),
+        // DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
+        // DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
+        DTColumnBuilder.newColumn('Purchase Number').withTitle('PR Number'),
         DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'),
         DTColumnBuilder.newColumn('Enquiry From').withTitle('Enquiry From'),
         DTColumnBuilder.newColumn('Enquiry To').withTitle('Enquiry To'),
@@ -58,7 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Reply Enquiry";
                     angular.copy(data.data, vm.model_data);
                     vm.model_data.purchase_number = aData["Purchase Number"];
-                    $state.go('app.inbound.RaisePo.submitResponseToEnquiry');
+                    $state.go('app.inbound.RaisePr.submitResponseToEnquiry');
                   }
                 });
             });
@@ -80,8 +80,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       })
     }
     vm.close = function() {
-      $state.go('app.inbound.RaisePo');
+      $state.go('app.inbound.RaisePr');
     }
-
 }
 

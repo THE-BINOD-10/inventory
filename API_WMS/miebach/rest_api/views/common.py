@@ -607,6 +607,7 @@ data_datatable = {  # masters
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
+    'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
@@ -4795,7 +4796,7 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc', 'mrp']
+    # lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id)
     if sku_catg:
@@ -4813,7 +4814,8 @@ def search_wms_data(request, user=''):
                        'measurement_unit': master_data.measurement_type,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'noOfTests': noOfTests,
-                       'enable_serial_based': master_data.enable_serial_based}
+                       'enable_serial_based': master_data.enable_serial_based,
+                       'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
             asset_code = master_data.asset_code
             service_start_date = master_data.service_start_date
@@ -5064,7 +5066,8 @@ def build_search_data(to_data, from_data, limit):
                         'measurement_unit': data.measurement_type,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'noOfTests': noOfTests,
-                        'enable_serial_based': data.enable_serial_based}
+                        'enable_serial_based': data.enable_serial_based,
+                        'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
                 asset_code = data.asset_code
                 if data.service_start_date:
@@ -12435,3 +12438,11 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def find_purchase_approver_permission(user):
+    change_pendinglineitem = get_permission(user, 'change_pendinglineitems')
+    change_pr = get_permission(user, 'change_pendingpr')
+    is_purchase_approver = False
+    if change_pendinglineitem and change_pr:
+        is_purchase_approver = True
+    return is_purchase_approver

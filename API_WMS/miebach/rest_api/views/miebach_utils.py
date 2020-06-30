@@ -1901,6 +1901,30 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('batch_based', 31),('status', 32)
                              ))
 
+ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3), 
+                               ('product_type', 4), ('sku_category', 5), ('sub_category', 6), 
+                               ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
+                               ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13), 
+                               ('ean_number', 14), ('hsn_code', 15), ('status', 16),
+                               ('parent_asset_code', 17),  ('asset_number', 18),  ('vendor', 19),
+                               ('store_id', 20)
+                             ))
+
+SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_type', 2), ('sku_group', 3), 
+                               ('product_type', 4), ('sku_category', 5), ('sub_category', 6), 
+                               ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
+                               ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13), 
+                               ('ean_number', 14), ('hsn_code', 15), ('status', 16), 
+                               ('asset_code', 17), ('service_start_date', 18),  ('service_end_date', 19), 
+                             ))
+
+OTHER_ITEM_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3), 
+                               ('product_type', 4), ('sku_category', 5), ('sub_category', 6), 
+                               ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
+                               ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13), 
+                               ('ean_number', 14), ('hsn_code', 15), ('status', 16)
+                             ))
+
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
     (('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
      ('sku_category', 5), ('sku_class', 6), ('sku_brand', 7), ('style_name', 8), ('mix_sku', 9),

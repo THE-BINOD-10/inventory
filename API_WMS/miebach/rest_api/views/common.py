@@ -12439,6 +12439,19 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
 
+def get_warehouses_data(user):
+    ware_houses_list = []
+    warehouse_users ={}
+    main_warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    main_warehouse_users = dict(main_warehouses.values_list('user_id', 'user__username'))
+    for data in main_warehouse_users.keys():
+        sub_warehouses = UserGroups.objects.filter(admin_user_id=data)
+        sub_warehouses_user = dict(sub_warehouses.values_list('user_id', 'user__username'))
+        warehouse_users[user.id] = user.username
+        ware_houses_list.append(sub_warehouses_user)
+    final_dict = {k:v for element in ware_houses_list for k,v in element.items()}
+    return final_dict
+
 def find_purchase_approver_permission(user):
     change_pendinglineitem = get_permission(user, 'change_pendinglineitems')
     change_pr = get_permission(user, 'change_pendingpr')

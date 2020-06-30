@@ -20,7 +20,7 @@
                   </th>
                   <!-- <th>Checkbox</th> -->
                   <th>Supplier Id/Name</th>
-                  <th></th>
+                  <!-- <th></th> -->
                   <th>PR Number</th>
                   <th>Product Category</th>
                   <th>SKU Code</th>
@@ -46,10 +46,10 @@
                     </option>
                   </select>
                 </td>
-                <td>
+                <!-- <td>
                   <span class="badge bg-warning" ng-if="data.is_doa_sent"> SentDOA</span>
                   <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(data.sku_code, data)" ng-if="!data.supplier_id_name && !data.is_doa_sent" style="cursor: pointer;">+</span>
-                </td>
+                </td>  -->
                 <td>
                   {{data.pr_number}}
                   <input ng-hide="true" class="form-control" ng-model="data.pr_id" type="text" name="pr_id">
@@ -58,9 +58,9 @@
                 <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
                 <td> {{data.sku_desc}} </td>
                 <td> {{data.moq}} </td>
-                <!-- <td> {{data.quantity}} </td> -->
-                <td> <input type="number" class="form-control" ng-model="data.quantity" name="quantity" size="25"> </td>
-                <td> {{data.unit_price}} </td>
+                <td> {{data.quantity}} </td>
+                <!-- <td> <input type="number" class="form-control" ng-model="data.quantity" name="quantity" size="25"> </td> -->
+                <td> {{data.price}} </td>
                 <td> {{data.amount}} </td>
                 <td> {{data.tax}} </td>
                 <td> {{data.total}} </td>

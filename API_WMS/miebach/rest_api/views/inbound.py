@@ -132,6 +132,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
+                                Q(pending_pr__product_category__icontains=search_term) |
+                                Q(pending_pr__sku_category__icontains=search_term) |
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
                                 Q(pending_pr__final_status__icontains=search_term) |
                                 Q(pending_pr__pending_level__icontains=search_term) |
@@ -1474,7 +1476,8 @@ def generated_actual_pr_data(request, user=''):
                         "enquiry": enquiry, "response": response
                 })    
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
-    validated_users.insert(0, record[0].requested_user.email)
+    if request.user.email != record[0].requested_user.email:    
+        validated_users.insert(0, record[0].requested_user.email)
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}

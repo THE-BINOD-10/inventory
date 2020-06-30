@@ -82,6 +82,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         instanceName = ServiceMaster
     elif request.POST.get('datatable') == 'OtherItemsMaster':
         instanceName = OtherItemsMaster
+    elif request.POST.get('datatable') == 'TestMaster':
+        instanceName = TestMaster
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
            'creation_date', 'updation_date', 'relation_type', 'status', 'mrp', 'hsn_code', 'product_type']
@@ -244,6 +246,10 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             sku_type = data.service_type
         elif instanceName == OtherItemsMaster:
             sku_type = data.item_type
+        elif instanceName == TestMaster:
+            sku_type = data.test_type
+            wms_code = data.test_code
+            sku_desc = data.test_name
         else:
             sku_type = data.sku_type
         temp_data['aaData'].append(OrderedDict(
@@ -284,9 +290,50 @@ def get_location_data(request, user=''):
     # 'all_groups': all_groups, 'location_group': location_group}))
 
 
+def get_machine_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['machine_code', 'machine_name', 'department_type', 'test_type', 'status']
+    search_dict = {'active': 1, 'inactive': 0},
+    order_data = MACHINE_MASTER_HEADERS.values()[col_num]
+    search_params = get_filtered_params(filters, MACHINE_MASTER_HEADERS.values())
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+    lis = ['machine_code', 'machine_name', 'department_type', 'test_type', 'status']
+
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if search_term:
+        master_data = MachineMaster.objects.filter(Q(machine_code__icontains=search_term)|Q(machine_name__icontains=search_term) |
+                                                   Q(model_number__icontains=search_term)|Q(serial_number__icontains=search_term), user=user.id).order_by(order_data)
+    else:
+        master_data = MachineMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    filter_dict = {}
+    filter_dict['user_id'] = user.id
+    filter_dict['master_type'] = 'machine'
+    # master_email_map = MasterEmailMapping.objects.filter(**filter_dict)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index: stop_index]:
+        status = 'Inactive'
+        if data.status:
+            status = 'Active'
+        temp_data['aaData'].append(
+            OrderedDict((('id', data.id), ('machine_name', data.machine_name), ('machine_code', data.machine_code),
+                         ('model_number', data.model_number),('serial_number', data.serial_number),
+                         ('brand', data.brand),('status', status))))
+
+
 def get_supplier_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     search_dict = {'active': 1, 'inactive': 0}
-    order_data = SUPPLIER_MASTER_HEADERS.values()[col_num]
+    order_data = SUPPLIER_MASTER_HEADERS.values()
     search_params = get_filtered_params(filters, SUPPLIER_MASTER_HEADERS.values())
     if 'status__icontains' in search_params.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
@@ -876,6 +923,8 @@ def get_sku_data(request, user=''):
         instanceName = ServiceMaster
     if request.GET.get('is_otheritem') == 'true':
         instanceName = OtherItemsMaster
+    if request.GET.get('is_test') == 'true':
+        instanceName = TestMaster
 
     data = get_or_none(instanceName, filter_params)
 
@@ -980,6 +1029,11 @@ def get_sku_data(request, user=''):
         sku_data['vendor'] = data.vendor
     elif instanceName == OtherItemsMaster:
         sku_data['item_type'] = data.item_type
+    elif instanceName == TestMaster:
+        sku_data['test_code'] = data.test_code
+        sku_data['test_name'] = data.test_name
+        sku_data['department_type'] =data.department_type
+        sku_data['test_type'] = data.test_type
 
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
@@ -1182,7 +1236,7 @@ def update_sku(request, user=''):
                          'hsn_code', 'shelf_life']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
-        zone = request.POST['zone_id']
+        zone = request.POST.get('zone_id','')
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         instanceName = SKUMaster
@@ -1192,6 +1246,8 @@ def update_sku(request, user=''):
             instanceName = ServiceMaster
         if request.POST.get('is_otheritem') == 'true':
             instanceName = OtherItemsMaster
+        if request.POST.get('is_test') == 'true':
+            instanceName = TestMaster
         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
         youtube_update_flag = False
         image_file = request.FILES.get('files-0', '')
@@ -1403,7 +1459,7 @@ def update_uom_master(user, data_dict={}, data=''):
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
         else:
             uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=data.sku_code, name=name,
-                                                  base_uom=base_uom_name)
+                                                  base_uom=base_uom_name, uom_type=uom_type, uom=uom_name)
             if uom_master:
                 uom_master.update(conversion=conversion)
             else:
@@ -1416,6 +1472,12 @@ def get_supplier_update(request):
     filter_params = {'id': data_id, 'user': 4}
     data = get_or_none(SupplierMaster, filter_params)
     return HttpResponse(json.dumps({'data': data, 'update_supplier': SUPPLIER_FIELDS}))
+
+def get_machine_update(request):
+    data_id = request.GET['data_id']
+    filter_params = {'id':data_id, 'user':4}
+    data = get_or_none(MachineMaster, filter_params)
+    return HttpResponse(json.dumps({'data':data, 'update_machine':MACHINE_MASTER_FIELDS}))
 
 
 @csrf_exempt
@@ -1548,6 +1610,96 @@ def update_supplier_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_machine_values(request, user=''):
+    """ Update Machine Data """
+    log.info('Update Machine request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_code = request.POST['machine_code']
+        serial_code = request.POST['serial_number']
+        update_dict = {}
+        for key, value in request.POST.items():
+            if key == 'machine_name':
+                update_dict['machine_name'] = value
+            if key == 'model_number':
+                update_dict['model_number'] = value
+            if key == 'serial_number':
+                update_dict['serial_number'] = value
+            if key == 'brand':
+                update_dict['brand'] = value
+            if key == 'status':
+                if value == 'Active':
+                    update_dict['status'] = 1
+                else:
+                    update_dict['status'] = 0
+        check_data = MachineMaster.objects.get(machine_code=data_code)
+        if check_data:
+            if check_data.serial_number ==  update_dict['serial_number']:
+                check_data.serial_number = update_dict['serial_number']
+            else:
+                serial_check = MachineMaster.objects.filter(serial_number=update_dict['serial_number'])
+                if not serial_check:
+                    check_data.serial_number = update_dict['serial_number']
+                else:
+                    return HttpResponse('Serial Number Already Exists')
+            check_data.machine_name = update_dict['machine_name']
+            check_data.model_number = update_dict['model_number']
+            check_data.brand = update_dict['brand']
+            check_data.status = update_dict['status']
+            check_data.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Machine Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Machine Failed')
+    return HttpResponse('Updated Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_machine(request, user=''):
+    """ Add New Machine"""
+    log.info('Add New Machine request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_dict = {}
+        data_dict['machine_code'] = request.POST['machine_code']
+        data_dict['machine_name'] = request.POST['machine_name']
+        data_dict['model_number'] = request.POST['model_number']
+        data_dict['serial_number'] = request.POST['serial_number']
+        data_dict['brand'] = request.POST['brand']
+        status = request.POST['status']
+        if status == 'Active':
+            data_dict['status'] = 1
+        else:
+            data_dict['status'] = 0
+        #data_dict['user__id'] = user.id
+        # data = filter_or_none(MachineMaster, {'machine_code': data_dict['machine_code'], 'user': user.id})
+
+        check_code = MachineMaster.objects.filter(machine_code=data_dict['machine_code'], user=user.id)
+        if check_code.exists():
+            status_msg = 'Machine Code Exists'
+        else:
+            serial_check = MachineMaster.objects.filter(serial_number=data_dict['serial_number'])
+            if not serial_check:
+                MachineMaster.objects.get_or_create(user=user,**data_dict)
+                status_msg = "Success"
+            else:
+                status_msg = "Serial Number Already Exists"
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add New Machine failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        status_msg = "Update Machine Failed"
+        return HttpResponse(status_msg)
+    return HttpResponse(status_msg)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1670,6 +1822,8 @@ def update_sku_supplier_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+
+
 @csrf_exempt
 @get_admin_user
 def insert_mapping(request, user=''):
@@ -1711,11 +1865,17 @@ def insert_mapping(request, user=''):
 
         if value != '' and key in data_dict:
             data_dict[key] = value
+
+    sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+                                              sku__user=user.id)
+    if sku_supplier:
+        return HttpResponse('Preference matched with existing WMS Code')
+
     if auto_po_switch == 'true':
-        sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
-                                                  sku__user=user.id)
-        if sku_supplier:
-            return HttpResponse('Preference matched with existing WMS Code')
+        # sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+        #                                           sku__user=user.id)
+        # if sku_supplier:
+        #     return HttpResponse('Preference matched with existing WMS Code')
 
         data = SKUSupplier.objects.filter(supplier_id=supplier.id, sku_id=sku_id[0].id)
         if data:
@@ -2870,9 +3030,15 @@ def insert_sku(request, user=''):
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     admin_user = get_admin(user)
     try:
-        wms = request.POST['wms_code']
-        description = request.POST['sku_desc']
-        zone = request.POST['zone_id']
+        if request.POST.get('is_test') == 'true':
+            wms = request.POST['test_code']
+        else:
+            wms = request.POST['wms_code']
+        if request.POST.get('is_test') == 'true':
+            description = request.POST['test_name']
+        else:
+            description = request.POST['sku_desc']
+        zone = request.POST.get('zone_id','')
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
         enable_serial_based = request.POST.get('enable_serial_based', 0)
@@ -2892,6 +3058,9 @@ def insert_sku(request, user=''):
         elif request.POST.get('is_otheritem') == 'true':
             instanceName = OtherItemsMaster
             status_msg = 'Other Item exists'
+        elif request.POST.get('is_test') == 'true':
+            instanceName = TestMaster
+            status_msg = 'Test Item exists'
         data = filter_or_none(instanceName, filter_params)
 
         wh_ids = get_related_users(user.id)
@@ -2906,6 +3075,8 @@ def insert_sku(request, user=''):
                 data_dict.update(SERVICE_SKU_DATA)
             if instanceName == OtherItemsMaster:
                 data_dict.update(OTHERITEMS_SKU_DATA)
+            if instanceName == TestMaster:
+                data_dict.update(TEST_SKU_DATA)
             data_dict['user'] = user.id
             for key, value in request.POST.iteritems():
                 if key in data_dict.keys():
@@ -2957,8 +3128,12 @@ def insert_sku(request, user=''):
                             value = None
                     data_dict[key] = value
 
+
+            if request.POST['is_test'] == 'true':
+                data_dict['wms_code'] = data_dict['test_code']
+                data_dict['sku_desc'] = data_dict['test_name']
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
@@ -3009,7 +3184,10 @@ def insert_sku(request, user=''):
         log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username), \
                                                                                                str(request.POST.dict()),
                                                                                                str(e)))
-        status_msg = 'Insert SKU Failed'
+        if request.POST.get('is_test') == 'true':
+            status_msg = 'Insert Test Failed'
+        else:
+            status_msg = 'Insert SKU Failed'
 
     return HttpResponse(status_msg)
 
@@ -5142,6 +5320,9 @@ def send_supplier_doa(request, user=''):
         if value != '':
             data_dict[key] = value
 
+    skuSupQs = SKUSupplier.objects.filter(sku__user=user.id, sku_id=sku_id[0].id, supplier_id=supplier.id)
+    if skuSupQs.exists() and not data_dict.has_key('DT_RowId'):
+        return HttpResponse("New DOA cant be created, already SKUSupplier exists")
     userQs = UserGroups.objects.filter(user=user)
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')

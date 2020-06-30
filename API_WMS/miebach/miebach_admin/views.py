@@ -743,6 +743,16 @@ def get_supplier_update(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_machine_update(request):
+    data_id = request.GET['data_id']
+    filter_params = {'id':data_id, 'user':4}
+    data = get_or_none(MachineMaster, filter_params)
+    return HttpResponse(json.dumps({'data':data, 'update_machine':MACHINE_MASTER_FIELDS}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_customer_sku_data(request, user=''):
    data_id = request.GET['data_id']
    data = get_or_none(CustomerSKU, {'id': data_id})
@@ -2513,6 +2523,9 @@ search_params.get('search_0'), search_params.get('search_1'), search_params.get(
                                ('Supplier ID', (0, get_supplier_results, [search_params.get('order_term'), search_params.get('order_index'),
                                                search_params.get('search_0'), search_params.get('search_1'), search_params.get('search_2'),\
                                                search_params.get('search_3'), search_params.get('search_4'), search_params.get('search_5')])),
+                               ('Machine ID', (0, get_machine_master_results,[search_params.get('order_term'), search_params.get('order_index'),
+                                                 search_params.get('search_0'), search_params.get('search_1'),search_params.get('search_2'), \
+                                                 search_params.get('search_3'), search_params.get('search_4'), search_params.get('search_5')])),
                                ('Vendor ID', (0, get_vendor_master_results, [search_params.get('order_term'), search_params.get('order_index'),
                                                search_params.get('search_0'), search_params.get('search_1'), search_params.get('search_2'),\
                                                search_params.get('search_3'), search_params.get('search_4'), search_params.get('search_5')])),

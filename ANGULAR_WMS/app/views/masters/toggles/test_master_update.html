@@ -1,0 +1,108 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-lg">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <div class="modal-body" id="update_sku">
+          <div class="row" ng-mouseover="showCase.readonly_permission()">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" ng-if ="showCase.model_data.serial_number">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Enable Serial Based</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input name="enable_serial_based" type="checkbox" ng-model="showCase.model_data.sku_data.enable_serial_based">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="" ng-if="showCase.update">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Test Code *</label>
+                <input type="text" name="test_code" class="form-control" ng-model="showCase.model_data.sku_data.test_code" ng-readonly="showCase.update" ng-required="true">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Test Name * </label>
+                <input type="text" name="test_name" class="form-control" ng-model="showCase.model_data.sku_data.test_name" maxlength="256" ng-required="true">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Department Type *</label>
+                <input type="text" name="department_type" class="form-control" ng-model="showCase.model_data.sku_data.department_type" maxlength="256" ng-required="true">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Test Type *</label>
+                <input type="text" name="test_type" class="form-control"
+                ng-model="showCase.model_data.sku_data.test_type"
+                ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-required="true">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Status *</label>
+                  <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-selected="qc == showCase.model_data.sku_data.status">
+                </select>
+
+                <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="status" class="form-control" value="{{showCase.model_data.sku_data.status}}" readonly ng-required="true">
+              </div>
+            </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <div class="col-md-9 col-sm-9 col-xs-8">
+              <div class="form-group">
+                <div>Test Default Image Upload</div>
+                 <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                  <input style="position: absolute;
+                                top: 0;
+                                right: 0;
+                                min-width: 100%;
+                                min-height: 100%;
+                                font-size: 100px;
+                                text-align: right;
+                                filter: alpha(opacity=0);
+                                opacity: 0;
+                                outline: none;
+                                background: white;
+                                cursor: inherit;
+                                display: block;" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload multiple/>
+              </span>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-4">
+              <div>
+                <img ng-src="{{showCase.model_data.sku_data.image_url}}" alt="SKU image" style="width: 100%"/>
+              </div>
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 style="text-align: center;">{{showCase.service.message}}</h4>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.submit(form)" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

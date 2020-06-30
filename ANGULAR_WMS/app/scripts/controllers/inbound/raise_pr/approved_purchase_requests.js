@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('ApprovedPurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, $modal, Service, Data) {
 
@@ -24,7 +24,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.is_contracted_supplier = false;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+    vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+                  'special-key':'approved'}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -398,16 +399,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
-        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
-      } else {
-        data.conversion = 0
       }
     }
 
     vm.reset_model_data = function(product_category){
       vm.model_data.data = [];
-      // vm.model_data.sku_category = "";
+      vm.model_data.sku_category = "";
       var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
@@ -1094,8 +1092,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
-      product.fields.sku.conversion = item.conversion;
-      product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;

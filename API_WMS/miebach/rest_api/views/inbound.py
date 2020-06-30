@@ -1532,7 +1532,7 @@ def generated_actual_pr_data(request, user=''):
                 for supplierMapping in supplierMappings:
                     supplierId = supplierMapping.supplier.supplier_id
                     supplierName = supplierMapping.supplier.name
-                    skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id, sku_code, user)
+                    skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id, sku_code, pr_user)
                     if skuTaxes:
                         skuTaxVal = skuTaxes[0]
                         taxes = skuTaxVal['taxes']

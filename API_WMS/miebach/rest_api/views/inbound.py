@@ -8218,9 +8218,11 @@ def confirm_add_po(request, sales_data='', user=''):
     check_prefix = ''
     try:
         if is_purchase_request == 'true':
-            pr_number = int(request.POST.get('pr_number'))
+            # pr_number = int(request.POST.get('pr_number'))
+            purchase_id = int(request.POST.get('purchase_id'))
             full_po_number = request.POST.get('po_number')
-            prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id, full_po_number=full_po_number)
+            # prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id, full_po_number=full_po_number)
+            prQs = PendingPO.objects.filter(id=purchase_id)
             if prQs:
                 prObj = prQs[0]
                 po_creation_date = prObj.creation_date
@@ -8357,9 +8359,9 @@ def confirm_add_po(request, sales_data='', user=''):
             data1 = OpenPO(**po_suggestions)
             data1.save()
             if request.POST.get('is_purchase_request') == 'true':
-                pr_number = request.POST.get('pr_number', '')
-                if pr_number: pr_number = int(pr_number)
-                pendingPOQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user)
+                purchase_id = request.POST.get('purchase_id', '')
+                if purchase_id: purchase_id = int(purchase_id)
+                pendingPOQs = PendingPO.objects.filter(id=purchase_id)
                 if pendingPOQs.exists():
                     # pendingPoObj = pendingPOQs[0]
                     pendingPOQs.update(open_po_id=data1.id)

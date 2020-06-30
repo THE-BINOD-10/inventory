@@ -119,10 +119,6 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
 
-        if 'sku_category' in filter_keys:
-            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
-                                                         .values_list('sku_category', flat=True).distinct())
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',

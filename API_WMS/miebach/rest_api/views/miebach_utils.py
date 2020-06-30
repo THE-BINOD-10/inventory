@@ -12031,12 +12031,28 @@ def get_metro_po_report_data(search_params, user, sub_user):
         search_parameters['pending_po__supplier_id'] = supp_search[0]
     if 'open_po' in search_params:
         search_parameters['pending_po__po_number'] = search_params['open_po']
+    if 'product_category' in search_params:
+        search_parameters['pending_po__product_category'] = search_params['product_category']
+    if 'final_status' in search_params:
+        search_parameters['pending_po__final_status'] = search_params['final_status']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'sku_class' in search_params:
+        search_parameters['sku__sku_class'] = search_params['sku_class']
+    if 'sku_group' in search_params:
+        search_parameters['sku__sku_group'] = search_params['sku_group']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
-            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouses = get_warehouses_data(user)
+            warehouse_users = warehouses
         else:
             warehouses = get_warehouses_data(user)
             warehouse_users = warehouses
@@ -12239,10 +12255,12 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         search_parameters['pending_po__supplier_id'] = supp_search[0]
     if 'open_po' in search_params:
         search_parameters['pending_po__po_number'] = search_params['open_po']
+    if 'product_category' in search_params:
+        search_parameters['pending_po__product_category'] = search_params['product_category']
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            data = get_warehouse_user_from_sub_user(sister_warehouse_name)
+            data = get_warehouses_data(user)
             user = User.objects.get(username=sister_warehouse_name)
             warehouses = UserGroups.objects.filter(user_id=user.id)
             warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))

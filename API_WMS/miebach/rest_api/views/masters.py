@@ -1711,11 +1711,17 @@ def insert_mapping(request, user=''):
 
         if value != '' and key in data_dict:
             data_dict[key] = value
+
+    sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+                                              sku__user=user.id)
+    if sku_supplier:
+        return HttpResponse('Preference matched with existing WMS Code')
+
     if auto_po_switch == 'true':
-        sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
-                                                  sku__user=user.id)
-        if sku_supplier:
-            return HttpResponse('Preference matched with existing WMS Code')
+        # sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+        #                                           sku__user=user.id)
+        # if sku_supplier:
+        #     return HttpResponse('Preference matched with existing WMS Code')
 
         data = SKUSupplier.objects.filter(supplier_id=supplier.id, sku_id=sku_id[0].id)
         if data:

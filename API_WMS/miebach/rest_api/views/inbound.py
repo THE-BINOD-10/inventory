@@ -3925,6 +3925,7 @@ def insert_inventory_adjust(request, user=''):
     seller_id = request.GET.get('seller_id', '')
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
     seller_master_id = ''
+    sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
     receipt_number = get_stock_receipt_number(user)
     stock_stats_objs = []
     if user.username in MILKBASKET_USERS :
@@ -3948,7 +3949,7 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment',price=price)
-        netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , user)
+        netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
@@ -3956,11 +3957,13 @@ def insert_inventory_adjust(request, user=''):
     check_and_update_stock([wmscode], user)
     return HttpResponse(status)
 
-def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , user=''):
+def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
     from datetime import datetime
     from pytz import timezone
     ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     department, plant, subsidary=get_plant_subsidary_and_department(user)
+    if(sku_stock_quantity):
+        quantity=float(quantity)-float(sku_stock_quantity)
     inventory_data = {'ia_number': "inventory_adjustment_"+str(cycle_id),
         'department': department,
         "subsidiary": subsidary,

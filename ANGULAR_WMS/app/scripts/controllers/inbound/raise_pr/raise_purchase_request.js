@@ -395,7 +395,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
+        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
+      } else {
+        data.conversion = 0
       }
     }
 
@@ -1057,6 +1060,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
+      product.fields.sku.conversion = item.conversion;
+      product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
       product.fields.price = 0;

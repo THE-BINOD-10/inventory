@@ -58,7 +58,7 @@
             <span>SKU Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_machinemaster')">
+        <li ui-sref-active="active" ng-show="show_tab('view_machinemaster')">
           <a ui-sref="app.masters.MachineMaster">
             <span>Machine Master</span>
           </a>
@@ -207,6 +207,11 @@
         <li ui-sref-active="active" ng-show="show_tab('add_staffmaster')">
           <a ui-sref="app.masters.StaffMaster">
             <span>Staff Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_purchaseapprovalconfig')">
+          <a ui-sref="app.masters.PurchaseApproval">
+            <span>Purchase Approvals</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' && show_tab('add_pushnotifications')" >
@@ -468,12 +473,12 @@
       </a>
     </li>
 
-    <li ui-sref-active="active" ng-show="show_tab('show_pull_now')">
+  <!--  <li ui-sref-active="active" ng-show="show_tab('show_pull_now')">
       <a ui-sref="app.OrdersSyncIssues">
          <i class="fa fa-refresh"></i>
          <span>Orders Sync Issues</span>
       </a>
-    </li>
+    </li>  -->
 
     <!-- ready pages -->
     <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
@@ -541,9 +546,19 @@
             <span>Goods Receipt Note</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.PRReport">
+            <span>PR REPORT</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.STGoodsReceiptNote">
             <span>Stock Transfer Goods Receipt Note</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.MetroPOReport">
+            <span>PO Report</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('view_polocation')">

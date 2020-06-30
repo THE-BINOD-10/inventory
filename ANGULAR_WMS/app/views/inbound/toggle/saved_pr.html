@@ -10,7 +10,7 @@
   }
 </style> -->
 <div id="page-pop" class="modal fade in over-x">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
@@ -39,6 +39,12 @@
               <div class="form-group">
                 <label class="control-label"> Product Category </label>
                 <input type="text" ng-model="showCase.model_data.product_category" name="product_category" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Category </label>
+                <input type="text" ng-model="showCase.model_data.sku_category" name="sku_category" class="form-control" ng-readonly="true">
               </div>
             </div>
             <div class="col-md-2 col-sm-2 col-xs-3">
@@ -76,11 +82,21 @@
               <textarea rows="5" class="form-control" cols="27" name="approval_remarks" ng-model="showCase.model_data.approval_remarks" placeholder="Enter Remarks"></textarea>
             </div>
           </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
           <div class = "row">
             <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
               <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
-                Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+                PR File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
+            </div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables'">
+            <div class="form-group col-md-3" style="padding-top: 30px;">
+               <span>
+                 <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
+               </span>
             </div>
           </div>
         </div>

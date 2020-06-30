@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-	GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations
+GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster
 
 # Register your models here.
 
@@ -39,6 +39,26 @@ class CompanyMasterAdmin(admin.ModelAdmin):
     search_fields = ['company_name']
     list_display = ('company_name', 'creation_date', 'parent')
 
+@admin.register(SupplierMaster)
+class SupplierMasterAdmin(admin.ModelAdmin):
+    search_fields = ['supplier_id','name']
+    list_display = ('supplier_id', 'user', 'address_id')
+
+class UserPrefixesAdmin(admin.ModelAdmin):
+    search_fields = ['user']
+    list_display = ('user', 'product_category', 'sku_category', 'type_name', 'prefix')
+
+class CompanyRolesAdmin(admin.ModelAdmin):
+    search_fields = ['company', 'role_name']
+    list_display = ('company', 'role_name')
+
+@admin.register(UOMMaster)
+class UOMMasterAdmin(admin.ModelAdmin):
+    search_fields = ['company', 'name']
+    list_display = ('company', 'name', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
+    list_filter = ('company',)
+
+# admin.site.register(UOMMaster)
 admin.site.register(Integrations)
 admin.site.register(UserBrand)
 admin.site.register(Brands)
@@ -48,5 +68,8 @@ admin.site.register(ProductionStages)
 admin.site.register(AdminGroups)
 admin.site.register(GroupBrand)
 admin.site.register(GroupStages)
+admin.site.register(UserPrefixes, UserPrefixesAdmin)
+admin.site.register(CompanyRoles, CompanyRolesAdmin)
 admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)
 admin.site.register(CompanyMaster, CompanyMasterAdmin)
+admin.site.register(PaymentTerms)

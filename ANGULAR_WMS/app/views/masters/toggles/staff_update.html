@@ -1,5 +1,5 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate" autocomplete="off">
   <div class="modal-dialog model-custom modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -10,19 +10,84 @@
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Staff Name * </label>
-                <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
-                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" ng-readonly="showCase.update" required> </div>
+                <label class="control-label"> Subsidary </label>
+                <input ng-if="showCase.update" type="hidden" name="company_id" class="form-control" ng-model="showCase.model_data.company_id" value="{{showCase.model_data.company_id}}">
+                <input ng-if="showCase.update" type="text" name="company" class="form-control" ng-model="showCase.model_data.company" readonly>
+                <select class="form-control customer_status" ng-if="!showCase.update" ng-model="showCase.model_data.company_id" name="company_id" ng-change="showCase.get_company_warehouse_list()">
+                  <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
+                </select>
+              </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Email </label>
-                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64"> </div>
+                <label class="control-label"> Plant </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">
+                  <option value="">All</option>
+                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department </label>
+                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.department" value="{{showCase.model_data.department}}">
+                <input ng-if="showCase.update" type="text" name="department" class="form-control" ng-model="showCase.model_data.department" readonly>
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()">
+                  <option value="">All</option>
+                  <option ng-repeat="department in showCase.department_list" value="{{department.username}}">{{department.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Department Type </label>
+                <select class="form-control" ng-model="showCase.model_data.department_type" name="department_type" style="pointer-events: none" readonly>
+                  <option value="">All</option>
+                  <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Staff Name * </label>
+                <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
+                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Staff Code * </label>
+                <input ng-if="showCase.update" type="hidden" name="staff_code" class="form-control" ng-model="showCase.model_data.staff_code">
+                <input type="text" name="staff_code" class="form-control" ng-model="showCase.model_data.staff_code" maxlength="256" required ng-readonly="showCase.update"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Email *</label>
+                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" ng-readonly="showCase.update" required> </div>
+            </div>
+            <div class="col-md-4" ng-if="!showCase.update">
+              <div class="form-group">
+                <label class="control-label"> Password * </label>
+                <input name="password" type="password" class="form-control" ng-model="showCase.model_data.password" maxlength="64" autocomplete="new-password"> </div>
+            </div>
+            <div class="col-md-4" ng-if="!showCase.update">
+              <div class="form-group">
+                <label class="control-label"> Retype Password * </label>
+                <input name="re_password" type="password" class="form-control" ng-model="showCase.model_data.re_password" maxlength="64" autocomplete="new-password"> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Phone No. </label>
                 <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Position </label>
+                <select class="form-control" ng-model="showCase.model_data.position" name="position">
+                  <option ng-repeat="role in showCase.roles_list" value="{{role}}" ng-selected="role==showCase.model_data.position">{{role}}</option>
+                </select>
+              </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">

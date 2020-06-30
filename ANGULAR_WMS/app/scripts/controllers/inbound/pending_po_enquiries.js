@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
+        DTColumnBuilder.newColumn('Purchase Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'),
         DTColumnBuilder.newColumn('Enquiry From').withTitle('Enquiry From'),
         DTColumnBuilder.newColumn('Enquiry To').withTitle('Enquiry To'),
@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.update = true;
                     vm.title = "Reply Enquiry";
                     angular.copy(data.data, vm.model_data);
-                    vm.model_data.po_number = aData["PO Number"];
+                    vm.model_data.purchase_number = aData["Purchase Number"];
                     $state.go('app.inbound.RaisePo.submitResponseToEnquiry');
                   }
                 });

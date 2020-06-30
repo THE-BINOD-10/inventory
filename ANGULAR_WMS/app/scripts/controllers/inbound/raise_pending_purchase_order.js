@@ -56,7 +56,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", "Total Quantity", "Total Amount", 
+    var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", 
+                    "Category", "Total Quantity", "Total Amount", 
                     "PO Created Date", "PO Delivery Date", "Store", "Department",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];
@@ -170,6 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "pr_delivery_date": data.data.pr_delivery_date,
             "pr_created_date": data.data.pr_created_date,
             "product_category": data.data.product_category,
+            "sku_category": data.data.sku_category,
             "supplier_name": data.data.supplier_name,
             "warehouse": data.data.warehouse,
             "data": data.data.data,

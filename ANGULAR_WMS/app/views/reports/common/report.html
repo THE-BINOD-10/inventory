@@ -72,9 +72,11 @@
 			</label>
 		  </div>
 		</div>
-          <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'approval po report'">
-		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'approval po report' || ($state.current.data.title | lowercase) == 'pr report' || ($state.current.data.title | lowercase) == 'metropolis po report'">
+        <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
             <span ng-if="($state.current.data.title | lowercase) == 'approval po report'">Toggle PO Detail View</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'pr report'">PR SKU View</span>
+            <span ng-if="($state.current.data.title | lowercase) == 'metropolis po report'">PO SKU LEVEL View</span>
 		  </div>
 		  <div class="col-md-1 col-sm-1 col-xs-1">
 			<label class="switch switch-sm square mt5">

@@ -3672,9 +3672,14 @@ def get_pr_preview_data(request, user=''):
             skuQtyMap[uniq_key] += lineItem.quantity
         skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category)
         pr_user = lineItem.pending_pr.wh_user
-        supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
-                                sku__user=pr_user.id, supplier__supplier_id=supplierId)            
-        supplierName = supplierMappings[0].supplier.name
+        #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+        #                        supplier__supplier_id=supplierId)
+        #supplierName = supplierMappings[0].supplier.name
+        supplierQs = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplierId)
+        if supplierQs.exists():
+            supplierName = supplierQs[0].name
+        else:
+            supplierName = ''
         preferred_supplier = '%s:%s' %(supplierId, supplierName)
         supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
                                                 'supplier_name': supplierName,

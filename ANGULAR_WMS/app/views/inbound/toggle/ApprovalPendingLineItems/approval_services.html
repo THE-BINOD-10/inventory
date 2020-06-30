@@ -6,6 +6,8 @@
           <th>Supplier</th>
           <th>Service Code*</th>
           <th>Title</th>
+          <th>Details</th>
+          <th>Brand</th>
           <!-- <th>Asset Code</th> -->
           <th>Start Date</th>
           <th>End Date</th>
@@ -22,12 +24,13 @@
       <tbody>
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
           <td>
-            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', 'is_parent')" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
             ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');"
+            ng-disabled="!showCase.permissions.change_pendinglineitems"
             >
-            <select ui-select class="form-control" name="supplier" style="width:140px;"
+            <select ui-select class="form-control" name="supplier_id" style="width:140px;"
             ng-init="showCase.getFirstSupplier(product.fields);"
             ng-model="product.fields.supplier_id_name" 
             ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
@@ -52,6 +55,15 @@
           <td>
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
+          <td>
+            <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
+            type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
+          </td>
+          <td>
+            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" 
+            type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
+          </td>
+
           <!-- <td>
             <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="30">
           </td> -->

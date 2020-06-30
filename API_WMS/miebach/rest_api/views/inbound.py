@@ -255,7 +255,8 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         #if not pa_mails.exists(): # Creator Sub Users
         if not pr_numbers:
             filtersMap['pending_po__requested_user'] = request.user.id
-            del filtersMap['pending_po_id__in']
+            if filtersMap.has_key('pending_po_id__in'):
+                del filtersMap['pending_po_id__in']
     elif user.userprofile.warehouse_type in ['ADMIN']:
         store_logins = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'], send_parent=False)
         filtersMap['pending_po__wh_user__in'] = store_logins.values_list('id', flat=True)
@@ -1512,13 +1513,13 @@ def generated_actual_pr_data(request, user=''):
 
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
-        parent_user = get_admin(user)
+        parent_user = get_admin(pr_user)
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
-            supplierQs = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplierId)
+            supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
@@ -1534,13 +1535,14 @@ def generated_actual_pr_data(request, user=''):
         elif is_purchase_approver:
             # parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
-                        sku__user=pr_user.id).order_by('preference')
+                        sku__user=parent_user.id).order_by('preference')
             preferred_supplier = None
             if supplierMappings.exists():
                 for supplierMapping in supplierMappings:
                     supplierId = supplierMapping.supplier.supplier_id
                     supplierName = supplierMapping.supplier.name
-                    skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id, sku_code, pr_user)
+                    skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id, 
+                                    sku_code, parent_user)
                     if skuTaxes:
                         skuTaxVal = skuTaxes[0]
                         taxes = skuTaxVal['taxes']
@@ -3365,7 +3367,8 @@ def convert_pr_to_po(request, user=''):
             existingPRObjs = PendingPR.objects.filter(id__in=pr_ids)
             existingPRObj = existingPRObjs[0]
             requested_user = existingPRObj.requested_user
-            pr_user = existingPRObj.wh_user
+            dept_user = existingPRObj.wh_user
+            pr_user = get_admin(dept_user)
             shipments = pr_user.useraddresses_set.filter(address_type='Shipment Address').values()
             if shipments.exists():
                 shipToAddress = shipments[0]['address']
@@ -3456,7 +3459,7 @@ def convert_pr_to_po(request, user=''):
                     continue
 
                 if supplyObj:
-                    supplyId = supplyObj.id
+                    supplyId = supplyObj.supplier_id
                 else:
                     supplyId = None
 
@@ -3996,7 +3999,8 @@ def add_pr(request, user=''):
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
             else:
-                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', product_category=product_category)
+                reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PO', 
+                                    product_category=product_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
@@ -4006,7 +4010,8 @@ def add_pr(request, user=''):
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=True, central_po_data=central_po_data)
+                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, 
+                        hash_code, poFor=True, central_po_data=central_po_data)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -72,8 +72,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                     prIds = PendingPR.objects.filter(wh_user__in=subStoreDepts, final_status='store_sent')
                     all_prIds.extend(prIds)
             filtersMap['pending_pr_id__in'] = all_prIds
-    else:
-        filtersMap['pending_pr__wh_user'] = user
+    # else:
+    #     filtersMap['pending_pr__wh_user'] = user
     if request.user.id != user.id and status != 'approved':
         currentUserLevel = ''
         currentUserEmailId = request.user.email

@@ -1007,9 +1007,9 @@ def asset_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def service_form(request, user=''):
-    asset_file = request.GET['download-sku-file']
-    if asset_file:
-        return error_file_download(asset_file)
+    service_file = request.GET['download-sku-file']
+    if service_file:
+        return error_file_download(service_file)
     headers = copy.deepcopy(SERVICE_HEADERS)
     wb, ws = get_work_sheet('service', headers)
     return xls_to_response(wb, '%s.service_form.xls' % str(user.username))
@@ -1018,9 +1018,9 @@ def service_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def otheritems_form(request, user=''):
-    asset_file = request.GET['download-sku-file']
-    if asset_file:
-        return error_file_download(asset_file)
+    otheritems_file = request.GET['download-sku-file']
+    if otheritems_file:
+        return error_file_download(otheritems_file)
     headers = copy.deepcopy(OTHER_ITEM_HEADERS)
     wb, ws = get_work_sheet('other_items', headers)
     return xls_to_response(wb, '%s.otheritems_form.xls' % str(user.username))

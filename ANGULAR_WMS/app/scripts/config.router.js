@@ -829,7 +829,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Purchase Approval',
+            title: 'Purchase Approval Matrix',
           }
         })
         .state('app.masters.PurchaseApproval.updateApproval', {
@@ -876,7 +876,15 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
-                ])
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_pr_enquiries.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/approved_purchase_requests.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -910,6 +918,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePr.PRemptyPreview', {
           url: '/ConverPRtoPO',
           templateUrl: 'views/inbound/toggle/pr_consolidated_preview.html'
+          })
+          .state('app.inbound.RaisePr.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
           })
 
         .state('app.inbound.RaisePo', {

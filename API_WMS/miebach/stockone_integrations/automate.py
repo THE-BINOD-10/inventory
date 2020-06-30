@@ -9,6 +9,8 @@ from stockone_integrations.utils import init_logger
 ListOfExecution = [
     { 'function': 'IntegrateUOM', 'objType': 'uom', 'unique_param': 'name'},
     { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
+    { 'function': 'IntegrateInventoryAdjustment', 'objType': 'InventoryAdjustment', 'unique_param': 'ia_number'},
+    { 'function': 'IntegrateInventoryTransfer', 'objType': 'InventoryTransfer', 'unique_param': 'it_number'},
     { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
     { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
     { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition', 'unique_param': 'full_pr_number'},
@@ -36,6 +38,7 @@ def executeAutomatedTaskForUser(userObj, row):
         log.info('Connection With Integration Layer Failed')
     try:
         currentData = intObj.getRelatedJson(row.get('objType'))
+        print(row.get('objType'), userObj, currentData)
         log.info('Executing %s' % (row.get('objType')))
         if len(currentData):
             log.info('Executing %s' % (row.get('objType')))

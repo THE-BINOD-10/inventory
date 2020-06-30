@@ -4802,7 +4802,6 @@ def search_wms_data(request, user=''):
                                       status = 1,user=user.id)
     if sku_catg:
         query_objects = query_objects.filter(sku_category=sku_catg)
-
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
@@ -4812,11 +4811,11 @@ def search_wms_data(request, user=''):
         else:
             noOfTests = 0
         company_id = get_company_id(user)
-        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase', company_id=company_id)
+        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
         sku_conversion = 0
         if sku_uom.exists():
-             measurement_unit = sku_uom[0].uom
-             sku_conversion = float(sku_uom[0].conversion)
+            measurement_unit = sku_uom[0].uom
+            sku_conversion = float(sku_uom[0].conversion)
         else:
             measurement_unit = master_data.measurement_type
             sku_conversion = 0
@@ -6332,12 +6331,12 @@ def order_cancel_functionality(order_det_ids, admin_user=''):
                 if not cancel_invoice_serial:
                     cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
                 cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-								   picklist__order_id=order_det.id)
+                                   picklist__order_id=order_det.id)
                 if not cancel_location:
                     CancelledLocation.objects.create(picklist_id=picklist.id,
-						     quantity=picklist.picked_quantity,
-						     location_id=picklist.stock.location_id,
-						     creation_date=datetime.datetime.now(), status=1,
+                             quantity=picklist.picked_quantity,
+                             location_id=picklist.stock.location_id,
+                             creation_date=datetime.datetime.now(), status=1,
                             cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
                     picklist.reserved_quantity = 0

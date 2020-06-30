@@ -29,7 +29,7 @@
           ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
           ng-disabled="!showCase.permissions.change_pendinglineitems">
             <option ng-repeat="(supplier_id_name, sup_details) in product.fields.supplierDetails"
-            value="{{supplier_id_name}}">{{supplier_id_name}}
+            value="{{supplier_id_name}}"  ng-selected="supplier_id_name==product.fields.supplier_id_name">{{supplier_id_name}}
             </option>
           </select>
           <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide">

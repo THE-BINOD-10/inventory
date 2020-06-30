@@ -634,6 +634,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sup_data.price = supDetails.price;
         sup_data.total = supDetails.total;
         sup_data.supplier_id = supDetails.supplier_id;
+        sup_data.supplier_id_name = supplier_id_name;
       }
     }
 

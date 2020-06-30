@@ -1509,12 +1509,12 @@ def generated_actual_pr_data(request, user=''):
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
             json_data = eval(pr_supplier_data[0].model_json)
-            supplierId = json_data['supplier_id']
+            supplierId = json_data['supplier']
             supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
-            supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+            supplierDetailsMap[preferred_supplier] = {'supplier': supplierId,
                                                     'supplier_name': supplierName,
                                                     'moq': json_data['moq'],
                                                     'price': json_data['price'],
@@ -3073,11 +3073,11 @@ def approve_pr(request, user=''):
             total = myDict['total'][i]
             unit_price = myDict['price'][i]
             moq = myDict['moq'][i]
-            supplier_id = myDict['supplier_id'][i]
+            supplier_id = myDict['supplier'][i]
             if not supplier_id:
                 return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
-                'supplier_id': supplier_id,
+                'supplier': supplier_id,
                 'tax': tax,
                 'amount': amount,
                 'price': unit_price,

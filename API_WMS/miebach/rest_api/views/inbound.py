@@ -233,6 +233,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 pr_numbers = list(PurchaseApprovals.objects.filter(
                                 configName=configName,
                                 level=currentUserLevel,
+                                purchase_type='PO',
                                 status='').distinct().values_list('pending_po_id', flat=True))
 
                 filtersMap.setdefault('pending_po_id__in', [])

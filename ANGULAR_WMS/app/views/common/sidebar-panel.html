@@ -58,6 +58,16 @@
             <span>SKU Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('view_machinemaster')">
+          <a ui-sref="app.masters.MachineMaster">
+            <span>Machine Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_testmaster')">
+          <a ui-sref="app.masters.TestMaster">
+            <span>Test Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('add_assetmaster')">
           <a ui-sref="app.masters.AssetMaster">
             <span>Asset Master</span>

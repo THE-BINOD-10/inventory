@@ -101,6 +101,8 @@ ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'a
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 
+TEST_SKU_DATA = {'test_code':'', 'test_type':'', 'department_type':'', 'test_name':''}
+
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1,
@@ -111,6 +113,10 @@ VENDOR_DATA = {'vendor_id': '', 'name': '', 'address': '', 'phone_number': '', '
 
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
+
+MACHINE_MASTER_DATA = {'master_code': '','master_name': '',
+                       'model_number': '', 'serial_number': '',
+                       'brand': '','status': 1,'creation_date':NOW}
 
 SUPPLIER_DATA = {'supplier_id': '', 'name': '', 'address': '', 'phone_number': '', 'email_id': '',
                  'status': 1, 'tax_type': '', 'po_exp_duration': 0,
@@ -153,6 +159,9 @@ LOCATION_GROUP_FIELDS = {'group': '', 'location_id': ''}
 LOC_DATA = {'zone_id': '', 'location': '',
             'max_capacity': 0, 'fill_sequence': 0, 'pick_sequence': 0,
             'filled_capacity': 0, 'status': 1}
+
+MACHINE_DATA = {'machine_code': '', 'machine_name': '', 'model_number': '',
+                'serial_number': '', 'brand': '', 'status':1}
 
 ZONE_DATA = {'user': '', 'zone': ''}
 
@@ -223,6 +232,10 @@ RESOLVED_ISSUE_FIELDS = ((('Issue Title', 'issue_title', 60), ('Name', 'name', 2
 SUPPLIER_FIELDS = ((('Supplier Id *', 'id', 60), ('Supplier Name *', 'name', 256)),
                    (('Email *', 'email_id', 64), ('Phone No. *', 'phone_number', 10)),
                    (('Address *', 'address'), ('Status', 'status', 11)),)
+
+MACHINE_MASTER_FIELDS = ( (('Machine Code *', 'machine_code', 60), ('Machine Name *', 'machine_name',128)),
+                          (('Model Number *', 'model_number', 128), ('Serial Number *', 'serial_number', 128)),
+                          (('Brand *', 'brand', 128), ('Status *' 'status', 11)))
 
 SKU_SUPPLIER_FIELDS = ((('Supplier ID *', 'supplier_id', 60), ('WMS Code *', 'wms_id', '')),
                        (('Supplier Code', 'supplier_code'), ('Priority *', 'preference', 32)),
@@ -1506,7 +1519,11 @@ ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']
 
-SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type',
+TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type', 'Status']
+
+MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Number', 'Brand', 'Status']
+
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type', 
                'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                'Asset Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
@@ -1561,6 +1578,10 @@ SKU_WH_MAPPING = OrderedDict(
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'supplier_id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
      ('Email', 'email_id'), ('Status', 'status')])
+
+MACHINE_MASTER_HEADERS = OrderedDict(
+    [('Machine Code', 'machine_code'), ('Machine Name', 'machine_name'),
+     ('Model Number', 'model_number'), ('Serial Number', 'serial_number'), ('Brand', 'brand'),('Status', 'status')])
 
 STOCK_DET = ([('0', 'receipt_number'), ('1', 'receipt_date'), ('2', 'sku_id__sku_code'), ('3', 'sku_id__wms_code'),
               ('4', 'sku_id__sku_desc'), ('5', 'location_id__zone'), ('6', 'location_id__location'), ('7', 'quantity')])
@@ -1882,6 +1903,9 @@ OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Descr
                                   ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                   ('HSN Code', 'hsn_code'), ('Status', 'status')
                                 ))
+TEST_COMMON_MAPPING  = OrderedDict((('Test Code', 'test_code'), ('Test Name', 'test_name'),
+                                  ('Test Type', 'test_type'), ('Department Type', 'department_type'),
+                                    ('Status', 'status')))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
@@ -2611,6 +2635,9 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict((('supplier_id', 0), ('name', 1), ('address'
                                      ('account_holder_name', 28), ('secondary_email_id', 29),
                                      ('currency_code', 30),
                                      ))
+MACHINE_MASTER_EXCEL_FIELDS = OrderedDict((('machine_code',0), ('machine_name',1),('model_number',2),
+                                            ('serial_number',3),('brand',4),('status',5)))
+
 STATUS_DICT = {1: True, 0: False}
 
 PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']

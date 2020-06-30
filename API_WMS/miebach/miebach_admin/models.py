@@ -3918,7 +3918,6 @@ class Discrepancy(models.Model):
     class Meta:
         db_table = 'DISCREPANCY'
 
-
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -3931,7 +3930,6 @@ class UserPrefixes(models.Model):
 
     class Meta:
         db_table = 'USER_PREFIXES'
-
 
 class UOMMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3951,3 +3949,28 @@ class UOMMaster(models.Model):
 
     def __unicode__(self):
         return '%s-%s' % (self.company, self.name)
+
+
+class MachineMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User,blank=True, null=True)
+    machine_code = models.CharField(max_length=128)
+    machine_name = models.CharField(max_length=128)
+    model_number = models.CharField(max_length=128)
+    serial_number = models.CharField(max_length=128)
+    brand = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MACHINE_MASTER'
+
+class TestMaster(SKUMaster):
+    test_code = models.CharField(max_length=128)
+    test_name = models.CharField(max_length=128)
+    test_type = models.CharField(max_length=128)
+    department_type = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = 'TEST_MASTER'

@@ -62,6 +62,11 @@ class netsuiteIntegration(object):
             invitem.isinactive = data.get('status','')
             invitem.itemtype = data.get('batch_based','')
             invitem.purchaseunit = data.get('measurement_type','')
+            invitem.salesDescription = data.get('sku_desc','')
+            if data.get('subsidiary', None):
+                invitem.subsidiary = ns.ListOrRecordRef(internalId=data["subsidiary"])
+            if data.get('department', None):
+                invitem.department = ns.RecordRef(internalId=data["department"])
             invitem.includeChildren = 'Y'
             invitem.cost= data.get('cost_price','')
             if data.get('unitypeexid', None):
@@ -89,9 +94,10 @@ class netsuiteIntegration(object):
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_noofflex', value=data.get('No. of flex'))
                 )
             if data.get('Conversion Factor', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
-                )
+                if(data.get('Conversion Factor')!="['']"):
+                    customFieldList.append(
+                    ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
+                    )
             if data.get('sku_class', None):
                 if("non_inventoryitem" not in data):
                     customFieldList.append(
@@ -121,6 +127,8 @@ class netsuiteIntegration(object):
                 customFieldList.append(
                  ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.get('service_start_date').isoformat())
                 )
+            if  data.get("plant", None):
+                customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_plantcode', value=data["plant"]))
             customFieldList.append(
               ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=1))
             )
@@ -128,14 +136,12 @@ class netsuiteIntegration(object):
               ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
             )
             customFieldList.append(
-              ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1)),
+              ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1))
             )
             customFieldList.append(
-              ns.StringCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.RecordRef(internalId=1))
+              ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
             )
-
             invitem.customFieldList = ns.CustomFieldList(customFieldList)
-
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -152,6 +158,7 @@ class netsuiteIntegration(object):
             rtvitem.entity = str(rtv_data["supplier_name"])
             rtvitem.tranId = rtv_data['rtv_number']
             rtvitem.orderStatus = ns.RecordRef(internalId='B')
+            rtvitem.location = ns.RecordRef(internalId=297)
             # rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
@@ -159,24 +166,33 @@ class netsuiteIntegration(object):
             custom_field_list=[]
             custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=rtv_data["debit_note_url"]))
             custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_adjustinventory_status', value=ns.ListOrRecordRef(internalId=2)))
+            if rtv_data.get('subsidiary', None):
+                rtvitem.subsidiary = ns.ListOrRecordRef(internalId=rtv_data["subsidiary"])
+            if rtv_data.get('department', None):
+                rtvitem.department = ns.RecordRef(internalId=rtv_data["department"])
+
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
             for idx, data in enumerate(rtv_data['item_details']):
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
+                'rate': data['price'],
                 'quantity': data['order_qty'],
                 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
                 'description': data['sku_desc']
                 }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             rtvitem.itemList = {'item':item}
             rtvitem.externalId = rtv_data['rtv_number']
             rtvitem.quantity = rtv_data["total_qty"]
             rtvitem.amount = rtv_data["total_without_discount"]
             rtvitem.memo= rtv_data["return_reason"]
-
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -211,6 +227,10 @@ class netsuiteIntegration(object):
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            if(grn_data.get("subsidiary",None)):
+                grnrec.subsidiary = ns.ListOrRecordRef(internalId=grn_data['subsidiary'])
+            if(grn_data.get("department",None)):
+                grnrec.department = ns.RecordRef(internalId=grn_data['department'])
             if(grn_data.get("items",None)):
                 for idx, data in enumerate(grn_data['items']):
                     grn_custom_field_list=[]
@@ -225,16 +245,19 @@ class netsuiteIntegration(object):
                     'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True,
                     "customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
+                    if data.get('uom_name', None) and data.get('unitypeexid', None):
+                        internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                        if internId:
+                            line_item.update({'units': ns.RecordRef(internalId=internId)})
                     item.append(line_item)
                 grnrec.itemList = {'item':item, 'replaceAll': False}
                 grnrec.tranId = grn_data['grn_number']
                 grnrec.tranDate = grn_data["grn_date"]
             grnrec.externalId = grn_data['grn_number']
-            print(grnrec)
         except Exception as e:
             import traceback
-            log.debug(traceback.format_exc())
-            log.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
+            log_error.debug(traceback.format_exc())
+            log_error.info('Create GRN data failed for %s and error was %s' % (str(grn_data['po_number']), str(e)))
         return grnrec
 
 
@@ -257,6 +280,7 @@ class netsuiteIntegration(object):
             # purorder.taxRegOverride = True
             # purorder.taxDetailsOverride = True
             # purorder.entityTaxRegNum = ns.RecordRef(internalId= 437)
+
             # purorder.purchaseordertype = po_data['order_type']
             if po_data['product_category'] == 'Services':
                 product_list_id = 2
@@ -265,24 +289,38 @@ class netsuiteIntegration(object):
             else:
                 product_list_id = 3
 
+
             # purorder.location = warehouse_id
             purorder.approvalstatus = ns.RecordRef(internalId=2)
             # purorder.subsidiary = '1'
-            purorder.subsidiary = po_data['subsidiary']
-            # purorder.department = po_data['user_id']
-            purorder.department = po_data['department']
-            # ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['company_id'])
-            purorder.customFieldList =  ns.CustomFieldList([
+            if(po_data.get('subsidiary',None)):
+                purorder.subsidiary = ns.ListOrRecordRef(internalId=po_data['subsidiary'])
+            if(po_data.get('department',None)):
+                purorder.department = ns.RecordRef(internalId=po_data['department'])
+
+            if (po_data.get("payment_code", None)):
+                purorder.terms = po_data.get("payment_code")
+            if (po_data.get("address_id", None)):
+                purorder.billAddress = ns.RecordRef(internalId=po_data.get("address_id"))
+
+            po_custom_field_list =  [
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=po_data['requested_by']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=po_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
-                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27)),
-                ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant'])
-            ])
+                ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
+            ]
+            purorder.location= ns.RecordRef(internalId=297)
+            if(po_data.get("plant", None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant']))
+            if (po_data.get("supplier_gstin", None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_in_vendor_gstin', value=po_data["supplier_gstin"]))
+            purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
-                line_item = {'item': ns.RecordRef(externalId=data['sku_code']),
+                line_item = {
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 # 'item': ns.RecordRef(internalId=17346),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
@@ -290,13 +328,12 @@ class netsuiteIntegration(object):
                  'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                   ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                 }
-                if po_data.get('uom_name', None) and po_data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(po_data['uom_name'], po_data['unitypeexid'])
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': internId})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purorder.itemList = { 'item': item }
-
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -315,23 +352,31 @@ class netsuiteIntegration(object):
             purreq.tranDate = pr_data['pr_date']
             purreq.tranId = pr_data['full_pr_number']
             purreq.tranDate = pr_data['pr_date']
-            # purreq.subsidiary = ns.RecordRef(internalId=16)
-            purreq.customFieldList =  ns.CustomFieldList([
+            purreq.location= ns.RecordRef(internalId=297)
+            # purreq.subsidiary = ns.RecordRef(internalId=1)
+            if(pr_data['subsidiary']):
+                purreq.subsidiary = ns.ListOrRecordRef(internalId=pr_data['subsidiary'])
+            if(pr_data['department']):
+                purreq.department = ns.RecordRef(internalId=pr_data['department'])
+            custom_list=[
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
-            ])
+            ]
+            if(pr_data.get('plant', None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
+            purreq.customFieldList =  ns.CustomFieldList(custom_list)
             for data in pr_data['items']:
                 line_item = {
-                    'item': ns.RecordRef(internalId=17453),
+                    'item':ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
                     'location':ns.RecordRef(internalId=297)
                 }
-                if pr_data.get('uom_name', None) and pr_data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(pr_data['uom_name'], pr_data['unitypeexid'])
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:
-                        line_item.update({'units': internId})
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purreq.itemList = { 'purchaseRequisitionItem': item }
             purreq.externalId = pr_data['full_pr_number']
@@ -351,19 +396,18 @@ class netsuiteIntegration(object):
             UnitsType.name = uom_data['name']
             for data in uom_data['uom_items']:
                 line_item = {
-                    'internalId': data['unit_name'],
+                    'externalId': '%s-%s' % (uom_data['name'], data['unit_name']),
                     'unitName': data['unit_name'],
                     'abbreviation': data['unit_name'],
                     'pluralName': data['unit_name'],
                     'pluralAbbreviation': data['unit_name'],
                     'conversionRate': data['unit_conversion']
                 }
-                if data['is_base']:
+                if data.get('is_base', False):
                     line_item.update({'baseUnit': True})
                 item.append(line_item)
 
-            # import pdb;pdb.set_trace()
-            UnitsType.uomList = { 'uom': item }
+            UnitsType.uomList = { 'uom': item, 'replaceAll': False}
             UnitsType.externalId = uom_data['name']
         except Exception as e:
             import traceback
@@ -385,4 +429,117 @@ class netsuiteIntegration(object):
             print(traceback.format_exc())
             log.debug(traceback.format_exc())
             log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
-        return False        
+        return False
+
+
+    def get_data(self, rec_type, internalId=None, externalId=None):
+        try:
+            ns = self.nc.raw_client
+            if internalId:
+                response = ns.get(rec_type, internalId=internalId)
+            elif externalId:
+                response = ns.get(rec_type, externalId=externalId)
+            else:
+                return None
+            return response
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            log.debug(traceback.format_exc())
+            log_err.info('Fetching Data Failed For %s , reason :: %s' % (rec_type, str(e)))
+        
+    def netsuite_create_invadj(self, ia_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            item = []
+            ia = ns.InventoryAdjustment()
+            ia.tranDate = ia_data['ia_date']
+            ia.externalId = ia_data['ia_number']
+            ia.tranId = ia_data['ia_number']
+            ia.memo = ia_data['remarks']
+            
+            # if po_data['product_category'] == 'Services':
+            #     product_list_id = 2
+            # elif po_data['product_category'] == 'Assets':
+            #     product_list_id = 1
+            # else:
+            #     product_list_id = 3
+
+            if (ia_data.get('subsidiary',None)):
+                ia.subsidiary = ns.ListOrRecordRef(internalId=ia_data['subsidiary'])
+            if (ia_data.get('department',None)):
+                ia.department = ns.RecordRef(internalId=ia_data['department'])
+            ia.account = ns.RecordRef(internalId=124)
+            if (ia_data.get('account',None)):
+                ia.account = ns.RecordRef(internalId=ia_data['account'])
+
+            ia_custom_field_list =  [
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_reason', value=ns.ListOrRecordRef(internalId=1))
+            ]
+            ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
+            for data in ia_data['items']:
+                line_item = {
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'adjustQtyBy':data['adjust_qty_by'],
+                 'location':ns.RecordRef(internalId=297)
+                }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                item.append(line_item)
+            ia.inventoryList = { 'inventory': item }
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Create Inventory Adjustment data failed and error was %s' % (str(e)))
+        return ia
+
+    def netsuite_create_invtrf(self, it_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            item = []
+            it = ns.InventoryTransfer()
+            it.tranDate = it_data['it_date']
+            it.externalId = it_data['it_number']
+            #it.tranId = it_data['it_number']
+            it.memo = it_data['remarks']
+            
+            # if po_data['product_category'] == 'Services':
+            #     product_list_id = 2
+            # elif po_data['product_category'] == 'Assets':
+            #     product_list_id = 1
+            # else:
+            #     product_list_id = 3
+
+            if (it_data.get('subsidiary',None)):
+                it.subsidiary = ns.ListOrRecordRef(internalId=it_data['subsidiary'])
+            if (it_data.get('department',None)):
+                it.department = ns.RecordRef(internalId=it_data['department'])
+            if (it_data.get('account',None)):
+                it.account = ns.RecordRef(internalId=it_data['account'])
+
+            it.location = ns.RecordRef(internalId=297)
+            it.transferLocation = ns.RecordRef(internalId=269)
+            # ia_custom_field_list =  [
+            #     ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_reason', value=ns.ListOrRecordRef(internalId=1))
+            # ]
+            # ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
+            for data in it_data['items']:
+                line_item = {
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'adjustQtyBy':data['adjust_qty_by'],
+                }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                item.append(line_item)
+            it.inventoryList = { 'inventory': item }
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Create Inventory Adjustment data failed and error was %s' % (str(e)))
+        return it

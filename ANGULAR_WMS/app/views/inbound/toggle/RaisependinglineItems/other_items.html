@@ -5,6 +5,7 @@
         <tr>
           <th>Other Item Code*</th>
           <th>Title</th>
+          <th>Brand</th>
           <th>Type</th>
           <th class="w10_">Quantity*</th>
           <th class="plus"></th>
@@ -23,6 +24,9 @@
           </td>
           <td>
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+          </td>
+          <td>
+            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
             <input ng-model="product.fields.type" title="{{ product.fields.type }}" type="text" class="form-control detectTab" readonly>

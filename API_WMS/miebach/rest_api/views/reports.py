@@ -80,9 +80,8 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             sister_warehouses = [user.username]
             sister_warehouses1 = list(
-                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
-                                                                                         flat=True).distinct())
-            data['filters'][data_index]['values'] = list(chain(sister_warehouses, sister_warehouses1))
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -94,6 +93,33 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
+
+    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report']:
+        if 'sister_warehouse' in filter_keys:
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(
+                filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            sister_warehouses = [user.username]
+            sister_warehouses1 = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+            data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
+
+        if 'final_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'final_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PR_REPORT_PR_STATUS
+
+        if 'priority_type' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'priority_type' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PR_REPORT_PRIORITY_STATUS
+
+        if 'product_category' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
+
+
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
                          'zone_target_summary_report', 'zone_target_detailed_report',
                          'corporate_reseller_mapping_report', 'financial_report', ''):
@@ -1145,6 +1171,18 @@ def sku_category_list(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def department_warehouse(request, user=''):
+    # categories = list(SKUMaster.objects.exclude(sku_category='').filter(user=user.id).values_list('sku_category',
+    #                                                                                               flat=True).distinct())
+    sister_warehouses1 = list(
+        UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',
+                                                                                 flat=True).distinct())
+    return HttpResponse(json.dumps({'sister_warehouses': sister_warehouses1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_po_reports(request, user=''):
     receipt_type = ''
     po_id = request.GET.get('po_id', '')
@@ -1367,7 +1405,7 @@ def print_po_reports(request, user=''):
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
-                   'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
+                   'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
                    'st_grn':st_grn,
@@ -1891,6 +1929,7 @@ def get_po_report(request, user=''):
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1899,6 +1938,24 @@ def get_open_order_report(request, user=''):
     temp_data = get_open_order_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_pr_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_pr_detail_report_data(search_params, user, request)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 
 @csrf_exempt
@@ -2487,3 +2544,20 @@ def get_approval_detail_report(request, user=''):
     temp_data = get_approval_detail_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_detail_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+

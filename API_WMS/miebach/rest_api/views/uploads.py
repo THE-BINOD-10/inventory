@@ -1003,13 +1003,33 @@ def asset_form(request, user=''):
     wb, ws = get_work_sheet('assets', headers)
     return xls_to_response(wb, '%s.asset_form.xls' % str(user.username))
 
+@csrf_exempt
+@get_admin_user
+def test_form(request, user=''):
+    test_file = request.GET['download-sku-file']
+    if test_file:
+        return error_file_download(test_file)
+    headers = copy.deepcopy(TEST_MASTER_HEADERS)
+    wb, ws = get_work_sheet('test', headers)
+    return xls_to_response(wb, '%s.test_form.xls' % str(user.username))
+
+@csrf_exempt
+@get_admin_user
+def machine_form(request, user=''):
+    machine_file = request.GET['download-machine-file']
+    if machine_file:
+        return error_file_download(machine_file)
+    headers = copy.deepcopy(MACHINE_MASTER_HEADERS)
+    wb, ws = get_work_sheet('machine', headers)
+    return xls_to_response(wb, '%s.machine_form.xls' % str(user.username))
+
 
 @csrf_exempt
 @get_admin_user
 def service_form(request, user=''):
-    asset_file = request.GET['download-sku-file']
-    if asset_file:
-        return error_file_download(asset_file)
+    service_file = request.GET['download-sku-file']
+    if service_file:
+        return error_file_download(service_file)
     headers = copy.deepcopy(SERVICE_HEADERS)
     wb, ws = get_work_sheet('service', headers)
     return xls_to_response(wb, '%s.service_form.xls' % str(user.username))
@@ -1018,9 +1038,9 @@ def service_form(request, user=''):
 @csrf_exempt
 @get_admin_user
 def otheritems_form(request, user=''):
-    asset_file = request.GET['download-sku-file']
-    if asset_file:
-        return error_file_download(asset_file)
+    otheritems_file = request.GET['download-sku-file']
+    if otheritems_file:
+        return error_file_download(otheritems_file)
     headers = copy.deepcopy(OTHER_ITEM_HEADERS)
     wb, ws = get_work_sheet('other_items', headers)
     return xls_to_response(wb, '%s.otheritems_form.xls' % str(user.username))
@@ -1457,7 +1477,7 @@ def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fna
 
 @csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
-                        is_asset=False, is_service=False):
+                        is_asset=False, is_service=False, is_test=False):
     sku_data = []
     wms_data = []
     index_status = {}
@@ -1468,6 +1488,9 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
         sku_file_mapping = get_asset_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     if is_service:
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if is_test:
+        sku_file_mapping = get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     zones_dict = dict(ZoneMaster.objects.filter(user=user.id).values_list('zone', 'id'))
     zones_list = map(lambda x:x.upper(),zones_dict)
@@ -1501,6 +1524,34 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
+            elif key == 'test_code' and is_test:
+                data_set = wms_data
+                data_type = 'WMS'
+                test_code = cell_data
+                # if isinstance(cell_data, float):
+                #     sku_code = str(int(cell_data))
+                #     test_code = str(int(cell_data))
+                #     check_test_master = TestMaster.objects.filter(test_code = cell_data)
+                #     if check_test_master.exists():
+                #         index_status.setdefault(row_idx, set()).add('Duplicate Test Code found in File')
+                #     else:
+                #         upload_file_skus.append(str(test_code))
+                #     # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Code missing')
+            if key == 'test_name' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Name missing')
+            elif key == 'test_type' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Test Type missing')
+            elif key == 'department_type' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Department Type missing')
+            elif key == 'status' and is_test:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('status missing')
+
             elif key == 'sku_group':
                 if cell_data:
                     sku_groups = SKUGroups.objects.filter(group__iexact=cell_data, user=user.id)
@@ -1560,8 +1611,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('hsn Code missing')
+                #if not cell_data:
+                #    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
@@ -1681,6 +1732,12 @@ def get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_t
                                                  sku_mapping)
     return sku_file_mapping
 
+def get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
+    sku_mapping = copy.deepcopy(TEST_COMMON_MAPPING)
+    sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                sku_mapping)
+    return sku_file_mapping
+
 
 def get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
     sku_mapping = copy.deepcopy(OTHERITEMS_COMMON_MAPPING)
@@ -1688,9 +1745,8 @@ def get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file
                                                  sku_mapping)
     return sku_file_mapping
 
-
 def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
-                        is_asset=False, is_service=False, is_item=False):
+                        is_asset=False, is_service=False, is_item=False, is_test=False):
     from masters import check_update_size_type
     from masters import check_update_hot_release
     from api_calls.netsuite import netsuite_update_create_sku
@@ -1710,6 +1766,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     if is_service:
         instanceName = ServiceMaster
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if is_test:
+        instanceName = TestMaster
+        sku_file_mapping = get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     if is_item:
         instanceName = OtherItemsMaster
         sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
@@ -1729,6 +1788,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             data_dict.update(ASSET_SKU_DATA)
         if is_item:
             data_dict.update(OTHERITEMS_SKU_DATA)
+        if is_test:
+            data_dict.update(TEST_SKU_DATA)
 
         temp_dict = data_dict.keys()
         temp_dict += ['size_type', 'hot_release']
@@ -1924,13 +1985,21 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
-        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster'] and not sku_data:
+        if is_test:
+            data_dict['wms_code'] = str(data_dict['test_code'])
+            data_dict['sku_desc'] = str(data_dict['test_name'])
+
+        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
+            if is_test:
+                check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
+                if check_sku_data:
+                    check_sku_data.delete()
             sku_data = instanceName(**data_dict)
             sku_data.save()
         if sku_data:
@@ -1963,11 +2032,20 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
 
-            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
+            if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
+            if is_test:
+                data_dict['test_code'] = str(data_dict['test_code'])
+                data_dict['test_name'] = str(data_dict['test_name'])
+                data_dict['test_type'] = str(data_dict['test_type'])
+                data_dict['department_type'] = str(data_dict['department_type'])
+                data_dict['sku_code'] = data_dict['test_code']
+                data_dict['sku_desc'] = data_dict['test_name']
+                test_respone = validate_test_data(data_dict)
+                data_dict = test_reponse
             sku_master = instanceName(**data_dict)
             #sku_master = SKUMaster(**data_dict)
             #new_skus.append(sku_master)
@@ -2040,11 +2118,13 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
         for sku_code, sku_id in sku_key_map.items():
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_master_data=intObj.gatherSkuData(sku_master_data)
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
+            sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
@@ -2054,15 +2134,17 @@ def upload_netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
             sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateOtherItemsMaster(sku_data_dict, sku_data_dict["sku_code"], is_multiple=False)
+            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
         else:
             # # intObj.initiateAuthentication()
             # sku_data_dict.update(sku_attr_dict)
@@ -2154,6 +2236,61 @@ def service_upload(request, user=''):
         return HttpResponse("Service Master Upload Failed")
 
     return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def test_upload(request, user=''):
+    try:
+        reversion.set_user(request.user)
+        reversion.set_comment("upload_test")
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_test=True)
+        if status != 'Success':
+            return HttpResponse(status)
+        sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_test=True)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Test Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Test Master Upload Failed")
+
+    return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def machine_upload(request, user=''):
+    try:
+        user_id =user.id
+        fname = request.FILES['files']
+        if (fname.name).split('.')[-1] != 'xls' and (fname.name).split('.')[-1] != 'xlsx':
+            return HttpResponse('Invalid File Format')
+
+        try:
+            open_book = open_workbook(filename=None, file_contents=fname.read())
+            open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse('Invalid File')
+        status = validate_machine_form(open_sheet, user_id)
+        if status != 'Success':
+            return HttpResponse(status)
+        machine_excel_upload(request, open_sheet, user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Machine Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Machine Master Upload Failed")
+
+    return HttpResponse('Success')
+
+
 
 
 @csrf_exempt
@@ -2764,7 +2901,6 @@ def supplier_upload(request, user=''):
 
     return HttpResponse('Success')
 
-
 @csrf_exempt
 def validate_vendor_form(open_sheet, user_id):
     index_status = {}
@@ -3139,6 +3275,64 @@ def validate_location_form(open_sheet, user):
     write_error_file(f_name, index_status, open_sheet, LOCATION_HEADERS, 'Issues')
     return f_name
 
+@csrf_exempt
+def validate_machine_form(open_sheet, user_id):
+    index_status = {}
+    machine_codes = []
+    mapping_dict = copy.deepcopy(MACHINE_MASTER_EXCEL_FIELDS)
+    user = User.objects.get(id=user_id)
+    messages_dict = {'machine_code': 'Machine Code', 'machine_name': 'Machine Name',
+                     'model_number': 'Model Number', 'serial_number': 'Serial Number',
+                     'brand': 'Brand', 'status': 'Status'}
+    number_str_fields = ['machine_code', 'machine_name', 'model_number', 'serial_number', 'brand']
+    for row_idx in range(0, open_sheet.nrows):
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            if row_idx == 0:
+                if open_sheet.cell(row_idx, 0).value != 'Machine Code':
+                    return 'Invalid File'
+                break
+            if key == 'serial_number':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if cell_data:
+                    machine_master = MachineMaster.objects.filter(serial_number=cell_data, user=user.id)
+                    if machine_master:
+                        index_status.setdefault(row_idx, set()).add('Serial Number Already exists')
+                if cell_data and cell_data in machine_codes:
+                    index_status.setdefault(row_idx, set()).add('Serial Number Already exists')
+                    for index, data in enumerate(machine_codes):
+                        if data == cell_data:
+                            index_status.setdefault(index + 1, set()).add('Serial Number Already exists')
+                machine_codes.append(cell_data)
+            elif key == 'machine_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Machine Code is Missing')
+                else:
+                    machine_codes.append(cell_data)
+            elif key == 'machine_name':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Machine Name')
+                else:
+                    machine_codes.append(cell_data)
+            elif key == 'brand':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Brand')
+                else:
+                    machine_codes.append(cell_data)
+            elif key == 'model_number':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Model Number')
+                else:
+                    machine_codes.append(cell_data)
+
+    if not index_status:
+        return 'Success'
+    machine_headers = copy.deepcopy(MACHINE_HEADERS)
+    f_name = '%s.machine_form.xls' % user
+    write_error_file(f_name, index_status, open_sheet, machine_headers, 'Machine')
+    return f_name
+
 
 @csrf_exempt
 def process_location(request, open_sheet, user):
@@ -3179,6 +3373,51 @@ def process_location(request, open_sheet, user):
             sku_group = sku_group.split(',')
             save_location_group(location.id, sku_group, user)
 
+def machine_excel_upload(request,open_sheet, user =''):
+    import pandas as pd
+    for row_idx in range(1, open_sheet.nrows):
+        machine_data = copy.deepcopy(MACHINE_DATA)
+        # for col_idx in range(0, len(MACHINE_MASTER_HEADERS)):
+
+        index_dict = {0: 'machine_code', 1: 'machine_name', 2: 'model_number', 3: 'serial_number', 4: 'brand', 5:'status'}
+        for col_idx in index_dict:
+            cell_data = str(open_sheet.cell(row_idx, col_idx).value)
+            if cell_data.endswith('.0'):
+                cell_data = cell_data.replace('.0', '')
+            if index_dict[col_idx] == 'serial_number':
+                cell_data = pd.to_numeric(cell_data, errors="coerce")
+                cell_data = cell_data.astype(int)
+            machine_data[index_dict[col_idx]] = cell_data
+
+        machine_dic = MachineMaster.objects.filter(machine_code = machine_data['machine_code'], user = user.id)
+        if not machine_dic:
+            if machine_data['status'] =='active' or 'Active':
+                machine_data['status'] = 1
+            else:
+                machine_data['status'] = 0
+            final_machine_dict = MachineMaster(user=user,**machine_data)
+            final_machine_dict.save()
+            status_msg = "Success"
+        else:
+            machine_dic[0].machine_code = machine_dic[0].machine_code = machine_data['machine_code']
+            machine_dic[0].machine_name = machine_data['machine_name']
+            machine_dic[0].brand = machine_data['brand']
+            serial_check = MachineMaster.objects.filter(serial_number=machine_data['serial_number'])
+            if not serial_check:
+                machine_dic[0].serial_number = machine_data['serial_number']
+            else:
+                if machine_data['serial_number'] == machine_dic[0].serial_number:
+                    machine_dic[0].serial_number = machine_data['serial_number']
+                else:
+                    status_msg = "Serial Number already exists"
+                    break;
+            if machine_data['status'] == 'Active' or "active" or 1:
+                machine_dic[0].status = 1
+            else:
+                machine_dic[0].status = 0
+            machine_dic[0].save()
+            status_msg = "Success"
+    return HttpResponse(status_msg)
 
 @csrf_exempt
 @get_admin_user

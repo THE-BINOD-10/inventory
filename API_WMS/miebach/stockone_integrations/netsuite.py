@@ -39,12 +39,12 @@ class netsuiteIntegration(object):
           token_key=auth_dict.get('token_id'),
           token_secret=auth_dict.get('token_secret'))
 
-    def complete_transaction(self, records, is_list):
+    def complete_transaction(self, records, is_list, action='upsert'):
         ns = self.nc.raw_client
         if is_list:
-            data_response =  ns.upsertList(records)
+            data_response =  ns.upsertList(records, action)
         else:
-            data_response =  ns.upsert(records)
+            data_response =  ns.upsert(records, action)
         return data_response
 
     def initiate_item(self, data, item_type):
@@ -275,7 +275,7 @@ class netsuiteIntegration(object):
             purorder.externalId = po_data['po_number']
             purorder.tranId = po_data['po_number']
             purorder.memo = po_data['remarks']
-            # purorder.nexus = ns.RecordRef(internalId= , type="")
+            # purorder.nexus = ns.RecordRef(internalId=1)
             # purorder.subsidiaryTaxRegNum = ns.RecordRef(internalId= "", type="")
             # purorder.taxRegOverride = True
             # purorder.taxDetailsOverride = True

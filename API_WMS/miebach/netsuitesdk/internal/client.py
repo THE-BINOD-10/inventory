@@ -471,7 +471,7 @@ class NetSuiteClient:
             exc = self._request_error('searchMoreWithId', detail=status['statusDetail'][0])
             raise exc
 
-    def upsert(self, record):
+    def upsert(self, record, action='upsert'):
         """
         Add an object of type recordType with given externalId..
         If a record of specified type with matching externalId already
@@ -489,7 +489,7 @@ class NetSuiteClient:
         :return: a reference to the newly created or updated record (in case of success)
         :rtype: RecordRef
         """
-        response = self.request('upsert', record=record)
+        response = self.request(action, record=record)
         response = response.body.writeResponse
         status = response.status
         if status.isSuccess:
@@ -529,7 +529,7 @@ class NetSuiteClient:
         return dataToSend
 
 
-    def upsertList(self, records):
+    def upsertList(self, records, action='upsert'):
         """
         Add objects of type recordType with given externalId..
         If a record of specified type with matching externalId already
@@ -544,8 +544,18 @@ class NetSuiteClient:
         :return: a reference to the newly created or updated records
         :rtype: list[CompoundValue]
         """
+        if action=='delete':
+            recordsList = []
+            for row in records:
+                recordType = type(row).__name__
+                recordType = recordType[0].lower() + recordType[1:]
+                recordsList.append(self.RecordRef(type=recordType, externalId=row.externalId))
+                
+            
 
-        response = self.request('upsertList', record=records)
+            response = self.request('%sList' % action, baseRef=recordsList)
+        else:
+            response = self.request('%sList' % action, record=records)
         responses = response.body.writeResponseList.writeResponse
         record_refs = []
         for response in responses:

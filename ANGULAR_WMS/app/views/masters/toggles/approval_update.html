@@ -38,7 +38,7 @@
               <div class="form-group">
                 <label class="control-label"> Product Category </label>
                 <input ng-if="showCase.update" type="text" name="product_category" class="form-control" ng-model="showCase.model_data.product_category" readonly>
-                <select ng-if="!showCase.update" class="form-control" ng-model="showCase.model_data.product_category" name="product_category" ng-change="showCase.getProdMaxValue(showCase.model_data)">
+                <select ng-if="!showCase.update" class="form-control" ng-model="showCase.model_data.product_category" name="product_category" ng-change="[showCase.get_sku_category_list(), showCase.getProdMaxValue(showCase.model_data)]">
                   <option ng-repeat="product_category in showCase.product_category_list" value="{{product_category}}">{{product_category}}</option>
                 </select>
               </div>
@@ -53,23 +53,24 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Min Amount </label>
-                <input type="number" name="min_Amt" class="form-control" ng-model="showCase.model_data.min_Amt" readonly>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Max Amount </label>
-                <input type="number" name="max_Amt" class="form-control" ng-model="showCase.model_data.max_Amt" required>
-              </div>
-            </div>
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Min Amount </label>-->
+<!--                <input type="number" name="min_Amt" class="form-control" ng-model="showCase.model_data.min_Amt" readonly>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Max Amount </label>-->
+<!--                <input type="number" name="max_Amt" class="form-control" ng-model="showCase.model_data.max_Amt" required>-->
+<!--              </div>-->
+<!--            </div>-->
           </div>
-                <div class="row">
+        <div class="row">
         <div class="col-md-12"><hr></div>
       </div>
       <div class="row">
+        <h4 style="padding-left: 15px;">Default</h4>
         <div class="col-md-12">
           <table class="table">
             <thead>
@@ -80,16 +81,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr ng-repeat="level_dat in showCase.model_data.level_data">
+              <tr ng-repeat="level_dat in showCase.model_data.default_level_data">
                 <td>
                    <input type="text" ng-model="level_dat.level" name="level" class="form-control" readonly>
                 </td>
                 <td>
-                 <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
-                   <input id="roles-{{$index}}" class="form-control {{showCase.roles_type_name}}roles-{{$index}}" type="text" ng-model="level_dat.roles" value="{{showCase.model_data.level_data.roles}}" ui-jq="tagsInput"/>
-                 </div>
+                   <select class="selectpicker-default show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles">
+                    <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="role in showCase.roles_list">{{role}}</option>
+                  </select>
                 </td>
-                <td><i ng-if="$last" ng-click="showCase.update_data($index)" class="fa fa-minus-square-o"></i></td>
+                <td><i ng-if="$last" ng-click="showCase.update_data($index, 'default', level_dat.data_id)" class="fa fa-minus-square-o"></i></td>
               </tr>
             </tbody>
           </table>
@@ -97,8 +98,79 @@
       </div>
       <div class="row">
         <center>
-          <button type="button" class="btn mt10 mr10" ng-click="showCase.addLevel()">Add New Level </button>
+          <button type="button" class="btn mt10 mr10" ng-click="showCase.addDefaultLevel()">Add New Level </button>
         </center>
+      </div>
+      <div class="row">
+        <h4 style="padding-left: 15px;">Specify Ranges</h4>
+        <div class="col-md-12">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="min-width: 140px;">Min Amount</th>
+                <th style="min-width: 140px;">Max Amount</th>
+                <th style="min-width: 140px;">Level</th>
+                <th style="width: 650px;">Roles</th>
+                <th class="plus"></th>
+              </tr>
+            </thead>
+            <tbody ng-repeat="range_data in showCase.model_data.ranges_level_data">
+              <tr ng-repeat="level_dat in range_data.range_levels">
+                <td>
+                  <input type="number" name="min_Amt" class="form-control" ng-model="range_data.min_Amt" ng-show="$index==0" required>
+                </td>
+                <td>
+                  <input type="number" name="max_Amt" class="form-control" ng-model="range_data.max_Amt" ng-show="$index==0" required>
+                </td>
+                <td>
+                   <input type="text" ng-model="level_dat.level" name="level" class="form-control" readonly>
+                </td>
+                <td>
+                   <!--<select id="ranges-{{showCase.roles_type_name}}roles-{{range_data.range_no}}-{{level_dat.level_no}}" class="selectpicker show-menu-arrow form-control" multiple name="perms">-->
+                   <select class="selectpicker-ranges show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles" data-size="10" data-width="300px">
+                    <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="role in showCase.roles_list">{{role}}</option>
+                  </select>
+                </td>
+                <td style="width: 200px;">
+                  <i ng-if="$last" ng-click="showCase.delete_range_levels_data($index, range_data, level_dat)" class="fa fa-minus-square-o"></i>
+                  <i ng-if="$last" ng-click="showCase.addRangesLevel(range_data, level_dat)" class="fa fa-plus-square-o" style="padding-left: 11 px;"></i>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row">
+        <center>
+          <button type="button" class="btn mt10 mr10" ng-click="showCase.addRangesAmts()">Add New Ranges </button>
+        </center>
+      </div>
+      <div class="row">
+        <h4 style="padding-left: 15px;">On Approved</h4>
+        <div class="col-md-12">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="min-width: 140px;">Level</th>
+                <th style="width: 650px;">Roles</th>
+                <th class="plus"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="level_dat in showCase.model_data.approved_level_data">
+                <td>
+                   <input type="text" ng-model="level_dat.level" name="level" class="form-control" readonly>
+                </td>
+                <td>
+                   <select class="selectpicker-approved show-menu-arrow form-control" multiple name="perms" ng-model="level_dat.roles">
+                    <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="role in showCase.roles_list">{{role}}</option>
+                  </select>
+                </td>
+                <td><i ng-if="$last" ng-click="showCase.update_data($index)" class="fa fa-minus-square-o hide"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div class="row insert-status">
         <h4 align="center">{{showCase.service.message}}</h4>

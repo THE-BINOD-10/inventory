@@ -333,7 +333,7 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
 
 def get_supplier_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     search_dict = {'active': 1, 'inactive': 0}
-    order_data = SUPPLIER_MASTER_HEADERS.values()
+    order_data = SUPPLIER_MASTER_HEADERS.values()[0]
     search_params = get_filtered_params(filters, SUPPLIER_MASTER_HEADERS.values())
     if 'status__icontains' in search_params.keys():
         if (str(search_params['status__icontains']).lower() in "active"):

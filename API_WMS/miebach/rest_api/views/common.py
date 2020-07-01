@@ -577,6 +577,7 @@ def get_search_params(request, user=''):
 
 data_datatable = {  # masters
     'SKUMaster': 'get_sku_results', 'SupplierMaster': 'get_supplier_results', \
+    'MachineMaster': 'get_machine_master_results',
     'SupplierSKUMappingMaster': 'get_supplier_mapping', 'CustomerMaster': 'get_customer_master', \
     'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', 'SKUPackMaster' :'get_sku_pack_master',\
     'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results', \
@@ -589,8 +590,8 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data',
+    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -4831,7 +4832,6 @@ def search_wms_data(request, user=''):
                                       status = 1,user=user.id)
     if sku_catg:
         query_objects = query_objects.filter(sku_category=sku_catg)
-
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
@@ -4840,10 +4840,19 @@ def search_wms_data(request, user=''):
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
+        company_id = get_company_id(user)
+        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
+        sku_conversion = 0
+        if sku_uom.exists():
+            measurement_unit = sku_uom[0].uom
+            sku_conversion = float(sku_uom[0].conversion)
+        else:
+            measurement_unit = master_data.measurement_type
+            sku_conversion = 0
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
-                       'measurement_unit': master_data.measurement_type,
+                       'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
@@ -4859,10 +4868,10 @@ def search_wms_data(request, user=''):
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
-    total_data = build_search_data(total_data, master_data, limit)
+    total_data = build_search_data(user, total_data, master_data, limit)
 
     if len(total_data) < limit:
-        total_data = build_search_data(total_data, query_objects, limit)
+        total_data = build_search_data(user, total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
 
 
@@ -4893,10 +4902,10 @@ def search_makemodel_wms_data(request, user=''):
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
-    total_data = build_search_data(total_data, master_data, limit)
+    total_data = build_search_data(user, total_data, master_data, limit)
 
     if len(total_data) < limit:
-        total_data = build_search_data(total_data, query_objects, limit)
+        total_data = build_search_data(user, total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
 
 
@@ -5078,7 +5087,7 @@ def get_customer_sku_prices(request, user=""):
     return HttpResponse(json.dumps(result_data))
 
 
-def build_search_data(to_data, from_data, limit):
+def build_search_data(user, to_data, from_data, limit):
     if (len(to_data) >= limit):
         return to_data
     else:
@@ -5092,10 +5101,19 @@ def build_search_data(to_data, from_data, limit):
                     noOfTests = 0
             else:
                 noOfTests = 0
+            company_id = get_company_id(user)
+            sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
+            sku_conversion = 0
+            if sku_uom.exists():
+                measurement_unit = sku_uom[0].uom
+                sku_conversion = float(sku_uom[0].conversion)
+            else:
+                measurement_unit = data.measurement_type
+                sku_conversion = 0
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                        'measurement_unit': data.measurement_type,
+                        'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'noOfTests': noOfTests,
+                        'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
@@ -6343,12 +6361,12 @@ def order_cancel_functionality(order_det_ids, admin_user=''):
                 if not cancel_invoice_serial:
                     cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
                 cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-								   picklist__order_id=order_det.id)
+                                   picklist__order_id=order_det.id)
                 if not cancel_location:
                     CancelledLocation.objects.create(picklist_id=picklist.id,
-						     quantity=picklist.picked_quantity,
-						     location_id=picklist.stock.location_id,
-						     creation_date=datetime.datetime.now(), status=1,
+                             quantity=picklist.picked_quantity,
+                             location_id=picklist.stock.location_id,
+                             creation_date=datetime.datetime.now(), status=1,
                             cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
                     picklist.reserved_quantity = 0
@@ -12501,6 +12519,19 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def get_warehouses_data(user):
+    ware_houses_list = []
+    warehouse_users ={}
+    main_warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    main_warehouse_users = dict(main_warehouses.values_list('user_id', 'user__username'))
+    for data in main_warehouse_users.keys():
+        sub_warehouses = UserGroups.objects.filter(admin_user_id=data)
+        sub_warehouses_user = dict(sub_warehouses.values_list('user_id', 'user__username'))
+        warehouse_users[user.id] = user.username
+        ware_houses_list.append(sub_warehouses_user)
+    final_dict = {k:v for element in ware_houses_list for k,v in element.items()}
+    return final_dict
 
 def find_purchase_approver_permission(user):
     change_pendinglineitem = get_permission(user, 'change_pendinglineitems')

@@ -333,6 +333,25 @@ var app = angular.module('urbanApp')
             url: '/Asset',
             templateUrl: 'views/masters/toggles/asset_update.html'
           })
+
+          .state('app.masters.TestMaster', {
+          url: '/TestMaster',
+          permission: 'add_assetmaster',
+          templateUrl: 'views/masters/test_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/test_master.js'
+                ])
+             }]
+          },
+          data: {
+            title: 'Test Master',
+          }
+        })
+          .state('app.masters.TestMaster.update', {
+            url: '/Test',
+            templateUrl: 'views/masters/toggles/test_master_update.html'
+          })
         .state('app.masters.ServiceMaster', {
           url: '/ServiceMaster',
           permission: 'add_servicemaster',
@@ -862,6 +881,28 @@ var app = angular.module('urbanApp')
             title: 'Cluster Sku Master',
           }
         })
+        .state('app.masters.MachineMaster', {
+          url: '/MachineMaster',
+          permission: 'add_machinemaster',
+          templateUrl: 'views/masters/machine_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/machinemaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+             }]
+          },
+          data: {
+            title: 'Machine Master',
+          }
+        })
+        .state('app.masters.MachineMaster.machine', {
+            url: '/machine',
+            templateUrl: 'views/masters/toggles/machine_update.html'
+          })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',
@@ -2286,6 +2327,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.MetroPOReport', {
+          url: '/MetropolisPOReport',
+          templateUrl: 'views/reports/metro_po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/metro_po_report.js');
+              }]
+          },
+          data: {
+            title: 'Metropolis PO Report',
           }
         })
         .state('app.reports.ApprovalPOReport', {

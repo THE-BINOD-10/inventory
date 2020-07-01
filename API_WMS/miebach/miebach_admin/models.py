@@ -695,6 +695,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO')
     configName = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
@@ -714,6 +715,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
+    display_name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')

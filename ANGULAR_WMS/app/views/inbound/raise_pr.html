@@ -7,7 +7,7 @@
       <tab heading="Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs">
         <div ng-include="'views/inbound/raise_pr/raise_purchase_request.html'"></div>
       </tab>
-      <tab heading="Approved Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs && showCase.warehouse_type=='STORE'">
+      <tab heading="Approved Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs">
         <div ng-include="'views/inbound/raise_pr/approved_purchase_requests.html'"></div>
       </tab>
       <tab heading="Pending PR Enquiries" ng-if="showCase.permissions.enable_pending_approval_prs">

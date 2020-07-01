@@ -874,12 +874,12 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
-                                    product_category=product_category)
+                                    product_category=product_category, approval_type=approval_type)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -896,13 +896,15 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category=''):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
-    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category)
-    configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName).\
+    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                                      approval_type=approval_type)
+    configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
+                                                          approval_type=approval_type).\
                     values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
@@ -1102,9 +1104,11 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
     else:
         final_data = [{'min_Amt': 0,'max_Amt': 0, 'range_levels': mailsMap}]
     for final_dat in final_data:
-        pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=data['name'],
+        actual_name = '%s_%s_%s_%s' % (data['name'], approval_type, str(final_dat.get('min_Amt', 0)), str(final_dat.get('max_Amt', 0)))
+        pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=data['name'],
                                                              purchase_type=purchase_type, approval_type=approval_type,
-                                                             min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'])
+                                                             min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'],
+                                                             name=actual_name)
         existingLevels = list(pr_approvals.values_list('level', flat=True))
         updatingLevels = map(lambda d: d['level'], final_dat['range_levels'])
         tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
@@ -1116,12 +1120,15 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                     tobeDeleteQs.delete()
 
         for level_dat in final_dat['range_levels']:
+            if level_dat.get('data_id', ''):
+                pr_approvals = PurchaseApprovalConfig.objects.filter(id=level_dat['data_id'])
             level = level_dat['level']
             roles = level_dat['roles']
             PRApprovalMap = {
                 'user': user,
                 'company_id': company_id,
-                'name': data['name'],
+                'name': actual_name,
+                'display_name': data['name'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
                 'plant': data.get('plant', ''),
@@ -1143,6 +1150,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                         eachLevelObj.max_Amt = final_dat.get('max_Amt', 0)
                     if eachLevelObj.min_Amt != final_dat.get('min_Amt', 0):
                         eachLevelObj.min_Amt = final_dat.get('min_Amt', 0)
+                    eachLevelObj.name = actual_name
                     eachLevelObj.save()
                     eachConfig = eachLevelObj
                     eachConfigId = eachLevelObj.id
@@ -1225,7 +1233,7 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
@@ -1234,6 +1242,8 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant': ''}
+    if approval_type:
+        pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
@@ -12419,11 +12429,12 @@ def get_purchase_config_data(request, user=''):
     name = request.GET['name']
     purchase_type = request.GET['purchase_type']
     company_id = get_company_id(user)
-    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=name, purchase_type=purchase_type)
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=name,
+                                                                 purchase_type=purchase_type)
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
-        config_dict = {'name': purchase_config.name, 'product_category': purchase_config.product_category,
+        config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
                        'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
                        'default_level_data': [], 'sku_category': purchase_config.sku_category,
                        'ranges_level_data': [], 'approved_level_data': []}

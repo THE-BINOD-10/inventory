@@ -1500,11 +1500,20 @@ def generated_actual_pr_data(request, user=''):
             service_stdate = updatedJson['service_start_date']
         if updatedJson.has_key('service_end_date'):
             service_edate = updatedJson['service_end_date']
+        if updatedJson.has_key('temp_price'):
+            temp_price = updatedJson['temp_price']
+        else:
+            temp_price = ''
+        if updatedJson.has_key('temp_tax'):
+            temp_tax = updatedJson['temp_tax']                    
+        else:
+            temp_tax = ''
 
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
 
+        is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
         parent_user = get_admin(pr_user)
@@ -1531,6 +1540,13 @@ def generated_actual_pr_data(request, user=''):
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
             preferred_supplier = None
+            pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
+                model_id=lineItemId)
+            if pr_req_provided_data.exists():
+                requester_json_data = eval(pr_req_provided_data[0].model_json)
+                temp_price = requester_json_data.get('temp_price', '')
+                temp_tax = requester_json_data.get('temp_tax', '')
+
             if supplierMappings.exists():
                 for supplierMapping in supplierMappings:
                     supplierId = supplierMapping.supplier.supplier_id
@@ -1554,10 +1570,11 @@ def generated_actual_pr_data(request, user=''):
                             moq = skuTaxVal['sku_supplier_moq']
                         else:
                             moq = 0
+
                         tax = sgst_tax + cgst_tax + igst_tax
                         amount = qty * price
                         total = amount + (amount * (tax/100))
-                        supplier_id_name = '%s:%s' %(supplierId, supplierName)
+                        supplier_id_name = '%s:%s' %(supplierId, supplierName)                       
                     supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                               'supplier_name': supplierName,
                                                               'moq': moq,
@@ -1568,9 +1585,17 @@ def generated_actual_pr_data(request, user=''):
                                                               }
                     if not preferred_supplier:
                         preferred_supplier = supplier_id_name
-        else:
-            supplierDetailsMap = {}
-            preferred_supplier = ''
+            else:
+                parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                if parentSkuQs.exists():
+                    parent_sku_id = parentSkuQs[0].id
+                    is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+                                    model_name='SKUSupplier', requested_user=parent_user,
+                                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+                    if is_doa_sent.exists():
+                        is_doa_sent_flag = True 
+                supplierDetailsMap = {}
+                preferred_supplier = ''
 
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
@@ -1586,7 +1611,10 @@ def generated_actual_pr_data(request, user=''):
                                     'asset_code': asset_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,
+                                    'temp_price': temp_price,
+                                    'temp_tax': temp_tax,
                                     'supplierDetails': supplierDetailsMap,
+                                    'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
                                     }, 'pk': lineItemId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
@@ -2573,6 +2601,8 @@ def get_raisepo_group_data(user, myDict):
         service_end_date = ''
         description_edited = ''
         sku_category = ''
+        temp_price = ''
+        temp_tax = ''
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'approval_remarks' in myDict.keys():
@@ -2641,6 +2671,10 @@ def get_raisepo_group_data(user, myDict):
             priority_type = myDict['priority_type'][0]
         if 'sku_category' in myDict.keys():
             sku_category = myDict['sku_category'][0]
+        if 'temp_price' in myDict.keys():
+            temp_price = myDict['temp_price'][i]
+        if 'temp_tax' in myDict.keys():
+            temp_tax = myDict['temp_tax'][i]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -2672,7 +2706,7 @@ def get_raisepo_group_data(user, myDict):
                                    'product_category': product_category, 'priority_type': priority_type,
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
-                                   'sku_category': sku_category})
+                                   'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3280,7 +3314,9 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 misc_json = {
                     'description_edited': value['description_edited'],
                     'service_start_date': value['service_start_date'],
-                    'service_end_date': value['service_end_date']
+                    'service_end_date': value['service_end_date'],
+                    'temp_price': value['temp_price'],
+                    'temp_tax': value['temp_tax'],
                 }
                 TempJson.objects.update_or_create(
                     model_id=data_id, 
@@ -3317,7 +3353,9 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             misc_json = {
                 'description_edited': value['description_edited'],
                 'service_start_date': value['service_start_date'],
-                'service_end_date': value['service_end_date']
+                'service_end_date': value['service_end_date'],
+                'temp_price': value['temp_price'],
+                'temp_tax': value['temp_tax'],
             }
             TempJson.objects.create(
                 model_id=lineObj.id, 

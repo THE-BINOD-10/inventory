@@ -75,7 +75,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else {
                 master_status = true;
               }
-              vm.model_data.update = [{'label': 'Master', status: master_status}, {'label': 'Open PO', status: open_po_status}, {'label': 'Current GRN', status: current_grn_status}]
+              vm.po_number_sku = aData['po_number'] ? aData['po_number'] : '';
+              vm.model_data.update = [{'label': 'Master', status: master_status}, {'label': 'Open PO', status: open_po_status}, {'label': 'Current PO', status: current_grn_status}]
               vm.update = true;
               vm.title = "Supplier SKU DOA";
               vm.is_doa = true;
@@ -125,23 +126,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.pop_msg("Markup Percentage is Mandatory For Markup Based")
 
        }
-      if(valid)
-      {
-       delete(vm.model_data.mrp)
-       // if ("Supplier SKU DOA" == vm.title) {
-       //     vm.supplier_sku('insert_mapping/');
-       //    }
-       //  else {
-       //     vm.model_data['data-id'] = vm.model_data.DT_RowId;
-       //     vm.supplier_sku('update_sku_supplier_values/');
-       //  }
-       if (parseInt(vm.model_data.model_id) == 0){
-        vm.supplier_sku('insert_mapping/');
-       } else {
-        vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
-        vm.supplier_sku('update_sku_supplier_values/');
-       }
-
+      if(valid) {
+        var final_update = []
+        if (vm.model_data.update.length > 0) {
+          for (var i = 0; i < vm.model_data.update.length; i++) {
+            if (vm.model_data.update[i]['status']){
+              final_update.push(vm.model_data.update[i]['label'])
+            }
+          }
+        }
+        vm.model_data.update = JSON.stringify(final_update);
+        delete(vm.model_data.mrp)
+        if (parseInt(vm.model_data.model_id) == 0){
+          vm.supplier_sku('insert_mapping/');
+        } else {
+          vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
+          vm.supplier_sku('update_sku_supplier_values/');
+        }
       }
     }
   }

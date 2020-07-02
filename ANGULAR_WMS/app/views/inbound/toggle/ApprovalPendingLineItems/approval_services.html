@@ -1,5 +1,5 @@
 <div class="row">
-  <table class="table" class="pull-left" style="margin-left: 10px;">
+  <table class="table" class="pull-left">
     <thead>
       <tr>
         <th>Supplier</th>
@@ -94,9 +94,8 @@
         </span> --> 
         <input id="price1" ng-model="product.fields.price" type="text" name="price" 
           class="form-control detectTab"
-          ng-class="service.get_decimal_perm()" 
           ng-keyup="showCase.getTotals(product)" size="12"
-          ng-readonly="product.fields.preferred_supplier">
+          ng-readonly="product.fields.preferred_supplier || (!showCase.permissions.change_pendinglineitems)">
       </td>
       <td class="text-center"> 
           <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
@@ -116,7 +115,7 @@
         <input type="text" name="tax" ng-model="product.fields.tax" class="hide"> -->
         <input type="text" name="tax" ng-model="product.fields.tax" 
         class="form-control detectTab" ng-class="service.get_decimal_perm()" 
-        ng-readonly="product.fields.preferred_supplier" size="100">
+        ng-readonly="product.fields.preferred_supplier || (!showCase.permissions.change_pendinglineitems)" size="50">
       </td>
       <td class="text-center"> 
         <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}

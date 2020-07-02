@@ -888,6 +888,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Warehouse','Order Type', 'Receive Status']
         full_po_id="%s%s"%(supplier.prefix, supplier.order_id)
+
         if order_type == 'Stock Transfer':
             total_order_qty = st_order_qtys_dict.get(full_po_id, 0)
             total_received_qty = st_receive_qtys_dict.get(full_po_id, 0)
@@ -933,7 +934,13 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
         if productQs.exists():
             productType = productQs[0]
+        display_approval_button_DOA=False
+        if(productType=="Services"):
+            doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=supplier.order_id, doa_status="pending")
+            if doaQs.exists():
+                display_approval_button_DOA=True
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
+                                      ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
@@ -946,6 +953,60 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     temp_data['aaData'] = data_list
 
 
+@csrf_exempt
+def get_confirmed_po_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    # lis = ['PO No', 'PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date',
+    #        'Total Qty', 'Receivable Qty', 'Received Qty',
+    #        'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status', 'SR Number', 'Requested User', 'Status' ]
+    lis = ['requested_user_id', 'po_no', 'po_reference', 'customer_name', 'total_qty',
+            'receivable_qty', 'received_qty', 'warehouse', 'supllier_id_name', 'order_type',
+            'receive_status', 'status']
+
+
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    users = [request.user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    mapping_results = MastersDOA.objects.filter(wh_user__in=users,
+                model_name="SellerPOSummary",
+                doa_status="pending").order_by(order_data)
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+        else:
+            warehouse = get_admin(row.requested_user)
+        product_category= result.get("product_category","")
+        if(product_category):
+            product_category=product_category
+            total_order_qty=result.get("total_order_qty",0)
+            total_receivable_qty=result.get("total_receivable_qty",0)
+            total_received_qty=result.get("total_received_qty",0)
+            supplier_id_name=result.get("supplier_id_name","")
+            expected_date=result.get("expected_date","")
+            order_type=result.get("order_type","")
+
+        temp_data['aaData'].append(OrderedDict((('po_no', result['po_number']), ('po_reference', ""),
+                                                ('supllier_id_name', supplier_id_name),
+                                                ('total_qty', total_order_qty),
+                                                ('receivable_qty', total_receivable_qty),
+                                                ('price', result.get('price', '')),
+                                                ('order_type', order_type),
+                                                ('receive_status', result.get('lead_time', '')),
+                                                ('requested_user_id', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('status', row.doa_status),
+                                                ("customer_name", ""),
+                                                ("received_qty", total_received_qty),
+                                                ('DT_RowId', row.model_id),
+                                                ("Product Category",product_category),
+                                                ("expected_date", expected_date),
+                                                ('doa_id', row.id),
+                                                ('prefix', result["po_prefix"]))))
 @csrf_exempt
 def get_quality_check_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                            filters):
@@ -4312,11 +4373,18 @@ def delete_po(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_data(request, user=''):
+    model_id=''
+    if('doa_model_id'in request.GET):
+       model_id=request.GET['doa_model_id']
+       doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
+       if doaQs.exists():
+           doa_obj = doaQs[0]
+           user=User.objects.get(id=doa_obj.requested_user_id)
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         warehouse = request.GET['warehouse']
         user = User.objects.get(username=warehouse)
-    company_name =user_company_name(request.user)
-    all_prod_catgs = True
+    company_name = user_company_name(request.user)
+    all_prod_catgs = SellerPOSummary
     sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     temp = get_misc_value('pallet_switch', user.id)
     payment_received = 0
@@ -4408,10 +4476,16 @@ def get_supplier_data(request, user=''):
                     lr_number = po_extra_fields['tracking_number']
                 if 'invoice_number' in po_extra_fields.keys():
                     invoice_number = po_extra_fields['invoice_number']
-            temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
+            if(model_id):
+                temp_jsons = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
+            else:
+                temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
-                    temp_json = json.loads(temp_json_obj.model_json)
+                    if(model_id):
+                        temp_json = json.loads(temp_json_obj.json_data)
+                    else:
+                        temp_json = json.loads(temp_json_obj.model_json)
                     if use_imei =='false' and auto_generate_receive_qty == 'true':
                         rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
                     else:
@@ -4495,14 +4569,20 @@ def get_supplier_data(request, user=''):
         if purchase_order.expected_date:
             purchase_order = purchase_orders.latest('expected_date')
             expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
-        temp_json = TempJson.objects.filter(model_id=purchase_order.id, model_name='PO')
+        if(model_id):
+            temp_json = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
+        else:
+            temp_json = TempJson.objects.filter(model_id=purchase_order.id, model_name='PO')
         invoice_date = ''
         dc_number = ''
         dc_date = ''
         dc_level_grn = ''
         overall_discount = 0
         if temp_json.exists():
-            temp_json = json.loads(temp_json[0].model_json)
+            if(model_id):
+                temp_json = json.loads(temp_json[0].json_data)
+            else:
+                temp_json = json.loads(temp_json[0].model_json)
             invoice_number = temp_json.get('invoice_number', '')
             invoice_date = temp_json.get('invoice_date', '')
             dc_number = temp_json.get('dc_number', '')
@@ -5939,12 +6019,146 @@ def validate_grn_wms(user, myDict):
                     status_msg += ',' + myDict['wms_code'][i]
     return status_msg
 
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("send_for_approval_confirm_grn")
+    data_dict = ''
+    owner_email = ''
+    headers = (
+            'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+            'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    total_tax = 0
+    tax_value = 0
+    pallet_number = ''
+    is_putaway = ''
+    purchase_data = ''
+    seller_name = user.username
+    seller_address = user.userprofile.address
+    seller_receipt_id = 0
+    extra_charges_amt = 0
+    fmcg = False
+    po_product_category = request.POST.get('product_category', '')
+    if user.userprofile.industry_type == 'FMCG':
+        fmcg = True
+    if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
+        return HttpResponse("Invoice/DC Number  is Mandatory")
+    if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
+        return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    lr_number = request.POST.get('lr_number', '')
+    if invoice_num:
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
+        if inv_status:
+            return HttpResponse(inv_status)
+    grn_other_charges = request.POST.get('other_charges', '')
+    challan_date = request.POST.get('dc_date', '')
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
+    bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+    round_off_checkbox = request.POST.get('round_off', '')
+    round_off_total = request.POST.get('round_off_total', 0)
+    if request.POST.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    if not confirm_returns:
+        request_data = request.POST
+        data_dict = dict(request_data.iterlists())
+    else:
+        data_dict = confirm_returns
+    log.info('Request params for ' + user.username + ' is ' + str(data_dict))
+    try:
+        wms_validation_status = validate_grn_wms(user, data_dict)
+        if wms_validation_status:
+            return HttpResponse(wms_validation_status)
+        po = PurchaseOrder.objects.filter(id=data_dict['id'][0])
+        prQs = PendingPO.objects.filter(wh_user=user.id, full_po_number=po[0].po_number)
+        if(prQs[0].pending_prs.all()):
+            pr_obj= prQs[0].pending_prs.all()[0]
+            zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
+                           'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity']
+            for i in range(0, len(data_dict['id'])):
+                po_data = {}
+                if not data_dict['id'][i]:
+                    try:
+                        data_dict['quantity'][i] = float(data_dict['quantity'][i])
+                    except:
+                        data_dict['quantity'][i] = 0
+                    if 'po_quantity' in data_dict.keys() and 'price' in data_dict.keys() and not data_dict['id'][i] and data_dict['quantity'][i]:
+                        if data_dict['wms_code'][i] and data_dict['quantity'][i]:
+                            sku_master = SKUMaster.objects.filter(wms_code=data_dict['wms_code'][i].upper(),
+                                                                user=user.id)
+                            exist_id = 0
+                            for exist_list_ind, exist_list_id in enumerate(data_dict['id']):
+                                if exist_list_id:
+                                    exist_id = exist_list_ind
+                                    break
+                            get_data = create_purchase_order(request, data_dict, i, exist_id=exist_id)
+                            data_dict['id'][i] = get_data
+                    else:
+                        continue
+                for key in data_dict.keys():
+                    if key in zero_index_keys:
+                        po_data[key] = data_dict[key][0]
+                    else:
+                        po_data[key] = data_dict[key][i]
+                po_data.update({"po_number": po[0].po_number,
+                                "po_prefix": po[0].prefix,
+                                "round_off_checkbox":round_off_checkbox,
+                                "round_off_total":round_off_total,
+                                "bill_date":bill_date,
+                                "challan_date":challan_date,
+                                "grn_other_charges":grn_other_charges,
+                                "supplier_id":request.POST.get('supplier_id', ''),
+                                "invoice_num":invoice_num,
+                                "po_product_category":po_product_category,
+                                "lr_number":lr_number
+                                })
+                doa_dict = {
+                    'requested_user': user,
+                    'wh_user': pr_obj.requested_user,
+                    'model_name': 'SellerPOSummary',
+                    'json_data': json.dumps(po_data),
+                    'doa_status': 'pending'
+                }
+                doa_dict['model_id'] = po[0].order_id
+                doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=doa_dict['model_id'], doa_status="pending")
+                # if not data_dict['temp_json_id'][i]:
+                doa_obj = MastersDOA(**doa_dict)
+                doa_obj.save()
+                    # TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(po_data))
+                # else:
+                #     doa_obj = doaQs[0]
+                #     doa_obj.json_data = json.dumps(po_data)
+                #     doa_obj.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Check Generating GRN failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Generate GRN Failed")
+    return HttpResponse('Updated Successfully')
 
 @csrf_exempt
 @login_required
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
+    service_doa=request.POST.get('doa_id', '')
+    if(service_doa):
+        model_id=request.POST['doa_id']
+        doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
+        if doaQs.exists():
+            doa_obj = doaQs[0]
+            request.user=User.objects.get(id=doa_obj.requested_user_id)
     reversion.set_user(request.user)
     reversion.set_comment("generate_grn")
     data_dict = ''
@@ -6126,7 +6340,14 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
-            netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict)
+            try:
+                netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict)
+            except Exception as e:
+                print(e)
+                pass
+            if(service_doa):
+                model_id=request.POST['doa_id']
+                MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending").update(doa_status="approved")
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

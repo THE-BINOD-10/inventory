@@ -237,6 +237,8 @@ urlpatterns = [
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
+    url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+
 
 
     # Production

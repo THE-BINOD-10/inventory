@@ -377,7 +377,7 @@ def service_excel_download(search_params, temp_data, headers, user, request):
         if excel_mapping.has_key('cost_price'):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
-        ws = write_excel(ws, data_count, excel_mapping['asset_code'], data.asset_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['service_start_date'], data.service_start_date.strftime('%d-%m-%Y'), file_type)
         ws = write_excel(ws, data_count, excel_mapping['service_end_date'], data.service_end_date.strftime('%d-%m-%Y'), file_type)
         ean_list = []

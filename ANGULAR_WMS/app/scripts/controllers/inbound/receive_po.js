@@ -198,6 +198,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 else {
                   vm.main_sr_number = ''
                 }
+                vm.current_grn = aData['Received Qty'] == 0 ? true : false;
                 vm.product_type = aData['Product Category'];
                 vm.total_order_qty =aData["Total Qty"];
                 vm.total_receivable_qty =aData["Receivable Qty"];
@@ -1030,8 +1031,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-  vm.price_request = function(supplier_id, supplier, sku, sku_desc, price, buyprice, datum) {
-    var data = {'supplier_id': supplier_id, 'supplier': supplier, 'sku': sku, 'sku_desc': sku_desc, 'price': price, 'buyprice': buyprice, 'record': datum}
+  vm.price_request = function(supplier_id, supplier, sku, sku_desc, price, buyprice, datum, po_number) {
+    var data = {'supplier_id': supplier_id, 'supplier': supplier, 'sku': sku, 'sku_desc': sku_desc, 'price': price, 'buyprice': buyprice, 'record': datum, 'po_num': po_number}
     var modalInstance = $modal.open({
       templateUrl: 'views/inbound/toggle/GRN/price_request.html',
       controller: 'priceRequestCtrl',
@@ -3064,7 +3065,7 @@ angular.module('urbanApp').controller('priceRequestCtrl', function ($modalInstan
   vm.base();
   vm.send_supplier_doa = function() {
     if (parseInt(vm.grnData.buyprice) > 0 && vm.grnData.buyprice)  {
-      var data_to_send = { 'DT_RowId': vm.supplier_table_id, 'supplier_id': vm.grnData['supplier_id'], 'wms_code': vm.grnData['sku'], 'price': parseInt(vm.grnData.buyprice) }
+      var data_to_send = {'DT_RowId': vm.supplier_table_id, 'supplier_id': vm.grnData['supplier_id'], 'wms_code': vm.grnData['sku'], 'price': parseInt(vm.grnData.buyprice), 'type': 'Inbound', 'po_number': vm.grnData['po_num']}
       vm.service.apiCall('send_supplier_doa/', 'POST', data_to_send, true).then(function(data){
         if(data.message) {
           if(data.data == "Added Successfully") {

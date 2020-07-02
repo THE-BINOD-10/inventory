@@ -1220,7 +1220,7 @@ def delete_pr_config(request, user=''):
         purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData.get('name')
-        pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type)
+        pacQs = PurchaseApprovalConfig.objects.filter(user=user, display_name=configName, purchase_type=purchase_type)
         if pacQs.exists():
             for pacObj in pacQs:
                 configId = pacObj.id
@@ -1235,7 +1235,7 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type=''):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
@@ -1244,6 +1244,8 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant': ''}
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
     if approval_type:
         pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
@@ -4857,10 +4859,10 @@ def search_wms_data(request, user=''):
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
-            asset_code = master_data.asset_code
+            gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
             service_end_date = master_data.service_end_date
-            data_dict.update({'asset_code': asset_code,
+            data_dict.update({'gl_code': gl_code,
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
         elif instanceName == OtherItemsMaster:
@@ -5118,7 +5120,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
-                asset_code = data.asset_code
+                gl_code = data.gl_code
                 if data.service_start_date:
                     service_start_date = data.service_start_date.strftime('%d-%m-%Y')
                 else:
@@ -5127,7 +5129,7 @@ def build_search_data(user, to_data, from_data, limit):
                     service_end_date = data.service_end_date.strftime('%d-%m-%Y')
                 else:
                     service_end_date = ''
-                data_dict.update({'asset_code': asset_code,
+                data_dict.update({'gl_code': gl_code,
                                 'service_start_date': service_start_date,
                                 'service_end_date': service_end_date})
             if (len(to_data) >= limit):
@@ -12419,8 +12421,11 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
-        emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=user, department_type=app_config.department_type,
-                                   position=user_role).values_list('email_id', flat=True))
+        staff_check = {'company_id__in': company_list, 'user': user,
+                        'position': user_role}
+        if app_config.department_type:
+            staff_check['department_type'] = app_config.department_type
+        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
             admin_user = get_admin(user)
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\

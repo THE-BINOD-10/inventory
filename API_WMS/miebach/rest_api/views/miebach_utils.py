@@ -135,7 +135,7 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
               'priority': '', 'status': 'Active',
               'issue_description': '', 'creation_date': datetime.datetime.now()}
 
-SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
+SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '', 'request_from': 'Master',
         'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': '', 'costing_type': 'Price Based',
                      'margin_percentage': 0}
 

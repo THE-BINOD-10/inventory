@@ -194,6 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.main_sr_number = ''
                 }
+                vm.current_grn = aData['Received Qty'] == 0 ? true : false;
                 vm.product_type = aData['Product Category'];
                 vm.warehouse = aData['Warehouse']
                 var dataDict = {
@@ -3017,7 +3018,7 @@ angular.module('urbanApp').controller('priceRequestCtrl', function ($modalInstan
   vm.base();
   vm.send_supplier_doa = function() {
     if (parseInt(vm.grnData.buyprice) > 0 && vm.grnData.buyprice)  {
-      var data_to_send = { 'DT_RowId': vm.supplier_table_id, 'supplier_id': vm.grnData['supplier_id'], 'wms_code': vm.grnData['sku'], 'price': parseInt(vm.grnData.buyprice) }
+      var data_to_send = { 'DT_RowId': vm.supplier_table_id, 'supplier_id': vm.grnData['supplier_id'], 'wms_code': vm.grnData['sku'], 'price': parseInt(vm.grnData.buyprice), 'type': 'Inbound' }
       vm.service.apiCall('send_supplier_doa/', 'POST', data_to_send, true).then(function(data){
         if(data.message) {
           if(data.data == "Added Successfully") {

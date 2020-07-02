@@ -5300,6 +5300,7 @@ def get_company_list(request, user=''):
 def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
+    data_dict['request_from'] = request.POST.get('type', 'Master')
     for key, value in request.POST.iteritems():
         if key == 'wms_code':
             sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
@@ -5345,6 +5346,8 @@ def send_supplier_doa(request, user=''):
         doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
         if doaQs.exists():
             doa_obj = doaQs[0]
+            if float(json.loads(doa_obj.json_data).get('price', 0)) != float(data_dict.get('price', 0)):
+                doa_obj.doa_status = 'pending'
             doa_obj.json_data = json.dumps(data_dict)
             doa_obj.save()
         else:
@@ -5407,6 +5410,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('margin_percentage', result.get('margin_percentage', '')),
                                                 ('markup_percentage',result.get('markup_percentage', '')),
                                                 ('lead_time', result.get('lead_time', '')),
+                                                ('request_type', result.get('request_from', 'Master')),
                                                 ('requested_user', row.requested_user.first_name),
                                                 ('warehouse', warehouse.username),
                                                 ('status', row.doa_status),

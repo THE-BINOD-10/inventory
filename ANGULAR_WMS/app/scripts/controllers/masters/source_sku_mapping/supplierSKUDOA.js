@@ -48,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('status').withTitle('Status'),
   ];
   if(vm.warehouse_level==0) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('request_type').withTitle('Request Type'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
     }
 
@@ -58,6 +59,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('td', nRow).bind('click', function() {
           $scope.$apply(function() {
               // vm.model_data['create_login'] = false;
+              var open_po_status = false;
+              var current_grn_status = false;
+              var master_status = false;
               var margin_perc = parseInt(aData['margin_percentage'])
               var mark_perc = parseInt(aData['markup_percentage'])
               var lead_time = parseInt(aData['lead_time'])
@@ -65,6 +69,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               aData['markup_percentage'] = mark_perc?mark_perc:0;
               aData['lead_time'] = lead_time?lead_time:0
               angular.copy(aData, vm.model_data);
+              if (vm.model_data['request_type'] == 'Inbound') {
+                open_po_status = true;
+                current_grn_status = true;
+              } else {
+                master_status = true;
+              }
+              vm.model_data.update = [{'label': 'Master', status: master_status}, {'label': 'Open PO', status: open_po_status}, {'label': 'Current GRN', status: current_grn_status}]
               vm.update = true;
               vm.title = "Supplier SKU DOA";
               vm.is_doa = true;

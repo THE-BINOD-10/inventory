@@ -5157,7 +5157,10 @@ def send_supplier_doa(request, user=''):
     admin_user = admin_userQs[0].user
     req_user = request.user
     if not request.user.is_staff:
-        req_user = user
+        if user.userprofile.warehouse_type == 'DEPT':
+            req_user  = get_admin(user) # Fetching Store User
+        else:
+            req_user = user
     doa_dict = {
         'requested_user': req_user,
         'wh_user': admin_user,

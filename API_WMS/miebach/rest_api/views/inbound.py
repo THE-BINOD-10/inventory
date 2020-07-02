@@ -1509,13 +1509,18 @@ def generated_actual_pr_data(request, user=''):
             service_edate = updatedJson['service_end_date']
         if updatedJson.has_key('temp_price'):
             temp_price = updatedJson['temp_price']
+        else:
+            temp_price = ''
         if updatedJson.has_key('temp_tax'):
             temp_tax = updatedJson['temp_tax']                    
+        else:
+            temp_tax = ''
 
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
 
+        is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
         parent_user = get_admin(pr_user)
@@ -1576,7 +1581,7 @@ def generated_actual_pr_data(request, user=''):
                         tax = sgst_tax + cgst_tax + igst_tax
                         amount = qty * price
                         total = amount + (amount * (tax/100))
-                        supplier_id_name = '%s:%s' %(supplierId, supplierName)
+                        supplier_id_name = '%s:%s' %(supplierId, supplierName)                       
                     supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                               'supplier_name': supplierName,
                                                               'moq': moq,
@@ -1587,9 +1592,17 @@ def generated_actual_pr_data(request, user=''):
                                                               }
                     if not preferred_supplier:
                         preferred_supplier = supplier_id_name
-        else:
-            supplierDetailsMap = {}
-            preferred_supplier = ''
+            else:
+                parentSkuQs = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                if parentSkuQs.exists():
+                    parent_sku_id = parentSkuQs[0].id
+                    is_doa_sent = MastersDOA.objects.filter(doa_status='pending',
+                                    model_name='SKUSupplier', requested_user=parent_user,
+                                    json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
+                    if is_doa_sent.exists():
+                        is_doa_sent_flag = True 
+                supplierDetailsMap = {}
+                preferred_supplier = ''
 
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
@@ -1608,6 +1621,7 @@ def generated_actual_pr_data(request, user=''):
                                     'temp_price': temp_price,
                                     'temp_tax': temp_tax,
                                     'supplierDetails': supplierDetailsMap,
+                                    'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
                                     }, 'pk': lineItemId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,

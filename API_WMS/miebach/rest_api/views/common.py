@@ -1219,7 +1219,7 @@ def delete_pr_config(request, user=''):
         purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData.get('name')
-        pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type)
+        pacQs = PurchaseApprovalConfig.objects.filter(user=user, display_name=configName, purchase_type=purchase_type)
         if pacQs.exists():
             for pacObj in pacQs:
                 configId = pacObj.id

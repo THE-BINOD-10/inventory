@@ -670,7 +670,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.move_to_sku_supplier = function (sku, lineItem) {
       vm.display_vision = {'display': 'none'};
-      var data = {'sku_code': sku, };
+      var data = {'sku_code': sku};
       var modalInstance = $modal.open({
         templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
         controller: 'skuSupplierCtrl',

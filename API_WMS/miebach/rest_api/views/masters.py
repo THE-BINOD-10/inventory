@@ -1794,32 +1794,49 @@ def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     warehouse = request.POST.get('warehouse', '')
-    if warehouse:
-        all_users = get_related_user_objs(user.id)
-        user_obj = all_users.filter(username=warehouse)
-        if not user_obj:
-            return HttpResponse('Invalid Warehouse')
-        else:
-            user = user_obj[0]
-    for key, value in request.POST.iteritems():
-        if key == 'mrp' or key == 'supplier_id':
-            continue
-        if key in ('moq', 'price'):
-            if not value:
-                value = 0
-        elif key == 'preference':
-            sku_supplier = SKUSupplier.objects.exclude(id=data.id).filter(Q(sku_id=data.sku_id) & Q(preference=value),
-                                                                          sku__user=user.id)
-            if sku_supplier:
-                return HttpResponse('Preference matched with existing WMS Code')
+    update_places = json.loads(request.POST.get('update', []))
+    po_number = request.POST.get('po_number', '')
+    updated_user=User.objects.get(username=warehouse)
+    sp_id_sku = request.POST.get('supplier_id', '')
+    skus_code = request.POST.get('wms_code', '')
+    sku_price = float(request.POST.get('price', 0))
+    if 'Master' in update_places or len(update_places) == 0:
+        if warehouse:
+            all_users = get_related_user_objs(user.id)
+            user_obj = all_users.filter(username=warehouse)
+            if not user_obj:
+                return HttpResponse('Invalid Warehouse')
+            else:
+                user = user_obj[0]
+        for key, value in request.POST.iteritems():
+            if key == 'mrp' or key == 'supplier_id':
+                continue
+            if key in ('moq', 'price'):
+                if not value:
+                    value = 0
+            elif key == 'preference':
+                sku_supplier = SKUSupplier.objects.exclude(id=data.id).filter(Q(sku_id=data.sku_id) & Q(preference=value),
+                                                                              sku__user=user.id)
+                if sku_supplier:
+                    return HttpResponse('Preference matched with existing WMS Code')
 
-        setattr(data, key, value)
-    data.save()
-    doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
-    if doa_qs.exists():
-        doa_obj = doa_qs[0]
-        doa_obj.doa_status = 'created'
-        doa_obj.save()
+            setattr(data, key, value)
+        data.save()
+        doa_qs = MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier')
+        if doa_qs.exists():
+            doa_obj = doa_qs[0]
+            doa_obj.doa_status = 'created'
+            doa_obj.save()
+    if 'Open PO' in update_places and updated_user:
+        if sp_id_sku and skus_code:
+            open_po_ids = list(PurchaseOrder.objects.filter(open_po__sku__user=updated_user.id, open_po__sku__sku_code=skus_code, received_quantity=0, open_po__supplier__supplier_id=sp_id_sku).\
+                            exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']).values_list('open_po', flat=True))
+        if len(open_po_ids) > 0:
+            OpenPO.objects.filter(id__in=open_po_ids).update(price=sku_price)
+            MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier').update(doa_status='created')
+    if 'Current PO' in update_places and updated_user and po_number:
+        OpenPO.objects.filter(sku__user=updated_user.id, purchaseorder__po_number=po_number, sku__sku_code=skus_code).update(price=sku_price)
+        MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier').update(doa_status='created')
     return HttpResponse('Updated Successfully')
 
 
@@ -5301,6 +5318,8 @@ def get_company_list(request, user=''):
 def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
+    data_dict['request_from'] = request.POST.get('type', 'Master')
+    data_dict['po_number'] = request.POST.get('po_number', '')
     for key, value in request.POST.iteritems():
         if key == 'wms_code':
             sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
@@ -5346,6 +5365,8 @@ def send_supplier_doa(request, user=''):
         doaQs = MastersDOA.objects.filter(model_name='SKUSupplier', model_id=doa_dict['model_id'])
         if doaQs.exists():
             doa_obj = doaQs[0]
+            if float(json.loads(doa_obj.json_data).get('price', 0)) != float(data_dict.get('price', 0)):
+                doa_obj.doa_status = 'pending'
             doa_obj.json_data = json.dumps(data_dict)
             doa_obj.save()
         else:
@@ -5408,6 +5429,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('margin_percentage', result.get('margin_percentage', '')),
                                                 ('markup_percentage',result.get('markup_percentage', '')),
                                                 ('lead_time', result.get('lead_time', '')),
+                                                ('request_type', result.get('request_from', 'Master')),
+                                                ('po_number', result.get('po_number', '')),
                                                 ('requested_user', row.requested_user.first_name),
                                                 ('warehouse', warehouse.username),
                                                 ('status', row.doa_status),

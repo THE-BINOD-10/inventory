@@ -1794,7 +1794,10 @@ def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     warehouse = request.POST.get('warehouse', '')
-    update_places = json.loads(request.POST.get('update', []))
+    if len(request.POST.get('update', [])) > 0:
+        update_places = json.loads(request.POST.get('update', []))
+    else:
+        update_places = []
     po_number = request.POST.get('po_number', '')
     updated_user=User.objects.get(username=warehouse)
     sp_id_sku = request.POST.get('supplier_id', '')

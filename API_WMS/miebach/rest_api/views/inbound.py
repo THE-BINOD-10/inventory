@@ -92,7 +92,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                   values_list('pending_pr_id', flat=True))
                 filtersMap.setdefault('pending_pr_id__in', [])
                 filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
-        elif status != 'approved': # Creator Sub Users
+        if status != 'approved': # Creator Sub Users
             filtersMap.setdefault('pending_pr_id__in', [])
             pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
             filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
@@ -170,7 +170,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
-                                    pr_user=pr_user, level=prev_level)
+                                    pr_user=pr_user, status='approved').order_by('-creation_date')
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
@@ -1517,6 +1517,7 @@ def generated_actual_pr_data(request, user=''):
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
         parent_user = get_admin(pr_user)
+        preferred_supplier = None
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
@@ -1525,6 +1526,8 @@ def generated_actual_pr_data(request, user=''):
             supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
+            else:
+                supplierName = ''
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
             supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
                                                     'supplier_name': supplierName,
@@ -3070,7 +3073,7 @@ def approve_pr(request, user=''):
     if is_actual_pr == 'true':
         approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
         prev_approval_type = approval_type
-        if approval_type == 'default' and request.POST.get('supplier_id'):
+        if approval_type == 'default' and myDict['supplier_id'][0]:
             approval_type = 'ranges'
     if is_purchase_approver:
         for i in range(0, len(myDict['wms_code'])):
@@ -3161,6 +3164,7 @@ def approve_pr(request, user=''):
             if approval_obj.exists():
                 prObj, mailsList = createPRApproval(pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
+                print mailsList
                 for eachMail in mailsList:
                     generateHashCodeForMail(prObj, eachMail, 'level0')
             # pass
@@ -3423,7 +3427,6 @@ def convert_pr_to_po(request, user=''):
             supplierPrIdsMap.setdefault(supplier, []).append(pr_ids)
             for pr_id in pr_ids:
                 prIdSkusMap.setdefault(pr_id, []).append(sku_code)
-
         for supplier, all_skus in supplierSKUMapping.items():
             sku_code = all_skus[0]
             pr_ids = supplierPrIdsMap.get(supplier)[0]
@@ -3461,8 +3464,13 @@ def convert_pr_to_po(request, user=''):
             purchaseMap['prefix'] = prefix
             purchaseMap['full_po_number'] = full_po_number
             if supplier:
-                supplyObj = SupplierMaster.objects.get(user=pr_user.id, supplier_id=supplier)
-                purchaseMap['supplier_id'] = supplyObj.id
+                if ':' in supplier:
+                    supplier = supplier.split(':')[0]
+                supplyObj = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplier)
+                if supplyObj.exists():
+                    purchaseMap['supplier_id'] = supplyObj[0].id
+                else:
+                    return HttpResponse('No Supplier Mapping found')
             pendingPoObj = PendingPO.objects.create(**purchaseMap)
 
             for existingPRObj in existingPRObjs:

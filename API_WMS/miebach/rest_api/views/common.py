@@ -1234,7 +1234,7 @@ def delete_pr_config(request, user=''):
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type=''):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
@@ -1243,6 +1243,8 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant': ''}
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
     if approval_type:
         pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
@@ -12418,8 +12420,11 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
-        emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=user, department_type=app_config.department_type,
-                                   position=user_role).values_list('email_id', flat=True))
+        staff_check = {'company_id__in': company_list, 'user': user,
+                        'position': user_role}
+        if app_config.department_type:
+            staff_check['department_type'] = app_config.department_type
+        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
             admin_user = get_admin(user)
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\

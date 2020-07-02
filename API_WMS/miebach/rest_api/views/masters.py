@@ -333,7 +333,7 @@ def get_machine_master_results(start_index, stop_index, temp_data, search_term, 
 
 def get_supplier_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     search_dict = {'active': 1, 'inactive': 0}
-    order_data = SUPPLIER_MASTER_HEADERS.values()
+    order_data = SUPPLIER_MASTER_HEADERS.values()[0]
     search_params = get_filtered_params(filters, SUPPLIER_MASTER_HEADERS.values())
     if 'status__icontains' in search_params.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
@@ -950,9 +950,10 @@ def get_sku_data(request, user=''):
     uom_data = []
     if uom_master:
         base_uom_name = uom_master[0].base_uom
-        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1})
+        uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1,
+                         'name': '%s-%s'% (base_uom_name, '1')})
     for uom in uom_master:
-        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom,
+        uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom, 'name': uom.name,
                         'conversion': uom.conversion, 'uom_id': uom.id})
 
     combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=data.id)
@@ -1447,7 +1448,7 @@ def update_uom_master(user, data_dict={}, data=''):
     company_id = get_company_id(user)
     for i in range(len(data_dict.get('uom_type', []))):
         uom_type = data_dict['uom_type'][i]
-        uom_name = data_dict['uom_name'][i]
+        uom_name = str(data_dict['uom_name'][i]).lower()
         conversion = data_dict['conversion'][i]
         uom_id = data_dict['uom_id'][i]
         if uom_type.lower() == 'base':
@@ -5416,7 +5417,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
 
 
 def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
-    lis = ['name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
+    lis = ['display_name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     company_list = get_companies_list(user, send_parent=True)
@@ -5426,31 +5427,28 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = PurchaseApprovalConfig.objects.filter(Q(name__icontains=search_term) |
+        mapping_results = PurchaseApprovalConfig.objects.filter(Q(display_name__icontains=search_term) |
                                                                 Q(product_category__icontains=search_term) |
                                                                 Q(plant__icontains=search_term) |
                                                                 Q(department_type__icontains=search_term),
                                                                 company_id__in=company_list, purchase_type=purchase_type,
                                                                 **filter_params).\
-                                        values('name', 'product_category', 'plant', 'department_type',
-                                               'min_Amt', 'max_Amt').distinct().\
+                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
                                         order_by(order_data)
 
     else:
         mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
                                                                 **filter_params).\
-                                        values('name', 'product_category', 'plant', 'department_type',
-                                               'min_Amt', 'max_Amt').distinct().\
+                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
                                         order_by(order_data)
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
-        temp_data['aaData'].append(OrderedDict((('name', result['name']), ('product_category', result['product_category']),
+        temp_data['aaData'].append(OrderedDict((('name', result['display_name']), ('product_category', result['product_category']),
                                                 ('plant', result['plant']),
                                                 ('department_type', department_mapping.get(result['department_type'], '')),
-                                                ('min_Amt', result['min_Amt']), ('max_Amt', result['max_Amt']),
                                                 ('DT_RowClass', 'results'),
-                                                ('DT_RowId', result['name']))))
+                                                ('DT_RowId', result['display_name']))))
 
 
 @csrf_exempt

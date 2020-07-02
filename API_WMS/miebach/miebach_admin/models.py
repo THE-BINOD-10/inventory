@@ -168,7 +168,7 @@ class AssetMaster(SKUMaster):
 
 
 class ServiceMaster(SKUMaster):
-    asset_code = models.CharField(max_length=64, default='')
+    gl_code = models.CharField(max_length=64, default='')
     service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)

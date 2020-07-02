@@ -110,7 +110,7 @@ def create_update_sku(all_skus, all_users):
             try:
                 if sku.servicemaster:
                     instanceName = ServiceMaster
-                    update_sku_dict['asset_code'] = sku.servicemaster.asset_code
+                    update_sku_dict['gl_code'] = sku.servicemaster.gl_code
                     update_sku_dict['service_type'] = sku.servicemaster.service_type
                     update_sku_dict['service_start_date'] = sku.servicemaster.service_start_date
                     update_sku_dict['service_end_date'] = sku.servicemaster.service_end_date

@@ -1467,7 +1467,7 @@ def generated_actual_pr_data(request, user=''):
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit',
-        'id', 'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
+        'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date',
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
@@ -1483,7 +1483,7 @@ def generated_actual_pr_data(request, user=''):
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
-        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, asset_code, service_stdate, service_edate = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, gl_code, service_stdate, service_edate = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1524,6 +1524,7 @@ def generated_actual_pr_data(request, user=''):
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
         parent_user = get_admin(pr_user)
+        preferred_supplier = None
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
@@ -1546,7 +1547,6 @@ def generated_actual_pr_data(request, user=''):
             # parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
-            preferred_supplier = None
             pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
                 model_id=lineItemId)
             if pr_req_provided_data.exists():
@@ -1615,7 +1615,7 @@ def generated_actual_pr_data(request, user=''):
                                     'price': price,
                                     'measurement_unit': uom,
                                     'no_of_tests': noOfTests,
-                                    'asset_code': asset_code,
+                                    'gl_code': gl_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,
                                     'temp_price': temp_price,
@@ -3564,12 +3564,12 @@ def netsuite_pr(user, PRQs, full_pr_number):
         pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
-            'sku__servicemaster__asset_code', 'sku__servicemaster__service_start_date',
+            'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
             'sku__servicemaster__service_end_date',
         ]
         lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
         for rec in lineItems:
-            sku_id, sku_code, sku_desc, qty, price, uom, apprId, asset_code, service_stdate, service_edate = rec
+            sku_id, sku_code, sku_desc, qty, price, uom, apprId, gl_code, service_stdate, service_edate = rec
             user_obj = user
             unitdata = gather_uom_master_for_sku(user_obj, sku_code)
             unitexid = unitdata.get('name',None)

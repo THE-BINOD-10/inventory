@@ -1515,7 +1515,7 @@ ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
 SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type',
                'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-               'Asset Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
+               'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
 
 OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type',
                'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
@@ -1874,7 +1874,7 @@ SERVICEMASTER_COMMON_MAPPING = OrderedDict((('Service Code', 'wms_code'), ('Serv
                                   ('Service Class', 'sku_class'), ('Service Brand', 'sku_brand'), ('Put Zone', 'zone_id'),
                                   ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
                                   ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
-                                  ('HSN Code', 'hsn_code'), ('Status', 'status'), ('Asset Code', 'asset_code'),
+                                  ('HSN Code', 'hsn_code'), ('Status', 'status'), ('GL Code', 'gl_code'),
                                   ('Service Start Date(YYYY-MM-DD)', 'service_start_date'),
                                   ('Service End Date(YYYY-MM-DD)', 'service_end_date')
                                 ))
@@ -1915,7 +1915,7 @@ SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_typ
                                ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
                                ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13), 
                                ('ean_number', 14), ('hsn_code', 15), ('status', 16), 
-                               ('asset_code', 17), ('service_start_date', 18),  ('service_end_date', 19), 
+                               ('gl_code', 17), ('service_start_date', 18),  ('service_end_date', 19), 
                              ))
 
 OTHER_ITEM_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3), 

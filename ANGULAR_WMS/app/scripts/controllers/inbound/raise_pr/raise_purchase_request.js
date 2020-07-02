@@ -1093,7 +1093,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description_edited = item.sku_desc;
       product.fields.sku_brand = item.sku_brand;
       product.fields.type = item.type;
-      product.fields.asset_code = item.asset_code;
+      product.fields.gl_code = item.gl_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;

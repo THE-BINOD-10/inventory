@@ -60,9 +60,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.approved_current_level = vm.model_data.approved_level_data.length - 1;
                   vm.title = "Update Purchase Approval";
                   $state.go('app.masters.PurchaseApproval.updateApproval');
-                  $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 100);
-                  $timeout(function(){$('.selectpicker-default').selectpicker();}, 100);
-                  $timeout(function(){$('.selectpicker-approved').selectpicker();}, 100);
+                  $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 1000);
+                  $timeout(function(){$('.selectpicker-default').selectpicker();}, 1000);
+                  $timeout(function(){$('.selectpicker-approved').selectpicker();}, 1000);
 //                  angular.forEach(vm.model_data.default_level_data, function(level_dat, level_index){
 //                    $timeout(function(){$('#default-'+vm.roles_type_name+'roles-'+level_index).selectpicker()}, 100);
 //                  });

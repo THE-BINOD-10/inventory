@@ -162,7 +162,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             validated_by = prApprQs[0].validated_by
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
-                                pr_user=pr_user, level=result['pending_pr__pending_level'])
+                                pr_user=pr_user).exclude(status='on_approved').order_by('-creation_date')
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
@@ -1451,7 +1451,7 @@ def generated_actual_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
-    allRemarks = prApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status__in=['', 'on_approved']).values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:

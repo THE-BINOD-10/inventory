@@ -1020,7 +1020,7 @@ def get_sku_data(request, user=''):
             sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-        sku_data['asset_code'] = data.asset_code
+        sku_data['gl_code'] = data.gl_code
         sku_data['service_type'] = data.service_type
     elif instanceName == AssetMaster:
         sku_data['asset_type'] = data.asset_type
@@ -1794,7 +1794,10 @@ def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
     warehouse = request.POST.get('warehouse', '')
-    update_places = json.loads(request.POST.get('update', []))
+    if len(request.POST.get('update', [])) > 0:
+        update_places = json.loads(request.POST.get('update', []))
+    else:
+        update_places = []
     po_number = request.POST.get('po_number', '')
     updated_user=User.objects.get(username=warehouse)
     sp_id_sku = request.POST.get('supplier_id', '')
@@ -5349,7 +5352,10 @@ def send_supplier_doa(request, user=''):
     admin_user = admin_userQs[0].user
     req_user = request.user
     if not request.user.is_staff:
-        req_user = user
+        if user.userprofile.warehouse_type == 'DEPT':
+            req_user  = get_admin(user) # Fetching Store User
+        else:
+            req_user = user
     doa_dict = {
         'requested_user': req_user,
         'wh_user': admin_user,

@@ -204,6 +204,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
+            if (!data.fields.tax) {
+              if (data.fields.temp_tax){
+                data.fields.tax = data.fields.temp_tax;
+              }
+            }
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
@@ -1091,7 +1096,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description_edited = item.sku_desc;
       product.fields.sku_brand = item.sku_brand;
       product.fields.type = item.type;
-      product.fields.asset_code = item.asset_code;
+      product.fields.gl_code = item.gl_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
@@ -1295,6 +1300,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       // vm.model_data.total_price = 0;
       // vm.model_data.sub_total = 0;
+      if (Number(data.fields.price) > Number(data.fields.temp_price)){
+       Service.showNoty('Price cant be more than Base Price'); 
+       data.fields.price = 0
+      }
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);

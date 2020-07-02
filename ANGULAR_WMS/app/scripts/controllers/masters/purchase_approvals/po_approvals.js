@@ -116,9 +116,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.all_purchase_approval_data_api();
     vm.getProdMaxValue(vm.model_data);
     $state.go('app.masters.PurchaseApproval.updateApproval');
-    $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 100);
-    $timeout(function(){$('.selectpicker-default').selectpicker();}, 100);
-    $timeout(function(){$('.selectpicker-approved').selectpicker();}, 100);
+    $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 1000);
+    $timeout(function(){$('.selectpicker-default').selectpicker();}, 1000);
+    $timeout(function(){$('.selectpicker-approved').selectpicker();}, 1000);
   }
 
   vm.submit = function(data) {

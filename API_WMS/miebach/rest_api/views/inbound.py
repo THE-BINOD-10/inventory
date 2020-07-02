@@ -3949,11 +3949,13 @@ def add_pr(request, user=''):
                 pr_number = pend_pr.pr_number
                 prefix = pend_pr.prefix
                 full_pr_number = pend_pr.full_pr_number
+                user = pend_pr.wh_user
             else:
                 pend_po = PendingPO.objects.get(id=pr_id)
                 pr_number = pend_po.po_number
                 prefix = pend_po.prefix
                 full_pr_number = pend_po.full_po_number
+                user = pend_po.wh_user
             # pr_number = int(myDict.get('pr_number')[0])
         else:
             if is_actual_pr == 'true':

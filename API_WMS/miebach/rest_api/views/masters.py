@@ -1020,7 +1020,7 @@ def get_sku_data(request, user=''):
             sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-        sku_data['asset_code'] = data.asset_code
+        sku_data['gl_code'] = data.gl_code
         sku_data['service_type'] = data.service_type
     elif instanceName == AssetMaster:
         sku_data['asset_type'] = data.asset_type

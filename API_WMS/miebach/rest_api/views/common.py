@@ -4858,10 +4858,10 @@ def search_wms_data(request, user=''):
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
-            asset_code = master_data.asset_code
+            gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
             service_end_date = master_data.service_end_date
-            data_dict.update({'asset_code': asset_code,
+            data_dict.update({'gl_code': gl_code,
                             'service_start_date': service_start_date,
                             'service_end_date': service_end_date})
         elif instanceName == OtherItemsMaster:
@@ -5119,7 +5119,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
-                asset_code = data.asset_code
+                gl_code = data.gl_code
                 if data.service_start_date:
                     service_start_date = data.service_start_date.strftime('%d-%m-%Y')
                 else:
@@ -5128,7 +5128,7 @@ def build_search_data(user, to_data, from_data, limit):
                     service_end_date = data.service_end_date.strftime('%d-%m-%Y')
                 else:
                     service_end_date = ''
-                data_dict.update({'asset_code': asset_code,
+                data_dict.update({'gl_code': gl_code,
                                 'service_start_date': service_start_date,
                                 'service_end_date': service_end_date})
             if (len(to_data) >= limit):

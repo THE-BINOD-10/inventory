@@ -3528,23 +3528,53 @@ def convert_pr_to_po(request, user=''):
                 if not sku_id:
                     continue
 
-                if supplyObj:
-                    supplyId = supplyObj.supplier_id
+                if supplyObj.exists():
+                    supplyId = supplyObj[0].supplier_id
+                    tax_type = supplyObj[0].tax_type
                 else:
                     supplyId = None
+                    tax_type = ''
 
-                skuTaxes = get_supplier_sku_price_values(supplyId, sku_code, pr_user)
-                # if not skuTaxes: continue
-                skuTaxVal = skuTaxes[0]
-                taxes = skuTaxVal['taxes']
-                if taxes:
-                    sgst_tax = taxes[0]['sgst_tax']
-                    cgst_tax = taxes[0]['cgst_tax']
-                    igst_tax = taxes[0]['igst_tax']
-                if skuTaxVal.get('sku_supplier_price', ''):
-                    price = skuTaxVal.get('sku_supplier_price', '')
+                pr_supplier_data = []
+                lineItems = existingPRObj.pending_prlineItems.filter(sku__sku_code=sku_code)
+                if lineItems.exists():
+                    lineItemId = lineItems[0].id
+                    pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
+                                    model_id=lineItemId)
+
+                if pr_supplier_data:
+                    sup_data = pr_supplier_data[0]
+                    json_data = eval(sup_data.model_json)
+                    try:
+                        price = float(json_data['price'])
+                    except:
+                        price = 0
+                    try:
+                        tax = float(json_data.get('tax', 0))
+                    except:
+                        tax = 0
+                    if tax_type == 'inter_state':
+                        igst_tax = tax
+                        cgst_tax = 0
+                        sgst_tax = 0
+                    else:
+                        igst_tax = 0
+                        cgst_tax = tax/2
+                        sgst_tax = tax/2
+
                 else:
-                    price = skuTaxVal['mrp']
+                    skuTaxes = get_supplier_sku_price_values(supplyId, sku_code, pr_user)
+                    # if not skuTaxes: continue
+                    skuTaxVal = skuTaxes[0]
+                    taxes = skuTaxVal['taxes']
+                    if taxes:
+                        sgst_tax = taxes[0]['sgst_tax']
+                        cgst_tax = taxes[0]['cgst_tax']
+                        igst_tax = taxes[0]['igst_tax']
+                    if skuTaxVal.get('sku_supplier_price', ''):
+                        price = skuTaxVal.get('sku_supplier_price', '')
+                    else:
+                        price = skuTaxVal['mrp']
 
                 pendingLineItems = {
                     'pending_po': pendingPoObj,
@@ -3737,39 +3767,36 @@ def get_pr_preview_data(request, user=''):
         sku_code = lineItem.sku.sku_code
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
-        json_data = eval(pr_supplier_data[0].model_json)
-        supplierId = json_data['supplier_id']
-        uniq_key = '%s#<>#%s' %(sku_code, supplierId)
-        skuPrNumsMap.setdefault(uniq_key, []).append(str(lineItem.pending_pr.full_pr_number))
-        skuPrIdsMap.setdefault(uniq_key, []).append(str(lineItem.pending_pr.id))
-        if uniq_key not in skuQtyMap:
-            skuQtyMap[uniq_key] = lineItem.quantity
-        else:
-            skuQtyMap[uniq_key] += lineItem.quantity
-        skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category)
-        pr_user = lineItem.pending_pr.wh_user
-        #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
-        #                        supplier__supplier_id=supplierId)
-        #supplierName = supplierMappings[0].supplier.name
-        supplierQs = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplierId)
-        if supplierQs.exists():
-            supplierName = supplierQs[0].name
-        else:
-            supplierName = ''
-        preferred_supplier = '%s:%s' %(supplierId, supplierName)
-        supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
-                                                'supplier_name': supplierName,
-                                                'moq': json_data['moq'],
-                                                'price': json_data['price'],
-                                                'amount': json_data['amount'],
-                                                'tax': json_data['tax'],
-                                                'total': json_data['total'],
-                                                }
-        skuSupplierMap[uniq_key] = supplierDetailsMap
-
-
-
-
+        if pr_supplier_data.exists():
+            json_data = eval(pr_supplier_data[0].model_json)
+            supplierId = json_data['supplier_id']
+            uniq_key = '%s#<>#%s' %(sku_code, supplierId)
+            skuPrNumsMap.setdefault(uniq_key, []).append(str(lineItem.pending_pr.full_pr_number))
+            skuPrIdsMap.setdefault(uniq_key, []).append(str(lineItem.pending_pr.id))
+            if uniq_key not in skuQtyMap:
+                skuQtyMap[uniq_key] = lineItem.quantity
+            else:
+                skuQtyMap[uniq_key] += lineItem.quantity
+            skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category)
+            pr_user = lineItem.pending_pr.wh_user
+            #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code, 
+            #                        supplier__supplier_id=supplierId)
+            #supplierName = supplierMappings[0].supplier.name
+            supplierQs = SupplierMaster.objects.filter(user=pr_user.id, supplier_id=supplierId)
+            if supplierQs.exists():
+                supplierName = supplierQs[0].name
+            else:
+                supplierName = ''
+            preferred_supplier = '%s:%s' %(supplierId, supplierName)
+            supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+                                                    'supplier_name': supplierName,
+                                                    'moq': json_data['moq'],
+                                                    'price': json_data['price'],
+                                                    'amount': json_data['amount'],
+                                                    'tax': json_data['tax'],
+                                                    'total': json_data['total'],
+                                                    }
+            skuSupplierMap[uniq_key] = supplierDetailsMap
     for uniq_key, quantity in skuQtyMap.items():
         sku_code, supplierId = uniq_key.split('#<>#')
         sku_desc, prod_catg = skuDetailsMap.get(sku_code)

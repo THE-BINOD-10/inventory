@@ -1104,7 +1104,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
-      product.fields.price = 0;
+      product.fields.price = "";
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.blocked_sku = "";
@@ -1300,10 +1300,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       // vm.model_data.total_price = 0;
       // vm.model_data.sub_total = 0;
-      if (Number(data.fields.price) > Number(data.fields.temp_price)){
-       Service.showNoty('Price cant be more than Base Price'); 
-       data.fields.price = 0
-      }
+      //if (Number(data.fields.price) > Number(data.fields.temp_price)){
+      // Service.showNoty('Price cant be more than Base Price'); 
+      // data.fields.price = 0
+      //}
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);

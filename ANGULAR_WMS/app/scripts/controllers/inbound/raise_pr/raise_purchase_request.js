@@ -518,6 +518,23 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if (vm.pr_number){
       //   elem.push({name:'pr_number', value:vm.pr_number})
       // }
+
+      if (vm.permissions.change_pendinglineitems) {
+        angular.forEach(elem, function(key, index) {
+        if (key.name == 'supplier_id') {
+          if (!key.value) {
+            Service.showNoty('Supplier Should be provided by Purchase');
+            return;
+          }
+        } else if (key.name == 'price') {
+          if (key.value == '') {
+            Service.showNoty('Price Should be provided by Purchase');
+            return;
+          }
+        }
+      });
+
+      }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
       }
@@ -1300,10 +1317,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       // vm.model_data.total_price = 0;
       // vm.model_data.sub_total = 0;
-      //if (Number(data.fields.price) > Number(data.fields.temp_price)){
-      // Service.showNoty('Price cant be more than Base Price'); 
-      // data.fields.price = 0
-      //}
+      if (data.fields.temp_price){
+          if (Number(data.fields.price) > Number(data.fields.temp_price)){
+            Service.showNoty('Price cant be more than Base Price'); 
+            data.fields.price = 0
+        }
+      }
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);

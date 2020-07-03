@@ -590,7 +590,8 @@ data_datatable = {  # masters
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
     'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'SKUMasterDOA': 'get_sku_mapping_doa', 'AssetMasterDOA': 'get_asset_master_doa',
+    'ServiceMasterDOA': 'get_service_master_doa',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -9707,6 +9708,7 @@ def update_sku_attributes(data, request):
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
+
     if not value == '':
         master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
                                                           attribute_model=attribute_model,
@@ -10442,7 +10444,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))

@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
+    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
     if (vm.permissions.show_vehiclemaster){
     vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'sku'}).then(function(data){
       vm.attributes = data.data.data;
@@ -289,6 +290,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     }
+    vm.send_sku_doa = function() {
+        vm.model_data['data-id'] = vm.model_data.DT_RowId;
+        vm.service.apiCall('send_sku_doa/', 'POST', vm.model_data, true).then(function(data){
+          if(data.message) {
+            if(data.data == "Added Successfully") {
+              vm.service.refresh(vm.dtInstance);
+              vm.close();
+            } else {
+              vm.service.pop_msg(data.data);
+            }
+          }
+    });
+  }
 
     vm.addValidation = function(){
 
@@ -351,7 +365,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $.each(files, function(i, file) {
         formData.append('files-' + i, file);
     });
-    // SKU Related Files
+    // SKU Related Files"background: green;color: white;"
     $.each(vm.model_data.sku_files, function(i, file) {
         formData.append('sku-related-files-' + i, file);
     });
@@ -420,13 +434,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-    if ( data.$valid ){
-      if ("Add SKU" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
-        vm.url = "update_sku/";
+    {
+      if ( data.$valid ){
+        if ("Add SKU" == vm.title) {
+          if (vm.user_profile.warehouse_type == 'ADMIN'){
+            vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/";
+          }}
+      else {
+         vm.url = "update_sku/";
+        }
+         vm.update_sku();
       }
-      vm.update_sku();
     }
   }
 

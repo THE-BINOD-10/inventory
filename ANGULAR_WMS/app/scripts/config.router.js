@@ -280,7 +280,7 @@ var app = angular.module('urbanApp')
         .state('app.masters.SKUMaster', {
           url: '/SKUMaster',
           permission:'view_skumaster',
-          templateUrl: 'views/masters/sku_datatable.html',
+          templateUrl: 'views/masters/sku_master/sku_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load(['scripts/controllers/masters/skutable.js'
@@ -288,7 +288,11 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                     'scripts/controllers/masters/toggle/attributes.js'
                   ])
-                })
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/skuMappingDOA.js'
+                  ])
+                });
              }]
           },
           data: {
@@ -315,14 +319,23 @@ var app = angular.module('urbanApp')
             title: 'Image Upload',
           }
         })
+        .state('app.masters.SKUMaster.Mapping', {
+            url: '/SKUMapping',
+            templateUrl: 'views/masters/sku_master/sku_mapping_doa_update.html'
+          })
         .state('app.masters.AssetMaster', {
           url: '/AssetMaster',
           permission: 'add_assetmaster',
-          templateUrl: 'views/masters/asset_datatable.html',
+          templateUrl: 'views/masters/asset_master/asset_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load(['scripts/controllers/masters/asset_master_table.js'
-                ])
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/asset_master_table.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/asset_master_doa.js'
+                  ])
+                })
              }]
           },
           data: {
@@ -333,14 +346,23 @@ var app = angular.module('urbanApp')
             url: '/Asset',
             templateUrl: 'views/masters/toggles/asset_update.html'
           })
+          .state('app.masters.AssetMaster.Mapping', {
+            url: '/SKUMapping',
+            templateUrl: 'views/masters/asset_master/asset_master_doa_update.html'
+          })
         .state('app.masters.ServiceMaster', {
           url: '/ServiceMaster',
           permission: 'add_servicemaster',
-          templateUrl: 'views/masters/service_datatable.html',
+          templateUrl: 'views/masters/service_master/service_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load(['scripts/controllers/masters/service_master_table.js'
-                ])
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/service_master_table.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/service_master_doa.js'
+                  ])
+                })
              }]
           },
           data: {
@@ -350,6 +372,10 @@ var app = angular.module('urbanApp')
           .state('app.masters.ServiceMaster.update', {
             url: '/Service',
             templateUrl: 'views/masters/toggles/service_update.html'
+          })
+          .state('app.masters.ServiceMaster.Mapping', {
+            url: '/Service',
+            templateUrl: 'views/masters/toggles/service_master_doa_update.html'
           })
           
         .state('app.masters.OtherItemsMaster', {

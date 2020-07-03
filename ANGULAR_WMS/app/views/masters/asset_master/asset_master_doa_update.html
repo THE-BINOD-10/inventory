@@ -240,7 +240,8 @@
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.submit(form)" ng-disabled="process">
+          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.success(form)"
+                  ng-if="showCase.user_profile.warehouse_type =='ADMIN'" ng-disabled="process">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

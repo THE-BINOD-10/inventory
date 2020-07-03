@@ -357,8 +357,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     if ( data.$valid ){
       if ("Add Asset" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
+          if (vm.user_profile.warehouse_type == 'ADMIN'){
+            vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/";
+          }} else {
         vm.url = "update_sku/";
       }
       vm.update_sku();

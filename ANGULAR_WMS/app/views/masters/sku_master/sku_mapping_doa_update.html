@@ -27,7 +27,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">SKU Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -39,7 +39,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Type </label>
-                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
+                <select class="form-control" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
 
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
               </div>
@@ -271,6 +271,7 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                {{showCase.model_data.measurement_type}}
                 <label class="control-label"> Measurement Type </label>
                 <select name="measurement_type" class="form-control" ng-model="showCase.model_data.measurement_type">
                   <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.measurement_type == type">{{type}}</option>
@@ -307,8 +308,6 @@
                 </div>
               </div>
             </div>
-
-
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
@@ -328,12 +327,12 @@
                   <td>
                     <input type="hidden" name="market_id" value="{{market.market_id}}">
                     <input type="hidden" name="market_sku_type" value="{{market.market_sku_type}}">
-                    <select class="form-control" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list" ng-disabled="market.disable">
+                    <select class="form-control" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list">
                     </select>
                   </td>
-                  <td><input type="text" name="marketplace_code" class="form-control" ng-model="market.marketplace_code" ng-readonly="market.disable"></td>
-                  <td><input type="text" name="description" class="form-control" ng-model="market.description" ng-readonly="market.disable"></td>
-                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_market($index, market.market_id)" ng-readonly="market.disable"></i></td>
+                  <td><input type="text" name="marketplace_code" class="form-control" ng-model="market.marketplace_code"></td>
+                  <td><input type="text" name="description" class="form-control" ng-model="market.description"></td>
+                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_market($index, market.market_id)"></i></td>
                 </tr>
               </tbody>
             </table>
@@ -415,44 +414,12 @@
                                 cursor: inherit;
                                 display: block;" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload multiple/>
               </span>
-                <!-- <input type="file" id="image-upload" name="files" file-upload multiple=""> -->
               </div>
-              <!--<div class="form-group">
-                  <div>SKU Related Images</div>
-                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
-                  <input style="position: absolute;
-                                top: 0;
-                                right: 0;
-                                min-width: 100%;
-                                min-height: 100%;
-                                font-size: 100px;
-                                text-align: right;
-                                filter: alpha(opacity=0);
-                                opacity: 0;
-                                outline: none;
-                                background: white;
-                                cursor: inherit;
-                                display: block;" class="btn btn-primary" type = "file" data="{{place+':sku_rel_imgs'}}" id="sku_files" image-upload multiple/>
-              </span>
-              </div>
-              <div ng-if="showCase.model_data.exe_sku_rel_images.length != 0 && showCase.update">Exesting Images</div>
-              <div class="row" ng-if="showCase.model_data.exe_sku_rel_images.length != 0">
-                <div class="col-md-3" ng-repeat="file in showCase.model_data.exe_sku_rel_images">
-                  <img ng-src="{{file}}" width="100%" alt="SKU Related Image-{{$index}}" />
-                  <button type="button" class="close" title="Delete from list of images" ng-click="showCase.fileClose(file, showCase.model_data.sku_data.sku_code, 'del_exe_sku_img')"><span aria-hidden="true">×</span></button>
-                </div>
-              </div>
-              <div ng-if="showCase.model_data.sku_rel_imgs_show.length != 0">New Images</div>
-              <div class="row">
-                <div class="col-md-3" ng-repeat="file in showCase.model_data.sku_rel_imgs_show">
-                  <img ng-src="{{file}}" width="100%" alt="SKU Related Image-{{$index}}" />
-                  <button type="button" class="close" title="Delete from list of images" ng-click="showCase.fileClose($index)"><span aria-hidden="true">×</span></button>
-                </div>
-              </div>-->
+
             </div>
             <div class="col-md-3 col-sm-3 col-xs-4">
               <div>
-                <img ng-src="{{showCase.model_data.sku_data.image_url}}" alt="SKU image" style="width: 100%"/>
+                <img ng-src="{{showCase.model_data.image_url}}" alt="SKU image" style="width: 100%"/>
               </div>
             </div>
           </div>
@@ -461,23 +428,17 @@
           </div>
       </div>
       <div class="modal-footer">
-<!--        <button type="button" class="btn btn-danger pull-right" style= "background: red;color: white;"  ng-click="showCase.delete_sku()">REJECTED</button>-->
-        <button type="button" class="btn pop pop-normal pull-left" ng-click="showCase.close('')" style="background: #cc1919;color: white;">Close</button>
-        <div ng-if="showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa)">
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa) && (!showCase.update))"
-                style="background: green;color: white;" ng-if="(!showCase.update)">Send For Approval</button>
-        </div>
-      <div ng-if="showCase.user_profile.warehouse_type =='ADMIN'">
-        <button type="submit" class="btn pop pop-green"  ng-click="showCase.submit(form)" ng-disabled="process">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="submit" class="btn pop pop-red pull-left"  ng-disabled="showCase.bt_disable" ng-click="showCase.delete_sku(form)" ng-if="showCase.user_profile.warehouse_type =='ADMIN'">REJECTED</button>
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.success(form)" ng-show="show_tab('change_skumaster')" ng-disabled="process"
+          ng-if="showCase.user_profile.warehouse_type =='ADMIN'" style="background: green;color: white;">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>
+
+        </div>
       </div>
-
-  </div>
-
-<!--        </div>-->
-<!--      </div>-->
     </div><!-- /.modal-content -->
     </form>
   </div><!-- /.modal-dialog -->

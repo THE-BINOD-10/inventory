@@ -863,7 +863,6 @@ def location_master(start_index, stop_index, temp_data, search_term, order_term,
 @get_admin_user
 def get_sku_data(request, user=''):
     """ Get SKU Details """
-
     market_data = []
     combo_data = []
     data_id = request.GET['data_id']
@@ -1737,6 +1736,29 @@ def insert_mapping(request, user=''):
     return HttpResponse('Added Successfully')
 
 
+
+
+@csrf_exempt
+@get_admin_user
+def insert_sku_doa_mapping(request, user=''):
+    data_dict = copy.deepcopy(SKU_MAPPING_DATA)
+    warehouse = request.POST.get('warehouse', '')
+    if warehouse:
+        all_users = get_related_user_objs(user.id)
+        user_obj = all_users.filter(username=warehouse)
+        if not user_obj:
+            return HttpResponse('Invalid Warehouse')
+        else:
+            user = user_obj[0]
+    doa_status = request.POST.get('status')
+    sku_supplier = SKUMaster(**data_dict)
+    sku_supplier.save()
+    if doa_status == 'pending':
+        doa_obj = MastersDOA.objects.get(id=request.POST.get('DT_RowId'))
+        doa_obj.doa_status = 'created'
+        doa_obj.save()
+    return HttpResponse('Added Successfully')
+
 def update_user_password(data_name, data_email, phone_number, password, cur_user_id, user, role_name):
     cur_user = User.objects.get(id=cur_user_id)
     if password:
@@ -2274,6 +2296,8 @@ def get_supplier_list(request, user=''):
         supplier_list.append({'supplier_id': supplier.supplier_id, 'name': supplier.name})
     costing_type = ['Price Based', 'Margin Based','Markup Based']
     return HttpResponse(json.dumps({'suppliers': supplier_list, 'costing_type': costing_type}))
+
+
 
 
 def validate_bom_data(all_data, product_sku, user):
@@ -2902,6 +2926,8 @@ def insert_sku(request, user=''):
         notified_users = list(set(notified_users))
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
+            if instanceName == AssetMaster:
+                data_dict.update(ASSET_SKU_DATA)
             if instanceName == ServiceMaster:
                 data_dict.update(SERVICE_SKU_DATA)
             if instanceName == OtherItemsMaster:
@@ -2956,7 +2982,6 @@ def insert_sku(request, user=''):
                         else:
                             value = None
                     data_dict[key] = value
-
             data_dict['sku_code'] = data_dict['wms_code']
             if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
                 respFields = [f.name for f in instanceName._meta.get_fields()]
@@ -5174,8 +5199,8 @@ def send_supplier_doa(request, user=''):
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
-            'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
-            'lead_time', 'sku__user', 'status']
+           'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
+           'lead_time', 'sku__user', 'status']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
@@ -5232,6 +5257,226 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', row.id), ('mrp', skuObj.mrp),
                                                 ('model_id', row.model_id))))
+
+
+# @csrf_exempt
+# @get_admin_user
+# def send_sku_doa(request, user=''):
+#     userQs = UserGroups.objects.filter(user=user)
+#     parentCompany = userQs[0].company_id
+#     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+#     admin_user = admin_userQs[0].user
+#     req_user = request.user
+#     if not request.user.is_staff:
+#         req_user = user
+#     data = request.POST.dict()
+#     sku_data,sub_categories, sub_cate, sub_market_data, market_data, attributes_data = {}, [], {}, {}, [], {}
+#     size_data, sizes_list_data, product_data, uom_type_list_data, zone_data, ord_dict = {}, {}, {}, {}, {}, {}
+#     size_dict, temp_atr = {}, {}
+#     temp_size_lis, temp_atr_lis =[], []
+#     sku_rel_imgs_show, sku_files = [], []
+#     for key, value in data.items():
+#         if key.startswith('sku_data'):
+#             m_key = key.replace("sku_data[", '')
+#             final_key = m_key.replace("]", '')
+#             sku_data[final_key] = value
+#         elif key.startswith('sub_categories'):
+#             m_key = key.replace("sub_categories[", '')
+#             final_key = m_key.replace("]", '')
+#             sub_cate[final_key] = value
+#         elif key.startswith('market_data'):
+#             m_key = key.replace("market_data", '')
+#             sub_market_data[m_key] = value
+#         elif key.startswith('attributes'):
+#             m_key = key.replace("attributes", '')
+#             attributes_data[m_key] = value
+#         else:
+#             ord_dict[key] = value
+#     zones_list = get_user_zones(user)
+#     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
+#     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
+#     size_names = SizeMaster.objects.filter(user=user.id)
+#     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
+#     sizes_list = []
+#     for sizes in size_names:
+#         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
+#     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+#     attributes = get_user_attributes(user, 'sku')
+#     for attr_data in attributes:
+#         temp_atr_lis.append(attr_data)
+#     company_id = get_company_id(user)
+#     uom_master = UOMMaster.objects.filter(company_id=company_id, sku_code=sku_data['sku_desc'])
+#     uom_data = []
+#     if uom_master:
+#         base_uom_name = uom_master[0].base_uom
+#         uom_data.append({'uom_type': 'Base', 'uom_name': base_uom_name, 'conversion': 1})
+#     for uom in uom_master:
+#         uom_data.append({'uom_type': uom.uom_type, 'uom_name': uom.uom,
+#                          'conversion': uom.conversion, 'uom_id': uom.id})
+#     market_data = market_data_conversion(sub_market_data)
+#     filter_params = {'user': user.id}
+#     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
+#     zones = zones[0]
+#     zones = zones['zone']
+#     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
+#                                                                                flat=True).distinct())
+#     sub_category = sub_cate
+#     size_data = sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+#     final_dict = {}
+#     final_dict['sku_data'] = sku_data
+#     final_dict['zones'] = zones_list
+#     final_dict['groups'] = all_groups
+#     final_dict['market_data'] = market_data
+#     final_dict['market_list'] = []
+#     final_dict['sizes_list'] = sizes_list
+#     final_dict['sku_rel_imgs_show'] = sku_rel_imgs_show
+#     final_dict['sku_files'] = sku_files
+#     final_dict['product_types'] = product_types
+#     final_dict['sub_categories'] = sub_categories
+#     final_dict['sizes'] = sizes_list[0]['size_values']
+#     final_dict['attributes'] = temp_atr_lis
+#     final_dict['uom_type_list'] = []
+#     final_dict['uom_data'] = uom_data
+#     final_dict['sizes'] = size_data
+#     data_dict = final_dict
+#     doa_dict = {
+#         'requested_user': req_user,
+#         'wh_user': admin_user,
+#         'model_name': 'SKUMaster',
+#         'json_data': json.dumps(data_dict),
+#         'doa_status': 'pending'
+#     }
+#     if not data_dict.has_key('DT_RowId'):
+#         doa_obj = MastersDOA(**doa_dict)
+#         doa_obj.save()
+#     else:
+#         doa_dict['model_id'] = data_dict['DT_RowId']
+#         doaQs = MastersDOA.objects.filter(model_name='SKUMaster', model_id=doa_dict['model_id'])
+#         if doaQs.exists():
+#             doa_obj = doaQs[0]
+#             doa_obj.json_data = json.dumps(data_dict)
+#             doa_obj.save()
+#         else:
+#             doa_obj = MastersDOA(**doa_dict)
+#             doa_obj.save()
+#     return HttpResponse("Added Successfully")
+
+
+
+@csrf_exempt
+def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku__sku_desc', 'sku__sku_group', 'sku__sku_brand', 'sku_type',
+           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
+           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
+           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
+           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
+           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
+           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="SKUMaster",
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="SKUMaster",
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+
+        else:
+            warehouse = get_admin(row.requested_user)
+        temp_data['aaData'].append(OrderedDict((('sku_desc', result.get('sku_desc', '')),
+                                                ('sequence', result.get('sequence', '')),
+                                                ('max_norm_quantity', result.get('max_norm_quantity', '')),
+                                                ('sku_brand', result.get('sku_brand', '')),
+                                                ('sku_group', result.get('sku_group', '')),
+                                                ('style_name', result.get('style_name', '')),
+                                                ('ean_number', result.get('ean_number', '')),
+                                                ('threshold_quantity', result.get('threshold_quantity', '')),
+                                                ('primary_category', result.get('primary_category', '')),
+                                                ('enable_serial_based',result.get('enable_serial_based', '')),
+                                                ('sku_type', result.get('sku_type', '')),
+                                                ('hsn_code', result.get('hsn_code', '')),
+                                                ('sale_through', result.get('sale_through', '')),
+                                                ('shelf_life', result.get('shelf_life', '')),
+                                                ('qc_check', result.get('qc_check', '')),('load_unit_handle', result.get('load_unit_handle', '')),
+                                                ('cost_price', result.get('cost_price', '')), ('batch_based', result.get('batch_based', '')),
+                                                ('mix_sku', result.get('mix_sku', '')), ('measurement_type', result.get('measurement_type', '')),
+                                                ('color', result.get('color', '')), ('zone_id', result.get('zone_id', '')),('block_options', result.get('block_options', '')),
+                                                ('sku_class', result.get('sku_class', '')),('image_url', result.get('image_url', '')),('product_type', result.get('product_type', '')),
+                                                ('online_percentage', result.get('online_percentage', '')),('sku_size', result.get('sku_size', '')),
+                                                ('requested_user', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('status', row.doa_status),
+                                                ('sub_category',result.get('sub_category','')),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', row.id),
+                                                ('DT_RowAttr', {'data-id': row.id}),
+                                                ('model_id', row.model_id))))
+    return temp_data
+
+
+def get_sku_master_doa_record(request, user=''):
+    data_id = request.GET.get('data_id')
+    result = MastersDOA.objects.filter(id=data_id)
+    ord_dict,temp_data= {}, {}
+    temp_data['sku_data'] = []
+    if result.exists():
+        result = json.loads(result[0].json_data)
+        final_dict = result
+        order_dict = dict((('sku_desc', result.get('sku_desc', '')),
+                                    ('sequence', result.get('sequence', '')),
+                                    ('max_norm_quantity', result.get('max_norm_quantity', '')),
+                                    ('sku_brand', result.get('sequence', '')),
+                                    ('sku_group', result.get('sku_group', '')),
+                                    ('style_name', result.get('style_name', '')),
+                                    ('ean_number', result.get('ean_number', '')),
+                                    ('threshold_quantity', result.get('threshold_quantity', '')),
+                                    ('primary_category', result.get('primary_category', '')),
+                                    ('enable_serial_based', result.get('enable_serial_based', '')),
+                                    ('sku_type', result.get('sku_type', '')),
+                                    ('hsn_code', result.get('hsn_code', '')),
+                                    ('sale_through', result.get('sale_through', '')),
+                                    ('shelf_life', result.get('shelf_life', '')),
+                                    ('qc_check', result.get('qc_check', '')),
+                                    ('load_unit_handle', result.get('load_unit_handle', '')),
+                                    ('cost_price', result.get('cost_price', '')),
+                                    ('batch_based', result.get('batch_based', '')),
+                                    ('mix_sku', result.get('mix_sku', '')),
+                                    ('measurement_type', result.get('measurement_type', '')),
+                                    ('color', result.get('color', '')),
+                                    ('zone_id', result.get('zone_id', '')),
+                                    ('block_options', result.get('block_options', '')),
+                                    ('sku_class', result.get('sku_class', '')),
+                                    ('image_url', result.get('image_url', '')),
+                                    ('product_type', result.get('product_type', '')),
+                                    ('online_percentage', result.get('online_percentage', '')),
+                                    ('sku_size', result.get('sku_size', '')),
+                                    ('sub_category', result.get('sub_category', ''))))
+    return HttpResponse(json.dumps({'data': result}))
 
 
 def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
@@ -5335,4 +5580,404 @@ def gather_uom_master_for_sku(user, sku_code):
         dataDict['uom_items'].append(uom_item)
 
     return dataDict
+
+
+
+def attribute_data_conversion(data):
+    final_dict = {}
+    m_dict = {}
+    temp_lis = []
+    final_list = []
+    for i, j in data.items():
+        v = int(i[1])
+        temp_lis.append(v)
+        n = list(set(temp_lis))
+
+    for index in n:
+        attribute_model_key = '[' + str(index) + ']' + '[attribute_model]'
+        attribute_name_key = '[' + str(index) + ']' + '[attribute_name]'
+        attribute_type_key = '[' + str(index) + ']' + '[attribute_type]'
+        attr_id_key = '[' + str(index) + ']' + '[id]'
+        attr_has_key = '[' + str(index) + ']' + '[$$hashKey]'
+
+        m_dict['attribute_model'] = data[attribute_model_key]
+        m_dict['attribute_name'] = data[attribute_name_key]
+        m_dict['attribute_type'] = data[attribute_type_key]
+        m_dict['id'] = data[attr_id_key]
+        m_dict['$$hashKey'] = data[attr_has_key]
+        final_list.append(m_dict)
+    return final_list
+
+def market_data_conversion(data):
+    m_dict = {}
+    temp_lis = []
+    final_list = []
+    for i, j in data.items():
+        v = int(i[1])
+        temp_lis.append(v)
+        n = list(set(temp_lis))
+
+    for index in n:
+        market_sku_type_key = '[' + str(index) + ']' + '[market_sku_type]'
+        disable_key = '[' + str(index) + ']' + '[disable]'
+        market_model_key = '[' + str(index) + ']' + '[market_id]'
+        marketplace_code = '[' + str(index) + ']' + '[marketplace_code]'
+        market_has_key = '[' + str(index) + ']' + '[$$hashKey]'
+
+        m_dict['market_sku_type'] = data[market_sku_type_key]
+        m_dict['disable'] = data[disable_key]
+        m_dict['market_id'] = data[market_model_key]
+        m_dict['marketplace_code'] = data[marketplace_code]
+        m_dict['$$hashKey'] = data[market_has_key]
+        final_list.append(m_dict)
+    return final_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def insert_sku_doa(request, user=''):
+    """ Insert New SKU Details """
+    log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    reversion.set_user(request.user)
+    reversion.set_comment("insert_sku")
+    load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    admin_user = get_admin(user)
+
+    description = request.POST['sku_desc']
+    zone = request.POST['zone_id']
+    size_type = request.POST.get('size_type', '')
+    hot_release = request.POST.get('hot_release', '')
+    enable_serial_based = request.POST.get('enable_serial_based', 0)
+    if not description:
+        return HttpResponse('Missing Required Fields')
+    filter_params = {'zone': zone, 'user': user.id}
+    zone_master = filter_or_none(ZoneMaster, filter_params)
+    filter_params = {'sku_desc': description, 'user': user.id}
+    instanceName = SKUMaster
+    status_msg = 'SKU exists'
+    if request.POST.get('is_asset') == 'true':
+        instanceName = AssetMaster
+        status_msg = 'Asset Item exists'
+    elif request.POST.get('is_service') == 'true':
+        instanceName = ServiceMaster
+        status_msg = 'Service Item exists'
+    elif request.POST.get('is_otheritem') == 'true':
+        instanceName = OtherItemsMaster
+        status_msg = 'Other Item exists'
+    data = filter_or_none(instanceName, filter_params)
+
+    wh_ids = get_related_users(user.id)
+    cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+    notified_users = []
+    notified_users.extend(wh_ids)
+    notified_users.extend(cust_ids)
+    notified_users = list(set(notified_users))
+    if not data:
+        data_dict = copy.deepcopy(SKU_DATA)
+        if instanceName == AssetMaster:
+            data_dict.update(ASSET_SKU_DATA)
+        if instanceName == ServiceMaster:
+            data_dict.update(SERVICE_SKU_DATA)
+        if instanceName == OtherItemsMaster:
+            data_dict.update(OTHERITEMS_SKU_DATA)
+        data_dict['user'] = user.id
+        for key, value in request.POST.iteritems():
+            if key in data_dict.keys():
+                if key == 'zone_id':
+                    value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
+                    if value:
+                        value = value.id
+                elif key == 'status':
+                    if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                elif key == 'qc_check':
+                    if value == 'Enable':
+                        value = 1
+                    else:
+                        value = 0
+                elif key == 'batch_based':
+                    if value.lower() == 'enable':
+                        value = 1
+                    else:
+                        value = 0
+                elif key == 'load_unit_handle':
+                    value = load_unit_dict.get(value.lower(), 'unit')
+                elif key == 'enable_serial_based':
+                    if not value:
+                        value = 0
+                    else:
+                        value = 1
+                # elif key == 'batch_based':
+                #     if value.lower() == 'enable':
+                #         value = 1
+                #     else:
+                #         value = 0
+                elif key == 'block_options':
+                    if value == '0':
+                        value = 'PO'
+                    else:
+                        value = ''
+                if value == '':
+                    continue
+                if key in ['service_start_date', 'service_end_date']:
+                    if value:
+                        try:
+                            value = datetime.datetime.strptime(value, '%d-%m-%Y')
+                        except:
+                            value = None
+                    else:
+                        value = None
+                data_dict[key] = value
+
+        data_dict['sku_code'] = data_dict['wms_code']
+        if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
+            respFields = [f.name for f in instanceName._meta.get_fields()]
+            for k, v in data_dict.items():
+                if k not in respFields:
+                    data_dict.pop(k)
+        userQs = UserGroups.objects.filter(user=user)
+        parentCompany = userQs[0].company_id
+        admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+        admin_user = admin_userQs[0].user
+        req_user = request.user
+        if not request.user.is_staff:
+            req_user = user
+        model_name = instanceName.__name__
+        doa_dict = {
+            'requested_user': req_user,
+            'wh_user': admin_user,
+            'model_name': model_name,
+            'json_data': json.dumps(data_dict),
+            'doa_status': 'pending'
+        }
+        if not data_dict.has_key('DT_RowId'):
+            sku_master = MastersDOA(**doa_dict)
+            sku_master.save()
+        else:
+            doa_dict['model_id'] = data_dict['DT_RowId']
+            doaQs = MastersDOA.objects.filter(model_name='SKUMaster', model_id=doa_dict['model_id'])
+            if doaQs.exists():
+                sku_master = doaQs[0]
+                sku_master.json_data = json.dumps(data_dict)
+                sku_master.save()
+            else:
+                master_doa = MastersDOA(**doa_dict)
+                master_doa.save()
+    return HttpResponse("Added SuccessFully")
+
+
+def change_status_sku_doa(request):
+    data_id = request.GET.get("data_id")
+    doa_upd = MastersDOA.objects.filter(id=data_id)
+    if doa_upd.exists():
+        doa_upd = doa_upd[0]
+        doa_upd.doa_status= "created"
+        doa_upd.save()
+        status_msg = "New SKU Created Successfully"
+    else:
+        status_msg = "Failed to create an sku"
+    return HttpResponse(status_msg)
+
+def sku_rejected_sku_doa(request):
+    data_id = request.GET.get("data_id")
+    doa_upd = MastersDOA.objects.filter(id=data_id)
+    if doa_upd.exists():
+        doa_upd = doa_upd[0]
+        doa_upd.doa_status= "rejected"
+        doa_upd.save()
+        status_msg = "Something went wrong"
+    return HttpResponse(status_msg)
+
+
+@csrf_exempt
+def get_asset_master_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku__sku_desc', 'sku__sku_group', 'sku__sku_brand', 'sku_type',
+           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
+           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
+           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
+           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
+           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
+           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="AssetMaster",
+                    doa_status="pending").order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="AssetMaster",
+                    doa_status="pending").order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+
+        else:
+            warehouse = get_admin(row.requested_user)
+        temp_data['aaData'].append(OrderedDict((('sku_desc', result.get('sku_desc', '')),
+                                                ('sequence', result.get('sequence', '')),
+                                                ('max_norm_quantity', result.get('max_norm_quantity', '')),
+                                                ('sku_category', result.get('sku_category', '')),
+                                                ('sku_brand', result.get('sku_brand', '')),
+                                                ('sku_group', result.get('sku_group', '')),
+                                                ('threshold_quantity', result.get('threshold_quantity', '')),
+                                                ('primary_category', result.get('primary_category', '')),
+                                                ('store_id', result.get('store_id', '')),
+                                                ('asset_number', result.get('asset_number', '')),
+                                                ('parent_asset_code', result.get('parent_asset_code', '')),
+                                                ('enable_serial_based', result.get('enable_serial_based', '')),
+                                                ('sku_type', result.get('sku_type', '')),
+                                                ('hsn_code', result.get('hsn_code', '')),
+                                                ('sale_through', result.get('sale_through', '')),
+                                                ('style_name', result.get('style_name', '')),
+                                                ('ean_number', result.get('ean_number', '')),
+                                                ('shelf_life', result.get('shelf_life', '')),
+                                                ('qc_check', result.get('qc_check', '')),
+                                                ('load_unit_handle', result.get('load_unit_handle', '')),
+                                                ('cost_price', result.get('cost_price', '')),
+                                                ('status', result.get('status', '')),
+                                                ('batch_based', result.get('batch_based', '')),
+                                                ('price', result.get('price', '')),
+                                                ('mix_sku', result.get('mix_sku', '')),
+                                                ('measurement_type', result.get('measurement_type', '')),
+                                                ('user', result.get('user', '')),
+                                                ('asset_type', result.get('asset_type', '')),
+                                                ('color', result.get('color', '')),
+                                                ('zone_id', result.get('zone_id', '')),
+                                                ('block_options', result.get('block_options', '')),
+                                                ('sku_class', result.get('sku_class', '')),
+                                                ('image_url', result.get('image_url', '')),
+                                                ('product_type', result.get('product_type', '')),
+                                                ('online_percentage', result.get('online_percentage', '')),
+                                                ('sku_size', result.get('sku_size', '')),
+                                                ('requested_user', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('doa_status', row.doa_status),
+                                                ('sub_category',result.get('sub_category','')),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', row.id),
+                                                ('DT_RowAttr', {'data-id': row.id}),
+                                                ('model_id', row.model_id))))
+    return temp_data
+
+@csrf_exempt
+def get_service_master_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku__sku_desc', 'sku__sku_group', 'sku__sku_brand', 'sku_type',
+           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
+           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
+           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
+           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
+           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
+           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+    search_users = []
+    if user.userprofile.warehouse_level == 0:
+        user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    else:
+        users = [user.id]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="ServiceMaster",
+                    doa_status="pending").order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="ServiceMaster",
+                    doa_status="pending").order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        if row.requested_user.is_staff:
+            warehouse = row.requested_user
+
+        else:
+            warehouse = get_admin(row.requested_user)
+        temp_data['aaData'].append(OrderedDict((('sku_desc', result.get('sku_desc', '')),
+                                                ('sequence', result.get('sequence', '')),
+                                                ('max_norm_quantity', result.get('max_norm_quantity', '')),
+                                                ('sku_category', result.get('sku_category', '')),
+                                                ('sku_brand', result.get('sku_brand', '')),
+                                                ('sku_group', result.get('sku_group', '')),
+                                                ('threshold_quantity', result.get('threshold_quantity', '')),
+                                                ('primary_category', result.get('primary_category', '')),
+                                                ('store_id', result.get('store_id', '')),
+                                                ('asset_code', result.get('asset_code', '')),
+                                                ('service_type', result.get('service_type', '')),
+                                                ('enable_serial_based', result.get('enable_serial_based', '')),
+                                                ('sku_type', result.get('sku_type', '')),
+                                                ('hsn_code', result.get('hsn_code', '')),
+                                                ('sale_through', result.get('sale_through', '')),
+                                                ('style_name', result.get('style_name', '')),
+                                                ('ean_number', result.get('ean_number', '')),
+                                                ('shelf_life', result.get('shelf_life', '')),
+                                                ('qc_check', result.get('qc_check', '')),
+                                                ('load_unit_handle', result.get('load_unit_handle', '')),
+                                                ('cost_price', result.get('cost_price', '')),
+                                                ('status', result.get('status', '')),
+                                                ('batch_based', result.get('batch_based', '')),
+                                                ('price', result.get('price', '')),
+                                                ('mix_sku', result.get('mix_sku', '')),
+                                                ('measurement_type', result.get('measurement_type', '')),
+                                                ('user', result.get('user', '')),
+                                                ('asset_type', result.get('asset_type', '')),
+                                                ('color', result.get('color', '')),
+                                                ('zone_id', result.get('zone_id', '')),
+                                                ('block_options', result.get('block_options', '')),
+                                                ('sku_class', result.get('sku_class', '')),
+                                                ('image_url', result.get('image_url', '')),
+                                                ('product_type', result.get('product_type', '')),
+                                                ('zone_id', result.get('zone_id', '')),
+                                                ('online_percentage', result.get('online_percentage', '')),
+                                                ('sku_size', result.get('sku_size', '')),
+                                                ('requested_user', row.requested_user.first_name),
+                                                ('warehouse', warehouse.username),
+                                                ('doa_status', row.doa_status),
+                                                ('sub_category',result.get('sub_category','')),
+                                                ('service_end_date', result.get('service_end_date', '')),
+                                                ('user', result.get('user', '')),
+                                                ('mrp', result.get('mrp', '')),
+                                                ('service_start_date', result.get('service_start_date', '')),
+                                                ('DT_RowClass', 'results'),
+                                                ('DT_RowId', row.id),
+                                                ('DT_RowAttr', {'data-id': row.id}),
+                                                ('model_id', row.model_id))))
+    return temp_data
+
 

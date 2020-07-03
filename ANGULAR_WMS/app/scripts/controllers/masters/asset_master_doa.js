@@ -58,6 +58,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       sku_files:[],
                     }
   vm.model_data = {};
+  vm.dtInstance = {};
+     $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
 
   angular.copy(empty_data, vm.model_data);
 
@@ -79,11 +84,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
-//     vm.dtInstance = {};
-//     $scope.$on('change_filters_data', function(){
-//      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-//      vm.service.refresh(vm.dtInstance);
-//    });
+     vm.dtInstance = {};
+     $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
      vm.dtColumns = [
       DTColumnBuilder.newColumn('requested_user').withTitle('Requested User'),
       DTColumnBuilder.newColumn('sku_desc').withTitle('Asset Description'),

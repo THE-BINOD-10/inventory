@@ -3072,7 +3072,7 @@ def approve_pr(request, user=''):
     if is_actual_pr == 'true':
         approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
         prev_approval_type = approval_type
-        if approval_type == 'default' and myDict['supplier_id'][0]:
+        if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
     if is_purchase_approver:
         for i in range(0, len(myDict['wms_code'])):

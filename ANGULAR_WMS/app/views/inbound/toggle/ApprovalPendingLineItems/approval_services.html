@@ -108,7 +108,7 @@
         </span> 
         <input type="text" name="tax" ng-model="product.fields.tax" class="hide"> -->
         <input type="text" name="tax" ng-model="product.fields.tax" 
-        class="form-control" ng-class="service.get_decimal_perm()" 
+        class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" 
         ng-readonly="product.fields.preferred_supplier || (!showCase.permissions.change_pendinglineitems)" size="50">
       </td>
       <td class="text-center"> 

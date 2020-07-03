@@ -6452,14 +6452,13 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             try:
-                netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict)
+                netsuite_grn(user, report_data_dict, data.po_number, po_number, dc_level_grn, request, myDict,service_doa)
             except Exception as e:
                 print(e)
                 pass
             if(service_doa):
-                model_id=request.POST['doa_id']
-                users=[request.user.id]
-                MastersDOA.objects.filter(model_name='SellerPOSummary', requested_user__in=users, doa_status="pending").update(doa_status="approved")
+                for k in range(0, len(myDict['id'])):
+                    MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=myDict['id'][k], doa_status="pending").update(doa_status="approved")
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
@@ -6494,7 +6493,7 @@ def confirm_grn(request, confirm_returns='', user=''):
 
 # def confirm_qc_grn(request, user=''):
 
-def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_params,myDict):
+def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_params,myDict, service_doa):
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     from pytz import timezone
@@ -6547,7 +6546,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "dc_date" : dc_date,
                 "vendorbill_url": vendorbill_url
      }
-    purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    if(service_doa):
+        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
+    else:
+        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
     for index, data in  enumerate(po_data):
         _open = purchase_order[index].open_po
         user_obj = User.objects.get(pk=_open.sku.user)

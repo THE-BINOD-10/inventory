@@ -202,5 +202,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   get_groups_list();
 
+  vm.check_selected = function(group){
+    var selected_val = false;
+    for(var ind=0; ind<vm.model_data.groups.length; ind++) {
+      if(vm.model_data.groups[ind] == group) {
+        selected_val = true;
+        break;
+      }
+    }
+    return selected_val;
+  }
+
 }
 

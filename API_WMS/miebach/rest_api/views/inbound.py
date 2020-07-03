@@ -4004,6 +4004,9 @@ def add_pr(request, user=''):
         product_category = 'Kits&Consumables'
         if myDict.get('product_category'):
             product_category = myDict.get('product_category')[0]
+        sku_category = ''
+        if myDict.get('sku_category'):
+            sku_category = myDict.get('sku_category')[0]
         is_resubmitted = False
         if myDict.get('is_resubmitted'):
             is_resubmitted = myDict.get('is_resubmitted')[0]
@@ -4062,7 +4065,8 @@ def add_pr(request, user=''):
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default')
+                                                product_category=product_category, approval_type='default',
+                                              sku_category=sku_category)
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4093,7 +4097,7 @@ def add_pr(request, user=''):
                     admin_user = admin_userQs[0].user
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
-                                                product_category=product_category)
+                                                product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
@@ -4103,7 +4107,7 @@ def add_pr(request, user=''):
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO', 
-                                    product_category=product_category)
+                                    product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:

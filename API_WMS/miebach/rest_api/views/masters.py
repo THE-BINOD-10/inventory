@@ -717,6 +717,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    company_id = get_company_id(user)
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id).values_list('group__name', flat=True))
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
@@ -731,11 +733,21 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        sub_user = User.objects.get(username=data.email_id)
         wh_user = data.user
         plant = ''
         department = ''
+        group_names = []
+        sub_user = User.objects.get(email=data.email_id)
         if wh_user:
+            sub_user_parent = get_sub_user_parent(sub_user)
+            roles_list1 = copy.deepcopy(roles_list)
+            roles_list1 = list(chain(roles_list1, [sub_user_parent]))
+            user_groups = sub_user.groups.filter().exclude(name__in=roles_list1)
+            if user_groups:
+                for i in user_groups:
+                    i_name = (i.name).replace(user.username + ' ', '')
+                    i_name = (i_name).replace(sub_user_parent.username + ' ', '')
+                    group_names.append(i_name)
             if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
                 plant = wh_user.username
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
@@ -749,6 +761,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
+                                 ('groups', group_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
                          ))
         temp_data['aaData'].append(data_dict)
@@ -4713,6 +4726,10 @@ def insert_staff(request, user=''):
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
+        request_data = dict(request.POST.iterlists())
+        if request_data.get('groups', []):
+            selected_list = request_data['groups']
+            update_user_groups(request, sub_user, selected_list)
     return HttpResponse(status_msg)
 
 
@@ -4737,17 +4754,17 @@ def update_staff_values(request, user=''):
     data.staff_name = staff_name
     data.department_type = department_type
     old_position = data.position
+    sub_user = User.objects.get(username=data.email_id)
     if old_position != position:
-        sub_user = User.objects.get(username=data.email_id)
         update_user_role(user, sub_user, position, old_position=old_position)
     data.position = position
     data.phone_number = phone
     data.status = status
     data.save()
     request_data = dict(request.POST.iterlists())
-    import pdb;
-    pdb.set_trace()
-
+    if request_data.get('groups', []):
+        selected_list = request_data['groups']
+        update_user_groups(request, sub_user, selected_list)
     return HttpResponse("Updated Successfully")
 
 

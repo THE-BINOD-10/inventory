@@ -93,7 +93,7 @@
               <div class="form-group">
                 <label class="control-label"> Groups </label>
                    <select class="selectpicker-groups show-menu-arrow form-control" multiple name="groups" ng-model="showCase.model_data.groups" data-size="10">
-                    <option ng-selected="showCase.check_selected(level_dat, role)" ng-repeat="group in showCase.groups_list">{{group}}</option>
+                    <option ng-selected="showCase.check_selected(group)" ng-repeat="group in showCase.groups_list">{{group}}</option>
                   </select>
               </div>
             </div>

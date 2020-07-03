@@ -875,12 +875,13 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
-                                    product_category=product_category, approval_type=approval_type)
+                                    product_category=product_category, approval_type=approval_type,
+                                    sku_category=sku_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -12563,3 +12564,18 @@ def get_user_groups_list(request, user=''):
         group_name = (group.name).replace(user.username + ' ', '')
         total_groups.append(group_name)
     return HttpResponse(json.dumps({'groups': total_groups}))
+
+
+def update_user_groups(request, sub_user, selected_list):
+    modified_list = [request.user.username + ' ' + s for s in selected_list]
+    user_groups = request.user.groups.filter()
+    exclude_group = AdminGroups.objects.filter(user_id=request.user.id)
+    if exclude_group:
+        exclude_name = exclude_group[0].group.name
+    for group in user_groups:
+        if group.name in selected_list or group.name in modified_list:
+            sub_user.groups.add(group)
+        else:
+            if exclude_name:
+                if not group.name == exclude_name:
+                    group.user_set.remove(sub_user)

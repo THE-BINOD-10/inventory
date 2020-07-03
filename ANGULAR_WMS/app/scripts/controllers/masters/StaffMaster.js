@@ -60,6 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.title = "Update Staff";
                 vm.message ="";
                 $state.go('app.masters.StaffMaster.Staff');
+                $timeout(function(){$('.selectpicker-groups').selectpicker();}, 500);
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -92,6 +93,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.base();
     $state.go('app.masters.StaffMaster.Staff');
+    $timeout(function(){$('.selectpicker-groups').selectpicker();}, 1000);
   }
 
   vm.customer = function(url) {
@@ -189,6 +191,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
+
+  vm.groups_list = [];
+  function get_groups_list() {
+    vm.service.apiCall("get_user_groups_list/", "GET").then(function(data) {
+      if(data.message) {
+        vm.groups_list = data.data.groups;
+      }
+    });
+  }
+  get_groups_list();
 
 }
 

@@ -4724,6 +4724,9 @@ def update_staff_values(request, user=''):
     data.phone_number = phone
     data.status = status
     data.save()
+    request_data = dict(request.POST.iterlists())
+    import pdb;
+    pdb.set_trace()
 
     return HttpResponse("Updated Successfully")
 

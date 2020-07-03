@@ -577,6 +577,7 @@ def get_search_params(request, user=''):
 
 data_datatable = {  # masters
     'SKUMaster': 'get_sku_results', 'SupplierMaster': 'get_supplier_results', \
+    'MachineMaster': 'get_machine_master_results',
     'SupplierSKUMappingMaster': 'get_supplier_mapping', 'CustomerMaster': 'get_customer_master', \
     'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', 'SKUPackMaster' :'get_sku_pack_master',\
     'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results', \
@@ -589,8 +590,8 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data',
+    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -874,12 +875,12 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
-                                    product_category=product_category)
+                                    product_category=product_category, approval_type=approval_type)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -896,13 +897,15 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category=''):
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category=''):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
-    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category)
-    configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName).\
+    reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
+                                      approval_type=approval_type)
+    configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
+                                                          approval_type=approval_type).\
                     values_list('level', flat=True).order_by('-id'))
     if configQs:
         finalLevel = configQs[0]
@@ -1094,6 +1097,71 @@ def update_pr_po_config_roles(company_id, eachConfig, roles):
             eachConfig.user_role.remove(company_role[0])
 
 
+def update_purchase_approval_config_data(company_id, purchase_type, data, user, approval_type):
+    mailsMap = data.get('%s_level_data' % approval_type, {})
+    final_data = []
+    if approval_type == 'ranges':
+        final_data = mailsMap
+    else:
+        final_data = [{'min_Amt': 0,'max_Amt': 0, 'range_levels': mailsMap}]
+    for final_dat in final_data:
+        actual_name = '%s_%s_%s_%s' % (data['name'], approval_type, str(final_dat.get('min_Amt', 0)), str(final_dat.get('max_Amt', 0)))
+        pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=data['name'],
+                                                             purchase_type=purchase_type, approval_type=approval_type,
+                                                             min_Amt=final_dat['min_Amt'], max_Amt=final_dat['max_Amt'],
+                                                             name=actual_name)
+        existingLevels = list(pr_approvals.values_list('level', flat=True))
+        updatingLevels = map(lambda d: d['level'], final_dat['range_levels'])
+        tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
+        if tobeDeletedLevels:
+            for eachLevel in tobeDeletedLevels:
+                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
+                if tobeDeleteQs.exists():
+                    tobeDeleteId = tobeDeleteQs[0].id
+                    tobeDeleteQs.delete()
+
+        for level_dat in final_dat['range_levels']:
+            if level_dat.get('data_id', ''):
+                pr_approvals = PurchaseApprovalConfig.objects.filter(id=level_dat['data_id'])
+            level = level_dat['level']
+            roles = level_dat['roles']
+            PRApprovalMap = {
+                'user': user,
+                'company_id': company_id,
+                'name': actual_name,
+                'display_name': data['name'],
+                'product_category': data['product_category'],
+                'sku_category': data.get('sku_category', ''),
+                'plant': data.get('plant', ''),
+                'department_type': data.get('department_type', ''),
+                'min_Amt': final_dat.get('min_Amt', 0),
+                'max_Amt': final_dat.get('max_Amt', 0),
+                'level': level,
+                'purchase_type': purchase_type,
+                'approval_type': approval_type
+            }
+            if not pr_approvals.exists():
+                eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
+                eachConfigId = eachConfig.id
+            else:
+                eachLevel = pr_approvals.filter(level=level)
+                if eachLevel.exists():
+                    eachLevelObj = eachLevel[0]
+                    if eachLevelObj.max_Amt != final_dat.get('max_Amt', 0):
+                        eachLevelObj.max_Amt = final_dat.get('max_Amt', 0)
+                    if eachLevelObj.min_Amt != final_dat.get('min_Amt', 0):
+                        eachLevelObj.min_Amt = final_dat.get('min_Amt', 0)
+                    eachLevelObj.name = actual_name
+                    eachLevelObj.save()
+                    eachConfig = eachLevelObj
+                    eachConfigId = eachLevelObj.id
+                else:
+                    eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
+                    eachConfigId = eachConfig.id
+
+            #roles = roles.split(',')
+            update_pr_po_config_roles(company_id, eachConfig, roles)
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1109,54 +1177,9 @@ def add_update_pr_config(request,user=''):
     company_id = get_company_id(user)
     if toBeUpdateData:
         data = toBeUpdateData
-        pr_approvals = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=data['name'], purchase_type=purchase_type)
-        existingLevels = list(pr_approvals.values_list('level', flat=True))
-        mailsMap = data.get('level_data', {})
-        updatingLevels = map(lambda d: d['level'], mailsMap)
-        tobeDeletedLevels = list(set(existingLevels) - set(updatingLevels))
-        if tobeDeletedLevels:
-            for eachLevel in tobeDeletedLevels:
-                tobeDeleteQs = pr_approvals.filter(level=eachLevel)
-                if tobeDeleteQs.exists():
-                    tobeDeleteId = tobeDeleteQs[0].id
-                    tobeDeleteQs.delete()
-
-        for level_dat in mailsMap:
-            level = level_dat['level']
-            roles = level_dat['roles']
-            PRApprovalMap = {
-                    'user': user,
-                    'company_id': company_id,
-                    'name': data['name'],
-                    'product_category': data['product_category'],
-                    'sku_category': data.get('sku_category', ''),
-                    'plant': data.get('plant', ''),
-                    'department_type': data.get('department_type', ''),
-                    'min_Amt': data['min_Amt'],
-                    'max_Amt': data['max_Amt'],
-                    'level': level,
-                    'purchase_type': purchase_type,
-                }
-            if not pr_approvals.exists():
-                eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
-                eachConfigId = eachConfig.id
-            else:
-                eachLevel = pr_approvals.filter(level=level)
-                if eachLevel.exists():
-                    eachLevelObj = eachLevel[0]
-                    if eachLevelObj.max_Amt != data['max_Amt']:
-                        eachLevelObj.max_Amt = data['max_Amt']
-                    if eachLevelObj.min_Amt != data['min_Amt']:
-                        eachLevelObj.min_Amt = data['min_Amt']
-                    eachLevelObj.save()
-                    eachConfig = eachLevelObj
-                    eachConfigId = eachLevelObj.id
-                else:
-                    eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
-                    eachConfigId = eachConfig.id
-
-            roles = roles.split(',')
-            update_pr_po_config_roles(company_id, eachConfig, roles)
+        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'default')
+        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'ranges')
+        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'approved')
             # To Delete Existing Mails from  Level
             # mailsList = [i.strip() for i in mails.split(',')]
             # memQs = MasterEmailMapping.objects.filter(master_type=master_type,
@@ -1185,7 +1208,10 @@ def add_update_pr_config(request,user=''):
 @login_required
 @get_admin_user
 def delete_pr_config(request, user=''):
-    toBeDeleteData = eval(request.POST.get('data', []))
+    toBeDeleteData = ''
+    data_id = request.POST.get('data_id', '')
+    if request.POST.get('data', []):
+        toBeDeleteData = eval(request.POST.get('data', []))
     configFor = request.POST.get('type', 'pr_save') # pr_save is for existing Pending PO. actual_pr_save will be for new PR.
     if configFor == 'actual_pr_save':
         purchase_type = 'PR'
@@ -1193,19 +1219,22 @@ def delete_pr_config(request, user=''):
         purchase_type = 'PO'
     if toBeDeleteData:
         configName = toBeDeleteData.get('name')
-        pacQs = PurchaseApprovalConfig.objects.filter(user=user, name=configName, purchase_type=purchase_type)
+        pacQs = PurchaseApprovalConfig.objects.filter(user=user, display_name=configName, purchase_type=purchase_type)
         if pacQs.exists():
             for pacObj in pacQs:
                 configId = pacObj.id
                 #MasterEmailMapping.objects.filter(master_id=configId).delete()
             pacQs.delete()
         status = 'Deleted Successfully'
+    elif data_id:
+        PurchaseApprovalConfig.objects.filter(id=data_id).delete()
+        status = 'Deleted Successfully'
     else:
         status = 'Something Went Wrong, Please check with Tech Team'
     return HttpResponse(status)
 
 
-def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
+def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     confMap = OrderedDict()
@@ -1214,6 +1243,10 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category=''):
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
                   'plant': ''}
+    if sku_category:
+        pac_filter['sku_category'] = sku_category
+    if approval_type:
+        pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
@@ -4801,7 +4834,6 @@ def search_wms_data(request, user=''):
                                       status = 1,user=user.id)
     if sku_catg:
         query_objects = query_objects.filter(sku_category=sku_catg)
-
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
@@ -4810,10 +4842,19 @@ def search_wms_data(request, user=''):
             noOfTests = int(noOfTestsQs[0].attribute_value)
         else:
             noOfTests = 0
+        company_id = get_company_id(user)
+        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
+        sku_conversion = 0
+        if sku_uom.exists():
+            measurement_unit = sku_uom[0].uom
+            sku_conversion = float(sku_uom[0].conversion)
+        else:
+            measurement_unit = master_data.measurement_type
+            sku_conversion = 0
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
-                       'measurement_unit': master_data.measurement_type,
+                       'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests,
+                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand}
         if instanceName == ServiceMaster:
@@ -4829,10 +4870,10 @@ def search_wms_data(request, user=''):
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
-    total_data = build_search_data(total_data, master_data, limit)
+    total_data = build_search_data(user, total_data, master_data, limit)
 
     if len(total_data) < limit:
-        total_data = build_search_data(total_data, query_objects, limit)
+        total_data = build_search_data(user, total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
 
 
@@ -4863,10 +4904,10 @@ def search_makemodel_wms_data(request, user=''):
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
-    total_data = build_search_data(total_data, master_data, limit)
+    total_data = build_search_data(user, total_data, master_data, limit)
 
     if len(total_data) < limit:
-        total_data = build_search_data(total_data, query_objects, limit)
+        total_data = build_search_data(user, total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
 
 
@@ -5048,7 +5089,7 @@ def get_customer_sku_prices(request, user=""):
     return HttpResponse(json.dumps(result_data))
 
 
-def build_search_data(to_data, from_data, limit):
+def build_search_data(user, to_data, from_data, limit):
     if (len(to_data) >= limit):
         return to_data
     else:
@@ -5062,10 +5103,19 @@ def build_search_data(to_data, from_data, limit):
                     noOfTests = 0
             else:
                 noOfTests = 0
+            company_id = get_company_id(user)
+            sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
+            sku_conversion = 0
+            if sku_uom.exists():
+                measurement_unit = sku_uom[0].uom
+                sku_conversion = float(sku_uom[0].conversion)
+            else:
+                measurement_unit = data.measurement_type
+                sku_conversion = 0
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                        'measurement_unit': data.measurement_type,
+                        'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'noOfTests': noOfTests,
+                        'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand}
             if isinstance(data, ServiceMaster):
@@ -6313,12 +6363,12 @@ def order_cancel_functionality(order_det_ids, admin_user=''):
                 if not cancel_invoice_serial:
                     cancel_invoice_serial = get_incremental(User.objects.get(id=order_det.user), "cancel_invoice", 1)
                 cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-								   picklist__order_id=order_det.id)
+                                   picklist__order_id=order_det.id)
                 if not cancel_location:
                     CancelledLocation.objects.create(picklist_id=picklist.id,
-						     quantity=picklist.picked_quantity,
-						     location_id=picklist.stock.location_id,
-						     creation_date=datetime.datetime.now(), status=1,
+                             quantity=picklist.picked_quantity,
+                             location_id=picklist.stock.location_id,
+                             creation_date=datetime.datetime.now(), status=1,
                             cancel_invoice_serial=cancel_invoice_serial)
                     picklist.status = 'cancelled'
                     picklist.reserved_quantity = 0
@@ -12370,8 +12420,11 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
-        emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=user, department_type=app_config.department_type,
-                                   position=user_role).values_list('email_id', flat=True))
+        staff_check = {'company_id__in': company_list, 'user': user,
+                        'position': user_role}
+        if app_config.department_type:
+            staff_check['department_type'] = app_config.department_type
+        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
             admin_user = get_admin(user)
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\
@@ -12399,17 +12452,33 @@ def get_purchase_config_data(request, user=''):
     name = request.GET['name']
     purchase_type = request.GET['purchase_type']
     company_id = get_company_id(user)
-    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, name=name, purchase_type=purchase_type)
+    purchase_config_data = PurchaseApprovalConfig.objects.filter(company_id=company_id, display_name=name,
+                                                                 purchase_type=purchase_type)
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
-        config_dict = {'name': purchase_config.name, 'product_category': purchase_config.product_category,
+        config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
                        'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
-                       'min_Amt': purchase_config.min_Amt, 'max_Amt': purchase_config.max_Amt,
-                       'level_data': [], 'sku_category': purchase_config.sku_category}
+                       'default_level_data': [], 'sku_category': purchase_config.sku_category,
+                       'ranges_level_data': [], 'approved_level_data': []}
+        ranges_dict = OrderedDict()
         for config in purchase_config_data:
             roles = list(config.user_role.filter().values_list('role_name', flat=True))
-            config_dict['level_data'].append({'level': config.level, 'roles': ','.join(roles)})
+            if config.approval_type == 'ranges':
+                grouping_key = '%s,%s' % (str(config.min_Amt), str(config.max_Amt))
+                ranges_dict.setdefault(grouping_key, {'min_Amt': config.min_Amt, 'max_Amt': config.max_Amt,
+                                                      'range_levels': []})
+                range_no = ranges_dict.keys().index(grouping_key)
+                ranges_dict[grouping_key]['range_no'] = range_no
+                ranges_dict[grouping_key]['range_levels'].append({'level': config.level, 'roles': roles,
+                                                  'data_id': config.id,
+                                                  'level_no': int(config.level.replace('level', ''))})
+            else:
+                config_dict['%s_level_data' % config.approval_type].append({'level': config.level, 'roles': roles,
+                                                                            'min_Amt': config.min_Amt,
+                                                                            'max_Amt': config.max_Amt,
+                                                                            'data_id': config.id})
+        config_dict['ranges_level_data'] = ranges_dict.values()
     return HttpResponse(json.dumps({'data': config_dict}))
 
 
@@ -12426,8 +12495,25 @@ def all_purchase_approval_config_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_sku_category_list(request, user=''):
-    category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
-                      values_list('sku_category', flat=True).distinct())
+    product_category = request.GET.get('product_category', '')
+    model_name = SKUMaster
+    if product_category:
+        if product_category.lower() == 'services':
+            model_name = ServiceMaster
+        elif product_category.lower() == 'assets':
+            model_name = AssetMaster
+        elif product_category.lower() == 'otheritems':
+            model_name = OtherItemsMaster
+
+    if model_name == SKUMaster:
+        category_list = list(model_name.objects.filter(user=user.id).exclude(sku_category='').\
+                             exclude(id__in=AssetMaster.objects.all()). \
+                            exclude(id__in=ServiceMaster.objects.all()). \
+                            exclude(id__in=OtherItemsMaster.objects.all()). \
+                              values_list('sku_category', flat=True).distinct())
+    else:
+        category_list = list(model_name.objects.filter(user=user.id).exclude(sku_category=''). \
+                              values_list('sku_category', flat=True).distinct())
     return HttpResponse(json.dumps({'category_list': category_list}))
 
 def payment_supplier_mapping(payment_code, payment_desc, supplier):
@@ -12438,6 +12524,19 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def get_warehouses_data(user):
+    ware_houses_list = []
+    warehouse_users ={}
+    main_warehouses = UserGroups.objects.filter(admin_user_id=user.id)
+    main_warehouse_users = dict(main_warehouses.values_list('user_id', 'user__username'))
+    for data in main_warehouse_users.keys():
+        sub_warehouses = UserGroups.objects.filter(admin_user_id=data)
+        sub_warehouses_user = dict(sub_warehouses.values_list('user_id', 'user__username'))
+        warehouse_users[user.id] = user.username
+        ware_houses_list.append(sub_warehouses_user)
+    final_dict = {k:v for element in ware_houses_list for k,v in element.items()}
+    return final_dict
 
 def find_purchase_approver_permission(user):
     change_pendinglineitem = get_permission(user, 'change_pendinglineitems')

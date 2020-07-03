@@ -695,6 +695,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO')
     configName = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
@@ -714,9 +715,11 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
+    display_name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=32, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=64, default='')
@@ -728,7 +731,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
 
     class Meta:
         db_table = 'PURCHASE_APPROVAL_CONFIG'
-        unique_together = ('user', 'name', 'level')
+        unique_together = ('user', 'name', 'level', 'min_Amt', 'max_Amt', 'approval_type')
 
 
 class PurchaseApprovalMails(models.Model):  #PRApprovalMails
@@ -3918,7 +3921,6 @@ class Discrepancy(models.Model):
     class Meta:
         db_table = 'DISCREPANCY'
 
-
 class UserPrefixes(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -3931,7 +3933,6 @@ class UserPrefixes(models.Model):
 
     class Meta:
         db_table = 'USER_PREFIXES'
-
 
 class UOMMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3951,3 +3952,28 @@ class UOMMaster(models.Model):
 
     def __unicode__(self):
         return '%s-%s' % (self.company, self.name)
+
+
+class MachineMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User,blank=True, null=True)
+    machine_code = models.CharField(max_length=128)
+    machine_name = models.CharField(max_length=128)
+    model_number = models.CharField(max_length=128)
+    serial_number = models.CharField(max_length=128)
+    brand = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MACHINE_MASTER'
+
+class TestMaster(SKUMaster):
+    test_code = models.CharField(max_length=128)
+    test_name = models.CharField(max_length=128)
+    test_type = models.CharField(max_length=128)
+    department_type = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = 'TEST_MASTER'

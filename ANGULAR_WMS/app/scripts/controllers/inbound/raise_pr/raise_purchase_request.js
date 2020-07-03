@@ -403,7 +403,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
+        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
+      } else {
+        data.conversion = 0
       }
     }
 
@@ -515,6 +518,23 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if (vm.pr_number){
       //   elem.push({name:'pr_number', value:vm.pr_number})
       // }
+
+      if (vm.permissions.change_pendinglineitems) {
+        angular.forEach(elem, function(key, index) {
+        if (key.name == 'supplier_id') {
+          if (!key.value) {
+            Service.showNoty('Supplier Should be provided by Purchase');
+            return;
+          }
+        } else if (key.name == 'price') {
+          if (key.value == '') {
+            Service.showNoty('Price Should be provided by Purchase');
+            return;
+          }
+        }
+      });
+
+      }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
       }
@@ -1092,14 +1112,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description = item.sku_desc;
       product.fields.description_edited = item.sku_desc;
       product.fields.sku_brand = item.sku_brand;
+      product.fields.sku_class = item.sku_class;
       product.fields.type = item.type;
       product.fields.gl_code = item.gl_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
+      product.fields.sku.conversion = item.conversion;
+      product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
-      product.fields.price = 0;
+      product.fields.price = "";
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.blocked_sku = "";
@@ -1295,9 +1318,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       // vm.model_data.total_price = 0;
       // vm.model_data.sub_total = 0;
-      if (Number(data.fields.price) > Number(data.fields.temp_price)){
-       Service.showNoty('Price cant be more than Base Price'); 
-       data.fields.price = 0
+      if (data.fields.temp_price){
+          if (Number(data.fields.price) > Number(data.fields.temp_price)){
+            Service.showNoty('Price cant be more than Base Price'); 
+            data.fields.price = 0
+        }
       }
       data.fields.amount = 0
       data.fields.total = 0

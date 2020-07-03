@@ -3133,7 +3133,10 @@ def approve_pr(request, user=''):
             tax = myDict['tax'][i]
             total = myDict['total'][i]
             unit_price = myDict['price'][i]
-            moq = myDict['moq'][i]
+            if myDict.has_key('moq'):
+                moq = myDict['moq'][i]
+            else:
+                moq = 0
             supplier_id = myDict['supplier_id'][i]
             if not supplier_id:
                 return HttpResponse("Provide Supplier Details")
@@ -6577,8 +6580,8 @@ def po_wise_check_sku(po_number, sku_code='', user='', sku_brand=''):
                 sku_id = ''
         if(sku_id):
             #checking the sku in PO Wise
-            order_id=po_number.split("_")[-1]
-            purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
+            #order_id=po_number.split("_")[-1]
+            purchase_orders = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__user=user.id,received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
             try:
                 #checking the sku_id and brand
                 sku_data = SKUMaster.objects.get(id=sku_id,sku_brand=sku_brand)

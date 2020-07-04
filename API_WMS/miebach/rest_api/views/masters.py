@@ -736,8 +736,13 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         wh_user = data.user
         plant = ''
         department = ''
+        warehouse_names = ''
         group_names = []
         sub_user = User.objects.get(email=data.email_id)
+        if data.plant.filter():
+            plant_list = data.plant.filter().values_list('name', flat=True)
+            warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
+            plant = ','.join(plant_list)
         if wh_user:
             sub_user_parent = get_sub_user_parent(sub_user)
             roles_list1 = copy.deepcopy(roles_list)
@@ -749,9 +754,10 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                     i_name = (i_name).replace(sub_user_parent.username + ' ', '')
                     group_names.append(i_name)
             if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                plant = wh_user.username
+                #plant = wh_user.username
+                pass
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
-                plant = get_admin(wh_user).username
+                #plant = get_admin(wh_user).username
                 department = wh_user.username
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
@@ -761,7 +767,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
-                                 ('groups', group_names),
+                                 ('groups', group_names), ('warehouse_names', warehouse_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
                          ))
         temp_data['aaData'].append(data_dict)
@@ -4674,7 +4680,11 @@ def insert_staff(request, user=''):
     position = request.POST.get('position', '')
     password = request.POST.get('password', '')
     re_password = request.POST.get('re_password', '')
-    warehouse = request.POST.get('warehouse', '')
+    #warehouse = request.POST.get('warehouse', '')
+    plant = request.POST.get('plant', '')
+    plants = []
+    if plant:
+        plants = plant.split(',')
     department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
     staff_code = request.POST.get('staff_code', '')
@@ -4704,8 +4714,8 @@ def insert_staff(request, user=''):
         if department:
             parent_username = department
             warehouse_type = 'DEPT'
-        elif warehouse:
-            parent_username = warehouse
+        elif plants and not len(plants) > 1:
+            parent_username = plants[0]
             warehouse_type = 'STORE'
         elif str(main_company_id) != str(company_id):
             warehouse_type = 'ST_HUB'
@@ -4718,7 +4728,7 @@ def insert_staff(request, user=''):
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:
             return HttpResponse(add_user_status)
-        StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
+        staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
                             position=position, department_type=department_type,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
@@ -4726,6 +4736,7 @@ def insert_staff(request, user=''):
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
+        update_staff_plants_list(staff_obj, plants)
         request_data = dict(request.POST.iterlists())
         if request_data.get('groups', []):
             selected_list = request_data['groups']

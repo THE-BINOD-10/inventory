@@ -7,7 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
+    vm.department_type_readonly = true;
     vm.filters = {'datatable': 'StaffMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('staff_code').withTitle('Staff Code'),
         DTColumnBuilder.newColumn('name').withTitle('Staff Name'),
         DTColumnBuilder.newColumn('company').withTitle('Subsidary'),
-        DTColumnBuilder.newColumn('warehouse').withTitle('Plant'),
+        DTColumnBuilder.newColumn('warehouse_names').withTitle('Plant'),
         DTColumnBuilder.newColumn('department').withTitle('Department'),
         DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('position').withTitle('Position'),
@@ -59,8 +59,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.update = true;
                 vm.title = "Update Staff";
                 vm.message ="";
+                vm.model_data.warehouse = vm.model_data.warehouse.split(',');
                 $state.go('app.masters.StaffMaster.Staff');
                 $timeout(function(){$('.selectpicker-groups').selectpicker();}, 500);
+//                $timeout(function(){
+//                  $('.selectpicker-plants').selectpicker('');
+//                }, 500);
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -70,7 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.status_data = ["Inactive", "Active"];
   var empty_data = {name: "", email_id: "", phone_number: "", status: "", margin: 0, company_id: '',
-                    plant: '', department_id: '', department_type: '', postion: ''};
+                    plant: [], department_id: '', department_type: '', postion: '', warehouse: []};
   vm.model_data = {};
 
   vm.base = function() {
@@ -86,6 +90,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     angular.copy(empty_data, vm.model_data);
     $state.go('app.masters.StaffMaster');
+    vm.warehouse_list = [];
+    vm.department_type_readonly = true;
   }
 
   vm.add = add;
@@ -94,12 +100,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.base();
     $state.go('app.masters.StaffMaster.Staff');
     $timeout(function(){$('.selectpicker-groups').selectpicker();}, 1000);
+    $timeout(function(){$('.selectpicker-plants').selectpicker();}, 500);
   }
 
   vm.customer = function(url) {
 
     var send = {}
     var send = $("form").serializeArray();
+    if(vm.model_data.warehouse){ send.push({name: 'plant', value: vm.model_data.warehouse.join(',')}); }
+    else {send.push({name: 'plant', value: ""});}
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {
         if(data.data == 'New Staff Added' || data.data == 'Updated Successfully') {
@@ -148,6 +157,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
         vm.warehouse_list = data.data.warehouse_list;
+        $('.selectpicker-plants').selectpicker('deselectAll');
+        $timeout(function(){$('.selectpicker-plants').selectpicker('refresh');}, 500);
       }
     });
   }
@@ -157,8 +168,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   function get_warehouse_department_list() {
     var wh_data = {};
     wh_data['company_id'] = vm.model_data.company_id;
-    wh_data['warehouse'] = vm.model_data.warehouse;
+    wh_data['warehouse'] = vm.model_data.warehouse.join(',');
     wh_data['warehouse_type'] = 'DEPT';
+    if(vm.model_data.warehouse.length > 1){
+      vm.department_type_readonly = false;
+    }
+    else {
+      vm.department_type_readonly = true;
+    }
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
         vm.department_list = data.data.warehouse_list;
@@ -202,10 +219,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   get_groups_list();
 
-  vm.check_selected = function(group){
+  vm.check_selected_val = function(check_data, group){
     var selected_val = false;
-    for(var ind=0; ind<vm.model_data.groups.length; ind++) {
-      if(vm.model_data.groups[ind] == group) {
+    for(var ind=0; ind<check_data.length; ind++) {
+      if(check_data[ind] == group) {
         selected_val = true;
         break;
       }

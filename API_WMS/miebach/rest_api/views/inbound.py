@@ -3316,20 +3316,23 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             record.save()
             totalAmt += (float(value['order_quantity']) * float(value['price']))
 
-            if value.get('description_edited', ''):
-                misc_json = {
-                    'description_edited': value['description_edited'],
-                    'service_start_date': value['service_start_date'],
-                    'service_end_date': value['service_end_date'],
-                    'temp_price': value['temp_price'],
-                    'temp_tax': value['temp_tax'],
-                }
-                TempJson.objects.update_or_create(
+            misc_json = {}
+            if value.has_key('description_edited'):
+                misc_json['description_edited'] = value['description_edited']
+            if value.has_key('service_start_date'):
+                misc_json['service_start_date'] = value['service_start_date']
+            if value.has_key('service_end_date'):
+                misc_json['service_end_date'] = value['service_end_date']
+            if value.has_key('temp_price'):
+                misc_json['temp_price'] = value['temp_price']
+            if value.has_key('temp_tax'):
+                misc_json['temp_tax'] = value['temp_tax']        
+            if misc_json:
+                TempJson.objects.create(
                     model_id=data_id, 
                     model_name='PendingLineItemMiscDetails', 
                     model_json=misc_json
                 )
-
             continue
 
         pendingLineItems = {
@@ -3355,14 +3358,18 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['utgst_tax'] = value['utgst_tax']
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
-        if value.get('description_edited', ''):
-            misc_json = {
-                'description_edited': value['description_edited'],
-                'service_start_date': value['service_start_date'],
-                'service_end_date': value['service_end_date'],
-                'temp_price': value['temp_price'],
-                'temp_tax': value['temp_tax'],
-            }
+        misc_json = {}
+        if value.has_key('description_edited'):
+            misc_json['description_edited'] = value['description_edited']
+        if value.has_key('service_start_date'):
+            misc_json['service_start_date'] = value['service_start_date']
+        if value.has_key('service_end_date'):
+            misc_json['service_end_date'] = value['service_end_date']
+        if value.has_key('temp_price'):
+            misc_json['temp_price'] = value['temp_price']
+        if value.has_key('temp_tax'):
+            misc_json['temp_tax'] = value['temp_tax']        
+        if misc_json:
             TempJson.objects.create(
                 model_id=lineObj.id, 
                 model_name='PendingLineItemMiscDetails', 

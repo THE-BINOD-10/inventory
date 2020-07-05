@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
+    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
 
     vm.filters = {'datatable': 'ServiceMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -357,8 +358,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     if ( data.$valid ){
       if ("Add Service" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
+          if (vm.user_profile.warehouse_type == 'ADMIN'){
+            vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/";
+          }} else {
         vm.url = "update_sku/";
       }
       vm.update_sku();

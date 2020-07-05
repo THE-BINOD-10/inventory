@@ -27,7 +27,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Item Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -212,14 +212,20 @@
           </div>
       </div>
       <div class="modal-footer">
-        <div class="form-group" style="margin-bottom:0px;">
-          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.submit(form)" ng-disabled="process">
+        <button type="button" class="btn pop pop-normal pull-left" ng-click="showCase.close('')" style="background: #cc1919;color: white;">Close</button>
+        <div ng-if="showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa)">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa) && (!showCase.update))"
+                style="background: green;color: white;" ng-if="(!showCase.update)">Send For Approval</button>
+        </div>
+      <div ng-if="showCase.user_profile.warehouse_type =='ADMIN'">
+        <button type="submit" class="btn pop pop-green"  ng-click="showCase.submit(form)" ng-disabled="process" ng-if="showCase.user_profile.warehouse_type=='ADMIN'">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>
-        </div>
       </div>
+
+     </div>
+
     </div><!-- /.modal-content -->
     </form>
   </div><!-- /.modal-dialog -->

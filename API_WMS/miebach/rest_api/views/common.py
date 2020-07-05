@@ -591,7 +591,7 @@ data_datatable = {  # masters
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
     'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
     'PRApprovalTable': 'get_pr_approval_config_data', 'SKUMasterDOA': 'get_sku_mapping_doa', 'AssetMasterDOA': 'get_asset_master_doa',
-    'ServiceMasterDOA': 'get_service_master_doa',
+    'ServiceMasterDOA': 'get_service_master_doa', 'OtherItemsMasterDOA': 'get_other_items_master_doa',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \

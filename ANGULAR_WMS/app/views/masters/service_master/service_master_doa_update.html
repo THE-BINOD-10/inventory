@@ -27,7 +27,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Service Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -246,8 +246,10 @@
       </div>
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">
+          <button type="submit" class="btn pop pop-red pull-left"  ng-disabled="showCase.bt_disable" ng-click="showCase.delete_sku(form)" ng-if="showCase.user_profile.warehouse_type =='ADMIN'">REJECTED</button>
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.submit(form)" ng-disabled="process">
+          <button type="submit" class="btn pop pop-green" ng-show="show_tab('change_skumaster')" ng-click="showCase.success(form)" ng-disabled="process"
+                  ng-if="showCase.user_profile.warehouse_type=='ADMIN'">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

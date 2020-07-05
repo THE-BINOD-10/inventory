@@ -375,17 +375,22 @@ var app = angular.module('urbanApp')
           })
           .state('app.masters.ServiceMaster.Mapping', {
             url: '/Service',
-            templateUrl: 'views/masters/toggles/service_master_doa_update.html'
+            templateUrl: 'views/masters/service_master/service_master_doa_update.html'
           })
           
         .state('app.masters.OtherItemsMaster', {
           url: '/OtherItemsMaster',
           permission: 'add_otheritemsmaster',
-          templateUrl: 'views/masters/otheritems_datatable.html',
+          templateUrl: 'views/masters/otheritems_master/otheritems_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load(['scripts/controllers/masters/otheritems_master_table.js'
-                ])
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/otheritems_master_table.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/otheritems_master_doa.js'
+                  ])
+                })
              }]
           },
           data: {
@@ -393,8 +398,12 @@ var app = angular.module('urbanApp')
           }
         })
           .state('app.masters.OtherItemsMaster.update', {
-            url: '/Service',
+            url: '/OtherItems',
             templateUrl: 'views/masters/toggles/otheritems_update.html'
+          })
+          .state('app.masters.OtherItemsMaster.Mapping', {
+            url: '/OtherItems',
+            templateUrl: 'views/masters/otheritems_master/otheritems_doa_update.html'
           })
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',

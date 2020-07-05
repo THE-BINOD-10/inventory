@@ -290,19 +290,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     }
-    vm.send_sku_doa = function() {
-        vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.service.apiCall('send_sku_doa/', 'POST', vm.model_data, true).then(function(data){
-          if(data.message) {
-            if(data.data == "Added Successfully") {
-              vm.service.refresh(vm.dtInstance);
-              vm.close();
-            } else {
-              vm.service.pop_msg(data.data);
-            }
-          }
-    });
-  }
 
     vm.addValidation = function(){
 

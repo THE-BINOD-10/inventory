@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('SKUMasterDOATable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('OtherItemsMasterDOATable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
@@ -66,7 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   angular.copy(empty_data, vm.model_data);
 
-  vm.filters = {'datatable': 'SKUMasterDOA', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+  vm.filters = {'datatable': 'OtherItemsMasterDOA', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
             url: Session.url+'results_data/',
@@ -84,24 +84,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
+     vm.dtInstance = {};
+     $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
      vm.dtColumns = [
       DTColumnBuilder.newColumn('requested_user').withTitle('Requested User'),
-      DTColumnBuilder.newColumn('sku_desc').withTitle('Product Description'),
-      DTColumnBuilder.newColumn('sub_category').withTitle('Sub Category'),
-      DTColumnBuilder.newColumn('sequence').withTitle("Sequence"),
-      DTColumnBuilder.newColumn('sku_brand').withTitle("Sku Brand"),
-      DTColumnBuilder.newColumn('sku_group').withTitle("Sku Group"),
-      DTColumnBuilder.newColumn('threshold_quantity').withTitle("Threshold Quantity"),
-      DTColumnBuilder.newColumn('primary_category').withTitle("Primary Category"),
-      DTColumnBuilder.newColumn('enable_serial_based').withTitle('Enable Serial Based'),
-      DTColumnBuilder.newColumn('sku_type').withTitle('Sku Type'),
-      DTColumnBuilder.newColumn('hsn_code').withTitle('HSN Code'),
-      DTColumnBuilder.newColumn('sale_through').withTitle('Sale Through'),
-      DTColumnBuilder.newColumn('style_name').withTitle('Style Name'),
-      DTColumnBuilder.newColumn('ean_number').withTitle('Ean Number'),
-      DTColumnBuilder.newColumn('shelf_life').withTitle('Shelf Life'),
-      DTColumnBuilder.newColumn('sku_class').withTitle('SKU Class'),
-      DTColumnBuilder.newColumn('image_url').withTitle('Image Url'),
+      DTColumnBuilder.newColumn('sku_desc').withTitle('Item Description'),
+      DTColumnBuilder.newColumn('item_type').withTitle('Item Type'),
+      DTColumnBuilder.newColumn('sku_category').withTitle('Item Category'),
+      DTColumnBuilder.newColumn('sku_class').withTitle('Item Class'),
       DTColumnBuilder.newColumn('doa_status').withTitle('Status'),
      ];
   if(vm.warehouse_level==0) {
@@ -130,10 +123,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.model_data.uom_data = [];
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
           vm.sku_measurement_types = vm.service.units;
-          $state.go('app.masters.SKUMaster.Mapping');
+          $state.go('app.masters.OtherItemsMaster.Mapping');
         }
         });
-      vm.title ="Add SKU";
+      vm.title ="Add Item";
       });
     });
    return nRow;
@@ -145,7 +138,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   //close popup
   vm.close = function() {
-    $state.go('app.masters.SKUMaster');
+    $state.go('app.masters.OtherItemsMaster');
   }
   vm.change_status_data = function(){
     vm.service.apiCall('change_status_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
@@ -153,21 +146,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.close();
     });
   }
-  vm.delete_sku = function(data) {
-    vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
-      console.log("SUCCESS")
-      vm.close();
-    });
-  }
+
   vm.market_send = {market_sku_type:[],marketplace_code:[],description:[],market_id:[]}
   vm.update_sku = update_sku;
   function update_sku() {
-    var data = {"data": vm.files}
+    var data = {
+             "image": vm.files
+           }
     var elem = angular.element($('form'));
-    elem = elem[1];
+    elem = elem[0];
     elem = $(elem).serializeArray();
     elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
-    elem.push({name:'substitutes', value:$('.substitutes').val()});
+    // elem.push({name:'substitutes', value:$('.substitutes').val()});
+    elem.push({name:'is_otheritem', value:true});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
@@ -185,19 +176,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     var formData = new FormData()
-    var files = $("#update_sku").find('[name="files"]')[0].files;
-    $.each(files, function(i, file) {
-        formData.append('files-' + i, file);
-    });
+    // var files = $("#update_sku").find('[name="files"]')[0].files;
+    // $.each(files, function(i, file) {
+    //     formData.append('files-' + i, file);
+    // });
     // SKU Related Files
     $.each(vm.model_data.sku_files, function(i, file) {
         formData.append('sku-related-files-' + i, file);
     });
 
-    vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
-    $.each(files, function(i, file) {
-        formData.append('files-' + i, file);
-    });
+    // vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
+    // $.each(files, function(i, file) {
+    //     formData.append('files-' + i, file);
+    // });
 
     $.each(elem, function(i, val) {
         formData.append(val.name, val.value);
@@ -308,5 +299,4 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           })
         };
   }
-
-  }
+}

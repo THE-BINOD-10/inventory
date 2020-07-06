@@ -6,7 +6,6 @@
         <th>Service Code*</th>
         <th>Title</th>
         <th>Details</th>
-        <th>Brand</th>
         <th>GL Code</th>
         <th>Start Date</th>
         <th>End Date</th>
@@ -40,8 +39,8 @@
             value="{{supplier_id_name}}" ng-selected="supplier_id_name==product.fields.suppleir_id_name">{{supplier_id_name}}
             </option>
           </select>
-          <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide"
-          ng-if="product.fields.supplierDetails">
+          <!-- <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide"
+          ng-if="product.fields.supplierDetails">  -->
         </td>
         <td>
           <input type="text" autocomplete="off" name="wms_code"
@@ -59,11 +58,6 @@
           <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
           type="text" name="description_edited" class="form-control detectTab" ng-readonly="true" size="60">
         </td>
-        <td>
-          <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" 
-          type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
-        </td>
-
         <td>
           <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="30">
         </td>
@@ -114,7 +108,7 @@
         </span> 
         <input type="text" name="tax" ng-model="product.fields.tax" class="hide"> -->
         <input type="text" name="tax" ng-model="product.fields.tax" 
-        class="form-control detectTab" ng-class="service.get_decimal_perm()" 
+        class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" 
         ng-readonly="product.fields.preferred_supplier || (!showCase.permissions.change_pendinglineitems)" size="50">
       </td>
       <td class="text-center"> 

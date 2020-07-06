@@ -6,7 +6,7 @@
           <th>Service Code*</th>
           <th>Title</th>
           <th>Details</th>
-          <th>Brand</th>
+          <!-- <th>Brand</th>  -->
           <th>GL Code</th>
           <th>Start Date</th>
           <th>End Date</th>
@@ -36,10 +36,12 @@
             <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
             type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
           </td>
+          <!-- 
           <td>
             <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" 
             type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
-          </td>
+          </td>  
+          -->
           <td>
             <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
@@ -66,7 +68,7 @@
             </span> --> 
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
               ng-class="service.get_decimal_perm()" size="12">
-        </td>
+          </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>

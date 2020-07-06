@@ -898,13 +898,14 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', a
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type='',
+                           sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
-                                      approval_type=approval_type)
+                                      approval_type=approval_type, sku_category=sku_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
                                                           approval_type=approval_type).\
                     values_list('level', flat=True).order_by('-id'))
@@ -12612,3 +12613,14 @@ def update_staff_plants_list(model_obj, elements):
         elem_obj = TableLists.objects.filter(name=exist_elem)
         if elem_obj:
             model_obj.plant.remove(elem_obj[0])
+
+
+def get_uom_conversion_value(sku, uom_type):
+    conversion_name, conversion = '', 1
+    user = User.objects.get(id=sku.user)
+    company_id = get_company_id(user)
+    uom_obj = UOMMaster.objects.filter(company_id=company_id, sku_code=sku.sku_code, uom_type=uom_type)
+    if uom_obj:
+        conversion = uom_obj[0].conversion
+        conversion_name = uom_obj[0].name
+    return conversion_name, conversion

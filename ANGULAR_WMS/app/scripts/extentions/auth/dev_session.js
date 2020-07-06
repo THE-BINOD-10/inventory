@@ -4,7 +4,7 @@
   angular.module("auth").service("Session", function ($rootScope, $q, $http) {
 
     var that = this;
-    that.host = 'http://mhl.stockone.in:7005/';
+    that.host = 'http://127.0.0.1:8099/';
     that.url = that.host+'rest_api/';
 
     that.pos_host = 'https://pos.stockone.in/';

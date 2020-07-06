@@ -68,6 +68,7 @@ COMPLEX_TYPES = {
         'ItemSearch',
         'InventoryItem',
         'UnitsType',
+        'UnitsTypeUom',
         'NonInventoryPurchaseItem',
         'NonInventorySaleItem',
         'NonInventoryResaleItem',

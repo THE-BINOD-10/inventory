@@ -39,12 +39,12 @@ class netsuiteIntegration(object):
           token_key=auth_dict.get('token_id'),
           token_secret=auth_dict.get('token_secret'))
 
-    def complete_transaction(self, records, is_list):
+    def complete_transaction(self, records, is_list, action='upsert'):
         ns = self.nc.raw_client
         if is_list:
-            data_response =  ns.upsertList(records)
+            data_response =  ns.upsertList(records, action)
         else:
-            data_response =  ns.upsert(records)
+            data_response =  ns.upsert(records, action)
         return data_response
 
     def initiate_item(self, data, item_type):
@@ -275,7 +275,7 @@ class netsuiteIntegration(object):
             purorder.externalId = po_data['po_number']
             purorder.tranId = po_data['po_number']
             purorder.memo = po_data['remarks']
-            # purorder.nexus = ns.RecordRef(internalId= , type="")
+            # purorder.nexus = ns.RecordRef(internalId=1)
             # purorder.subsidiaryTaxRegNum = ns.RecordRef(internalId= "", type="")
             # purorder.taxRegOverride = True
             # purorder.taxDetailsOverride = True
@@ -319,19 +319,24 @@ class netsuiteIntegration(object):
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 line_item = {
-                 'item': ns.RecordRef(externalId=data['sku_code']),
-                 # 'item': ns.RecordRef(internalId=17346),
+                 # 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'item': ns.RecordRef(internalId=17453),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
                  'location':ns.RecordRef(internalId=297),
-                 'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                  ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
+                 'customFieldList': ns.CustomFieldList(
+                        [
+                            ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=567)),
+                            ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
+                            ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))
+                        ]
+                    )
                 }
-                if data.get('uom_name', None) and data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
-                    if internId:
-                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                # if data.get('uom_name', None) and data.get('unitypeexid', None):
+                #     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                #     if internId:
+                #         line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purorder.itemList = { 'item': item }
         except Exception as e:

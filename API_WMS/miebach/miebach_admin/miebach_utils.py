@@ -30,6 +30,10 @@ SUPPLIER_DATA = {'name': '', 'address': '',
             'phone_number': '', 'email_id': '',
             'status': 1, 'creation_date': NOW}
 
+MACHINE_MASTER_DATA = {'master_code': '','master_name': '',
+                       'model_number': '', 'serial_number': '',
+                       'brand': '','status': 1,'creation_date':NOW}
+
 ISSUE_DATA = {'issue_title': '', 'priority': '', 'status': 'Active',
             'issue_description': '', 'creation_date': NOW}
 
@@ -101,6 +105,10 @@ RESOLVED_ISSUE_FIELDS = ( (('Issue Title', 'issue_title',60), ('Priority', 'prio
 SUPPLIER_FIELDS = ( (('Supplier Id *', 'id',60), ('Supplier Name *', 'name',256)),
                     (('Email *', 'email_id',64), ('Phone No. *', 'phone_number',10)),
                     (('Address *', 'address'), ('Status', 'status',11)), )
+
+MACHINE_MASTER_FIELDS = ( (('Machine ID *', 'id', 60), ('Machine Name *', 'machine_name',128)),
+                          (('Model Number *', 'model_number', 128), ('Serial Number *', 'serial_number', 128)),
+                          (('Brand *', 'brand', 128), ('Status *' 'status', 11)))
 
 SKU_SUPPLIER_FIELDS = ( (('Supplier ID *', 'supplier_id',60), ('WMS Code *', 'wms_id','')),
                         (('Supplier Code','supplier_code'), ('Priority *', 'preference',32) ),
@@ -238,6 +246,7 @@ SKU_SUPPLIER_MAPPING = OrderedDict([('Supplier ID','supplier_id'),('SKU CODE','s
 
 SUPPLIER_MASTER_HEADERS = OrderedDict([('Supplier ID','id'),('Name','name'),('Address','address'),('Phone Number','phone_number'),('Email','email_id'),('Status','status')])
 
+MACHINE_MASTER_HEADERS = OrderedDict([('Machine ID', 'id'),('Machine Code', 'machine_code'), ('Machine Name', 'machine_name'), ('Model Name', 'model_name'), ('Serial Number', 'serial_number'), ('Band', 'band'),('Status', 'status')])
 
 STOCK_DET = ([('0','receipt_number'),('1','receipt_date'),('2','sku_id__sku_code'),('3','sku_id__wms_code'),('4','sku_id__sku_desc'),('5','location_id__zone'),('6','location_id__location'),('7','quantity')])
 

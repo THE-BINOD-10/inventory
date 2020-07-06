@@ -2364,7 +2364,7 @@ def netsuite_picklist_confirmation(final_data_list, user):
                             #"cess_tax": cess_tax,
                             #"mrp":mrp
                         })
-    stock_transfer = { 'it_number': final_data_list[0]["picklist"].remarks,
+    stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
         'department': department,
         "subsidiary": subsidary,
         "plant": plant,

@@ -232,7 +232,7 @@
                     <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user') && !showCase.model_data.is_approval">Supplier Code</th>
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
-                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
                     <th class="w10_">SGST(%)</th>
@@ -281,7 +281,7 @@
                              ng-readonly="showCase.model_data.is_approval"
                              class="form-control detectTab" readonly size="12">
                     </td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td>
+                    <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control detectTab" ng-class="service.get_decimal_perm()" size="12"></td> -->
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="showCase.default_status || showCase.model_data.is_approval" ng-keyup="showCase.getTotals()" size="12">

@@ -205,7 +205,8 @@ class netsuiteIntegration(object):
             ns = self.nc.raw_client
             item = []
             grnrec = ns.ItemReceipt()
-            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
+            if grn_data.get('po_number',None):
+                grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
             custom_field_list=[]
             # custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
             if(grn_data.get("dc_number",None)):

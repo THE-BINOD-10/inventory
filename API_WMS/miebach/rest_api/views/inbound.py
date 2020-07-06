@@ -3663,7 +3663,7 @@ def netsuite_pr(user, PRQs, full_pr_number):
                     approval1 = user.email
                 else:
                     approval1 = user.first_name
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
         pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
@@ -13705,6 +13705,7 @@ def cancel_existing_grn(request, user=''):
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
                          'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
         zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date','scan_pack']
+        creditnote_data = []
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
@@ -13745,6 +13746,13 @@ def cancel_existing_grn(request, user=''):
                                 stock_dict.quantity = stock_dict.quantity - value
                                 stock_dict.save()
                                 save_sku_stats(user, stock_dict.sku_id, model_obj.purchase_order.id, 'cancel-grn', value, stock_dict)
+                grn_data = {
+                    "grn_number": model_obj.grn_number,
+                }
+                creditnote_data.append(grn_data)
+
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True, action='delete')
         return HttpResponse("Success")
     except Exception as e:
         import traceback

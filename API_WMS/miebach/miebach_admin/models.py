@@ -168,7 +168,7 @@ class AssetMaster(SKUMaster):
 
 
 class ServiceMaster(SKUMaster):
-    asset_code = models.CharField(max_length=64, default='')
+    gl_code = models.CharField(max_length=64, default='')
     service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)
@@ -695,6 +695,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
     purchase_number = models.PositiveIntegerField() #WH Specific Inc Number
     purchase_type = models.CharField(max_length=32, default='PO')
     configName = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=64, default='')
     product_category = models.CharField(max_length=64, default='')
     pr_user = models.ForeignKey(User, related_name='PurchaseApproval_WarehouseUser')
     level = models.CharField(max_length=64, default='')
@@ -714,9 +715,11 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     user = models.ForeignKey(User, blank=True, null=True)
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     name = models.CharField(max_length=64, default='')
+    display_name = models.CharField(max_length=64, default='')
     min_Amt = models.FloatField(default=0)
     max_Amt = models.FloatField(default=0)
     level  = models.CharField(max_length=64, default='')
+    approval_type = models.CharField(max_length=32, default='')
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=64, default='')
@@ -728,7 +731,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
 
     class Meta:
         db_table = 'PURCHASE_APPROVAL_CONFIG'
-        unique_together = ('user', 'name', 'level')
+        unique_together = ('user', 'name', 'level', 'min_Amt', 'max_Amt', 'approval_type')
 
 
 class PurchaseApprovalMails(models.Model):  #PRApprovalMails

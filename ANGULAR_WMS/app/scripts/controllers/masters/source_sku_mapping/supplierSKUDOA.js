@@ -48,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('status').withTitle('Status'),
   ];
   if(vm.warehouse_level==0) {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('request_type').withTitle('Request Type'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
     }
 
@@ -58,6 +59,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('td', nRow).bind('click', function() {
           $scope.$apply(function() {
               // vm.model_data['create_login'] = false;
+              var open_po_status = false;
+              var current_grn_status = false;
+              var master_status = false;
               var margin_perc = parseInt(aData['margin_percentage'])
               var mark_perc = parseInt(aData['markup_percentage'])
               var lead_time = parseInt(aData['lead_time'])
@@ -65,6 +69,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               aData['markup_percentage'] = mark_perc?mark_perc:0;
               aData['lead_time'] = lead_time?lead_time:0
               angular.copy(aData, vm.model_data);
+              if (vm.model_data['request_type'] == 'Inbound') {
+                open_po_status = true;
+                current_grn_status = true;
+              } else {
+                master_status = true;
+              }
+              vm.po_number_sku = aData['po_number'] ? aData['po_number'] : '';
+              vm.model_data.update = [{'label': 'Master', status: master_status}, {'label': 'Open PO', status: open_po_status}, {'label': 'Current PO', status: current_grn_status}]
               vm.update = true;
               vm.title = "Supplier SKU DOA";
               vm.is_doa = true;
@@ -114,23 +126,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.pop_msg("Markup Percentage is Mandatory For Markup Based")
 
        }
-      if(valid)
-      {
-       delete(vm.model_data.mrp)
-       // if ("Supplier SKU DOA" == vm.title) {
-       //     vm.supplier_sku('insert_mapping/');
-       //    }
-       //  else {
-       //     vm.model_data['data-id'] = vm.model_data.DT_RowId;
-       //     vm.supplier_sku('update_sku_supplier_values/');
-       //  }
-       if (parseInt(vm.model_data.model_id) == 0){
-        vm.supplier_sku('insert_mapping/');
-       } else {
-        vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
-        vm.supplier_sku('update_sku_supplier_values/');
-       }
-
+      if(valid) {
+        var final_update = []
+        if (vm.model_data.update.length > 0) {
+          for (var i = 0; i < vm.model_data.update.length; i++) {
+            if (vm.model_data.update[i]['status']){
+              final_update.push(vm.model_data.update[i]['label'])
+            }
+          }
+        }
+        vm.model_data.update = JSON.stringify(final_update);
+        delete(vm.model_data.mrp)
+        if (parseInt(vm.model_data.model_id) == 0){
+          vm.supplier_sku('insert_mapping/');
+        } else {
+          vm.model_data['data-id'] = parseInt(vm.model_data.model_id);
+          vm.supplier_sku('update_sku_supplier_values/');
+        }
       }
     }
   }

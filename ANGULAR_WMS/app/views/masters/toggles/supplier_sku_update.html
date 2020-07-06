@@ -92,7 +92,7 @@
           <input type="number" name="lead_time" class="form-control" ng-model="showCase.model_data.lead_time" decimal-number>
         </div>
       </div>
-      <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.warehouse_level==0">
+      <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.warehouse_level == 0">
         <div class="form-group">
           <label class="control-label"> Warehouse * </label>
           <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse" ng-if="(!(showCase.update))">
@@ -108,7 +108,16 @@
           <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.mrp" decimal-number readonly="readonly">
         </div>
       </div>
-
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" ng-if="showCase.warehouse_level == 0" style="background: #a9a9a912;padding-bottom: 10px;padding-top: 5px;">
+        <center><span class="label label-primary">Request Update To</span></center>
+        <div class="form-group" style="padding-top: 3px;">
+          <div class="col-lg-4 col-md-4 col-sm-3" ng-repeat="item in showCase.model_data.update">
+            <input type="checkbox" ng-model="item.status" ng-disabled="showCase.model_data['request_type'] == 'Master' && item.label=='Current PO'">
+            <label ng-if="item.label != 'Current PO'">{{item.label}}</label>
+            <label ng-if="item.label == 'Current PO'">{{item.label}} - ( <b>{{showCase.po_number_sku}}</b>)</label></input>
+          </div>
+        </div>
+      </div>
     </div>
           <div class="row insert-status">
             <h4 style="text-align: center;">{{showCase.service.message}}</h4>

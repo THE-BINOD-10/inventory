@@ -95,7 +95,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('InventoryItem', row)
+                    self.markResults('InventoryItem', row, action)
 
     def integrateServiceMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -123,7 +123,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('ServicePurchaseItem', row)
+                    self.markResults('ServicePurchaseItem', row, action)
 
     def integrateAssetMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -151,7 +151,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('NonInventoryPurchaseItem', row)
+                    self.markResults('NonInventoryPurchaseItem', row, action)
 
     def integrateNonInventoryMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -179,7 +179,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('NonInventoryPurchaseItem', row)
+                    self.markResults('NonInventoryPurchaseItem', row, action)
 
     def integrateOtherItemsMaster(self, skuObject, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -207,7 +207,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('NonInventoryPurchaseItem', row)
+                    self.markResults('NonInventoryPurchaseItem', row, action)
 
     def IntegratePurchaseRequizition(self, prData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -232,7 +232,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('PurchaseRequizition', row)
+                    self.markResults('PurchaseRequizition', row, action)
 
     def IntegratePurchaseOrder(self, poData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -257,7 +257,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('PurchaseOrder', row)
+                    self.markResults('PurchaseOrder', row, action)
 
     def IntegrateRTV(self, rtvData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -281,7 +281,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('rtv', row)
+                    self.markResults('rtv', row, action)
 
     def IntegrateInventoryAdjustment(self, iaData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -305,7 +305,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('InventoryAdjustment', row)
+                    self.markResults('InventoryAdjustment', row, action)
 
     def IntegrateInventoryTransfer(self, itData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -329,7 +329,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('InventoryTransfer', row)
+                    self.markResults('InventoryTransfer', row, action)
 
 
     def IntegrateGRN(self, grnData, unique_variable, is_multiple=False):
@@ -355,7 +355,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('grn', row)
+                    self.markResults('grn', row, action)
 
     def IntegrateUOM(self, uomData, unique_variable, is_multiple=False):
         if not self.executebatch and Batched:
@@ -381,7 +381,7 @@ class Integrations():
                 result = self.connectionObject.complete_transaction(records, is_multiple)
             if len(result):
                 for row in result:
-                    self.markResults('uom', row)
+                    self.markResults('uom', row, action)
 
 
     def getData(self, rec_type, internalId=None, externalId=None):

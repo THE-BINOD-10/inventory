@@ -325,7 +325,6 @@ class NetSuiteClient:
         # soapheaders['preferences'] = {
         #     'runServerSuiteScriptAndTriggerWorkflows' : True
         # }
-        print(soapheaders)
         return soapheaders
 
     def request(self, name, *args, **kwargs):

@@ -205,7 +205,8 @@ class netsuiteIntegration(object):
             ns = self.nc.raw_client
             item = []
             grnrec = ns.ItemReceipt()
-            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
+            if grn_data.get('po_number', None):
+                grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
             custom_field_list=[]
             # custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
             if(grn_data.get("dc_number",None)):
@@ -486,7 +487,8 @@ class netsuiteIntegration(object):
             for data in ia_data['items']:
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
-                 'adjustQtyBy':data['adjust_qty_by'],
+                 'adjustQtyBy': data['adjust_qty_by'],
+                 #'newQuantity':data['adjust_qty_by'],
                  'location':ns.RecordRef(internalId=297)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):

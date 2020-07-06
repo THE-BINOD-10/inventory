@@ -97,6 +97,19 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
             filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
             #filtersMap['pending_pr__requested_user'] = request.user.id
+    is_purchase_approver = find_purchase_approver_permission(request.user)
+    if is_purchase_approver:
+        pa_email = request.user.email
+        prQs = PurchaseApprovals.objects.filter(validated_by=pa_email).distinct()
+        if status:
+            prQs = prQs.filter(pending_pr__final_status=status)
+        else:
+            prQs = prQs.exclude(pending_pr__final_status='approved')
+        pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
+
+        filtersMap.setdefault('pending_pr_id__in', [])
+        filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+
     lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
@@ -1545,7 +1558,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'total': json_data['total'],
                                                     }
 
-        elif is_purchase_approver:
+        if is_purchase_approver:
             # parent_user = get_admin(user)
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
@@ -3065,8 +3078,10 @@ def approve_pr(request, user=''):
         totalAmt = pendingPRObj.pending_prlineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
     else:
         totalAmt = pendingPRObj.pending_polineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+    
+    is_purchase_approver = find_purchase_approver_permission(request.user)
     pending_level = list(PRQs.values_list('pending_level', flat=True))[0]
-    if levelToBeValidatedFor != pending_level:
+    if levelToBeValidatedFor != pending_level and not is_purchase_approver:
         validatedPR = PurchaseApprovals.objects.filter(purchase_number=pr_number, pr_user=user.id,
                             level=levelToBeValidatedFor)
         if validatedPR.exists():
@@ -3074,7 +3089,7 @@ def approve_pr(request, user=''):
             status = "This PO has been already %s. Further action cannot be made." %validation_status
             return HttpResponse(status)
     product_category = pendingPRObj.product_category
-    is_purchase_approver = find_purchase_approver_permission(request.user)
+    # is_purchase_approver = find_purchase_approver_permission(request.user)
     approval_type, prev_approval_type = '', ''
     if is_actual_pr == 'true':
         approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
@@ -3091,7 +3106,7 @@ def approve_pr(request, user=''):
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
                                 approval_type=approval_type)
-    if currentUserEmailId not in validated_by:
+    if currentUserEmailId not in validated_by and not is_purchase_approver:
         company_id = get_company_id(user)
         confObj = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, name=reqConfigName,
                                                         level=pending_level, approval_type=approval_type)
@@ -3132,7 +3147,17 @@ def approve_pr(request, user=''):
     # is_purchase_approver = False
     # if change_pendinglineitem and change_pr:
     #     is_purchase_approver = True
+    is_resubmitted = False
     if is_purchase_approver:
+        lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
+        temp_data = TempJson.objects.filter(model_id__in=lineItemIds, 
+                                model_name='PENDING_PR_PURCHASE_APPROVER')
+        if temp_data:
+            is_resubmitted = True
+            approval_type = 'ranges'
+            pendingPRObj.pending_prApprovals.filter(approval_type='ranges').delete()
+            temp_data.delete()
+
         lineItems = pendingPRObj.pending_prlineItems
         for i in range(0, len(myDict['wms_code'])):
             eachSku = myDict['wms_code'][i]
@@ -3159,7 +3184,7 @@ def approve_pr(request, user=''):
             TempJson.objects.create(model_id=lineItemObj[0].id, 
                                     model_name='PENDING_PR_PURCHASE_APPROVER', 
                                     model_json=pr_approver_data)
-    if pending_level == lastLevel and prev_approval_type == approval_type: #In last Level, no need to generate Hashcode, just confirmation mail is enough
+    if pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         PRQs.update(final_status=validation_type)
         # PRQs.update(remarks=remarks)
         updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
@@ -3182,7 +3207,7 @@ def approve_pr(request, user=''):
             except:
                 pass
     else:
-        if prev_approval_type == approval_type:
+        if prev_approval_type == approval_type and not is_resubmitted:
             nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
         else:
             nextLevel = 'level0'

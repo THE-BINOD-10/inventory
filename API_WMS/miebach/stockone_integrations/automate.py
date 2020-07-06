@@ -7,16 +7,16 @@ import datetime
 from stockone_integrations.utils import init_logger
 
 ListOfExecution = [
-    # { 'function': 'IntegrateUOM', 'objType': 'uom', 'unique_param': 'name'},
-    # { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
-    # { 'function': 'IntegrateInventoryAdjustment', 'objType': 'InventoryAdjustment', 'unique_param': 'ia_number'},
-    # { 'function': 'IntegrateInventoryTransfer', 'objType': 'InventoryTransfer', 'unique_param': 'it_number'},
-    # { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
-    # { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
-    # { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition', 'unique_param': 'full_pr_number'},
+    { 'function': 'IntegrateUOM', 'objType': 'uom', 'unique_param': 'name'},
+    { 'function': 'integrateSkuMaster', 'objType': 'InventoryItem', 'unique_param': 'sku_code'},
+    { 'function': 'IntegrateInventoryAdjustment', 'objType': 'InventoryAdjustment', 'unique_param': 'ia_number'},
+    { 'function': 'IntegrateInventoryTransfer', 'objType': 'InventoryTransfer', 'unique_param': 'it_number'},
+    { 'function': 'integrateServiceMaster', 'objType': 'ServicePurchaseItem', 'unique_param': 'sku_code'},
+    { 'function': 'integrateAssetMaster', 'objType': 'NonInventoryPurchaseItem', 'unique_param': 'sku_code'},
+    { 'function': 'IntegratePurchaseRequizition', 'objType': 'PurchaseRequizition', 'unique_param': 'full_pr_number'},
     { 'function': 'IntegratePurchaseOrder', 'objType': 'PurchaseOrder', 'unique_param': 'po_number'},
-    # { 'function': 'IntegrateGRN', 'objType': 'grn', 'unique_param': 'grn_number'},
-    # { 'function': 'IntegrateRTV', 'objType': 'rtv', 'unique_param': 'rtv_number'}
+    { 'function': 'IntegrateGRN', 'objType': 'grn', 'unique_param': 'grn_number'},
+    { 'function': 'IntegrateRTV', 'objType': 'rtv', 'unique_param': 'rtv_number'}
 ]
 
 today = datetime.datetime.now().strftime("%Y%m%d")

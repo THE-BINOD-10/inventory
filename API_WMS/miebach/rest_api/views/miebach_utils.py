@@ -6713,6 +6713,8 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
         temp = re.findall('\d+', search_params['open_po'])
         if temp:
             search_parameters['seller_po_summary__purchase_order__order_id'] = temp[-1]
+    if 'product_category' in search_params:
+        search_parameters['pending_pr__product_category'] = search_params['product_category']
     if 'invoice_number' in search_params:
         search_parameters['seller_po_summary__invoice_number'] = search_params['invoice_number']
     if 'rtv_number' in search_params:
@@ -6723,7 +6725,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['rtv_number', 'creation_date', 'quantity','seller_po_summary__purchase_order__open_po__supplier__supplier_id', 'seller_po_summary__purchase_order__open_po__supplier__name',
-                   'seller_po_summary__purchase_order__po_number','seller_po_summary__purchase_order__creation_date',
+                   'seller_po_summary__purchase_order__po_number','seller_po_summary__purchase_order__creation_date', 'seller_po_summary__purchase_order__open_po__sku__sku_category',
                     'seller_po_summary__grn_number','seller_po_summary__creation_date','seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
                    'seller_po_summary__purchase_order__open_po__price', 'seller_po_summary__purchase_order__open_po__mrp',
                    'seller_po_summary__purchase_order__open_po__cgst_tax', 'seller_po_summary__purchase_order__open_po__sgst_tax', 'seller_po_summary__purchase_order__open_po__igst_tax']
@@ -6787,7 +6789,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                                     ('PO Date', final_po_date),
                                     ('Plant', warehouse),
                                     ('Product Category', product_category),
-                                    ('Category', category),
+                                    ('Category', data['seller_po_summary__purchase_order__open_po__sku__sku_category']),
                                     ('Department', warehouse_type),
                                     ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                     ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),

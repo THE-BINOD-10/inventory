@@ -154,7 +154,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
              "image": vm.files
            }
     var elem = angular.element($('form'));
-    elem = elem[0];
+    elem = elem[1];
     elem = $(elem).serializeArray();
     elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
     // elem.push({name:'substitutes', value:$('.substitutes').val()});
@@ -251,7 +251,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.success = function(data) {
     if ( data.$valid ){
-      if ("Add SKU" == vm.title) {
+      if ("Add Item" == vm.title) {
           vm.url = "insert_sku/";
       }
       vm.update_sku();
@@ -283,6 +283,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             console.log("success");
           })
         };
+  }
+  vm.delete_sku = function(data) {
+    vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
+      console.log("SUCCESS")
+      vm.close();
+    });
   }
   vm.pop_msg =  function(msg) {
     $(".insert-status > h4").text(msg);

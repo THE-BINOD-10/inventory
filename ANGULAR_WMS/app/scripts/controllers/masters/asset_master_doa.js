@@ -270,6 +270,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
   }
 
+  vm.delete_sku = function(data) {
+    vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
+      console.log("SUCCESS")
+      vm.close();
+    });
+  }
+
   vm.add_uom = function() {
 
     vm.model_data.uom_data.push({uom_type: "",uom_name: "",conversion: "", uom_id: "", disable: false});

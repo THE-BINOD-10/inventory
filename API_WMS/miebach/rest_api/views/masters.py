@@ -5670,11 +5670,11 @@ def get_asset_master_doa(start_index, stop_index, temp_data, search_term, order_
     if search_term:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="AssetMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
     else:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="AssetMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -5761,11 +5761,11 @@ def get_service_master_doa(start_index, stop_index, temp_data, search_term, orde
     if search_term:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="ServiceMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
     else:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="ServiceMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -5854,11 +5854,11 @@ def get_other_items_master_doa(start_index, stop_index, temp_data, search_term, 
     if search_term:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="OtherItemsMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
     else:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="OtherItemsMaster",
-                    doa_status="pending").order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

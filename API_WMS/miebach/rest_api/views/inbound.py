@@ -100,8 +100,13 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
-        pr_numbers = list(PurchaseApprovals.objects.filter(validated_by=pa_email).distinct().
-                                  values_list('pending_pr_id', flat=True))
+        prQs = PurchaseApprovals.objects.filter(validated_by=pa_email).distinct()
+        if status:
+            prQs = prQs.filter(pending_pr__final_status=status)
+        else:
+            prQs = prQs.exclude(pending_pr__final_status='approved')
+        pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
+
         filtersMap.setdefault('pending_pr_id__in', [])
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
 

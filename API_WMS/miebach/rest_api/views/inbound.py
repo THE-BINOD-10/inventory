@@ -1481,7 +1481,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date',
+        'sku__servicemaster__service_end_date', 'sku__hsn_code'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -1496,7 +1496,8 @@ def generated_actual_pr_data(request, user=''):
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
-        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, gl_code, service_stdate, service_edate = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, \
+                gl_code, service_stdate, service_edate, hsn_code = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1626,6 +1627,7 @@ def generated_actual_pr_data(request, user=''):
                                             },
                                     'description': sku_desc,
                                     'description_edited': sku_desc_edited,
+                                    'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
                                     'measurement_unit': uom,

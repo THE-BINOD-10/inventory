@@ -6,6 +6,7 @@
         <th>Service Code*</th>
         <th>Title</th>
         <th>Details</th>
+        <th>HSN Code</th>
         <th>GL Code</th>
         <th>Start Date</th>
         <th>End Date</th>
@@ -57,6 +58,9 @@
         <td>
           <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
           type="text" name="description_edited" class="form-control detectTab" ng-readonly="true" size="60">
+        </td>
+        <td>
+          <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
         </td>
         <td>
           <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="30">

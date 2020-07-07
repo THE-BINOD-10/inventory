@@ -4856,7 +4856,7 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5117,7 +5117,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:

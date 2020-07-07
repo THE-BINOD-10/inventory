@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
-                    "Total Quantity", "PR Created Date", "Department", "Department Type",
+                    "Total Quantity", "PR Created Date", "Store", "Department", "Department Type",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -1112,6 +1112,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description = item.sku_desc;
       product.fields.description_edited = item.sku_desc;
       product.fields.sku_brand = item.sku_brand;
+      product.fields.sku_class = item.sku_class;
       product.fields.type = item.type;
       product.fields.gl_code = item.gl_code;
       product.fields.service_start_date = item.service_start_date;

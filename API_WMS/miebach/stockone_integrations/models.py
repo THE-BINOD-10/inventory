@@ -13,6 +13,15 @@ class IntegrationMaster(models.Model):
     integration_data = models.TextField()
     module_type = models.CharField(max_length=64)
     stockone_reference = models.CharField(max_length=64)
+    action_type = models.CharField(
+        max_length=6, 
+        choices=(
+            ('add', 'Add'),
+            ('delete', 'Delete'),
+            ('upsert', 'Upsert'),
+        ), 
+        default='upsert',
+    )
     integration_reference = models.CharField(max_length=64, default=None, null=True)
     status = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)

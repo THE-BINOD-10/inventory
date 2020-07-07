@@ -205,7 +205,7 @@ class netsuiteIntegration(object):
             ns = self.nc.raw_client
             item = []
             grnrec = ns.ItemReceipt()
-            if grn_data.get('po_number', None):
+            if grn_data.get('po_number',None):
                 grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
             custom_field_list=[]
             # custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
@@ -320,24 +320,19 @@ class netsuiteIntegration(object):
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 line_item = {
-                 # 'item': ns.RecordRef(externalId=data['sku_code']),
-                 'item': ns.RecordRef(internalId=17453),
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 # 'item': ns.RecordRef(internalId=17346),
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
                  'location':ns.RecordRef(internalId=297),
-                 'customFieldList': ns.CustomFieldList(
-                        [
-                            ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=567)),
-                            ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
-                            ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))
-                        ]
-                    )
+                 'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
+                  ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                 }
-                # if data.get('uom_name', None) and data.get('unitypeexid', None):
-                #     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
-                #     if internId:
-                #         line_item.update({'units': ns.RecordRef(internalId=internId)})
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
                 item.append(line_item)
             purorder.itemList = { 'item': item }
         except Exception as e:
@@ -487,8 +482,7 @@ class netsuiteIntegration(object):
             for data in ia_data['items']:
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
-                 'adjustQtyBy': data['adjust_qty_by'],
-                 #'newQuantity':data['adjust_qty_by'],
+                 'adjustQtyBy':data['adjust_qty_by'],
                  'location':ns.RecordRef(internalId=297)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):

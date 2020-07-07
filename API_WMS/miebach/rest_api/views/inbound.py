@@ -3809,6 +3809,13 @@ def get_pr_preview_data(request, user=''):
         supplierDetailsMap = {}
         lineItemId = lineItem.id
         sku_code = lineItem.sku.sku_code
+        description_edited = ''
+        tempLineItemQs = TempJson.objects.filter(model_id=lineItemId, 
+            model_name='PendingLineItemMiscDetails')
+        if tempLineItemQs.exists():
+            line_json = eval(tempLineItemQs[0].model_json)
+            if line_json.has_key('description_edited'):
+                description_edited = line_json['description_edited']
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
@@ -3854,6 +3861,8 @@ def get_pr_preview_data(request, user=''):
                       'product_category': prod_catg,
                       'supplierDetails': supplierDetailsMap,
                       'preferred_supplier': supplierDetailsMap.keys()[0]}
+        if description_edited:
+            reqLineMap['description_edited'] = description_edited
         reqLineMap['supplierDetails'] = supplierDetailsMap
         preview_data['data'].append(reqLineMap)
 

@@ -37,13 +37,25 @@
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
               </div>
             </div>
+			<div class="col-md-2 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label"> Product Category </label>
+                <input type="text" ng-model="showCase.model_data.product_category" name="product_category" class="form-control" ng-readonly="true"> 
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-4">
+              <div class="form-group">
+                <label class="control-label"> Category </label>
+                <input type="text" ng-model="showCase.model_data.sku_category" name="sku_category" class="form-control" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
                 <input type="text" autocomplete="off" name="supplier_id_name" ng-model="showCase.model_data.supplier_id_name" placeholder="Search Supplier"
                   typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control"
                   typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id_name); showCase.update_wms_records()"
-                  ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');">
+                  ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');" ng-readonly="true">
                 <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
                 <!-- <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update"> -->
               </div>
@@ -54,7 +66,7 @@
                 <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <!-- <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Address *</label><br>
                 <div class="btn-group mr15" dropdown="">
@@ -64,7 +76,7 @@
                   </ul>
                 </div>
               </div>
-            </div>
+            </div> -->
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Ship To *</label>
@@ -107,7 +119,7 @@
                     <th class="w10_">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th> -->
-                    <th class="plus"></th>
+                    <!-- <th class="plus"></th> -->
                   </tr>
                 </thead>
                 <tbody>
@@ -136,7 +148,7 @@
                     </td> -->
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
-                             ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
+                             ng-class="service.get_decimal_perm()" ng-readonly="showCase.update"
                              ng-keyup="showCase.getTotals()" size="12">
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
@@ -166,9 +178,9 @@
 			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
-                    <td>
+                    <!-- <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
                   </tr>
                 </tbody>
               </table>

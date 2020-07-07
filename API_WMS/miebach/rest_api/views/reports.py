@@ -93,8 +93,8 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
-    elif report_name in ['pr_report', 'pr_detail_report', 'rtv_report', 'sku_wise_rtv_report']:
 
+    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report', 'sku_wise_rtv_report']:
         if 'sister_warehouse' in filter_keys:
             sister_wh = get_sister_warehouse(user)
             data_index = data['filters'].index(
@@ -118,11 +118,6 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
-
-        if 'sku_category' in filter_keys:
-            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
-            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
-                                                         .values_list('sku_category', flat=True).distinct())
 
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
@@ -2549,3 +2544,20 @@ def get_approval_detail_report(request, user=''):
     temp_data = get_approval_detail_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metro_po_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metro_po_detail_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+

@@ -10,7 +10,8 @@ def send_mail(send_to, subject, body):
     if not send_to:
         return
 
-    fromaddr = 'noreply@mieone.com'
+    fromaddr = 'mail@stockone.in'
+
     msg = MIMEMultipart()
 
     msg['From'] = fromaddr
@@ -24,7 +25,7 @@ def send_mail(send_to, subject, body):
 
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(fromaddr, "no*reply!59")
+        server.login(fromaddr, "xyrknunenijaltgq")
         text = msg.as_string()
 
         server.sendmail(fromaddr, send_to, text)
@@ -34,8 +35,8 @@ def send_mail(send_to, subject, body):
 
 
 def send_mail_attachment(send_to, subject, text, files=[], compressed=False, milkbasket_mail_credentials={}):
-    fromaddr = 'noreply@mieone.com'
-    mail_password = 'no*reply!59'
+    fromaddr = 'mail@stockone.in'
+    mail_password = 'xyrknunenijaltgq'
     if milkbasket_mail_credentials:
         fromaddr = milkbasket_mail_credentials['username']
         mail_password = milkbasket_mail_credentials['password']

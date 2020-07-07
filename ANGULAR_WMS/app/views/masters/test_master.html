@@ -1,0 +1,16 @@
+<div class="page-layout" ng-controller="TestMasterTable as showCase">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-2 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+      <div class="col-md-10 col-sm-12 col-xs-12">
+        <div class="row pb10">
+          <div>
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" ng-click="showCase.add()">New Test</button>
+          </div>
+      </div>
+    </div>
+  </div>
+  <div ng-include="'views/common/master-datatable.html'"></div>
+</div>

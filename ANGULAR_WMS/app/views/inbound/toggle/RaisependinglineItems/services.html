@@ -5,10 +5,14 @@
         <tr>
           <th>Service Code*</th>
           <th>Title</th>
-          <th>Asset Code</th>
+          <th>Details</th>
+          <!-- <th>Brand</th>  -->
+          <th>GL Code</th>
           <th>Start Date</th>
           <th>End Date</th>
           <th class="w10_">Quantity*</th>
+          <th>Base Price excluding GST</th>
+          <th>Tax</th>
           <th>UOM</th>
           <th class="plus"></th>
         </tr>
@@ -25,22 +29,45 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.description" title="{{ product.fields.description }}" 
+            type="text" name="description" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input ng-model="product.fields.asset_code" title="{{ product.fields.asset_code }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
+            type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
+          </td>
+          <!-- 
+          <td>
+            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" 
+            type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
+          </td>  
+          -->
+          <td>
+            <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input name="service_start_date" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" ng-readonly="true">
+            <input name="service_start_date" ui-jq="datepicker" ng-model="product.fields.service_start_date" class="form-control" type="text" id="service_start_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
           </td>
           <td>
-            <input name="service_end_date" ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" ng-readonly="true">
+            <input name="service_end_date" ui-jq="datepicker"  ng-model="product.fields.service_end_date" class="form-control" type="text" id="service_end_date" data-date-format="dd-mm-yyyy"  data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
           </td>
 
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-keyup="showCase.getTotals()" size="12">
+          </td>
+          <td class="text-center"> 
+            <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+              class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" 
+              size="12">
+          </td>
+          <td class="text-center"> 
+            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+            </span> --> 
+            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" size="12">
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">

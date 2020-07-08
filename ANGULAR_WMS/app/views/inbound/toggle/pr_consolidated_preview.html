@@ -25,7 +25,8 @@
                   <th>Product Category</th>
                   <th>SKU Code</th>
                   <th>SKU Desc</th>
-                  <th>MOQ</th>
+                  <th ng-if="data.product_category=='Services'">Details</th>
+                  <!-- <th>MOQ</th> -->
                   <th>Quantity</th>
                   <th>Unit Rate(INR)</th>
                   <th>Amount(INR)</th>
@@ -57,7 +58,8 @@
                 <td> {{data.product_category}} </td>
                 <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
                 <td> {{data.sku_desc}} </td>
-                <td> {{data.moq}} </td>
+                <td ng-if="data.product_category=='Services'"> {{data.description_edited}} </td>
+                <!-- <td> {{data.moq}} </td> -->
                 <td> {{data.quantity}} </td>
                 <!-- <td> <input type="number" class="form-control" ng-model="data.quantity" name="quantity" size="25"> </td> -->
                 <td> {{data.price}} </td>

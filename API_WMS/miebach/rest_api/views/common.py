@@ -3138,16 +3138,15 @@ def search_sku_brands(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
-        'sku_brand')
-    exact_ids = list(data_exact.values_list('id', flat=True))
-    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_brand__icontains=data_id) | Q(sku_desc__icontains=data_id),
-                                                       user=user.id).order_by('sku_brand')
-    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
-                                                          sku__user=user.id).values_list('sku__sku_code',
-                                                                                         flat=True).distinct()
-    market_place_code = list(market_place_code)
-    data = list(chain(data_exact, data))
+    # data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+    #     'sku_brand')
+    # exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.filter(sku_brand__icontains=data_id, user=user.id)
+    # market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+    #                                                       sku__user=user.id).values_list('sku__sku_code',
+    #                                                                                      flat=True).distinct()
+    # market_place_code = list(market_place_code)
+    # data = list(chain(data_exact, data))
     sku_brands = []
     count = 0
     if data:
@@ -3155,14 +3154,14 @@ def search_sku_brands(request, user=''):
             sku_brands.append(str(brand.sku_brand))
             if len(sku_brands) >= 10:
                 break
-    if len(sku_brands) <= 10:
-        if market_place_code:
-            for marketplace in market_place_code:
-                if len(sku_brands) <= 10:
-                    if marketplace not in sku_brands:
-                        sku_brands.append(marketplace)
-                else:
-                    break
+    # if len(sku_brands) <= 10:
+    #     if market_place_code:
+    #         for marketplace in market_place_code:
+    #             if len(sku_brands) <= 10:
+    #                 if marketplace not in sku_brands:
+    #                     sku_brands.append(marketplace)
+    #             else:
+    #                 break
     return HttpResponse(json.dumps(list(set(sku_brands))))
 
 @csrf_exempt
@@ -4856,7 +4855,7 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5117,7 +5116,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:

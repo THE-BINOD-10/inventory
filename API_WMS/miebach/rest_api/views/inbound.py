@@ -1481,7 +1481,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date',
+        'sku__servicemaster__service_end_date', 'sku__hsn_code'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -1496,7 +1496,8 @@ def generated_actual_pr_data(request, user=''):
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
-        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, gl_code, service_stdate, service_edate = rec
+        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, \
+                gl_code, service_stdate, service_edate, hsn_code = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1626,6 +1627,7 @@ def generated_actual_pr_data(request, user=''):
                                             },
                                     'description': sku_desc,
                                     'description_edited': sku_desc_edited,
+                                    'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
                                     'measurement_unit': uom,
@@ -3807,6 +3809,13 @@ def get_pr_preview_data(request, user=''):
         supplierDetailsMap = {}
         lineItemId = lineItem.id
         sku_code = lineItem.sku.sku_code
+        description_edited = ''
+        tempLineItemQs = TempJson.objects.filter(model_id=lineItemId, 
+            model_name='PendingLineItemMiscDetails')
+        if tempLineItemQs.exists():
+            line_json = eval(tempLineItemQs[0].model_json)
+            if line_json.has_key('description_edited'):
+                description_edited = line_json['description_edited']
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER', 
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
@@ -3852,6 +3861,8 @@ def get_pr_preview_data(request, user=''):
                       'product_category': prod_catg,
                       'supplierDetails': supplierDetailsMap,
                       'preferred_supplier': supplierDetailsMap.keys()[0]}
+        if description_edited:
+            reqLineMap['description_edited'] = description_edited
         reqLineMap['supplierDetails'] = supplierDetailsMap
         preview_data['data'].append(reqLineMap)
 

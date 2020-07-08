@@ -1050,6 +1050,10 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/receive_po.js'
                 ])
+              }).then(function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/receive_po_doa.js'
+                ])
               }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/credit_note.js'

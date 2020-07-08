@@ -595,6 +595,7 @@ data_datatable = {  # masters
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
+    'ReceivePODOA':"get_confirmed_po_doa", \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \

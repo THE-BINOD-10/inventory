@@ -876,12 +876,13 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
-                                    product_category=product_category, approval_type=approval_type)
+                                    product_category=product_category, approval_type=approval_type,
+                                    sku_category=sku_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -898,13 +899,14 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', a
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type='',
+                           sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
-                                      approval_type=approval_type)
+                                      approval_type=approval_type, sku_category=sku_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
                                                           approval_type=approval_type).\
                     values_list('level', flat=True).order_by('-id'))
@@ -11814,6 +11816,7 @@ def view_master_access(sub_perms, check_data):
                 final_lis.append(data1)
     return final_lis
 
+
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -12105,7 +12108,7 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     else:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
     if warehouse:
-        user_groups = user_groups.filter(admin_user__username=warehouse)
+        user_groups = user_groups.filter(admin_user__username__in=warehouse)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     if not send_parent:
@@ -12343,6 +12346,7 @@ def insert_admin_sku_attributes(request, user):
         sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
     return "Success"
 
+
 @login_required
 @csrf_exempt
 @get_admin_user
@@ -12351,6 +12355,10 @@ def get_company_warehouses(request, user=''):
     warehouse_types = request.GET.get('warehouse_type', '')
     warehouse_types = warehouse_types.split(',')
     warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        warehouse = warehouse.split(',')
+    else:
+        warehouse = []
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
                                         company_id=company_id, send_parent=False)
     warehouse_list = []
@@ -12422,16 +12430,29 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
     for user_role in user_roles:
         staff_check = {'company_id__in': company_list, 'user': user,
                         'position': user_role}
+        if user.userprofile.warehouse_type == 'DEPT':
+            del staff_check['user']
+            staff_check['plant__name'] = get_admin(user).username
         if app_config.department_type:
             staff_check['department_type'] = app_config.department_type
         emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
-            admin_user = get_admin(user)
-            emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\
-                    values_list('email_id', flat=True))
+            break_loop = True
+            admin_user = user
+            while break_loop:
+                prev_admin_user = admin_user
+                admin_user = get_admin(admin_user)
+                if admin_user.id == prev_admin_user.id:
+                    break_loop = False
+                emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
+                                                         department_type='', position=user_role).\
+                        values_list('email_id', flat=True))
+                if emails:
+                    break_loop = False
         if not emails:
-            emails = list(StaffMaster.objects.filter(company_id__in=company_list, department_type='', position=user_role).\
-                    values_list('email_id', flat=True))
+            emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
+                                                     department_type='', position=user_role). \
+                          values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
                                                                       str(mail_list)))
@@ -12545,3 +12566,61 @@ def find_purchase_approver_permission(user):
     if change_pendinglineitem and change_pr:
         is_purchase_approver = True
     return is_purchase_approver
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_groups_list(request, user=''):
+    group_names = []
+    exclude_list = ['Pull to locate', 'Admin', 'WMS']
+    exclude_group = AdminGroups.objects.filter(user_id=user.id)
+    if exclude_group:
+        exclude_list.append(exclude_group[0].group.name)
+    cur_user = user
+    groups = user.groups.filter().exclude(name__in=exclude_list)
+    total_groups = []
+    for group in groups:
+        group_name = (group.name).replace(user.username + ' ', '')
+        total_groups.append(group_name)
+    return HttpResponse(json.dumps({'groups': total_groups}))
+
+
+def update_user_groups(request, sub_user, selected_list):
+    modified_list = [request.user.username + ' ' + s for s in selected_list]
+    user_groups = request.user.groups.filter()
+    exclude_group = AdminGroups.objects.filter(user_id=request.user.id)
+    if exclude_group:
+        exclude_name = exclude_group[0].group.name
+    for group in user_groups:
+        if group.name in selected_list or group.name in modified_list:
+            sub_user.groups.add(group)
+        else:
+            if exclude_name:
+                if not group.name == exclude_name:
+                    group.user_set.remove(sub_user)
+
+
+def update_staff_plants_list(model_obj, elements):
+    exist_element_list = model_obj.plant.filter().values_list('name', flat=True)
+    exist_elements = [(str(e_elem)).lower() for e_elem in exist_element_list]
+    for elem in elements:
+        element_obj, created = TableLists.objects.get_or_create(name=elem)
+        model_obj.plant.add(element_obj)
+        if elem.lower() in exist_elements:
+            exist_elements.remove(elem.lower())
+    for exist_elem in exist_elements:
+        elem_obj = TableLists.objects.filter(name=exist_elem)
+        if elem_obj:
+            model_obj.plant.remove(elem_obj[0])
+
+
+def get_uom_conversion_value(sku, uom_type):
+    conversion_name, conversion = '', 1
+    user = User.objects.get(id=sku.user)
+    company_id = get_company_id(user)
+    uom_obj = UOMMaster.objects.filter(company_id=company_id, sku_code=sku.sku_code, uom_type=uom_type)
+    if uom_obj:
+        conversion = uom_obj[0].conversion
+        conversion_name = uom_obj[0].name
+    return conversion_name, conversion

@@ -153,6 +153,9 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
         sku_category = result['pending_pr__sku_category']
+        sku_category_val = sku_category
+        if sku_category == 'All':
+            sku_category_val = ''
         pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
@@ -166,7 +169,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             approval_type = prApprQs[0].approval_type
         reqConfigName, lastLevel = findLastLevelToApprove(pr_user, result['pending_pr__pr_number'],
                                     result['total_amt'], purchase_type='PR', product_category=product_category,
-                                                          approval_type=approval_type)
+                                                          approval_type=approval_type, sku_category=sku_category_val)
 
         last_updated_by = ''
         last_updated_time = ''
@@ -3157,7 +3160,10 @@ def approve_pr(request, user=''):
             status = "This PO has been already %s. Further action cannot be made." %validation_status
             return HttpResponse(status)
     product_category = pendingPRObj.product_category
-    # is_purchase_approver = find_purchase_approver_permission(request.user)
+    sku_category = pendingPRObj.sku_category
+    if sku_category.lower() == 'all':
+        sku_category = ''
+    #is_purchase_approver = find_purchase_approver_permission(request.user)
     approval_type, prev_approval_type = '', ''
     if is_actual_pr == 'true':
         approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
@@ -3173,7 +3179,7 @@ def approve_pr(request, user=''):
                 continue
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
-                                approval_type=approval_type)
+                                approval_type=approval_type, sku_category=sku_category)
     if currentUserEmailId not in validated_by and not is_purchase_approver:
         company_id = get_company_id(user)
         confObj = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, name=reqConfigName,
@@ -4120,6 +4126,11 @@ def add_pr(request, user=''):
         product_category = 'Kits&Consumables'
         if myDict.get('product_category'):
             product_category = myDict.get('product_category')[0]
+        sku_category = ''
+        if myDict.get('sku_category'):
+            sku_category = myDict.get('sku_category')[0]
+            if sku_category.lower() == 'all':
+                sku_category = ''
         is_resubmitted = False
         if myDict.get('is_resubmitted'):
             is_resubmitted = myDict.get('is_resubmitted')[0]
@@ -4178,7 +4189,8 @@ def add_pr(request, user=''):
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default')
+                                                product_category=product_category, approval_type='default',
+                                              sku_category=sku_category)
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4209,7 +4221,7 @@ def add_pr(request, user=''):
                     admin_user = admin_userQs[0].user
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
-                                                product_category=product_category)
+                                                product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
@@ -4219,7 +4231,7 @@ def add_pr(request, user=''):
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
-                                    product_category=product_category)
+                                    product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
@@ -7907,6 +7919,8 @@ def putaway_data(request, user=''):
                 if loc1.pallet_filled > loc1.pallet_capacity:
                     setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
                 loc1.save()
+                conv_name, conv_value = get_uom_conversion_value(order_data['sku'], 'purchase')
+                value = conv_value * value
                 if stock_data:
                     stock_data = stock_data[0]
                     add_quan = float(stock_data.quantity) + float(value)

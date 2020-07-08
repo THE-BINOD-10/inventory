@@ -5342,10 +5342,12 @@ def send_supplier_doa(request, user=''):
             preference = value
         if value != '':
             data_dict[key] = value
-
     skuSupQs = SKUSupplier.objects.filter(sku__user=user.id, sku_id=sku_id[0].id, supplier_id=supplier.id)
     if skuSupQs.exists() and not data_dict.has_key('DT_RowId'):
         return HttpResponse("New DOA cant be created, already SKUSupplier exists")
+    if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
+        data_dict['preference'] = skuSupQs[0].preference
+        data_dict['moq'] = skuSupQs[0].moq
     userQs = UserGroups.objects.filter(user=user)
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')

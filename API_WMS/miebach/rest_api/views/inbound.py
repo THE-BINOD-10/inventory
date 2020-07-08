@@ -955,7 +955,6 @@ def get_confirmed_po_doa(start_index, stop_index, temp_data, search_term, order_
             'receivable_qty', 'received_qty', 'warehouse', 'supllier_id_name', 'order_type',
             'receive_status', 'status']
 
-
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []

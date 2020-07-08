@@ -9,6 +9,7 @@
           <th class="w10_">Quantity*</th>
           <th>UOM</th>
           <th>Unit Rate(INR)</th>
+          <th>Base Price excluding GST</th>
           <th>Amount(INR)</th>
           <th>Tax %</th>
           <th>Total(INR)</th>
@@ -67,6 +68,13 @@
             ng-class="service.get_decimal_perm()" 
             ng-keyup="showCase.getTotals(product)" size="12"
             ng-readonly="product.fields.preferred_supplier">
+          </td>
+          <td class="text-center"> 
+          <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+            class="form-control detectTab"
+            ng-class="service.get_decimal_perm()"
+            ng-readonly="true"
+            size="12">
           </td>
           <td class="text-center"> 
             <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}

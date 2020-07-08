@@ -37,24 +37,25 @@ def executeAutomatedTaskForUser(userObj, row):
     if not intObj.is_connected:
         log.info('Connection With Integration Layer Failed')
     try:
-        currentData = intObj.getRelatedJson(row.get('objType'))
-        print(row.get('objType'), userObj, currentData)
-        log.info('Executing %s' % (row.get('objType')))
-        if len(currentData):
+        for action in ['add', 'delete', 'upsert']:
+            currentData = intObj.getRelatedJson(row.get('objType'), action=action)
+            print(row.get('objType'), userObj, currentData, action)
             log.info('Executing %s' % (row.get('objType')))
-            dataToSend = []
-            for drow in currentData:
-                dataToSend.append(drow)
-                if len(dataToSend) >= batch:
-                    getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)
-                    dataToSend = []
-            if len(dataToSend):
-                getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)
+            if len(currentData):
+                log.info('Executing %s' % (row.get('objType')))
+                dataToSend = []
+                for drow in currentData:
+                    dataToSend.append(drow)
+                    if len(dataToSend) >= batch:
+                        getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True, action=action)
+                        dataToSend = []
+                if len(dataToSend):
+                    getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True, action=action)
 
-            log.info('Executed %s' % (row.get('objType')))
-            # intObj.writeJsonToFile(row.get('objType'), [])
-        else:
-            log.info('Empty For Queue %s' % (row.get('objType')))
+                log.info('Executed %s' % (row.get('objType')))
+                # intObj.writeJsonToFile(row.get('objType'), [])
+            else:
+                log.info('Empty For Queue %s' % (row.get('objType')))
     except Exception as e:
         import traceback
         log_err.debug(traceback.format_exc())

@@ -254,11 +254,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
           vm.checkResubmit = function(sku_data){
             vm.is_resubmitted = false;
-            if (!vm.permissions.change_pendingpr){
+            if ((!vm.permissions.change_pendingpr) || vm.permissions.change_pendinglineitems){
               if (sku_data.order_quantity){
                 angular.forEach(vm.model_data.data, function(eachField){
                   var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
+                  if (oldQty != parseInt(eachField.fields.order_quantity) || eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
                     vm.is_resubmitted = true
                     vm.update = true;
                   }

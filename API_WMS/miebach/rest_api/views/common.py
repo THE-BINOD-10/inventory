@@ -3138,16 +3138,15 @@ def search_sku_brands(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
-        'sku_brand')
-    exact_ids = list(data_exact.values_list('id', flat=True))
-    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_brand__icontains=data_id) | Q(sku_desc__icontains=data_id),
-                                                       user=user.id).order_by('sku_brand')
-    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
-                                                          sku__user=user.id).values_list('sku__sku_code',
-                                                                                         flat=True).distinct()
-    market_place_code = list(market_place_code)
-    data = list(chain(data_exact, data))
+    # data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+    #     'sku_brand')
+    # exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.filter(sku_brand__icontains=data_id, user=user.id)
+    # market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+    #                                                       sku__user=user.id).values_list('sku__sku_code',
+    #                                                                                      flat=True).distinct()
+    # market_place_code = list(market_place_code)
+    # data = list(chain(data_exact, data))
     sku_brands = []
     count = 0
     if data:
@@ -3155,14 +3154,14 @@ def search_sku_brands(request, user=''):
             sku_brands.append(str(brand.sku_brand))
             if len(sku_brands) >= 10:
                 break
-    if len(sku_brands) <= 10:
-        if market_place_code:
-            for marketplace in market_place_code:
-                if len(sku_brands) <= 10:
-                    if marketplace not in sku_brands:
-                        sku_brands.append(marketplace)
-                else:
-                    break
+    # if len(sku_brands) <= 10:
+    #     if market_place_code:
+    #         for marketplace in market_place_code:
+    #             if len(sku_brands) <= 10:
+    #                 if marketplace not in sku_brands:
+    #                     sku_brands.append(marketplace)
+    #             else:
+    #                 break
     return HttpResponse(json.dumps(list(set(sku_brands))))
 
 @csrf_exempt

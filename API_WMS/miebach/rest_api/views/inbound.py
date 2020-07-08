@@ -8123,6 +8123,9 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
+    supplier_payment_terms = request.POST.get('supplier_payment_terms', '')
+    if supplier_payment_terms:
+        supplier_payment_terms = supplier_payment_terms.split(':')[1]
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
@@ -8139,9 +8142,10 @@ def confirm_add_po(request, sales_data='', user=''):
     check_prefix = ''
     try:
         if is_purchase_request == 'true':
-            pr_number = int(request.POST.get('pr_number'))
+            if request.POST.get('pr_number') is not None:
+                pr_number = int(request.POST.get('pr_number'))
             full_po_number = request.POST.get('po_number')
-            prQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user.id, full_po_number=full_po_number)
+            prQs = PendingPO.objects.filter(wh_user=user.id, full_po_number=full_po_number)
             if prQs:
                 prObj = prQs[0]
                 po_creation_date = prObj.creation_date
@@ -8279,10 +8283,11 @@ def confirm_add_po(request, sales_data='', user=''):
             data1.save()
             if request.POST.get('is_purchase_request') == 'true':
                 pr_number = request.POST.get('pr_number', '')
-                if pr_number: pr_number = int(pr_number)
-                pendingPOQs = PendingPO.objects.filter(po_number=pr_number, wh_user=user)
+                if pr_number:
+                    pr_number = int(pr_number)
+                full_po_number = request.POST.get('po_number')
+                pendingPOQs = PendingPO.objects.filter(wh_user=user, full_po_number=full_po_number)
                 if pendingPOQs.exists():
-                    # pendingPoObj = pendingPOQs[0]
                     pendingPOQs.update(open_po_id=data1.id)
 
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
@@ -8432,7 +8437,22 @@ def confirm_add_po(request, sales_data='', user=''):
         receipt_type = request.GET.get('receipt_type', '')
         total_amt_in_words = number_in_words(round(total)) + ' ONLY'
         round_value = float(round(total) - float(total))
-        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        company_details = {}
+        if profile.company.logo:
+            company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+        if profile.company:
+            company_details['company_address'] = ''
+            if profile.company.address:
+                company_details['company_address'] = profile.company.address.encode('ascii', 'ignore')
+            company_details['phone'] = profile.company.phone_number
+            company_details['email'] = profile.company.email_id
+            company_details['gstin_number'] = profile.company.gstin_number
+            company_details['cin_number'] = profile.company.cin_number
+            company_details['pan_number'] = profile.company.pan_number
+        # company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        supplier_currency = ''
+        if purchase_order.supplier.currency_code:
+            supplier_currency = purchase_order.supplier.currency_code
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO , request)
         if purchase_order.supplier.lead_time:
@@ -8445,7 +8465,7 @@ def confirm_add_po(request, sales_data='', user=''):
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,
-                     'po_reference':po_reference,
+                     'po_reference':po_reference, 'supplier_payment_terms': supplier_payment_terms, 'supplier_currency': supplier_currency,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                      'w_address': ship_to_address.encode('ascii', 'ignore'),
@@ -8454,7 +8474,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan,
-                     'company_address': company_address.encode('ascii', 'ignore'),
+                     'company_address': company_address.encode('ascii', 'ignore'), 'company_details': company_details,
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
         netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs)
         if round_value:

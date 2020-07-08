@@ -3169,7 +3169,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
 
-            if request.POST['is_test'] == 'true':
+            if request.POST.get('is_test', '') == 'true':
                 data_dict['wms_code'] = data_dict['test_code']
                 data_dict['sku_desc'] = data_dict['test_name']
             data_dict['sku_code'] = data_dict['wms_code']

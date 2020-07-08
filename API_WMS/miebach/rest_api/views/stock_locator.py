@@ -1013,7 +1013,9 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     for data in master_data[start_index:stop_index]:
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
-        stock_quantity = get_decimal_limit(user.id, data.quantity)
+        conv_name, conv_value = get_uom_conversion_value(data.sku, 'storage')
+        stock_quantity = data.quantity / conv_value
+        stock_quantity = get_decimal_limit(user.id, stock_quantity)
         taken_unit_price = data.unit_price
         # if pallet_switch == 'true':
         #     pallet_code = ''

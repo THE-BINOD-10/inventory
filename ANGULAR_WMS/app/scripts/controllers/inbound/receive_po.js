@@ -758,8 +758,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = "";
     vm.confirm_grn = function(form) {
       if (form.$valid) {
-        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
-            Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+        if(!vm.model_data.dc_level_grn && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
             return

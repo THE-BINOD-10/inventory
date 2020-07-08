@@ -4633,7 +4633,10 @@ def get_supplier_data(request, user=''):
                     lr_number = po_extra_fields['tracking_number']
                 if 'invoice_number' in po_extra_fields.keys():
                     invoice_number = po_extra_fields['invoice_number']
-            temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
+            if(model_id):
+                temp_jsons = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=order.id, doa_status="pending")
+            else:
+                temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
             request_button = False
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:

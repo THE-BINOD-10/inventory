@@ -57,8 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", 
-                    // "Category", 
-                    "Total Quantity", "Total Amount", 
+                    "Category", "Total Quantity", "Total Amount",
                     "PO Created Date", "PO Delivery Date", "Store", "Department",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];

@@ -180,6 +180,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data = {};
           vm.resubmitCheckObj = {};
           vm.is_resubmitted = false;
+          vm.is_pa_resubmitted = false;
+          vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
 
           if (vm.model_data.supplier_id){
@@ -254,11 +256,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
           vm.checkResubmit = function(sku_data){
             vm.is_resubmitted = false;
-            if ((!vm.permissions.change_pendingpr) || vm.permissions.change_pendinglineitems){
+            if (!vm.permissions.change_pendingpr){
               if (sku_data.order_quantity){
                 angular.forEach(vm.model_data.data, function(eachField){
                   var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity) || eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
+                  if (oldQty != parseInt(eachField.fields.order_quantity)){
                     vm.is_resubmitted = true
                     vm.update = true;
                   }
@@ -273,6 +275,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   }
                 })
               }
+            }
+          }
+
+          vm.checkResubmitPurchaseApprover = function(sku_data) {
+            if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+              return;    
+            }
+            vm.is_pa_resubmitted = false;
+            if (vm.permissions.change_pendinglineitems){
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (sku_data.preferred_supplier != eachField.fields.supplier_id_name){
+                  vm.is_pa_resubmitted = true;
+                }
+              })
             }
           }
 

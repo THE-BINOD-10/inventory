@@ -1608,9 +1608,12 @@ def generated_actual_pr_data(request, user=''):
         supplierDetailsMap = OrderedDict()
         parent_user = get_admin(pr_user)
         preferred_supplier = None
+        resubmitting_user = False
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                         model_id=lineItemId)
         if pr_supplier_data.exists():
+            if is_purchase_approver:
+                resubmitting_user = True
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
             supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
@@ -1716,7 +1719,8 @@ def generated_actual_pr_data(request, user=''):
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
                                     'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
-                                    'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category}))
+                                    'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category,
+                                    'resubmitting_user': resubmitting_user}))
 
 
 @csrf_exempt

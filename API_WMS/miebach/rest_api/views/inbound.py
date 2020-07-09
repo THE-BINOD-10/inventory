@@ -4459,7 +4459,7 @@ def insert_inventory_adjust(request, user=''):
     loc = request.GET['location']
     price = request.GET.get('price', '')
     pallet_code = request.GET.get('pallet', '')
-    batch_no = request.GET.get('batch_no', '')
+    batch_no = request.GET.get('batch_number', '')
     mrp = request.GET.get('mrp', '')
     weight = request.GET.get('weight', '')
     seller_id = request.GET.get('seller_id', '')
@@ -12915,6 +12915,22 @@ def get_debit_note_data(rtv_number, user):
             'uom_name': purchaseUOMname
         })
         if obj.seller_po_summary.batch_detail:
+            from datetime import datetime
+            mfg_date= obj.seller_po_summary.batch_detail.manufactured_date
+            exp_date= obj.seller_po_summary.batch_detail.expiry_date
+            if(mfg_date):
+                t_mfg_date = mfg_date.strftime("%d-%m-%Y")
+                m_date= datetime.strptime(t_mfg_date, '%d-%m-%Y')
+                mfg_date= m_date.isoformat()
+            if(exp_date):
+                t_exp_date = exp_date.strftime("%d-%m-%Y")
+                e_date= datetime.strptime(t_exp_date, '%d-%m-%Y')
+                exp_date= e_date.isoformat()
+            data_dict_item.update({
+                "batch_no": obj.seller_po_summary.batch_detail.batch_no,
+                "mfg_date": mfg_date,
+                "exp_date" : exp_date
+            })
             data_dict_item['mrp'] = obj.seller_po_summary.batch_detail.mrp
         if user.username in MILKBASKET_USERS:
             data_dict_item['price'] = 0

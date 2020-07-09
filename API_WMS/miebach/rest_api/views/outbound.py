@@ -2341,6 +2341,7 @@ def netsuite_picklist_confirmation(final_data_list, user):
         value = picklist_dict['value']
         key = picklist_dict['key']
         for item in value:
+
             #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
            # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
            # price= open_st.price
@@ -2350,20 +2351,31 @@ def netsuite_picklist_confirmation(final_data_list, user):
            # igst_tax= open_st.igst_tax
            # cess_tax= open_st.cess_tax
            # mrp= open_st.mrp
+            mfg_date,exp_date="",""
+            print(item.get("manufactured_date",None), item.get("expiry_date",None) )
+            if(item.get("manufactured_date",None)):
+                mfg_date = datetime.strptime(item["manufactured_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
+                m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+                mfg_date= m_date.isoformat()
+            if(item.get("expiry_date",None)):
+                exp_date = datetime.strptime(item["expiry_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
+                e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+                exp_date= e_date.isoformat()
+            print(mfg_date, exp_date)
             items.append({ "adjust_qty_by": item.get("picked_quantity",0),
-                            "sku_code": item.get("wms_code"),
-                            "batchno": item.get("batchno",""),
-                            "mrp" : item.get("mrp",0),
-                            "expiry_date": item.get("expiry_date",""),
-                            "manufactured_date": item.get("manufactured_date",""),
-                            #"price": price,
-                            #"order_quantity":order_quantity,
-                            #"cgst_tax":cgst_tax,
-                            #"sgst_tax":sgst_tax,
-                            #"igst_tax":igst_tax,
-                            #"cess_tax": cess_tax,
-                            #"mrp":mrp
-                        })
+                        "sku_code": item.get("wms_code"),
+                        "batchno": item.get("batchno",""),
+                        "mrp" : item.get("mrp",0),
+                        "exp_date": exp_date,
+                        "mfg_date": mfg_date,
+                        #"price": price,
+                        #"order_quantity":order_quantity,
+                        #"cgst_tax":cgst_tax,
+                        #"sgst_tax":sgst_tax,
+                        #"igst_tax":igst_tax,
+                        #"cess_tax": cess_tax,
+                        #"mrp":mrp
+                    })
     stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
         'department': department,
         "subsidiary": subsidary,

@@ -174,6 +174,13 @@ class netsuiteIntegration(object):
             rtvitem.customFieldList = ns.CustomFieldList(custom_field_list)
             item = []
             for idx, data in enumerate(rtv_data['item_details']):
+                rtv_custom_field_list=[]
+                if(data.get("batch_no",None)):
+                    rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
+                if(data.get("mfg_date",None)):
+                    rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
+                if(data.get("exp_date",None)):
+                    rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
@@ -181,7 +188,8 @@ class netsuiteIntegration(object):
                 'quantity': data['order_qty'],
                 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
-                'description': data['sku_desc']
+                'description': data['sku_desc'],
+                "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
@@ -448,7 +456,7 @@ class netsuiteIntegration(object):
             print(traceback.format_exc())
             log.debug(traceback.format_exc())
             log_err.info('Fetching Data Failed For %s , reason :: %s' % (rec_type, str(e)))
-        
+
     def netsuite_create_invadj(self, ia_data):
         data_response = {}
         try:
@@ -459,7 +467,7 @@ class netsuiteIntegration(object):
             ia.externalId = ia_data['ia_number']
             ia.tranId = ia_data['ia_number']
             ia.memo = ia_data['remarks']
-            
+
             # if po_data['product_category'] == 'Services':
             #     product_list_id = 2
             # elif po_data['product_category'] == 'Assets':
@@ -480,10 +488,18 @@ class netsuiteIntegration(object):
             ]
             ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
             for data in ia_data['items']:
+                inv_adj_custom_field_list=[]
+                if(data.get("batch_no",None)):
+                    inv_adj_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batch_no"]))
+                if(data.get("mfg_date",None)):
+                    inv_adj_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
+                if(data.get("exp_date",None)):
+                    inv_adj_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
                  'adjustQtyBy':data['adjust_qty_by'],
-                 'location':ns.RecordRef(internalId=297)
+                 'location':ns.RecordRef(internalId=297),
+                 "customFieldList": ns.CustomFieldList(inv_adj_custom_field_list)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
@@ -507,7 +523,7 @@ class netsuiteIntegration(object):
             it.externalId = it_data['it_number']
             #it.tranId = it_data['it_number']
             it.memo = it_data['remarks']
-            
+
             # if po_data['product_category'] == 'Services':
             #     product_list_id = 2
             # elif po_data['product_category'] == 'Assets':
@@ -529,9 +545,17 @@ class netsuiteIntegration(object):
             # ]
             # ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
             for data in it_data['items']:
+                inv_transfer_custom_field_list=[]
+                if(data.get("batchno",None)):
+                    inv_transfer_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_vra_batchnumber', value=data["batchno"]))
+                if(data.get("mfg_date",None)):
+                    inv_transfer_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
+                if(data.get("exp_date",None)):
+                    inv_transfer_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
                  'adjustQtyBy':data['adjust_qty_by'],
+                 "customFieldList": ns.CustomFieldList(inv_transfer_custom_field_list)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])

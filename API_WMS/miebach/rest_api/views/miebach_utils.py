@@ -2959,6 +2959,10 @@ STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Staff Code', 
                                       ('Status', 'status')
                         ))
 
+PENDING_PR_MAPPING = OrderedDict(( ('Priority Type','priority_type'), ('Need By Date', 'delivery_date'), 
+                        ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
+                      ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

@@ -194,7 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
                 if (vm.permissions.dispatch_qc_check) {
                   vm.main_sr_number = aData['SR Number']
-                } 
+                }
                 else {
                   vm.main_sr_number = ''
                 }
@@ -863,7 +863,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             elem.push(elem_dict)
           }
         }
-        if(vm.send_for_approval_check){
+        if(vm.send_for_approval_check==true){
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
           elem.push({'name':'total_order_qty', 'value': vm.total_order_qty});
           elem.push({'name':'total_receivable_qty', 'value': vm.total_receivable_qty});
@@ -879,7 +879,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        if(vm.send_for_approval_check){
+        if(vm.send_for_approval_check==true){
 
           url = "send_for_approval_confirm_grn/"
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
@@ -912,7 +912,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else{
                      angular.element(".modal-body").html($(data.data));
                 }
-  
+
                 vm.print_enable = true;
                 vm.service.refresh(vm.dtInstance);
                 if(vm.permissions.use_imei) {

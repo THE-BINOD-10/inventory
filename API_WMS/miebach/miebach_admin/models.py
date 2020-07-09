@@ -3150,12 +3150,23 @@ class IntransitOrders(models.Model):
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
 
+class TableLists(models.Model):
+    name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'TABLE_LISTS'
+
+    def __unicode__(self):
+        return self.name
+
+
 class StaffMaster(models.Model):
     id = BigAutoField(primary_key=True)
     staff_name = models.CharField(max_length=64, default='')
     staff_code = models.CharField(max_length=64, default='')
     company = models.ForeignKey(CompanyMaster, blank=True, null=True)
     user = models.ForeignKey(User, blank=True, null=True)
+    plant = models.ManyToManyField(TableLists, default=None)
     warehouse_type = models.CharField(max_length=64, default='')
     department_type = models.CharField(max_length=64, default='')
     position = models.CharField(max_length=64, default='')

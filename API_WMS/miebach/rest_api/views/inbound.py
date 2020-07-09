@@ -157,7 +157,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name
-        warehouse_type = pr_user.userprofile.warehouse_type
+        warehouse_type = pr_user.userprofile.stockone_code
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                         pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
@@ -213,7 +213,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PR Created Date', pr_date),
                                                 ('PR Delivery Date', pr_delivery_date),
                                                 ('Store', store),
-                                                ('Department', warehouse),
+                                                # ('Department', warehouse),
                                                 ('Department Type', warehouse_type),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
@@ -318,7 +318,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
-    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__first_name'))    
+    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))    
     for result in results[start_index: stop_index]:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         wh_user = result['pending_po__wh_user']

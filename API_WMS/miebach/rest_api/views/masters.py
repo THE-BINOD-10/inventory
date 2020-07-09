@@ -4967,8 +4967,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-        if data.phone_number:
-            data.phone_number = int(float(data.phone_number))
+        # if data.phone_number:
+        #     data.phone_number = int(float(data.phone_number))
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))

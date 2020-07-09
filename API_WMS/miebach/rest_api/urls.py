@@ -696,6 +696,8 @@ urlpatterns += [
     url(r'^staff_master_upload/$', staff_master_upload),
     url(r'^uom_master_form/$', uom_master_form),
     url(r'^uom_master_upload/$', uom_master_upload),
+    url(r'^pending_pr_form/$', pending_pr_form),
+    url(r'^pending_pr_upload/$', pending_pr_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -8443,15 +8443,15 @@ def confirm_add_po(request, sales_data='', user=''):
                 return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         if industry_type == 'FMCG':
-            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
             if user.username in MILKBASKET_USERS:
                 table_headers.insert(4, 'Weight')
         else:
-            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-        if ean_flag:
-            table_headers.insert(1, 'EAN')
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
+        # if ean_flag:
+        #     table_headers.insert(1, 'EAN')
         if show_cess_tax:
             table_headers.insert(table_headers.index('UTGST (%)'), 'CESS (%)')
         if show_apmc_tax:
@@ -8539,8 +8539,8 @@ def confirm_add_po(request, sales_data='', user=''):
                 purchase_id = request.POST.get('purchase_id', '')
                 if purchase_id: purchase_id = int(purchase_id)
                 pendingPOQs = PendingPO.objects.filter(id=purchase_id)
-                if pendingPOQs.exists():
-                    pendingPOQs.update(open_po_id=data1.id)
+                # if pendingPOQs.exists():
+                #     pendingPOQs.update(open_po_id=data1.id)
 
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id
@@ -8579,13 +8579,16 @@ def confirm_add_po(request, sales_data='', user=''):
 
             if industry_type == 'FMCG':
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_sgst = purchase_order.sgst_tax * (amount/100)
+                total_cgst = purchase_order.cgst_tax * (amount/100)
+                total_igst = purchase_order.igst_tax * (amount/100)
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
-                po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
-                            purchase_order.igst_tax,
-                            purchase_order.utgst_tax,
+                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst, 
+                            purchase_order.igst_tax, total_igst,
+                            # purchase_order.utgst_tax,
                             total_sku_amt
                             ]
                 if user.username in MILKBASKET_USERS:
@@ -8597,17 +8600,20 @@ def confirm_add_po(request, sales_data='', user=''):
                     po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_sgst = purchase_order.sgst_tax * (amount/100)
+                total_cgst = purchase_order.cgst_tax * (amount/100)
+                total_igst = purchase_order.igst_tax * (amount/100)
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
-                po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
-                            purchase_order.igst_tax,
-                            purchase_order.utgst_tax,
+                            purchase_order.price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                            purchase_order.igst_tax, total_igst,
+                            # purchase_order.utgst_tax,
                             total_sku_amt
                             ]
-            if ean_flag:
-                po_temp_data.insert(1, ean_number)
+            # if ean_flag:
+            #     po_temp_data.insert(1, ean_number)
             if show_cess_tax:
                 po_temp_data.insert(table_headers.index('CESS (%)'), purchase_order.cess_tax)
             if show_apmc_tax:

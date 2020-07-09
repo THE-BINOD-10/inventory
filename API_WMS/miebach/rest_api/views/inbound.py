@@ -3727,19 +3727,30 @@ def netsuite_pr(user, PRQs, full_pr_number):
         # external_id = str(existingPRObj.prefix) + str(pr_number)
         prApprQs = existingPRObj.pending_prApprovals
         requested_by = existingPRObj.requested_user.first_name
-        approval1 = ''
+        approval1, approval2, approval3, approval4= '', '', '', ''
         allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
         if allApproavls:
-            if(allApproavls[0]):
-                approval1 = allApproavls[0]
+            approve_users={}
+            i=1
+            for approve_user in allApproavls:
+                approve_users["approval{0}".format(i)] = approve_user
+                i=i+1
+            if "approval1" in approve_users:
+                approval1= approve_users["approval1"]
+            if "approval2" in approve_users:
+                approval2= approve_users["approval2"]
+            if "approval3" in approve_users:
+                approval3= approve_users["approval3"]
+            if "approval4" in approve_users:
+                approval4= approve_users["approval4"]
+        else:
+            if(user.email):
+                approval1 = user.email
             else:
-                if(user.email):
-                    approval1 = user.email
-                else:
-                    approval1 = user.first_name
+                approval1 = user.first_name
         department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
         pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
+                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
             'sku__servicemaster__service_end_date',
@@ -8956,6 +8967,7 @@ def confirm_add_po(request, sales_data='', user=''):
         total_amt_in_words = number_in_words(round(total)) + ' ONLY'
         round_value = float(round(total) - float(total))
         company_details = {}
+        company_logo=""
         if profile.company.logo:
             company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
         if profile.company:
@@ -9029,7 +9041,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     pr_number = ''
     full_pr_number = ''
     requested_by= ""
-    approval1 = ''
+    approval1, approval2, approval3, approval4= '', '', '', ''
     payment_code=''
     address_id=''
     supplier_gstin=''
@@ -9053,10 +9065,22 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     full_pr_number = '%s%s_%s' % (pr_prefix, dateInPR, pr_number)
                 full_pr_number= pr_obj.full_pr_number
                 prApprQs = prQs[0].pending_poApprovals
-                validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
+                validated_users = list(prApprQs.filter().values_list('validated_by', flat=True).order_by('level'))
                 requested_by = prQs[0].requested_user.first_name
                 if validated_users:
-                    approval1 = validated_users[0]
+                    approve_users={}
+                    i=1
+                    for approve_user in validated_users:
+                        approve_users["approval{0}".format(i)] = approve_user
+                        i=i+1
+                    if "approval1" in approve_users:
+                        approval1= approve_users["approval1"]
+                    if "approval2" in approve_users:
+                        approval2= approve_users["approval2"]
+                    if "approval3" in approve_users:
+                        approval3= approve_users["approval3"]
+                    if "approval4" in approve_users:
+                        approval4= approve_users["approval4"]
             else:
                 requested_by = prQs[0].requested_user.first_name
                 if(user.email):
@@ -9085,7 +9109,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                    'approval1':approval1, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+                    'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number}
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)

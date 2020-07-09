@@ -3013,9 +3013,9 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         if poFor:
-            reqURLPath = 'notifications/email/pending_po_request'
+            reqURLPath = 'pending_po_request'
         else:
-            reqURLPath = 'notifications/email/pending_pr_request'
+            reqURLPath = 'pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name

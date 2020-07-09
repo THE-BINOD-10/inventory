@@ -237,6 +237,8 @@ urlpatterns = [
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
+    url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+
 
 
     # Production
@@ -769,6 +771,7 @@ urlpatterns += [
     url(r'^get_company_warehouses/$', get_company_warehouses),
     url(r'^get_company_roles_list/$', get_company_roles_list),
     url(r'^get_sku_category_list/$', get_sku_category_list),
+    url(r'^get_user_groups_list/$', get_user_groups_list),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

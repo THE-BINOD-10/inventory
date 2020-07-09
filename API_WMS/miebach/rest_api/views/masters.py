@@ -717,6 +717,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    company_id = get_company_id(user)
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id).values_list('group__name', flat=True))
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
@@ -731,15 +733,31 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        sub_user = User.objects.get(username=data.email_id)
         wh_user = data.user
         plant = ''
         department = ''
+        warehouse_names = ''
+        group_names = []
+        sub_user = User.objects.get(email=data.email_id)
+        if data.plant.filter():
+            plant_list = data.plant.filter().values_list('name', flat=True)
+            warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
+            plant = ','.join(plant_list)
         if wh_user:
+            sub_user_parent = get_sub_user_parent(sub_user)
+            roles_list1 = copy.deepcopy(roles_list)
+            roles_list1 = list(chain(roles_list1, [sub_user_parent]))
+            user_groups = sub_user.groups.filter().exclude(name__in=roles_list1)
+            if user_groups:
+                for i in user_groups:
+                    i_name = (i.name).replace(user.username + ' ', '')
+                    i_name = (i_name).replace(sub_user_parent.username + ' ', '')
+                    group_names.append(i_name)
             if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                plant = wh_user.username
+                #plant = wh_user.username
+                pass
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
-                plant = get_admin(wh_user).username
+                #plant = get_admin(wh_user).username
                 department = wh_user.username
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
@@ -749,6 +767,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
+                                 ('groups', group_names), ('warehouse_names', warehouse_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
                          ))
         temp_data['aaData'].append(data_dict)
@@ -3150,7 +3169,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
 
-            if request.POST['is_test'] == 'true':
+            if request.POST.get('is_test', '') == 'true':
                 data_dict['wms_code'] = data_dict['test_code']
                 data_dict['sku_desc'] = data_dict['test_name']
             data_dict['sku_code'] = data_dict['wms_code']
@@ -4661,7 +4680,11 @@ def insert_staff(request, user=''):
     position = request.POST.get('position', '')
     password = request.POST.get('password', '')
     re_password = request.POST.get('re_password', '')
-    warehouse = request.POST.get('warehouse', '')
+    #warehouse = request.POST.get('warehouse', '')
+    plant = request.POST.get('plant', '')
+    plants = []
+    if plant:
+        plants = plant.split(',')
     department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
     staff_code = request.POST.get('staff_code', '')
@@ -4691,8 +4714,8 @@ def insert_staff(request, user=''):
         if department:
             parent_username = department
             warehouse_type = 'DEPT'
-        elif warehouse:
-            parent_username = warehouse
+        elif plants and not len(plants) > 1:
+            parent_username = plants[0]
             warehouse_type = 'STORE'
         elif str(main_company_id) != str(company_id):
             warehouse_type = 'ST_HUB'
@@ -4705,7 +4728,7 @@ def insert_staff(request, user=''):
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:
             return HttpResponse(add_user_status)
-        StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
+        staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
                             position=position, department_type=department_type,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
@@ -4713,6 +4736,11 @@ def insert_staff(request, user=''):
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
+        update_staff_plants_list(staff_obj, plants)
+        request_data = dict(request.POST.iterlists())
+        if request_data.get('groups', []):
+            selected_list = request_data['groups']
+            update_user_groups(request, sub_user, selected_list)
     return HttpResponse(status_msg)
 
 
@@ -4737,14 +4765,17 @@ def update_staff_values(request, user=''):
     data.staff_name = staff_name
     data.department_type = department_type
     old_position = data.position
+    sub_user = User.objects.get(username=data.email_id)
     if old_position != position:
-        sub_user = User.objects.get(username=data.email_id)
         update_user_role(user, sub_user, position, old_position=old_position)
     data.position = position
     data.phone_number = phone
     data.status = status
     data.save()
-
+    request_data = dict(request.POST.iterlists())
+    if request_data.get('groups', []):
+        selected_list = request_data['groups']
+        update_user_groups(request, sub_user, selected_list)
     return HttpResponse("Updated Successfully")
 
 

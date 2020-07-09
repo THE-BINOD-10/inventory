@@ -349,6 +349,26 @@ var app = angular.module('urbanApp')
           .state('app.masters.AssetMaster.Mapping', {
             url: '/SKUMapping',
             templateUrl: 'views/masters/asset_master/asset_master_doa_update.html'
+            })
+
+          .state('app.masters.TestMaster', {
+          url: '/TestMaster',
+          permission: 'add_assetmaster',
+          templateUrl: 'views/masters/test_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/test_master.js'
+                ])
+             }]
+          },
+          data: {
+            title: 'Test Master',
+          }
+        })
+          .state('app.masters.TestMaster.update', {
+            url: '/Test',
+            templateUrl: 'views/masters/toggles/test_master_update.html'
+>>>>>>> 28e50a75de0b3ef348ab9da49ccede73335bce62
           })
         .state('app.masters.ServiceMaster', {
           url: '/ServiceMaster',
@@ -832,7 +852,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.masters.StaffMaster', {
-          url: '/SatffMaster',
+          url: '/StaffMaster',
           // permission: 'add_staffmaster',
           templateUrl: 'views/masters/SatffMaster.html',
           resolve: {
@@ -864,7 +884,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Purchase Approval',
+            title: 'Purchase Approval Matrix',
           }
         })
         .state('app.masters.PurchaseApproval.updateApproval', {
@@ -897,6 +917,28 @@ var app = angular.module('urbanApp')
             title: 'Cluster Sku Master',
           }
         })
+        .state('app.masters.MachineMaster', {
+          url: '/MachineMaster',
+          permission: 'add_machinemaster',
+          templateUrl: 'views/masters/machine_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load(['scripts/controllers/masters/machinemaster.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+             }]
+          },
+          data: {
+            title: 'Machine Master',
+          }
+        })
+        .state('app.masters.MachineMaster.machine', {
+            url: '/machine',
+            templateUrl: 'views/masters/toggles/machine_update.html'
+          })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',
@@ -911,7 +953,15 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
-                ])
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/pending_pr_enquiries.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/approved_purchase_requests.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -945,6 +995,10 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RaisePr.PRemptyPreview', {
           url: '/ConverPRtoPO',
           templateUrl: 'views/inbound/toggle/pr_consolidated_preview.html'
+          })
+          .state('app.inbound.RaisePr.submitResponseToEnquiry', {
+          url: '/submitEnquiryResponse',
+          templateUrl: 'views/inbound/toggle/enquiry_response.html'
           })
 
         .state('app.inbound.RaisePo', {
@@ -1031,6 +1085,10 @@ var app = angular.module('urbanApp')
               ]).then(function() {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/receive_po.js'
+                ])
+              }).then(function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/receive_po_doa.js'
                 ])
               }).then( function() {
                   return $ocLazyLoad.load([
@@ -2309,6 +2367,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Stock Transfer Goods Receipt Note',
+          }
+        })
+        .state('app.reports.MetroPOReport', {
+          url: '/MetropolisPOReport',
+          templateUrl: 'views/reports/metro_po_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/metro_po_report.js');
+              }]
+          },
+          data: {
+            title: 'Metropolis PO Report',
           }
         })
         .state('app.reports.ApprovalPOReport', {

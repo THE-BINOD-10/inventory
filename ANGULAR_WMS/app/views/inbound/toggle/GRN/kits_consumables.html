@@ -121,8 +121,9 @@
         </td>
         <td><input type="text" size="23" ng-model="data.total_amt" title="{{ data.total_amt }}" ng-class="service.get_decimal_perm()" class="form-control detectTab" value="{{data.total_amt}}" readonly></td>
         <td>
-          <button class="btn" ng-if="data.price_request" ng-disabled="data.price_request" style="background: #7bf72e;">Price Change Requested</button>
-          <button class="btn" ng-if="!data.price_request" ng-click="showCase.price_request(showCase.model_data.supplier_id, showCase.model_data['supplier_name'], data.wms_code, data.sku_desc, data.price, data.buy_price, data)" ng-disabled="showCase.price_request_button(data.price, data.buy_price)" style="background: #ffc65d;">Request Price Change</button>
+          <button class="btn" ng-if="!showCase.current_grn" disabled style="background: #ff0000e8; color: #fff;">Request Price Change</button>
+          <button class="btn" ng-if="showCase.current_grn && data.price_request" ng-disabled="data.price_request" style="background: #7bf72e;">Price Change Requested</button>
+          <button class="btn" ng-if="showCase.current_grn && !data.price_request" ng-click="showCase.price_request(showCase.model_data.supplier_id, showCase.model_data['supplier_name'], data.wms_code, data.sku_desc, data.price, data.buy_price, data, showCase.model_data['po_reference'])" ng-disabled="showCase.price_request_button(data.price, data.buy_price)" style="background: #ffc65d;">Request Price Change</button>
         </td>
         <td>
           <button class="btn" ng-if="!data.batch_based" style="background: #e4e4e4;">NB</button>

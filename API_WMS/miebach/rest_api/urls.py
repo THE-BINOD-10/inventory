@@ -33,9 +33,12 @@ urlpatterns = [
     url(r'^update_sku/$', update_sku),
     url(r'^get_supplier_master_data/$', get_supplier_master_data),
     url(r'^get_supplier_update/$', get_supplier_update),
+    url(r'^get_machine_update/$', get_machine_update),
     url(r'^get_bom_data/$', get_bom_data),
     url(r'^update_supplier_values/$', update_supplier_values),
+    url(r'^update_machine_values/$', update_machine_values),
     url(r'^insert_supplier/$', insert_supplier),
+    url(r'insert_machine/$', insert_machine),
     url(r'^update_sku_supplier_values/$', update_sku_supplier_values),
     url(r'^insert_supplier_attribute/$', insert_supplier_attribute),
     url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
@@ -239,6 +242,8 @@ urlpatterns = [
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
+    url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+
 
 
     # Production
@@ -534,6 +539,8 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^get_po_report/$', get_po_report),
+    url(r'^get_metro_po_report/$', get_metro_po_report),
+    url(r'^get_metro_po_detail_report/$', get_metro_po_detail_report),
     url(r'^get_open_order_report/$', get_open_order_report),
     url(r'^print_shipment_report/$', print_shipment_report),
     url(r'^print_po_report/$', print_po_report),
@@ -610,6 +617,10 @@ urlpatterns += [
     url(r'^sku_upload/$', sku_upload),
     url(r'^asset_form/$', asset_form),
     url(r'^asset_upload/$', asset_upload),
+    url(r'^test_form/$', test_form),
+    url(r'^test_upload/$', test_upload),
+    url(r'^machine_form/$', machine_form),
+    url(r'^machine_upload/$', machine_upload),
     url(r'^service_form/$', service_form),
     url(r'^service_upload/$', service_upload),
     url(r'^otheritems_form/$', otheritems_form),
@@ -692,6 +703,8 @@ urlpatterns += [
     url(r'^staff_master_upload/$', staff_master_upload),
     url(r'^uom_master_form/$', uom_master_form),
     url(r'^uom_master_upload/$', uom_master_upload),
+    url(r'^pending_pr_form/$', pending_pr_form),
+    url(r'^pending_pr_upload/$', pending_pr_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -763,6 +776,7 @@ urlpatterns += [
     url(r'^get_company_warehouses/$', get_company_warehouses),
     url(r'^get_company_roles_list/$', get_company_roles_list),
     url(r'^get_sku_category_list/$', get_sku_category_list),
+    url(r'^get_user_groups_list/$', get_user_groups_list),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

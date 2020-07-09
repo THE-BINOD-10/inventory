@@ -2327,8 +2327,54 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
+        netsuite_picklist_confirmation(final_data_list, user)
         return HttpResponse('Picklist Confirmed')
 
+def netsuite_picklist_confirmation(final_data_list, user):
+    from datetime import datetime
+    from pytz import timezone
+    it_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
+    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    items=[]
+    reason = ""
+    for picklist_dict in final_data_list:
+        value = picklist_dict['value']
+        key = picklist_dict['key']
+        for item in value:
+            #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
+           # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
+           # price= open_st.price
+           # order_quantity= open_st.order_quantity
+           # cgst_tax= open_st.cgst_tax
+           # sgst_tax= open_st.sgst_tax
+           # igst_tax= open_st.igst_tax
+           # cess_tax= open_st.cess_tax
+           # mrp= open_st.mrp
+            items.append({ "adjust_qty_by": item.get("picked_quantity",0),
+                            "sku_code": item.get("wms_code"),
+                            "batchno": item.get("batchno",""),
+                            "mrp" : item.get("mrp",0),
+                            "expiry_date": item.get("expiry_date",""),
+                            "manufactured_date": item.get("manufactured_date",""),
+                            #"price": price,
+                            #"order_quantity":order_quantity,
+                            #"cgst_tax":cgst_tax,
+                            #"sgst_tax":sgst_tax,
+                            #"igst_tax":igst_tax,
+                            #"cess_tax": cess_tax,
+                            #"mrp":mrp
+                        })
+    stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
+        'department': department,
+        "subsidiary": subsidary,
+        "plant": plant,
+        'items': items,
+        "it_date": it_date,
+        "remarks": reason
+    }
+    from stockone_integrations.views import Integrations
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateInventoryTransfer(stock_transfer, "it_number", is_multiple=False)
 
 def serial_order_mapping(picklist, user):
     try:
@@ -16584,7 +16630,7 @@ def insert_allocation_data(request, user=''):
                 except:
                     if key in error_dict.keys():
                         return HttpResponse("Invalid %s" % error_dict[key])
-                    else:   
+                    else:
                         val = 0
             data_dict[key] = val
         sku_master = SKUMaster.objects.filter(sku_code=data_dict['sku_id'], user=user.id)
@@ -16651,7 +16697,7 @@ def insert_allocation_data(request, user=''):
             sku_combos, all_sku_stocks, switch_vals = picklist_generation_data(user, picklist_exclude_zones, locations=[final_data['location']])
             stock_status, picklist_number = picklist_generation(created_orders, '',
                                                                 picklist_number, user,
-                                                                sku_combos, all_sku_stocks, switch_vals, 
+                                                                sku_combos, all_sku_stocks, switch_vals,
                                                                 status='open', remarks='Allocation Picklist')
             picklist_objs = Picklist.objects.filter(order__user=user.id, picklist_number=picklist_number+1,
                                                     status='open')

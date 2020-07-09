@@ -1,7 +1,7 @@
 'use strict';
 
 var app = angular.module('urbanApp', ['datatables'])
-app.controller('OtherItemsMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
+app.controller('TestMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope, $modal) {
 
@@ -10,9 +10,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
-    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
 
-    vm.filters = {'datatable': 'OtherItemsMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
+    vm.filters = {'datatable': 'TestMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url:  Session.url+'results_data/',
@@ -38,14 +37,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('SKU Code').withTitle('Item Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Item Description'),
-        DTColumnBuilder.newColumn('SKU Type').withTitle('Item Type'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('Item Category'),
-        DTColumnBuilder.newColumn('SKU Class').withTitle('Item Class'),
+        DTColumnBuilder.newColumn('SKU Code').withTitle('Test Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Test Name'),
+        DTColumnBuilder.newColumn('SKU Type').withTitle('Test Type'),
+//        DTColumnBuilder.newColumn('Department Type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
         DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
-        
+
     ];
 
     var sku_attr_list = [];
@@ -89,7 +87,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
                                      "Voonik","Mr Voonik","Vilara", "Limeroad"],
                       "sizes_list":[],
-                      "uom_type_list": ["Base", "Purchase", "Storage", "Consumption"],
                       sku_rel_imgs_show:[],
                       sku_files:[],
                     }
@@ -108,7 +105,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market_list = [];
     vm.market;
     vm.market_data = [];
-    vm.uom_data = [];
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
     vm.sku_measurement_types = vm.service.units;
@@ -165,7 +161,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.isEmptyMarket = false
-    vm.isEmptyUOM = false
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -173,7 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 console.log(aData);
                 vm.model_data = {};
                 angular.copy(empty_data, vm.model_data);
-                vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"], 'is_otheritem':true}).then(function(data) {
+                vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"], 'is_test':true}).then(function(data) {
                  if (data.message) {
                   data = data.data;
                   vm.update=true;
@@ -181,7 +176,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
-                  vm.model_data.uom_data = data.uom_data;
                   vm.model_data.zones = data.zones;
                   vm.model_data.groups = data.groups;
                   vm.model_data.sizes_list =  data.sizes_list;
@@ -215,7 +209,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
 
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
-                  vm.isEmptyUOM = (data.uom_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
                   vm.change_size_type(vm.model_data.sku_data.size_type);
@@ -229,10 +222,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.model_data.sku_data.enable_serial_based = false
                   }
                   $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
-                  $state.go('app.masters.OtherItemsMaster.update');
+                  $state.go('app.masters.TestMaster.update');
                  }
                 });
-                vm.title ="Update Item";
+                vm.title ="Update Test";
             });
         });
         return nRow;
@@ -252,7 +245,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(empty_data, vm.model_data);
       vm.service.searched_wms_code = "";
       vm.service.searched_sup_code = '';
-      $state.go('app.masters.OtherItemsMaster');
+      $state.go('app.masters.TestMaster');
     }
 
     vm.b_close = vm.close;
@@ -268,9 +261,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
-    elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
+//    elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
     // elem.push({name:'substitutes', value:$('.substitutes').val()});
-    elem.push({name:'is_otheritem', value:true});
+    elem.push({name:'is_test', value:true});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
@@ -288,19 +281,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
     var formData = new FormData()
-    // var files = $("#update_sku").find('[name="files"]')[0].files;
-    // $.each(files, function(i, file) {
-    //     formData.append('files-' + i, file);
-    // });
+    var files = $("#update_sku").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
+    });
     // SKU Related Files
     $.each(vm.model_data.sku_files, function(i, file) {
         formData.append('sku-related-files-' + i, file);
     });
 
-    // vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
-    // $.each(files, function(i, file) {
-    //     formData.append('files-' + i, file);
-    // });
+    vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
+    });
 
     $.each(elem, function(i, val) {
         formData.append(val.name, val.value);
@@ -362,12 +355,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.submit = function(data) {
     if ( data.$valid ){
-      if ("Add Item" == vm.title) {
-          if (vm.user_profile.warehouse_type == 'ADMIN'){
-            vm.url = "insert_sku/";
-          }else{
-            vm.url = "insert_sku_doa/";
-          }} else {
+      if ("Add Test" == vm.title) {
+        vm.url = "insert_sku/";
+      } else {
         vm.url = "update_sku/";
       }
       vm.update_sku();
@@ -384,16 +374,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         };
   }
 
-  vm.remove_uom = function(index, id) {
-
-        vm.model_data.uom_data.splice(index,1);
-        if (id) {
-          vm.service.apiCall('delete_uom_master/', "GET", {data_id: id}).then(function(data){
-            console.log("success");
-          })
-        };
-  }
-
   vm.add_market = function() {
 
     vm.model_data.market_data.push({description: "",market_id: "",market_sku_type: "",marketplace_code: "", disable: false});
@@ -402,7 +382,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.base = function() {
 
-    vm.title = "Add Item";
+    vm.title = "Add Test";
     vm.update = false;
     vm.combo = false;
     angular.copy(empty_data, vm.model_data);
@@ -426,10 +406,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sub_categories = data.sub_categories;
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";
-        vm.model_data.uom_type_list = ["Base", "Purchase", "Storage", "Consumption"],
         vm.change_size_type();
-        vm.isEmptyUOM = true;
-        vm.model_data.uom_data = [];
         vm.model_data.attributes = data.attributes;
         angular.forEach(vm.model_data.attributes, function(record) {
           record.attribute_value = '';
@@ -438,7 +415,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
     vm.model_data.sku_data.status = vm.status_data[1];
     vm.model_data.sku_data.qc_check = vm.qc_data[0];
-    $state.go('app.masters.OtherItemsMaster.update');
+    $state.go('app.masters.TestMaster.update');
   }
 
   vm.base();
@@ -545,16 +522,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               });
           }
       }
-  }
-
-  vm.add_uom = function() {
-
-    vm.model_data.uom_data.push({uom_type: "",uom_name: "",conversion: "", uom_id: "", name: "", disable: false});
-    vm.isEmptyUOM = false;
-  }
-
-  vm.update_uom_name = function(data) {
-    data.name = data.uom_name.toLowerCase() + '-' + data.conversion;
   }
 
   vm.addAttributes = function() {

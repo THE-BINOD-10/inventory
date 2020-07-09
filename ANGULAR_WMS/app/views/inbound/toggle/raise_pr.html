@@ -157,14 +157,26 @@
             <div class="form-group">
               <label class="control-label">Category</label>
               <select class="form-control" name="sku_category" 
-                      ng-model="showCase.model_data.sku_category">
-                <option value="">all</option>
-                <option ng-repeat="sku_catg in showCase.model_data.sku_categories" 
+                      ng-model="showCase.model_data.sku_category"
+                      ng-change="showCase.reset_model_data(showCase.model_data.product_category)">
+                <option ng-if="showCase.model_data.product_category=='Kits&Consumables'"
+                ng-init="showCase.model_data.sku_category=''" value="">All</option>
+                <option ng-if="showCase.model_data.product_category!='Kits&Consumables'"
+                ng-init="showCase.model_data.sku_category=showCase.model_data.sku_categories[0]"
+                >{{showCase.model_data.sku_categories[0]}}</option>
+                <option  
+                  ng-repeat="sku_catg in showCase.model_data.sku_categories" 
                         value="{{sku_catg}}">{{sku_catg}}
                 </option>
               </select>
             </div>
           </div>
+          <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Need by Date</label>
+                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control stk-readonly" type="text" id="pr_delivery_date" data-date-format="dd-mm-yyyy" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
           <div class="col-md-6 col-sm-8">
             <div class="form-group">
                <div class="col-md-3 mt30" align="right">

@@ -612,8 +612,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.add_uom = function() {
 
-    vm.model_data.uom_data.push({uom_type: "",uom_name: "",conversion: "", uom_id: "", disable: false});
+    vm.model_data.uom_data.push({uom_type: "",uom_name: "",conversion: "", uom_id: "", name: "", disable: false});
     vm.isEmptyUOM = false;
+  }
+
+  vm.update_uom_name = function(data) {
+    data.name = data.uom_name.toLowerCase() + '-' + data.conversion;
   }
 
   vm.addAttributes = function() {

@@ -223,6 +223,269 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     path_to_file = '../' + path
     return path_to_file
 
+
+@fn_timer
+def asset_excel_download(search_params, temp_data, headers, user, request):
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=AssetMaster)
+    user_profile = UserProfile.objects.get(user=user.id)
+    headers = copy.deepcopy(ASSET_HEADERS)
+    excel_mapping = copy.deepcopy(ASSET_DEF_EXCEL)
+    status_dict = {'1': 'Active', '0': 'Inactive'}
+    search_terms = {}
+    if search_params.get('search_0', ''):
+        search_terms["wms_code__icontains"] = search_params.get('search_0', '')
+    if search_params.get('search_1', ''):
+        search_terms["sku_desc__icontains"] = search_params.get('search_1', '')
+    if search_params.get('search_2', ''):
+        search_terms["asset_type__icontains"] = search_params.get('search_2', '')
+    if search_params.get('search_3', ''):
+        search_terms["sku_category__icontains"] = search_params.get('search_3', '')
+    if search_params.get('search_4', ''):
+        search_terms["sku_class__icontains"] = search_params.get('search_4', '')
+    search_terms["user"] = user.id
+    sku_ids = sku_master.filter(**search_terms).values_list('id', flat=True)
+    excel_headers = headers
+
+    data_count = 0
+    file_type = 'xls'
+    wb, ws = get_work_sheet('skus', excel_headers)
+    file_name = "%s.%s" % (user.username, 'AssetMaster')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if sku_master.count() > 65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+        ws = ''
+    path = folder_path + file_name + '.' + file_type
+
+    for data in sku_master:
+        data_count += 1
+        zone = ''
+        if data.zone:
+            zone = data.zone.zone
+        ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['asset_type'], data.sku_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
+        if excel_mapping.has_key('primary_category'):
+            ws = write_excel(ws, data_count, excel_mapping['primary_category'], data.primary_category, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_class'], data.sku_class, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_brand'], data.sku_brand, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price'], data.price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['mrp'], data.mrp, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['image_url'], data.image_url, file_type)
+        if excel_mapping.has_key('sub_category'):
+            ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
+        if excel_mapping.has_key('cost_price'):
+            ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
+        ws = write_excel(ws, data_count, excel_mapping['parent_asset_code'], data.parent_asset_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['asset_number'], data.asset_number, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['vendor'], data.vendor, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['store_id'], data.store_id, file_type)
+        ean_list = []
+        ean_objs = data.eannumbers_set.filter()
+        if data.ean_number:
+            ean_list.append(str(data.ean_number))
+        if ean_objs.exists():
+            ean_list = ean_list + list(ean_objs.annotate(str_eans=Cast('ean_number', CharField())).
+                          values_list('str_eans', flat=True))
+        ean_number = ','.join(ean_list)
+        ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
+
+        if file_type == 'csv':
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
+
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
+    path_to_file = '../' + path
+    return path_to_file
+
+
+@fn_timer
+def service_excel_download(search_params, temp_data, headers, user, request):
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=ServiceMaster)
+    user_profile = UserProfile.objects.get(user=user.id)
+    headers = copy.deepcopy(SERVICE_HEADERS)
+    excel_mapping = copy.deepcopy(SERVICE_DEF_EXCEL)
+    status_dict = {'1': 'Active', '0': 'Inactive'}
+    search_terms = {}
+    if search_params.get('search_0', ''):
+        search_terms["wms_code__icontains"] = search_params.get('search_0', '')
+    if search_params.get('search_1', ''):
+        search_terms["sku_desc__icontains"] = search_params.get('search_1', '')
+    if search_params.get('search_2', ''):
+        search_terms["asset_type__icontains"] = search_params.get('search_2', '')
+    if search_params.get('search_3', ''):
+        search_terms["sku_category__icontains"] = search_params.get('search_3', '')
+    if search_params.get('search_4', ''):
+        search_terms["sku_class__icontains"] = search_params.get('search_4', '')
+    search_terms["user"] = user.id
+    sku_ids = sku_master.values_list('id', flat=True)
+    excel_headers = headers
+
+    data_count = 0
+    file_type = 'xls'
+    wb, ws = get_work_sheet('skus', excel_headers)
+    file_name = "%s.%s" % (user.username, 'ServiceMaster')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if sku_master.count() > 65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+        ws = ''
+    path = folder_path + file_name + '.' + file_type
+
+    for data in sku_master:
+        data_count += 1
+        zone = ''
+        if data.zone:
+            zone = data.zone.zone
+        ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['service_type'], data.sku_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
+        if excel_mapping.has_key('primary_category'):
+            ws = write_excel(ws, data_count, excel_mapping['primary_category'], data.primary_category, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_class'], data.sku_class, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_brand'], data.sku_brand, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price'], data.price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['mrp'], data.mrp, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['image_url'], data.image_url, file_type)
+        if excel_mapping.has_key('sub_category'):
+            ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
+        if excel_mapping.has_key('cost_price'):
+            ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
+        ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['service_start_date'], data.service_start_date.strftime('%d-%m-%Y'), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['service_end_date'], data.service_end_date.strftime('%d-%m-%Y'), file_type)
+        ean_list = []
+        ean_objs = data.eannumbers_set.filter()
+        if data.ean_number:
+            ean_list.append(str(data.ean_number))
+        if ean_objs.exists():
+            ean_list = ean_list + list(ean_objs.annotate(str_eans=Cast('ean_number', CharField())).
+                          values_list('str_eans', flat=True))
+        ean_number = ','.join(ean_list)
+        ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
+        if file_type == 'csv':
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
+
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
+    path_to_file = '../' + path
+    return path_to_file
+
+@fn_timer
+def otheritems_excel_download(search_params, temp_data, headers, user, request):
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=OtherItemsMaster)
+    user_profile = UserProfile.objects.get(user=user.id)
+    headers = copy.deepcopy(OTHER_ITEM_HEADERS)
+    excel_mapping = copy.deepcopy(OTHER_ITEM_DEF_EXCEL)
+    status_dict = {'1': 'Active', '0': 'Inactive'}
+    search_terms = {}
+    if search_params.get('search_0', ''):
+        search_terms["wms_code__icontains"] = search_params.get('search_0', '')
+    if search_params.get('search_1', ''):
+        search_terms["sku_desc__icontains"] = search_params.get('search_1', '')
+    if search_params.get('search_2', ''):
+        search_terms["asset_type__icontains"] = search_params.get('search_2', '')
+    if search_params.get('search_3', ''):
+        search_terms["sku_category__icontains"] = search_params.get('search_3', '')
+    if search_params.get('search_4', ''):
+        search_terms["sku_class__icontains"] = search_params.get('search_4', '')
+    search_terms["user"] = user.id
+    sku_ids = sku_master.values_list('id', flat=True)
+    excel_headers = headers
+
+    data_count = 0
+    file_type = 'xls'
+    wb, ws = get_work_sheet('skus', excel_headers)
+    file_name = "%s.%s" % (user.username, 'OtherItemsMaster')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if sku_master.count() > 65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+        ws = ''
+    path = folder_path + file_name + '.' + file_type
+
+    for data in sku_master:
+        data_count += 1
+        zone = ''
+        if data.zone:
+            zone = data.zone.zone
+        ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['asset_type'], data.sku_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
+        if excel_mapping.has_key('primary_category'):
+            ws = write_excel(ws, data_count, excel_mapping['primary_category'], data.primary_category, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_class'], data.sku_class, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_brand'], data.sku_brand, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price'], data.price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['mrp'], data.mrp, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['image_url'], data.image_url, file_type)
+        if excel_mapping.has_key('sub_category'):
+            ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
+        if excel_mapping.has_key('cost_price'):
+            ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
+        ean_list = []
+        ean_objs = data.eannumbers_set.filter()
+        if data.ean_number:
+            ean_list.append(str(data.ean_number))
+        if ean_objs.exists():
+            ean_list = ean_list + list(ean_objs.annotate(str_eans=Cast('ean_number', CharField())).
+                          values_list('str_eans', flat=True))
+        ean_number = ','.join(ean_list)
+        ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
+
+        if file_type == 'csv':
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
+
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
+    path_to_file = '../' + path
+    return path_to_file
+
 @fn_timer
 def attribute_pricing_excel_download(search_params, temp_data, headers, user, request):
     headers = copy.deepcopy(PRICING_MASTER_ATTRIBUTE_HEADERS)
@@ -465,6 +728,15 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'SKUMaster':
             excel_data = sku_excel_download(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'AssetMaster':
+            excel_data = asset_excel_download(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'ServiceMaster':
+            excel_data = service_excel_download(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'OtherItemsMaster':
+            excel_data = otheritems_excel_download(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))                    
         if request.POST.get('datatable', '') == 'StockSummaryAlt':
             excel_data = get_stock_summary_size_excel(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))

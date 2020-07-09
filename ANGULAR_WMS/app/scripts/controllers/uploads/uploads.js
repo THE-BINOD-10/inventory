@@ -46,6 +46,26 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_servicemaster"
                  }, {
+                   title: "Machine Master Download/ Upload",
+                   download: "Download Machine Form",
+                   upload: "Upload Machine Form",
+                   durl: "machine_form/",
+                   uurl: "machine_upload/",
+                   dparam: "download-machine-file",
+                   value: "",
+                   show: true,
+                   perm: "add_machinemaster"
+                 }, {
+                   title: "Test Master Download/ Upload",
+                   download: "Download Test Form",
+                   upload: "Upload Test Form",
+                   durl: "test_form/",
+                   uurl: "test_upload/",
+                   dparam: "download-sku-file",
+                   value: "",
+                   show: true,
+                   perm: "add_testmaster"
+                 }, {
                    title: "OtherItems Master Download/ Upload",
                    download: "Download OtherItems Form",
                    upload: "Upload OtherItems Form",
@@ -450,6 +470,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_uommaster",
+                 },
+                 {
+                   title: "Purchase Request Download/ Upload",
+                   download: "Download Purchase Request Form",
+                   upload: "Upload Purchase Request Form",
+                   durl: "pending_pr_form/",
+                   uurl: "pending_pr_upload/",
+                   dparam: "download-purchase-request-file",
+                   value: "",
+                   show: true,
+                   perm: "add_pendingpr"
                  },
                 ]
 

@@ -85,6 +85,7 @@ urlpatterns =  [
     url(r'^get_received_orders/$', get_received_orders),
     url(r'^update_putaway/$', update_putaway),
     url(r'^get_supplier_update/$', get_supplier_update),
+    url(r'^get_machine_update/$', get_machine_update),
     url(r'^get_sku_supplier_update/$', get_sku_supplier_update),
     url(r'^update_supplier_values/$', update_supplier_values),
     url(r'^update_sku_supplier_values/$', update_sku_supplier_values),

@@ -1,7 +1,7 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
   <div class="modal-dialog model-custom modal-lg">
     <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
-    <div class="modal-content">
+    <div class="modal-content" style="width:1000px;overflow:hidden;">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">{{showCase.title}}</h4>
@@ -179,6 +179,36 @@
             </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row over-x" ng-hide="showCase.isEmptyUOM">
+            <table class="table mw40">
+              <thead>
+                <tr>
+                  <th><b> UOM Type </b></th>
+                  <th><b> UOM </b></th>
+                  <th><b> Conversion </b></th>
+                  <th><b> Name </b></th>
+                  <th class="plus"></td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat= "uom in showCase.model_data.uom_data">
+                  <td>
+                    <input type="hidden" name="uom_id" value="{{uom.uom_id}}">
+                    <select class="form-control" ng-model="uom.uom_type" name="uom_type" ng-style="{ 'pointer-events' : (showCase.user_profile.warehouse_type!='ADMIN') ? 'none' : 'auto' }">
+                      <option ng-repeat="uom_type in showCase.model_data.uom_type_list" value="{{uom_type}}" ng-selected="uom_type.toLowerCase()==uom.uom_type.toLowerCase()">{{uom_type}}</option>
+                    </select>
+                  </td>
+                  <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-change="showCase.update_uom_name(uom)"></td>
+                  <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-change="showCase.update_uom_name(uom)"></td>
+                  <td><input type="text" name="name" class="form-control" ng-model="uom.name" readonly></td>
+                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_uom($index, uom.uom_id)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row col-md-6">
+              <button type="button" class="btn btn-default add-uom" ng-click="showCase.add_uom()">Add New UOM</button>
           </div>
           <div class="row">
             <div class="col-md-9 col-sm-9 col-xs-8">

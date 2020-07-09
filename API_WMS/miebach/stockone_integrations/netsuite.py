@@ -39,12 +39,12 @@ class netsuiteIntegration(object):
           token_key=auth_dict.get('token_id'),
           token_secret=auth_dict.get('token_secret'))
 
-    def complete_transaction(self, records, is_list):
+    def complete_transaction(self, records, is_list, action='upsert'):
         ns = self.nc.raw_client
         if is_list:
-            data_response =  ns.upsertList(records)
+            data_response =  ns.upsertList(records, action)
         else:
-            data_response =  ns.upsert(records)
+            data_response =  ns.upsert(records, action)
         return data_response
 
     def initiate_item(self, data, item_type):
@@ -177,6 +177,7 @@ class netsuiteIntegration(object):
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
+                'rate': data['price'],
                 'quantity': data['order_qty'],
                 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
@@ -204,7 +205,8 @@ class netsuiteIntegration(object):
             ns = self.nc.raw_client
             item = []
             grnrec = ns.ItemReceipt()
-            grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
+            if grn_data.get('po_number',None):
+                grnrec.createdFrom = ns.RecordRef(externalId=grn_data['po_number'])
             custom_field_list=[]
             # custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=122, internalId=65))
             if(grn_data.get("dc_number",None)):
@@ -274,7 +276,7 @@ class netsuiteIntegration(object):
             purorder.externalId = po_data['po_number']
             purorder.tranId = po_data['po_number']
             purorder.memo = po_data['remarks']
-            # purorder.nexus = ns.RecordRef(internalId= , type="")
+            # purorder.nexus = ns.RecordRef(internalId=1)
             # purorder.subsidiaryTaxRegNum = ns.RecordRef(internalId= "", type="")
             # purorder.taxRegOverride = True
             # purorder.taxDetailsOverride = True
@@ -429,3 +431,116 @@ class netsuiteIntegration(object):
             log.debug(traceback.format_exc())
             log.info('Create PurchaseRequisition data failed and error was %s' % (str(e)))
         return False
+
+
+    def get_data(self, rec_type, internalId=None, externalId=None):
+        try:
+            ns = self.nc.raw_client
+            if internalId:
+                response = ns.get(rec_type, internalId=internalId)
+            elif externalId:
+                response = ns.get(rec_type, externalId=externalId)
+            else:
+                return None
+            return response
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            log.debug(traceback.format_exc())
+            log_err.info('Fetching Data Failed For %s , reason :: %s' % (rec_type, str(e)))
+        
+    def netsuite_create_invadj(self, ia_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            item = []
+            ia = ns.InventoryAdjustment()
+            ia.tranDate = ia_data['ia_date']
+            ia.externalId = ia_data['ia_number']
+            ia.tranId = ia_data['ia_number']
+            ia.memo = ia_data['remarks']
+            
+            # if po_data['product_category'] == 'Services':
+            #     product_list_id = 2
+            # elif po_data['product_category'] == 'Assets':
+            #     product_list_id = 1
+            # else:
+            #     product_list_id = 3
+
+            if (ia_data.get('subsidiary',None)):
+                ia.subsidiary = ns.ListOrRecordRef(internalId=ia_data['subsidiary'])
+            if (ia_data.get('department',None)):
+                ia.department = ns.RecordRef(internalId=ia_data['department'])
+            ia.account = ns.RecordRef(internalId=124)
+            if (ia_data.get('account',None)):
+                ia.account = ns.RecordRef(internalId=ia_data['account'])
+
+            ia_custom_field_list =  [
+                ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_reason', value=ns.ListOrRecordRef(internalId=1))
+            ]
+            ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
+            for data in ia_data['items']:
+                line_item = {
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'adjustQtyBy':data['adjust_qty_by'],
+                 'location':ns.RecordRef(internalId=297)
+                }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                item.append(line_item)
+            ia.inventoryList = { 'inventory': item }
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Create Inventory Adjustment data failed and error was %s' % (str(e)))
+        return ia
+
+    def netsuite_create_invtrf(self, it_data):
+        data_response = {}
+        try:
+            ns = self.nc.raw_client
+            item = []
+            it = ns.InventoryTransfer()
+            it.tranDate = it_data['it_date']
+            it.externalId = it_data['it_number']
+            #it.tranId = it_data['it_number']
+            it.memo = it_data['remarks']
+            
+            # if po_data['product_category'] == 'Services':
+            #     product_list_id = 2
+            # elif po_data['product_category'] == 'Assets':
+            #     product_list_id = 1
+            # else:
+            #     product_list_id = 3
+
+            if (it_data.get('subsidiary',None)):
+                it.subsidiary = ns.ListOrRecordRef(internalId=it_data['subsidiary'])
+            if (it_data.get('department',None)):
+                it.department = ns.RecordRef(internalId=it_data['department'])
+            if (it_data.get('account',None)):
+                it.account = ns.RecordRef(internalId=it_data['account'])
+
+            it.location = ns.RecordRef(internalId=297)
+            it.transferLocation = ns.RecordRef(internalId=269)
+            # ia_custom_field_list =  [
+            #     ns.StringCustomFieldRef(scriptId='custbody_mhl_adjustinventory_reason', value=ns.ListOrRecordRef(internalId=1))
+            # ]
+            # ia.customFieldList = ns.CustomFieldList(ia_custom_field_list)
+            for data in it_data['items']:
+                line_item = {
+                 'item': ns.RecordRef(externalId=data['sku_code']),
+                 'adjustQtyBy':data['adjust_qty_by'],
+                }
+                if data.get('uom_name', None) and data.get('unitypeexid', None):
+                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                    if internId:
+                        line_item.update({'units': ns.RecordRef(internalId=internId)})
+                item.append(line_item)
+            it.inventoryList = { 'inventory': item }
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Create Inventory Adjustment data failed and error was %s' % (str(e)))
+        return it

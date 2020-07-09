@@ -471,6 +471,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_uommaster",
                  },
+                 {
+                   title: "Purchase Request Download/ Upload",
+                   download: "Download Purchase Request Form",
+                   upload: "Upload Purchase Request Form",
+                   durl: "pending_pr_form/",
+                   uurl: "pending_pr_upload/",
+                   dparam: "download-purchase-request-file",
+                   value: "",
+                   show: true,
+                   perm: "add_pendingpr"
+                 },
                 ]
 
   $scope.download = function(data) {

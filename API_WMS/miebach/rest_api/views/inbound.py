@@ -153,11 +153,14 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
         sku_category = result['pending_pr__sku_category']
+        sku_category_val = sku_category
+        if sku_category == 'All':
+            sku_category_val = ''
         pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name
-        warehouse_type = pr_user.userprofile.warehouse_type
+        warehouse_type = pr_user.userprofile.stockone_code
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                         pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
@@ -166,7 +169,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             approval_type = prApprQs[0].approval_type
         reqConfigName, lastLevel = findLastLevelToApprove(pr_user, result['pending_pr__pr_number'],
                                     result['total_amt'], purchase_type='PR', product_category=product_category,
-                                                          approval_type=approval_type)
+                                                          approval_type=approval_type, sku_category=sku_category_val)
 
         last_updated_by = ''
         last_updated_time = ''
@@ -213,7 +216,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PR Created Date', pr_date),
                                                 ('PR Delivery Date', pr_delivery_date),
                                                 ('Store', store),
-                                                ('Department', warehouse),
+                                                # ('Department', warehouse),
                                                 ('Department Type', warehouse_type),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
@@ -318,7 +321,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
-    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__first_name'))
+    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
     for result in results[start_index: stop_index]:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         wh_user = result['pending_po__wh_user']
@@ -3010,9 +3013,9 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         if poFor:
-            reqURLPath = 'notifications/email/pending_po_request'
+            reqURLPath = 'pending_po_request'
         else:
-            reqURLPath = 'notifications/email/pending_pr_request'
+            reqURLPath = 'pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
@@ -3157,7 +3160,10 @@ def approve_pr(request, user=''):
             status = "This PO has been already %s. Further action cannot be made." %validation_status
             return HttpResponse(status)
     product_category = pendingPRObj.product_category
-    # is_purchase_approver = find_purchase_approver_permission(request.user)
+    sku_category = pendingPRObj.sku_category
+    if sku_category.lower() == 'all':
+        sku_category = ''
+    #is_purchase_approver = find_purchase_approver_permission(request.user)
     approval_type, prev_approval_type = '', ''
     if is_actual_pr == 'true':
         approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
@@ -3173,7 +3179,7 @@ def approve_pr(request, user=''):
                 continue
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
-                                approval_type=approval_type)
+                                approval_type=approval_type, sku_category=sku_category)
     if currentUserEmailId not in validated_by and not is_purchase_approver:
         company_id = get_company_id(user)
         confObj = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, name=reqConfigName,
@@ -4131,6 +4137,11 @@ def add_pr(request, user=''):
         product_category = 'Kits&Consumables'
         if myDict.get('product_category'):
             product_category = myDict.get('product_category')[0]
+        sku_category = ''
+        if myDict.get('sku_category'):
+            sku_category = myDict.get('sku_category')[0]
+            if sku_category.lower() == 'all':
+                sku_category = ''
         is_resubmitted = False
         if myDict.get('is_resubmitted'):
             is_resubmitted = myDict.get('is_resubmitted')[0]
@@ -4189,7 +4200,8 @@ def add_pr(request, user=''):
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
                                                                  prefix, full_pr_number)
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
-                                                product_category=product_category, approval_type='default')
+                                                product_category=product_category, approval_type='default',
+                                              sku_category=sku_category)
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4220,7 +4232,7 @@ def add_pr(request, user=''):
                     admin_user = admin_userQs[0].user
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
-                                                product_category=product_category)
+                                                product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
@@ -4230,7 +4242,7 @@ def add_pr(request, user=''):
                                             admin_user=admin_user, product_category=product_category)
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
-                                    product_category=product_category)
+                                    product_category=product_category, sku_category=sku_category)
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
@@ -7918,6 +7930,8 @@ def putaway_data(request, user=''):
                 if loc1.pallet_filled > loc1.pallet_capacity:
                     setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
                 loc1.save()
+                conv_name, conv_value = get_uom_conversion_value(order_data['sku'], 'purchase')
+                value = conv_value * value
                 if stock_data:
                     stock_data = stock_data[0]
                     add_quan = float(stock_data.quantity) + float(value)
@@ -8700,15 +8714,15 @@ def confirm_add_po(request, sales_data='', user=''):
                 return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         if industry_type == 'FMCG':
-            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
             if user.username in MILKBASKET_USERS:
                 table_headers.insert(4, 'Weight')
         else:
-            table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
-                         'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-        if ean_flag:
-            table_headers.insert(1, 'EAN')
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
+        # if ean_flag:
+        #     table_headers.insert(1, 'EAN')
         if show_cess_tax:
             table_headers.insert(table_headers.index('UTGST (%)'), 'CESS (%)')
         if show_apmc_tax:
@@ -8836,13 +8850,16 @@ def confirm_add_po(request, sales_data='', user=''):
 
             if industry_type == 'FMCG':
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_sgst = purchase_order.sgst_tax * (amount/100)
+                total_cgst = purchase_order.cgst_tax * (amount/100)
+                total_igst = purchase_order.igst_tax * (amount/100)
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
-                po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
-                            purchase_order.igst_tax,
-                            purchase_order.utgst_tax,
+                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst, 
+                            purchase_order.igst_tax, total_igst,
+                            # purchase_order.utgst_tax,
                             total_sku_amt
                             ]
                 if user.username in MILKBASKET_USERS:
@@ -8854,17 +8871,20 @@ def confirm_add_po(request, sales_data='', user=''):
                     po_temp_data.insert(4, weight)
             else:
                 total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+                total_sgst = purchase_order.sgst_tax * (amount/100)
+                total_cgst = purchase_order.cgst_tax * (amount/100)
+                total_igst = purchase_order.igst_tax * (amount/100)
                 total_tax_amt = float("%.2f" % total_tax_amt)
                 total_sku_amt = total_tax_amt + amount
-                po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
-                            purchase_order.igst_tax,
-                            purchase_order.utgst_tax,
+                            purchase_order.price, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                            purchase_order.igst_tax, total_igst,
+                            # purchase_order.utgst_tax,
                             total_sku_amt
                             ]
-            if ean_flag:
-                po_temp_data.insert(1, ean_number)
+            # if ean_flag:
+            #     po_temp_data.insert(1, ean_number)
             if show_cess_tax:
                 po_temp_data.insert(table_headers.index('CESS (%)'), purchase_order.cess_tax)
             if show_apmc_tax:

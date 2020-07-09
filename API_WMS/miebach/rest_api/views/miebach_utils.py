@@ -2953,11 +2953,19 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict([('ALLDE', 'All Department'), ('COVID', '
                                      ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
                                      ('HEADW', 'Head Office - Worli')])
 
-STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Staff Code', 'staff_code'), ('Name', 'name'),
+STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),
+                                     ('Staff Code', 'staff_code'), ('Name', 'name'),
                                       ('Email', 'email_id'), ('Password', 'password'),
                                       ('Phone Number', 'phone_number'), ('Position', 'position'),
                                       ('Status', 'status')
                         ))
+
+PENDING_PR_MAPPING = OrderedDict(( ('Priority Type','priority_type'), ('Need By Date', 'delivery_date'), 
+                        ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
+                      ))
+
+UOM_MASTER_MAPPING = OrderedDict(( ('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'), ('UOM', 'uom'), ('Conversion', 'conversion')
+                                ))
 
 def fn_timer(function):
     @wraps(function)

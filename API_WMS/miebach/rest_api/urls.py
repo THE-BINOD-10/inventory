@@ -698,6 +698,8 @@ urlpatterns += [
     url(r'^staff_master_upload/$', staff_master_upload),
     url(r'^uom_master_form/$', uom_master_form),
     url(r'^uom_master_upload/$', uom_master_upload),
+    url(r'^pending_pr_form/$', pending_pr_form),
+    url(r'^pending_pr_upload/$', pending_pr_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -769,6 +771,7 @@ urlpatterns += [
     url(r'^get_company_warehouses/$', get_company_warehouses),
     url(r'^get_company_roles_list/$', get_company_roles_list),
     url(r'^get_sku_category_list/$', get_sku_category_list),
+    url(r'^get_user_groups_list/$', get_user_groups_list),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

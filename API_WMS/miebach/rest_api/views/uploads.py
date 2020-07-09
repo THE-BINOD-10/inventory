@@ -9532,12 +9532,14 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['warehouse', 'staff_code', 'name', 'email_id', 'password', 'phone_number', 'position', 'status']).\
+    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'password', 'phone_number', 'position', 'status']).\
             issubset(excel_mapping.keys()):
         return 'Invalid File'
     company_id = get_company_id(user)
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
+    dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
     # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
     # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
     staff_master = None
@@ -9580,6 +9582,15 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                         setattr(staff_master, key, cell_data)
                 else:
                     index_status.setdefault(row_idx, set()).add('Staff Name is Mandatory')
+            elif key == 'plant':
+                if cell_data:
+                    data_dict[key] = cell_data
+            elif key == 'department_type':
+                if cell_data:
+                    if cell_data not in dept_mapping.keys():
+                        index_status.setdefault(row_idx, set()).add('Invalid Department Type')
+                    else:
+                        data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
@@ -9680,23 +9691,28 @@ def staff_master_upload(request, user=''):
                 position = final_data.get('position', '')
                 user_dict = {'username': email, 'first_name': staff_name, 'password': password, 'email': email}
                 parent_username = final_data['user'].username
+                plant = final_data.get('plant', '')
+                plants = []
+                if plant:
+                    plants = plant.split(',')
                 warehouse_type = final_data['user'].userprofile.warehouse_type
                 main_company_id = get_company_id(user)
                 company_id = final_data['user'].userprofile.company_id
-                department_type = ''
+                department_type = final_data.get('department_type', '')
                 if final_data['user'].userprofile.warehouse_type == 'DEPT':
                     department_type = final_data['user'].userprofile.stockone_code
                 wh_user_obj = User.objects.get(username=parent_username)
                 add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
                 if 'Added' not in add_user_status:
                     log.info(add_user_status)
-                StaffMaster.objects.create(company_id=company_id, staff_name=staff_name, \
+                staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name, \
                                            phone_number=phone, email_id=email, status=staff_status,
                                            position=position, department_type=department_type,
                                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
                                            staff_code=staff_code)
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
+                update_staff_plants_list(staff_obj, plants)
             print final_data
     except Exception as e:
         import traceback
@@ -9782,11 +9798,153 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
             elif key in ['base_uom', 'uom_type', 'uom']:
                 if cell_data:
                     if key == 'uom_type':
-                        if cell_data not in ['purchase', 'storage', 'consumption']:
+                        if cell_data.lower() not in ['purchase', 'storage', 'consumption']:
                             index_status.setdefault(row_idx, set()).add('%s is Invalid' % inv_res[key])
                     data_dict[key] = cell_data
                 else:
                     index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pending_pr_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Purchase Request', excel_headers)
+    return xls_to_response(wb, '%s.purchase_request_form.xls' % str(user.username))
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pending_pr_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_pending_pr_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    sku_code = data_list[0]['sku_code']
+    priority_type = data_list[0]['priority_type']
+    pr_delivery_date = data_list[0]['delivery_date']
+    pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user, 
+                                                                        'pr_prefix', sku_code)
+    purchaseMap = {
+            'requested_user': request.user,
+            'wh_user': user,
+            'delivery_date': pr_delivery_date,
+            'pending_level': 'level0',
+            'final_status': 'saved',
+            'priority_type': priority_type,
+            'full_pr_number': full_pr_number,
+            'prefix': prefix,
+            'pr_number': pr_number,
+            'sku_category': 'All',
+            'product_category': 'Kits&Consumables'
+        }
+    pendingPurchaseObj = PendingPR.objects.create(**purchaseMap)
+    for lineItem in data_list:
+        sku_code = lineItem['sku_code']
+        quantity = lineItem['quantity']
+        sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+        pendingLineItems = {
+                'pending_pr': pendingPurchaseObj,
+                'purchase_type': 'PR',
+                'sku_id': sku_id[0].id,
+            }
+        try:
+            pendingLineItems['quantity'] = float(quantity)
+        except:
+            pendingLineItems['quantity'] = 0
+        lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
+    
+    return HttpResponse('Success')
+
+
+@csrf_exempt
+def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'sku_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                    if not sku_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict[key] = sku_master[0].sku_code
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'quantity':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        if cell_data == 0:
+                            index_status.setdefault(count, set()).add('Quantity is given zero')
+                        else:
+                            data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Quantity is Mandatory')
+            elif key == 'delivery_date':
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    reqDate = datetime.datetime(year, month, day, hour, minute, second)
+                elif '-' in cell_data:
+                    reqDate = datetime.datetime.strptime(cell_data, "%d-%m-%Y")
+                else:
+                    reqDate = None
+                    index_status.setdefault(row_idx, set()).add('Wrong format for Need by Date')
+                data_dict[key] = reqDate
+            elif key == 'priority_type':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in ['normal', 'urgent']:
+                        index_status.setdefault(row_idx, set()).add('Priority Type should be urgent/normal')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    data_dict[key] = 'normal'
+
         data_list.append(data_dict)
 
     if not index_status:

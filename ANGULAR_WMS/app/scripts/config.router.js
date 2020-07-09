@@ -816,7 +816,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.masters.StaffMaster', {
-          url: '/SatffMaster',
+          url: '/StaffMaster',
           // permission: 'add_staffmaster',
           templateUrl: 'views/masters/SatffMaster.html',
           resolve: {

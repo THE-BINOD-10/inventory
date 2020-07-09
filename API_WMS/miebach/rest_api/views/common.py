@@ -4815,6 +4815,7 @@ def search_wms_data(request, user=''):
     instanceName = SKUMaster
     product_type = request.GET.get('type')
     sku_catg = request.GET.get('sku_catg', '')
+    sku_brand = request.GET.get('sku_brand', '')
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -4833,6 +4834,8 @@ def search_wms_data(request, user=''):
                                       status = 1,user=user.id)
     if sku_catg:
         query_objects = query_objects.filter(sku_category=sku_catg)
+    if sku_brand:
+        query_objects = query_objects.filter(sku_brand=sku_brand)
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]

@@ -212,6 +212,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
+              vm.confirm_disabled = false;
               var seller_data = data.data.sellers;
               vm.model_data.tax = data.data.tax;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
@@ -381,6 +382,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
+          vm.confirm_disabled = false;
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
           vm.model_data.seller_supplier_map = data.data.seller_supplier_map
@@ -754,6 +756,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.confirm = function(data) {
       if (data.$valid) {
+        vm.confirm_disabled = true;
         if (vm.warehouse_type == 'CENTRAL_ADMIN') {
           var elem = angular.element($('form'))
           elem = elem[0]
@@ -827,6 +830,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.service.pop_msg(data.data);
               }
             }
+            vm.confirm_disabled = false;
         });
         }
       });

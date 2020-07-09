@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
-                    "Total Quantity", "PR Created Date", "Department", "Department Type",
+                    "Total Quantity", "PR Created Date", "Store", "Department Type",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -254,11 +254,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           });
           vm.checkResubmit = function(sku_data){
             vm.is_resubmitted = false;
-            if (!vm.permissions.change_pendingpr){
+            if ((!vm.permissions.change_pendingpr) || vm.permissions.change_pendinglineitems){
               if (sku_data.order_quantity){
                 angular.forEach(vm.model_data.data, function(eachField){
                   var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
+                  if (oldQty != parseInt(eachField.fields.order_quantity) || eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
                     vm.is_resubmitted = true
                     vm.update = true;
                   }
@@ -1111,6 +1111,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.description_edited = item.sku_desc;
+      product.fields.hsn_code = item.hsn_code;
       product.fields.sku_brand = item.sku_brand;
       product.fields.sku_class = item.sku_class;
       product.fields.type = item.type;

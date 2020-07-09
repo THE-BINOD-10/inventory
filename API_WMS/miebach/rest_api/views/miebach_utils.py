@@ -2960,6 +2960,13 @@ STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Plant', 'plan
                                       ('Status', 'status')
                         ))
 
+PENDING_PR_MAPPING = OrderedDict(( ('Priority Type','priority_type'), ('Need By Date', 'delivery_date'), 
+                        ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
+                      ))
+
+UOM_MASTER_MAPPING = OrderedDict(( ('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'), ('UOM', 'uom'), ('Conversion', 'conversion')
+                                ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):
@@ -12117,7 +12124,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
-                   'pending_po__product_category', 'pending_po__open_po',
+                   'pending_po__product_category', 'pending_po__open_po', 'pending_po__open_po__price',
                    'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username',
                    'pending_po__wh_user__first_name',
                    'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand',
@@ -12141,7 +12148,6 @@ def get_metro_po_report_data(search_params, user, sub_user):
         results = pending_data[start_index:stop_index]
     else:
         results = pending_data
-
     for result in results:
         po_created_date = resultsWithDate.get(result['pending_po__po_number'])
         po_date = po_created_date.strftime('%d-%m-%Y')
@@ -12161,6 +12167,10 @@ def get_metro_po_report_data(search_params, user, sub_user):
         sgst_tax = result['sgst_tax']
         igst_tax = result['igst_tax']
         total_tax = cgst_tax + sgst_tax + igst_tax
+        if result.get('pending_po__open_po__price', '') is None:
+            result['pending_po__open_po__price'] = 0
+        if result['pending_po__open_po__price'] > 0:
+            result['total_amt'] = round(result['pending_po__open_po__price'] * result['total_qty'], 4)
         tax_amount = result['total_amt'] * (total_tax / 100)
 
         if prApprQs.exists():
@@ -12249,10 +12259,10 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_number),
             ('PR Numbers', result['pending_po__pending_prs__full_pr_number']),
             ('Quantity Received', received_quantity),
-            ('PO Amount Pre Tax', round(result['quantity'] * result['price'], 4)),
-            ('Tax Amount', (round(((result['quantity'] * result['price']) * total_tax) / 100, 4))),
+            ('PO Amount Pre Tax', round(result['total_amt'], 4)),
+            ('Tax Amount', (round(((result['total_amt']) * total_tax) / 100, 4))),
             ('PO Amount with Tax', (
-                 round(((result['quantity'] * result['price']) * total_tax) / 100 + result['quantity'] * result['price'],
+                 round(((result['total_amt']) * total_tax) / 100 + result['total_amt'],
                        4))),
             ('Approver 1 ID', approver1),
             ('Approver 1 Date', approver1_date),
@@ -12327,7 +12337,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name','pending_po__product_category','pending_po__open_po',
+    values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name','pending_po__product_category','pending_po__open_po', 'pending_po__open_po__price',
                    'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username','pending_po__wh_user__first_name',
                    'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand','sku__sku_group',
                    'sku__style_name', 'sku__price', 'sku__mrp', 'sku__sub_category', 'sku__sku_group','pending_po__pending_prs__full_pr_number',
@@ -12364,6 +12374,10 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         sgst_tax = result['sgst_tax']
         igst_tax = result['igst_tax']
         total_tax = cgst_tax + sgst_tax + igst_tax
+        if result.get('pending_po__open_po__price', '') is None:
+            result['pending_po__open_po__price'] = result['price']
+        if result['pending_po__open_po__price'] > 0:
+            result['total_amt'] = round(result['pending_po__open_po__price'] * result['total_qty'], 4)
         tax_amount = result['total_amt'] * (total_tax / 100)
         
         if prApprQs.exists():
@@ -12459,15 +12473,15 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('SKU Category', result['sku__sku_category']),
             ('SKU Sub-Category', result['sku__sub_category']),
             ('PO QTY', result['total_qty']),
-            ('Unit Price without tax', result['price']),
+            ('Unit Price without tax', result['pending_po__open_po__price']),
             ('Unit Price with tax',
-             round(((result['price'] * (cgst_tax + sgst_tax + igst_tax) / 100) + (result['price'])), 4)),
+             round(((result['pending_po__open_po__price'] * (cgst_tax + sgst_tax + igst_tax) / 100) + (result['pending_po__open_po__price'])), 4)),
             ('Tax Percentage', total_tax),
             ('MRP', result['sku__mrp']),
-            ('PO Amount Pre Tax', round(result['quantity'] * result['price'], 4)),
-            ('Tax Amount', (round(((result['quantity'] * result['price']) * total_tax) / 100, 4))),
+            ('PO Amount Pre Tax', round(result['quantity'] * result['pending_po__open_po__price'], 4)),
+            ('Tax Amount', (round(((result['quantity'] * result['pending_po__open_po__price']) * total_tax) / 100, 4))),
             ('PO Amount with Tax', (
-                 round(((result['quantity'] * result['price']) * total_tax) / 100 + result['quantity'] * result['price'],
+                 round(((result['quantity'] * result['pending_po__open_po__price']) * total_tax) / 100 + result['quantity'] * result['pending_po__open_po__price'],
                        4))),
             ('Approver 1 ID', approver1),
             ('Approver 1 Date', approver1_date),

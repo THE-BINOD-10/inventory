@@ -5,9 +5,12 @@
         <tr>
           <th>Other Item Code*</th>
           <th>Title</th>
-          <th>Brand</th>
+          <th>HSN Code</th>
+          <!-- <th>Brand</th> -->
           <th>Type</th>
           <th class="w10_">Quantity*</th>
+          <th>Base Price excluding GST</th>
+          <th>Tax</th>
           <th class="plus"></th>
         </tr>
       </thead>
@@ -26,8 +29,11 @@
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
+          <!-- <td>
+            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50">
+          </td> -->
           <td>
             <input ng-model="product.fields.type" title="{{ product.fields.type }}" type="text" class="form-control detectTab" readonly>
           </td>
@@ -36,6 +42,18 @@
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
+          </td>
+          <td class="text-center"> 
+            <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+              class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" 
+              size="12">
+          </td>
+          <td class="text-center"> 
+            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+            </span> --> 
+            <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" size="12">
           </td>
           <td>
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

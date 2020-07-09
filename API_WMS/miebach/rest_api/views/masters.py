@@ -720,6 +720,11 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id).values_list('group__name', flat=True))
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    linked_whs = get_related_users_filters(user.id, send_parent=True)
+    sub_user_id_list = []
+    for linked_wh in linked_whs:
+        sub_objs =  get_sub_users(linked_wh)
+        sub_user_id_list = list(chain(sub_user_id_list, sub_objs.values_list('id', flat=True)))
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
         if data.status:
@@ -738,7 +743,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         department = ''
         warehouse_names = ''
         group_names = []
-        sub_user = User.objects.get(email=data.email_id)
+        sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
         if data.plant.filter():
             plant_list = data.plant.filter().values_list('name', flat=True)
             warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
@@ -5373,10 +5378,12 @@ def send_supplier_doa(request, user=''):
             preference = value
         if value != '':
             data_dict[key] = value
-
     skuSupQs = SKUSupplier.objects.filter(sku__user=user.id, sku_id=sku_id[0].id, supplier_id=supplier.id)
     if skuSupQs.exists() and not data_dict.has_key('DT_RowId'):
         return HttpResponse("New DOA cant be created, already SKUSupplier exists")
+    if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
+        data_dict['preference'] = skuSupQs[0].preference
+        data_dict['moq'] = skuSupQs[0].moq
     userQs = UserGroups.objects.filter(user=user)
     parentCompany = userQs[0].company_id
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')

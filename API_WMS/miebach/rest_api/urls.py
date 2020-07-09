@@ -237,6 +237,8 @@ urlpatterns = [
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
+    url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+
 
 
     # Production
@@ -696,6 +698,8 @@ urlpatterns += [
     url(r'^staff_master_upload/$', staff_master_upload),
     url(r'^uom_master_form/$', uom_master_form),
     url(r'^uom_master_upload/$', uom_master_upload),
+    url(r'^pending_pr_form/$', pending_pr_form),
+    url(r'^pending_pr_upload/$', pending_pr_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

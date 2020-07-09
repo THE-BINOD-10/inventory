@@ -368,7 +368,6 @@ var app = angular.module('urbanApp')
           .state('app.masters.TestMaster.update', {
             url: '/Test',
             templateUrl: 'views/masters/toggles/test_master_update.html'
->>>>>>> 28e50a75de0b3ef348ab9da49ccede73335bce62
           })
         .state('app.masters.ServiceMaster', {
           url: '/ServiceMaster',

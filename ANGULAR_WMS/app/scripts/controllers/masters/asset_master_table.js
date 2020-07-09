@@ -88,6 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
                                      "Voonik","Mr Voonik","Vilara", "Limeroad"],
                       "sizes_list":[],
+                      "uom_type_list": ["Base", "Purchase", "Storage", "Consumption"],
                       sku_rel_imgs_show:[],
                       sku_files:[],
                     }
@@ -106,6 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market_list = [];
     vm.market;
     vm.market_data = [];
+    vm.uom_data = [];
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
     vm.sku_measurement_types = vm.service.units;
@@ -162,6 +164,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.isEmptyMarket = false
+    vm.isEmptyUOM = false
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -177,6 +180,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
+                  vm.model_data.uom_data = data.uom_data;
                   vm.model_data.zones = data.zones;
                   vm.model_data.groups = data.groups;
                   vm.model_data.sizes_list =  data.sizes_list;
@@ -210,6 +214,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
 
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
+                  vm.isEmptyUOM = (data.uom_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
                   vm.change_size_type(vm.model_data.sku_data.size_type);
@@ -375,6 +380,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         };
   }
 
+  vm.remove_uom = function(index, id) {
+
+        vm.model_data.uom_data.splice(index,1);
+        if (id) {
+          vm.service.apiCall('delete_uom_master/', "GET", {data_id: id}).then(function(data){
+            console.log("success");
+          })
+        };
+  }
+
   vm.add_market = function() {
 
     vm.model_data.market_data.push({description: "",market_id: "",market_sku_type: "",marketplace_code: "", disable: false});
@@ -407,7 +422,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sub_categories = data.sub_categories;
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";
+        vm.model_data.uom_type_list = ["Base", "Purchase", "Storage", "Consumption"],
         vm.change_size_type();
+        vm.isEmptyUOM = true;
+        vm.model_data.uom_data = [];
         vm.model_data.attributes = data.attributes;
         angular.forEach(vm.model_data.attributes, function(record) {
           record.attribute_value = '';
@@ -523,6 +541,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               });
           }
       }
+  }
+
+  vm.add_uom = function() {
+
+    vm.model_data.uom_data.push({uom_type: "",uom_name: "",conversion: "", uom_id: "", name: "", disable: false});
+    vm.isEmptyUOM = false;
+  }
+
+  vm.update_uom_name = function(data) {
+    data.name = data.uom_name.toLowerCase() + '-' + data.conversion;
   }
 
   vm.addAttributes = function() {

@@ -5,6 +5,7 @@
         <tr>
           <th>Asset Code*</th>
           <th>Title</th>
+          <th>HSN Code</th>
           <!-- <th>Brand</th> -->
           <th>Class</th>
           <th class="w10_">Quantity*</th>
@@ -26,6 +27,9 @@
           </td>
           <td>
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+          </td>
+          <td>
+            <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <!--
           <td>

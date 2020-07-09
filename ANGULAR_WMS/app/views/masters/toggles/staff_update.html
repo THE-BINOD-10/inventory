@@ -1,3 +1,10 @@
+<style>
+  .disablingPointerEvents {
+    pointer-events: none;
+  }
+
+</style>
+
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate" autocomplete="off">
   <div class="modal-dialog model-custom modal-lg">
@@ -18,15 +25,30 @@
                 </select>
               </div>
             </div>
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Plant </label>-->
+<!--                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">-->
+<!--                <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>-->
+<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">-->
+<!--                  <option value="">All</option>-->
+<!--                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--            </div>-->
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Plant </label>
                 <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
-                <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">
+                <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.warehouse_names" title={{showCase.model_data.warehouse_names}} readonly>
+                <select class="selectpicker-plants show-menu-arrow form-control" multiple ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="[showCase.get_warehouse_department_list(), showCase.check_selected_val(showCase.model_data.warehouse, role)]" ng-if="!showCase.update">
                   <option value="">All</option>
                   <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>
                 </select>
+<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">-->
+<!--                  <option value="">All</option>-->
+<!--                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>-->
+<!--                </select>-->
               </div>
             </div>
             <div class="col-md-4">
@@ -34,7 +56,7 @@
                 <label class="control-label"> Department </label>
                 <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.department" value="{{showCase.model_data.department}}">
                 <input ng-if="showCase.update" type="text" name="department" class="form-control" ng-model="showCase.model_data.department" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()">
+                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()" ng-readonly="!showCase.department_type_readonly" ng-style="{'pointer-events': !showCase.department_type_readonly ? 'none' : 'auto' }">
                   <option value="">All</option>
                   <option ng-repeat="department in showCase.department_list" value="{{department.username}}">{{department.name}}</option>
                 </select>
@@ -43,7 +65,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Department Type </label>
-                <select class="form-control" ng-model="showCase.model_data.department_type" name="department_type" style="pointer-events: none" readonly>
+                <select class="form-control" ng-model="showCase.model_data.department_type" name="department_type" ng-style="{'pointer-events': showCase.department_type_readonly ? 'none' : 'auto' }" ng-readonly="showCase.department_type_readonly">
                   <option value="">All</option>
                   <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
                 </select>
@@ -87,6 +109,14 @@
                 <select class="form-control" ng-model="showCase.model_data.position" name="position">
                   <option ng-repeat="role in showCase.roles_list" value="{{role}}" ng-selected="role==showCase.model_data.position">{{role}}</option>
                 </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Groups </label>
+                   <select class="selectpicker-groups show-menu-arrow form-control" multiple name="groups" ng-model="showCase.model_data.groups" data-size="10" ng-change="showCase.check_selected_val(showCase.model_data.groups, group)">
+                    <option ng-repeat="group in showCase.groups_list">{{group}}</option>
+                  </select>
               </div>
             </div>
             <div class="col-md-4">

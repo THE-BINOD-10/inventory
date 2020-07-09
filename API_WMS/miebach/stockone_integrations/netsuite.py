@@ -320,6 +320,12 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id),
                 ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27))
             ]
+            if(po_data.get('approval2',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver2', value=po_data['approval2']))
+            if(po_data.get('approval3',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=po_data['approval3']))
+            if(po_data.get('approval4',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
             purorder.location= ns.RecordRef(internalId=297)
             if(po_data.get("plant", None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant']))
@@ -372,6 +378,12 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
             ]
+            if(pr_data.get('approval2',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval2']))
+            if(pr_data.get('approval3',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval3']))
+            if(pr_data.get('approval4',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval4']))
             if(pr_data.get('plant', None)):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
             purreq.customFieldList =  ns.CustomFieldList(custom_list)

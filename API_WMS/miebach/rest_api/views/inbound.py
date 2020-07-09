@@ -8539,8 +8539,8 @@ def confirm_add_po(request, sales_data='', user=''):
                 purchase_id = request.POST.get('purchase_id', '')
                 if purchase_id: purchase_id = int(purchase_id)
                 pendingPOQs = PendingPO.objects.filter(id=purchase_id)
-                # if pendingPOQs.exists():
-                #     pendingPOQs.update(open_po_id=data1.id)
+                if pendingPOQs.exists():
+                    pendingPOQs.update(open_po_id=data1.id)
 
             purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
             sup_id = purchase_order.id

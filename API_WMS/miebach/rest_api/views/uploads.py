@@ -9782,7 +9782,7 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
             elif key in ['base_uom', 'uom_type', 'uom']:
                 if cell_data:
                     if key == 'uom_type':
-                        if cell_data not in ['purchase', 'storage', 'consumption']:
+                        if cell_data.lower() not in ['purchase', 'storage', 'consumption']:
                             index_status.setdefault(row_idx, set()).add('%s is Invalid' % inv_res[key])
                     data_dict[key] = cell_data
                 else:

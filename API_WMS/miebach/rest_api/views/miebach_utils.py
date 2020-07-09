@@ -2963,6 +2963,9 @@ PENDING_PR_MAPPING = OrderedDict(( ('Priority Type','priority_type'), ('Need By 
                         ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
                       ))
 
+UOM_MASTER_MAPPING = OrderedDict(( ('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'), ('UOM', 'uom'), ('Conversion', 'conversion')
+                                ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

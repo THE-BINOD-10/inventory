@@ -15,14 +15,15 @@ log = init_logger('logs/sync_sku.log')
 
 def insert_skus(user_id):
     """ This function syncs all sku among the connected Users for the first time"""
-    from rest_api.views.common import get_related_users
+    from rest_api.views.common import get_related_users, get_company_admin_user
     st_time = datetime.datetime.now()
     log.info("first time sync process starting now")
 
     # user_id = request.user.id
+    admin_user = get_company_admin_user(User.objects.get(id=user_id))
     all_users = get_related_users(user_id)
-
-    all_skus = get_all_skus(all_users)
+    all_users.sort(reverse=True)
+    all_skus = get_all_skus([admin_user.id])
 
     create_update_sku(all_skus, all_users)
 
@@ -65,6 +66,7 @@ def create_update_sku(all_skus, all_users):
         if user_profile:
             wh_type = user_profile[0].warehouse_type
     for user in all_users:
+        log.info("SKU Update is happening for User::%s" %user)
         exist_skus = list(SKUMaster.objects.filter(user=user).values_list('sku_code', flat=True))
         exist_skus = map(lambda x:str(x).upper(), exist_skus)
         new_sku_objs = []

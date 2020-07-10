@@ -9739,6 +9739,7 @@ def uom_master_form(request, user=''):
 @login_required
 @get_admin_user
 def uom_master_upload(request, user=''):
+    from masters import gather_uom_master_for_sku
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -9752,6 +9753,8 @@ def uom_master_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     company_id = get_company_id(user)
+    uom_data_list=[]
+    sku_dict={}
     for final_data in data_list:
         name = '%s-%s' % (final_data['uom'], str(int(final_data['conversion'])))
         final_data['name'] = name
@@ -9759,8 +9762,16 @@ def uom_master_upload(request, user=''):
         uom_obj = UOMMaster.objects.filter(**final_data)
         if not uom_obj:
             UOMMaster.objects.create(**final_data)
+        sku_dict[final_data["sku_code"]]=True
+    for sku_code in sku_dict.keys():
+        uom_data = gather_uom_master_for_sku(user, sku_code)
+        uom_data_list.append(uom_data)
+    netsuite_integrateUOM(user, uom_data_list)
     return HttpResponse('Success')
 
+def netsuite_integrateUOM(user, uom_data_list):
+    intObj = Integrations(user,'netsuiteIntegration')
+    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
 
 @csrf_exempt
 def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

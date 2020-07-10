@@ -181,6 +181,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.resubmitCheckObj = {};
           vm.is_resubmitted = false;
           vm.is_pa_resubmitted = false;
+          if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+          }
           vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
 

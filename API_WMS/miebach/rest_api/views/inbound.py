@@ -8861,7 +8861,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 total_sku_amt = total_tax_amt + amount
                 po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                             po_suggestions['measurement_unit'],
-                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst, 
+                            purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
                             purchase_order.igst_tax, total_igst,
                             # purchase_order.utgst_tax,
                             total_sku_amt
@@ -9092,7 +9092,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 else:
                     approval1 = user.first_name
         company_id = get_company_id(user)
-        purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id)
+        purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, po_number=po_number)
         _purchase_order = purchase_objs[0]
         po_date = _purchase_order.creation_date
         po_date = po_date.isoformat()

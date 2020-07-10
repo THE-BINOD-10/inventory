@@ -2955,9 +2955,10 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict([('ALLDE', 'All Department'), ('COVID', '
 
 STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),
                                      ('Staff Code', 'staff_code'), ('Name', 'name'),
-                                      ('Email', 'email_id'), ('Password', 'password'),
-                                      ('Phone Number', 'phone_number'), ('Position', 'position'),
-                                      ('Status', 'status')
+                                     ('Email', 'email_id'), ('Reporting TO', 'reportingto_email_id'),
+                                     ('Password', 'password'),
+                                     ('Phone Number', 'phone_number'), ('Position', 'position'),
+                                     ('Status', 'status')
                         ))
 
 PENDING_PR_MAPPING = OrderedDict(( ('Priority Type','priority_type'), ('Need By Date', 'delivery_date'), 

@@ -2914,7 +2914,7 @@ def add_po(request, user=''):
     return HttpResponse(status)
 
 
-def createPRApproval(user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
+def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPRObj, master_type='pr_approvals_conf_data',
                     forPO=False, product_category='Kits&Consumables', admin_user=None, approval_type='', status=''):
     mailsList = []
     company_id = get_company_id(user)
@@ -2929,7 +2929,7 @@ def createPRApproval(user, reqConfigName, level, pr_number, pendingPRObj, master
         # memFiltersMap = {'user': user, 'master_id': apprConfObjId, 'master_type': master_type}
         # if admin_user:
         #     memFiltersMap['user'] = admin_user
-        mailsList = get_purchase_config_role_mailing_list(user, apprConfObj[0],company_id)
+        mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
         #mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
     if mailsList:
         validated_by = ", ".join(mailsList)
@@ -3270,7 +3270,7 @@ def approve_pr(request, user=''):
             approval_obj = PurchaseApprovalConfig.objects.filter(display_name=display_name, company_id=company_id,
                                                                  approval_type='approved')
             if approval_obj.exists():
-                prObj, mailsList = createPRApproval(pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
+                prObj, mailsList = createPRApproval(request, pr_user, approval_obj[0].name, 'level0', pr_number, pendingPRObj,
                                         master_type=master_type, forPO=poFor, approval_type='approved', status='on_approved')
                 print mailsList
                 for eachMail in mailsList:
@@ -3297,7 +3297,7 @@ def approve_pr(request, user=''):
             # PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
-            prObj, mailsList = createPRApproval(pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
+            prObj, mailsList = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                     master_type=master_type, forPO=poFor, approval_type=approval_type)
             for eachMail in mailsList:
                 hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
@@ -4212,7 +4212,7 @@ def add_pr(request, user=''):
                     temp_data = TempJson.objects.filter(model_id__in=lineItemIds).delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
-                prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
+                prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')
                 if mailsList:
@@ -4237,7 +4237,7 @@ def add_pr(request, user=''):
                     pendingPRObj.final_status = 'approved'
                     pendingPRObj.save()
                 else:
-                    prObj, mailsList = createPRApproval(user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             admin_user=admin_user, product_category=product_category)
             else:
@@ -4246,7 +4246,7 @@ def add_pr(request, user=''):
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
-                    prObj, mailsList = createPRApproval(pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
+                    prObj, mailsList = createPRApproval(request, pendingPRObj.wh_user, reqConfigName, baseLevel, pr_number,
                                             pendingPRObj, master_type=master_type, forPO=True,
                                             product_category=product_category, approval_type='')
             if mailsList:

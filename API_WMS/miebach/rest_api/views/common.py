@@ -12425,12 +12425,13 @@ def get_warehouse_department_list(request, user=''):
     return HttpResponse(json.dumps({'department_list': department_list}))
 
 
-def get_purchase_config_role_mailing_list(user, app_config, company_id):
+def get_purchase_config_role_mailing_list(request_user, user, app_config, company_id):
     user_roles = app_config.user_role.filter().values_list('role_name', flat=True)
     mail_list = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
+        emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
@@ -12438,7 +12439,12 @@ def get_purchase_config_role_mailing_list(user, app_config, company_id):
             staff_check['plant__name'] = get_admin(user).username
         if app_config.department_type:
             staff_check['department_type'] = app_config.department_type
-        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+        if user_role == 'Reporting Manager':
+            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.email, company_id__in=company_list)
+            if cur_staff_obj.exists():
+                emails = [cur_staff_obj[0].reportingto_email_id]
+        if not emails:
+            emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
             break_loop = True
             admin_user = user

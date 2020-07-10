@@ -3171,6 +3171,7 @@ class StaffMaster(models.Model):
     department_type = models.CharField(max_length=64, default='')
     position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
+    reportingto_email_id = models.EmailField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

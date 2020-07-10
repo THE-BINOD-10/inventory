@@ -919,6 +919,10 @@ var app = angular.module('urbanApp')
                   'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
                 ]).then( function() {
                     return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/pending_for_approval_pr.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([
                       'scripts/controllers/inbound/pending_pr_enquiries.js'
                   ])
                 }).then( function() {

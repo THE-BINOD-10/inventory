@@ -608,6 +608,7 @@ data_datatable = {  # masters
     'CreatedRTV': 'get_saved_rtvs', \
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
+    'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',

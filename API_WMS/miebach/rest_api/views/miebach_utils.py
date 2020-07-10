@@ -13268,11 +13268,13 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if 'supplier' in search_params:
         supp_search = search_params['supplier'].split(':')
         search_parameters['pending_po__supplier_id'] = supp_search[0]
-    if 'open_po' in search_params:
-        search_parameters['pending_po__po_number'] = search_params['open_po']
+    if 'po_number' in search_params:
+        if search_params['po_number'].find('_') != -1:
+            po_number = search_params['po_number'].split('_')[-1]
+            search_parameters['pending_po__po_number'] = po_number
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
-    if user.userprofile.warehouse_type == 'ADMIN':
+    if user.userprofile.warehoupose_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             data = get_warehouses_data(user)

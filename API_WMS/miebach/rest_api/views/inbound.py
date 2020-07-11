@@ -3860,6 +3860,10 @@ def netsuite_pr(user, PRQs, full_pr_number):
             else:
                 approval1 = user.first_name
         department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
+        if(not plant):
+            admin_user= get_admin(user)
+            p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+            plant= p_user_profile.reference_id
         pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',

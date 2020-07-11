@@ -772,6 +772,8 @@ urlpatterns += [
     url(r'^get_company_roles_list/$', get_company_roles_list),
     url(r'^get_sku_category_list/$', get_sku_category_list),
     url(r'^get_user_groups_list/$', get_user_groups_list),
+    url(r'^get_staff_plants_list/$', get_staff_plants_list),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

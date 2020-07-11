@@ -2013,7 +2013,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in attr_dict.iteritems():
                 if attr_val:
-                    if attributes[attr_key] == 'Multi Input':
+                    if attributes.get(attr_key, '') == 'Multi Input':
                         attr_vals = attr_val.split(',')
                         allow_multiple = True
                     else:
@@ -2081,7 +2081,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
                 if attr_val:
-                    if attributes[attr_key] == 'Multi Input':
+                    if attributes.get(attr_key, '') == 'Multi Input':
                         attr_vals = attr_val.split(',')
                         allow_multiple = True
                     else:

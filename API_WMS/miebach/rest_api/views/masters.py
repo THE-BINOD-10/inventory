@@ -4971,8 +4971,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-        if data.phone_number:
-            data.phone_number = int(float(data.phone_number))
+        # if data.phone_number:
+        #     data.phone_number = int(float(data.phone_number))
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
@@ -5388,8 +5388,7 @@ def send_supplier_doa(request, user=''):
     if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
         data_dict['preference'] = skuSupQs[0].preference
         data_dict['moq'] = skuSupQs[0].moq
-    userQs = UserGroups.objects.filter(user=user)
-    parentCompany = userQs[0].company_id
+    parentCompany = get_company_id(user)
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
     req_user = request.user

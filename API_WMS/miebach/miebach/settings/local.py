@@ -4,16 +4,16 @@ from .base import *
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'metro_new',
+        'NAME': 'WMS_DEV',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'root@123',
         'TEST_MIRROR': 'default'
     },
     'reversion': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'metro_new',
+        'NAME': 'stockone_reversion',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'root@123',
         'TEST_MIRROR': 'default'
     }
 }

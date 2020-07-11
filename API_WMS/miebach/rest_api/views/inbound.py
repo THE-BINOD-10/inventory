@@ -3122,9 +3122,9 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         if poFor:
-            reqURLPath = 'notifications/email/pending_po_request'
+            reqURLPath = 'pending_po_request'
         else:
-            reqURLPath = 'notifications/email/pending_pr_request'
+            reqURLPath = 'pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
@@ -4329,7 +4329,7 @@ def add_pr(request, user=''):
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
                     lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
-                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds).delete()
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
                 prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,

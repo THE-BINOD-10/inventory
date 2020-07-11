@@ -2564,7 +2564,10 @@ def search_supplier(request, user=''):
     suppliers = []
     if data:
         for supplier in data:
-            suppliers.append(str(supplier.supplier_id) + ":" + str(supplier.name))
+            if isinstance(supplier.supplier_id, int):
+                suppliers.append(str(supplier.supplier_id) + ":" + supplier.name)
+            else:
+                suppliers.append(supplier.supplier_id + ":" + supplier.name)
     return HttpResponse(json.dumps(suppliers))
 
 
@@ -3248,7 +3251,7 @@ def approve_pr(request, user=''):
             else:
                 moq = 0
             supplier_id = myDict['supplier_id'][i]
-            if not supplier_id:
+            if not supplier_id and validation_type == 'approved':
                 return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
                 'supplier_id': supplier_id,

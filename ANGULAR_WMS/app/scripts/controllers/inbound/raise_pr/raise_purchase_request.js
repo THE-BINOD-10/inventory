@@ -539,7 +539,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       //   elem.push({name:'pr_number', value:vm.pr_number})
       // }
 
-      if (vm.permissions.change_pendinglineitems) {
+      if (vm.permissions.change_pendinglineitems && validation_type == 'approved') {
         angular.forEach(elem, function(key, index) {
         if (key.name == 'supplier_id') {
           if (!key.value) {

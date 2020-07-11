@@ -5384,8 +5384,7 @@ def send_supplier_doa(request, user=''):
     if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
         data_dict['preference'] = skuSupQs[0].preference
         data_dict['moq'] = skuSupQs[0].moq
-    userQs = UserGroups.objects.filter(user=user)
-    parentCompany = userQs[0].company_id
+    parentCompany = get_company_id(user)
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
     req_user = request.user

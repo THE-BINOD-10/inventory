@@ -87,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'],
                       pending_level:aData['LevelToBeApproved']};
+            vm.form = 'pending_for_approval';
             vm.dynamic_route(aData);
         });
       });
@@ -528,7 +529,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.approve_pr = function(form, validation_type) {
-      var elem = angular.element($('form'));
+      var elem = angular.element($("form[name='pending_for_approval']"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       elem.push({name:'purchase_id', value:vm.model_data.purchase_id})

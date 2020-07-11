@@ -500,42 +500,40 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.approve_pr = function(form, validation_type) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
-      if (vm.is_actual_pr){
-        elem.push({name:'is_actual_pr', value:true})
-      }
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
-      if (vm.validated_by){
-        elem.push({name:'validated_by', value:vm.validated_by})
-      }
-      if (vm.requested_user){
-        elem.push({name:'requested_user', value:vm.requested_user})
-      }
-      if (vm.pending_level){
-        elem.push({name:'pending_level', value:vm.pending_level})
-      }
-      if (validation_type == 'approved'){
-        elem.push({name: 'validation_type', value: 'approved'})
-      } else{
-        elem.push({name: 'validation_type', value: 'rejected'})
-      }
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
-        if(data.message){
-          if(data.data == 'Approved Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
-          }
-        }
-      })
-    }
+//    vm.approve_pr = function(form, validation_type) {
+//      var elem = angular.element($('form'));
+//      elem = elem[0];
+//      elem = $(elem).serializeArray();
+//      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
+//      if (vm.is_actual_pr){
+//        elem.push({name:'is_actual_pr', value:true})
+//      }
+//
+//      if (vm.validated_by){
+//        elem.push({name:'validated_by', value:vm.validated_by})
+//      }
+//      if (vm.requested_user){
+//        elem.push({name:'requested_user', value:vm.requested_user})
+//      }
+//      if (vm.pending_level){
+//        elem.push({name:'pending_level', value:vm.pending_level})
+//      }
+//      if (validation_type == 'approved'){
+//        elem.push({name: 'validation_type', value: 'approved'})
+//      } else{
+//        elem.push({name: 'validation_type', value: 'rejected'})
+//      }
+//      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+//        if(data.message){
+//          if(data.data == 'Approved Successfully') {
+//            vm.close();
+//            vm.service.refresh(vm.dtInstance);
+//          } else {
+//            vm.service.showNoty(data.data);
+//          }
+//        }
+//      })
+//    }
 
     vm.submit_enquiry = function(form){
       var elem = angular.element($('form'));

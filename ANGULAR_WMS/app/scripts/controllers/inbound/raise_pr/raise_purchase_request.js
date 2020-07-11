@@ -87,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'],
                       pending_level:aData['LevelToBeApproved']};
+            vm.form = 'raise_purchase_request';
             vm.dynamic_route(aData);
         });
       });
@@ -527,59 +528,56 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.approve_pr = function(form, validation_type) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
-      if (vm.is_actual_pr){
-        elem.push({name:'is_actual_pr', value:true})
-      }
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
-
-      if (vm.permissions.change_pendinglineitems && validation_type == 'approved') {
-        angular.forEach(elem, function(key, index) {
-        if (key.name == 'supplier_id') {
-          if (!key.value) {
-            Service.showNoty('Supplier Should be provided by Purchase');
-            return;
-          }
-        } else if (key.name == 'price') {
-          if (key.value == '') {
-            Service.showNoty('Price Should be provided by Purchase');
-            return;
-          }
-        }
-      });
-
-      }
-      if (vm.validated_by){
-        elem.push({name:'validated_by', value:vm.validated_by})
-      }
-      if (vm.requested_user){
-        elem.push({name:'requested_user', value:vm.requested_user})
-      }
-      if (vm.pending_level){
-        elem.push({name:'pending_level', value:vm.pending_level})
-      }
-      if (validation_type == 'approved'){
-        elem.push({name: 'validation_type', value: 'approved'})
-      } else{
-        elem.push({name: 'validation_type', value: 'rejected'})
-      }
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
-        if(data.message){
-          if(data.data == 'Approved Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
-          }
-        }
-      })
-    }
+//    vm.approve_pr = function(form, validation_type) {
+//      var elem = angular.element($('form'));
+//      elem = elem[0];
+//      elem = $(elem).serializeArray();
+//      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
+//      if (vm.is_actual_pr){
+//        elem.push({name:'is_actual_pr', value:true})
+//      }
+//
+//      if (vm.permissions.change_pendinglineitems && validation_type == 'approved') {
+//        angular.forEach(elem, function(key, index) {
+//        if (key.name == 'supplier_id') {
+//          if (!key.value) {
+//            Service.showNoty('Supplier Should be provided by Purchase');
+//            return;
+//          }
+//        } else if (key.name == 'price') {
+//          if (key.value == '') {
+//            Service.showNoty('Price Should be provided by Purchase');
+//            return;
+//          }
+//        }
+//      });
+//
+//      }
+//      if (vm.validated_by){
+//        elem.push({name:'validated_by', value:vm.validated_by})
+//      }
+//      if (vm.requested_user){
+//        elem.push({name:'requested_user', value:vm.requested_user})
+//      }
+//      if (vm.pending_level){
+//        elem.push({name:'pending_level', value:vm.pending_level})
+//      }
+//      if (validation_type == 'approved'){
+//        elem.push({name: 'validation_type', value: 'approved'})
+//      } else{
+//        elem.push({name: 'validation_type', value: 'rejected'})
+//      }
+//      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+//        if(data.message){
+//          if(data.data == 'Approved Successfully') {
+//            vm.close();
+//            vm.service.refresh(vm.dtInstance);
+//          } else {
+//            vm.service.showNoty(data.data);
+//          }
+//        }
+//      })
+//    }
 
     vm.submit_enquiry = function(form){
       var elem = angular.element($('form'));

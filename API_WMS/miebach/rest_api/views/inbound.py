@@ -227,7 +227,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
         'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
         'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
-        'pending_pr__sku_category']
+        'pending_pr__sku_category', 'pending_pr__wh_user__username']
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_pr__final_status='pr_converted_to_po'). \
                 values(*values_list).distinct().\
@@ -256,7 +256,8 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         sku_category_val = sku_category
         if sku_category == 'All':
             sku_category_val = ''
-        pr_user = get_warehouse_user_from_sub_user(requested_user)
+        pr_user = User.objects.get(username=result['pending_pr__wh_user__username'])
+        #pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name

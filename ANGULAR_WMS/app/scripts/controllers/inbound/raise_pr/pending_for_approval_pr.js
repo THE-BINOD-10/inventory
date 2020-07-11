@@ -711,9 +711,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
-    vm.move_to_sku_supplier = function (sku, lineItem) {
+    vm.move_to_sku_supplier = function (sku, lineItem, purchase_id) {
       vm.display_vision = {'display': 'none'};
-      var data = {'sku_code': sku};
+      var data = {'sku_code': sku, 'purchase_id': purchase_id};
       var modalInstance = $modal.open({
         templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
         controller: 'skuSupplierCtrl',
@@ -1494,6 +1494,7 @@ angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http
   }
   get_warehouses();
   vm.send_supplier_doa = function(form) {
+    vm.model_data['purchase_id'] = vm.requestData['purchase_id'];
     vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if(data.data == "Added Successfully") {

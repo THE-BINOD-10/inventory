@@ -12653,6 +12653,10 @@ def get_staff_plants_list(request, user=''):
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
         plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+        if not plants_list:
+            plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                      company_id=user.userprofile.company_id)
+            plants_list = dict(plant_objs.values_list('username', 'first_name'))
         if staff_obj.department_type:
             department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
         else:

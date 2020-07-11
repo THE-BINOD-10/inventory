@@ -4336,7 +4336,7 @@ def add_pr(request, user=''):
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
                     lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
-                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds).delete()
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
                 prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,

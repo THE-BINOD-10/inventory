@@ -312,7 +312,7 @@ class SupplierMaster(models.Model):
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
-        index_together = ('name', 'user')
+        index_together = (('name', 'user'), ('supplier_id', 'user'))
 
     def __unicode__(self):
         return '%s-%s' % (self.name, self.supplier_id)

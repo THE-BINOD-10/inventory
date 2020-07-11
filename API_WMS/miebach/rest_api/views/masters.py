@@ -770,7 +770,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
                                  ('department_code', data.department_type),
                                  ('position', data.position),
-                                 ('email_id', data.email_id), ('phone_number', phone_number),
+                                 ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
+                                 ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
                                  ('groups', group_names), ('warehouse_names', warehouse_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
@@ -4680,6 +4681,7 @@ def insert_staff(request, user=''):
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     position = request.POST.get('position', '')
@@ -4737,7 +4739,7 @@ def insert_staff(request, user=''):
                             phone_number=phone, email_id=email, status=status,
                             position=position, department_type=department_type,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
-                            staff_code=staff_code)
+                            staff_code=staff_code, reportingto_email_id=reportingto_email_id)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
@@ -4761,6 +4763,7 @@ def update_staff_values(request, user=''):
     # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     department_type = request.POST.get('department_type', '')
@@ -4776,6 +4779,7 @@ def update_staff_values(request, user=''):
     data.position = position
     data.phone_number = phone
     data.status = status
+    data.reportingto_email_id = reportingto_email_id
     data.save()
     request_data = dict(request.POST.iterlists())
     if request_data.get('groups', []):
@@ -5358,17 +5362,23 @@ def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     data_dict['request_from'] = request.POST.get('type', 'Master')
-    data_dict['po_number'] = request.POST.get('po_number', '')
+    data_dict['purchase_id'] = request.POST.get('purchase_id', '')
+    if data_dict.has_key('purchase_id'):
+        purchase_id = data_dict['purchase_id']
+        prObj = PendingPR.objects.get(id=purchase_id)
+        user = prObj.wh_user
     for key, value in request.POST.iteritems():
         if key == 'wms_code':
-            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
+            sku_id = SKUMaster.objects.filter(wms_code=value, user=user.id)
             if not sku_id:
                 return HttpResponse('Wrong WMS Code')
             key = 'sku'
             value = sku_id[0].id
         elif key == 'supplier_id':
-            supplier = SupplierMaster.objects.get(supplier_id=value, user=user.id)
-            value = supplier.supplier_id
+            supplierQs = SupplierMaster.objects.filter(supplier_id=value, user=user.id)
+            if supplierQs.exists():
+                supplier = supplierQs[0]
+                value = supplier.supplier_id
         elif key == 'price' and not value:
             value = 0
         elif key in integer_data:
@@ -5384,18 +5394,17 @@ def send_supplier_doa(request, user=''):
     if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
         data_dict['preference'] = skuSupQs[0].preference
         data_dict['moq'] = skuSupQs[0].moq
-    userQs = UserGroups.objects.filter(user=user)
-    parentCompany = userQs[0].company_id
-    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-    admin_user = admin_userQs[0].user
-    req_user = request.user
-    if not request.user.is_staff:
-        if user.userprofile.warehouse_type == 'DEPT':
-            req_user  = get_admin(user) # Fetching Store User
-        else:
-            req_user = user
+    # parentCompany = get_company_id(user)
+    # admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+    # admin_user = admin_userQs[0].user
+    # req_user = request.user
+    # if not request.user.is_staff:
+    #     if user.userprofile.warehouse_type == 'DEPT':
+    #         req_user  = get_admin(user) # Fetching Store User
+    #     else:
+    #         req_user = user
     doa_dict = {
-        'requested_user': req_user,
+        'requested_user': user,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),

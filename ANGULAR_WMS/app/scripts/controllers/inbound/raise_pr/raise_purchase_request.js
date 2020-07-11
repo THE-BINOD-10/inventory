@@ -1281,7 +1281,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   vm.close();
                   vm.service.refresh(vm.dtInstance);
                 } else {
-                  vm.service.pop_msg(data.data);
+                  vm.service.showNoty(data.data);
                 }
               }
             })
@@ -1443,6 +1443,19 @@ vm.checkWHSupplierExist  = function (sup_id) {
       };
     });
   }
+
+  vm.plants_list = {};
+  vm.department_type_list = {};
+  vm.get_staff_plants_list = get_staff_plants_list;
+  function get_staff_plants_list() {
+    vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
+      if(data.message) {
+        vm.plants_list = data.data.plants_list;
+        vm.department_type_list = data.data.department_type_list;
+      }
+    });
+  }
+  vm.get_staff_plants_list();
 }
 
 angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
@@ -1492,6 +1505,7 @@ angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http
       }
     })
   }
+
   vm.get_sku_mrp(vm.requestData['sku_code']);
   vm.close = function (value) {
     $modalInstance.close(value);

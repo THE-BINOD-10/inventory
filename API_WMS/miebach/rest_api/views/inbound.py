@@ -124,7 +124,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
         'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id',
         'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
-        'pending_pr__sku_category']
+        'pending_pr__sku_category', 'pending_pr__wh_user__username']
 
     results = PendingLineItems.objects.filter(**filtersMap). \
                 exclude(pending_pr__final_status='pr_converted_to_po'). \
@@ -152,11 +152,12 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         pr_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
+        pr_user = User.objects.get(username=result['pending_pr__wh_user__username'])
         sku_category = result['pending_pr__sku_category']
         sku_category_val = sku_category
         if sku_category == 'All':
             sku_category_val = ''
-        pr_user = get_warehouse_user_from_sub_user(requested_user)
+        #pr_user = get_warehouse_user_from_sub_user(requested_user)
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name
@@ -1512,8 +1513,9 @@ def generated_actual_pr_data(request, user=''):
     pr_number = request.POST.get('purchase_id', '')
     requested_user = request.POST.get('requested_user', '')
     requestedUserId = User.objects.get(username=requested_user).id
-    pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     record = PendingPR.objects.filter(requested_user__username=requested_user, id=pr_number)
+    pr_user = record[0].wh_user
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -3104,7 +3106,7 @@ def approve_pr(request, user=''):
     requested_userName = request.POST.get('requested_user', '')
     central_data_id = request.POST.get('data_id', '')
     requestedUserId = User.objects.get(username=requested_userName).id
-    pr_user = get_warehouse_user_from_sub_user(requestedUserId)
+    #pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     company_id = get_company_id(user)
@@ -3177,6 +3179,7 @@ def approve_pr(request, user=''):
                 totalAmt += float(myDict['total'][i])
             except:
                 continue
+    pr_user = pendingPRObj.wh_user
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
                                 approval_type=approval_type, sku_category=sku_category)
@@ -3185,7 +3188,7 @@ def approve_pr(request, user=''):
         confObj = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, name=reqConfigName,
                                                         level=pending_level, approval_type=approval_type)
         apprConfObjId = confObj[0].id
-        mailsList = get_purchase_config_role_mailing_list(user, confObj[0], company_id)
+        mailsList = get_purchase_config_role_mailing_list(request.user, user, confObj[0], company_id)
         # mailsList = MasterEmailMapping.objects.filter(user=pr_user,
         #             master_id=apprConfObjId,
         #             master_type=master_type).values_list('email_id', flat=True)
@@ -4133,6 +4136,16 @@ def add_pr(request, user=''):
         log.info("Raise PR data for user %s and request params are %s" % (user.username, str(request.POST.dict())))
         central_po_data = ''
         myDict = dict(request.POST.iterlists())
+        plant_name = request.POST.get('plant', '')
+        department_type = request.POST.get('department_type', '')
+        if plant_name and department_type:
+            sister_whs = get_sister_warehouse(User.objects.get(username=plant_name))
+            sister_wh_ids = sister_whs.values_list('user_id', flat=True)
+            dept_user_obj = User.objects.filter(id__in=sister_wh_ids, userprofile__stockone_code=department_type)
+            if dept_user_obj:
+                user = dept_user_obj[0]
+            else:
+                return HttpResponse('Department Login not found')
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         product_category = 'Kits&Consumables'
         if myDict.get('product_category'):
@@ -4224,12 +4237,12 @@ def add_pr(request, user=''):
                                         baseLevel, prefix, full_pr_number, is_po_creation=True,
                                                                  central_po_data=central_po_data)
             admin_user = None
-            if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                userQs = UserGroups.objects.filter(user=user)
-                if userQs.exists:
-                    parentCompany = userQs[0].company_id
-                    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-                    admin_user = admin_userQs[0].user
+            # if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            #     userQs = UserGroups.objects.filter(user=user)
+            #     if userQs.exists:
+            #         parentCompany = userQs[0].company_id
+            #         admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+            #         admin_user = admin_userQs[0].user
             if admin_user:
                 reqConfigName = findReqConfigName(admin_user, totalAmt, purchase_type='PO',
                                                 product_category=product_category, sku_category=sku_category)

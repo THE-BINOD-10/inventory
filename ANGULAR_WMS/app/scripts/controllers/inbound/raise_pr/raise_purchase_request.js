@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
-                    "Total Quantity", "PR Created Date", "Store", "Department", "Department Type",
+                    "Total Quantity", "PR Created Date", "Store", "Department Type",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -180,6 +180,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data = {};
           vm.resubmitCheckObj = {};
           vm.is_resubmitted = false;
+          vm.is_pa_resubmitted = false;
+          if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+          }
+          vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
 
           if (vm.model_data.supplier_id){
@@ -273,6 +278,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   }
                 })
               }
+            }
+          }
+
+          vm.checkResubmitPurchaseApprover = function(sku_data) {
+            if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+              return;    
+            }
+            vm.is_pa_resubmitted = false;
+            if (vm.permissions.change_pendinglineitems){
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (sku_data.preferred_supplier != eachField.fields.supplier_id_name){
+                  vm.is_pa_resubmitted = true;
+                }
+              })
             }
           }
 
@@ -1111,6 +1131,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.description_edited = item.sku_desc;
+      product.fields.hsn_code = item.hsn_code;
       product.fields.sku_brand = item.sku_brand;
       product.fields.sku_class = item.sku_class;
       product.fields.type = item.type;

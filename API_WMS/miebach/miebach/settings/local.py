@@ -11,7 +11,6 @@ DATABASES = {
     },
     'reversion': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'metropolis',
         'NAME': 'metro_new',
         'USER': 'root',
         'PASSWORD': 'root',

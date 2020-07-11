@@ -3669,7 +3669,7 @@ def convert_pr_to_po(request, user=''):
             purchaseMap = {
                 'requested_user': request.user, #Requested user should be the guy who converts pr to po
                 'wh_user': pr_user,
-                'delivery_date': datetime.datetime.today(),
+                'delivery_date': existingPRObj.delivery_date,
                 'ship_to': shipToAddress,
                 'pending_level': baseLevel,
                 'final_status': orderStatus,

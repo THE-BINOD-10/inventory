@@ -3091,7 +3091,7 @@ def generateHashCodeForMail(prObj, mailId, level):
     return hash_code
 
 
-def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True, central_po_data=None):
+def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True, central_po_data=None):
     from mail_server import send_mail
     subject = ''
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
@@ -3099,12 +3099,14 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
     filtersMap = {}#{'wh_user': user.id}
     if poFor:
         model_name = PendingPO
-        filtersMap['po_number'] = pr_number
+        filtersMap['id'] = purchase_id
         purchaseNumber = 'full_po_number'
+        purchase_type = 'PO'
     else:
         model_name = PendingPR
-        filtersMap['pr_number'] = pr_number
+        filtersMap['id'] = purchase_id
         purchaseNumber = 'full_pr_number'
+        purchase_type = 'PR'
     openPurchaseQs = model_name.objects.filter(**filtersMap)
     if openPurchaseQs.exists():
         openPurchaseObj = openPurchaseQs[0]
@@ -3172,17 +3174,17 @@ def sendMailforPendingPO(pr_number, user, level, subjectType, mailId=None, urlPa
             elif subjectType == 'pr_approval_pending':
                 subject = "Action Required: Pending PR %s for %s At Level %s" %(po_reference, requestedBy, pendingLevel)
 
-        podetails_string = "<p> Pending PO Details </p>  \
-        <p>PO Number: %s</p> \
+        podetails_string = "<p> Pending %s Details </p>  \
+        <p>%s Number: %s</p> \
         <p>Order Value : %s </p> \
         <p>Warehouse NAME : %s </p> \
-        <p>PO Raised By : %s </p> \
-        <p>PO Approval Request To : %s </p> \
-        <p>PO Created Date: %s</p> \
+        <p>%s Raised By : %s </p> \
+        <p>%s Approval Request To : %s </p> \
+        <p>%s Created Date: %s</p> \
         <p>Need By Date : %s </p> \
         <p>Pending Level : %s </p> \
-        <p>%s : %s</p>" %(po_reference, totalAmt, warehouseName, requestedBy, mailId,
-                                                creation_date, delivery_date, pendingLevel, line_sub_heading, lineItemDetails)
+        <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt, warehouseName, purchase_type, requestedBy, purchase_type, mailId,
+                            purchase_type, creation_date, delivery_date, pendingLevel, line_sub_heading, lineItemDetails)
         if hash_code:
             body = podetails_string+ "<p>Please click on the below link to validate.</p>\
             Link: %s"%(validationLink)
@@ -3374,7 +3376,7 @@ def approve_pr(request, user=''):
         # PRQs.update(remarks=remarks)
         updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                             remarks, purchase_type=purchase_type)
-        sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
+        sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, '%s_approval_at_last_level' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
         if purchase_type == 'PR':
             display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name
@@ -3401,7 +3403,7 @@ def approve_pr(request, user=''):
             # PRQs.update(remarks=remarks)
             updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                 remarks, purchase_type=purchase_type)
-            sendMailforPendingPO(pr_number, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
+            sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
         else:
             PRQs.update(pending_level=nextLevel)
@@ -3412,7 +3414,7 @@ def approve_pr(request, user=''):
                                     master_type=master_type, forPO=poFor, approval_type=approval_type)
             for eachMail in mailsList:
                 hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
-                sendMailforPendingPO(pr_number, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
+                sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
                         eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data)
     status = 'Approved Successfully'
     return HttpResponse(status)
@@ -4343,7 +4345,7 @@ def add_pr(request, user=''):
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-                        sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+                        sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
         else:
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, prefix, full_pr_number, is_po_creation=True,
@@ -4377,7 +4379,7 @@ def add_pr(request, user=''):
             if mailsList:
                 for eachMail in mailsList:
                     hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-                    sendMailforPendingPO(pr_number, user, baseLevel, mailSub, eachMail, urlPath,
+                    sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath,
                         hash_code, poFor=True, central_po_data=central_po_data)
     except Exception as e:
         import traceback

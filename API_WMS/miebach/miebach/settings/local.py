@@ -4,7 +4,7 @@ from .base import *
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'metropolis',
+        'NAME': 'metro_new',
         'USER': 'root',
         'PASSWORD': 'root',
         'TEST_MIRROR': 'default'
@@ -12,6 +12,7 @@ DATABASES = {
     'reversion': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'metropolis',
+        'NAME': 'metro_new',
         'USER': 'root',
         'PASSWORD': 'root',
         'TEST_MIRROR': 'default'

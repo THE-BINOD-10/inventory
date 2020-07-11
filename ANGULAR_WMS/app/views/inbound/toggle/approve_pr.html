@@ -24,7 +24,7 @@
 </style>
 
 <div id="page-pop" class="modal fade in over-x" ng-style="showCase.display_vision">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+  <form name="{{showCase.form}}" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lg" style="min-width: 1550px;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>

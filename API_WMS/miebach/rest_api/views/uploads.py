@@ -9532,7 +9532,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'password', 'phone_number', 'position', 'status']).\
+    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status']).\
             issubset(excel_mapping.keys()):
         return 'Invalid File'
     company_id = get_company_id(user)
@@ -9542,12 +9542,12 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
     # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
     # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
-    staff_master = None
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
     for row_idx in range(1, no_of_rows):
         data_dict = {}
+        staff_master = None
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'warehouse':
@@ -9592,13 +9592,12 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     else:
                         data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
+                data_dict[key] = cell_data
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
                     sub_user_email = all_sub_users.filter(email=cell_data)
                     if sub_user_email.exists():
                         index_status.setdefault(row_idx, set()).add('Email exists already')
-                    else:
-                        data_dict[key] = cell_data
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Email ID is Mandatory')
             elif key == 'password':
@@ -9624,6 +9623,11 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                         setattr(staff_master, key, cell_data)
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Position is Mandatory')
+            elif key == 'reportingto_email_id':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
             elif key == 'status':
                 if cell_data:
                     if str(cell_data).lower() == 'inactive':
@@ -9684,6 +9688,7 @@ def staff_master_upload(request, user=''):
             else:
                 staff_code = final_data['staff_code']
                 email = final_data['email_id']
+                reportingto_email = final_data.get('reportingto_email_id', '')
                 staff_name = final_data['name']
                 password = final_data['password']
                 phone = final_data.get('phone_number', '')
@@ -9709,11 +9714,10 @@ def staff_master_upload(request, user=''):
                                            phone_number=phone, email_id=email, status=staff_status,
                                            position=position, department_type=department_type,
                                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
-                                           staff_code=staff_code)
+                                           staff_code=staff_code, reportingto_email_id=reportingto_email)
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
                 update_staff_plants_list(staff_obj, plants)
-            print final_data
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -9739,6 +9743,7 @@ def uom_master_form(request, user=''):
 @login_required
 @get_admin_user
 def uom_master_upload(request, user=''):
+    from masters import gather_uom_master_for_sku
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -9752,6 +9757,8 @@ def uom_master_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     company_id = get_company_id(user)
+    uom_data_list=[]
+    sku_dict={}
     for final_data in data_list:
         name = '%s-%s' % (final_data['uom'], str(int(final_data['conversion'])))
         final_data['name'] = name
@@ -9759,8 +9766,16 @@ def uom_master_upload(request, user=''):
         uom_obj = UOMMaster.objects.filter(**final_data)
         if not uom_obj:
             UOMMaster.objects.create(**final_data)
+        sku_dict[final_data["sku_code"]]=True
+    for sku_code in sku_dict.keys():
+        uom_data = gather_uom_master_for_sku(user, sku_code)
+        uom_data_list.append(uom_data)
+    netsuite_integrateUOM(user, uom_data_list)
     return HttpResponse('Success')
 
+def netsuite_integrateUOM(user, uom_data_list):
+    intObj = Integrations(user,'netsuiteIntegration')
+    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
 
 @csrf_exempt
 def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

@@ -770,7 +770,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
                                  ('department_code', data.department_type),
                                  ('position', data.position),
-                                 ('email_id', data.email_id), ('phone_number', phone_number),
+                                 ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
+                                 ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
                                  ('groups', group_names), ('warehouse_names', warehouse_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
@@ -4680,6 +4681,7 @@ def insert_staff(request, user=''):
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     position = request.POST.get('position', '')
@@ -4737,7 +4739,7 @@ def insert_staff(request, user=''):
                             phone_number=phone, email_id=email, status=status,
                             position=position, department_type=department_type,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
-                            staff_code=staff_code)
+                            staff_code=staff_code, reportingto_email_id=reportingto_email_id)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
@@ -4761,6 +4763,7 @@ def update_staff_values(request, user=''):
     # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     department_type = request.POST.get('department_type', '')
@@ -4776,6 +4779,7 @@ def update_staff_values(request, user=''):
     data.position = position
     data.phone_number = phone
     data.status = status
+    data.reportingto_email_id = reportingto_email_id
     data.save()
     request_data = dict(request.POST.iterlists())
     if request_data.get('groups', []):

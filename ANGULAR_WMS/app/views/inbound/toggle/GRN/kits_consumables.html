@@ -126,8 +126,8 @@
           <button class="btn" ng-if="showCase.current_grn && !data.price_request" ng-click="showCase.price_request(showCase.model_data.supplier_id, showCase.model_data['supplier_name'], data.wms_code, data.sku_desc, data.price, data.buy_price, data, showCase.model_data['po_reference'])" ng-disabled="showCase.price_request_button(data.price, data.buy_price)" style="background: #ffc65d;">Request Price Change</button>
         </td>
         <td>
-          <button class="btn" ng-if="!data.batch_based" style="background: #e4e4e4;">NB</button>
-          <button class="btn" ng-if="data.batch_based" style="background: lightskyblue;">B *</button>
+          <button class="btn" ng-if="data.batch_based==0" style="background: #e4e4e4;">NB</button>
+          <button class="btn" ng-if="data.batch_based==1" style="background: lightskyblue;">B *</button>
         </td>
         <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
         <td ng-include="'views/production/toggle/common/custom_sku_details.html'">

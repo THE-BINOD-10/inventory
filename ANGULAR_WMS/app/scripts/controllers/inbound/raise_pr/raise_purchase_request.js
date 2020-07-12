@@ -204,6 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
           vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
+          vm.model_data.approval_remarks = data.data.approval_remarks;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {
               data.fields.cess_tax = 0;

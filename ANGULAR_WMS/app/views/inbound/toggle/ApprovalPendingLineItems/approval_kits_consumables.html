@@ -57,6 +57,7 @@
                  ng-class="service.get_decimal_perm()" 
                  ng-readonly="showCase.permissions.change_pendingpr && !showCase.permissions.po_or_pr_edit_permission_approver"
                  ng-change="showCase.checkResubmit(product.fields)"
+                 ng-keyup="showCase.getTotals(product)"
                  size="12">
         </td>
         <td>

@@ -77,7 +77,7 @@
                  ng-class="service.get_decimal_perm()"
                  ng-readonly="showCase.permissions.change_pendingpr && !showCase.permissions.po_or_pr_edit_permission_approver"
                  ng-change="showCase.checkResubmit(product.fields)"
-                 ng-keyup="showCase.getTotals()" size="12">
+                 ng-keyup="showCase.getTotals(product)" size="12">
         </td>
         <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
           <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="35">

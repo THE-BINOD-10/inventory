@@ -87,7 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'],
                       pending_level:aData['LevelToBeApproved']};
-            vm.form = 'raise_purchase_request';
+            vm.form = 'form';
             vm.dynamic_route(aData);
         });
       });

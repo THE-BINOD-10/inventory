@@ -432,10 +432,11 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         user_objs = get_related_user_objs(user.id, level=0)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
-            search_objs = user_objs.filter(username__icontains=search_term)
+            search_objs = user_objs.filter(first_name__icontains=search_term)
             search_users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
-            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_objs = user_objs.filter(Q(username__icontains=filter_params['sku__user__icontains'])
+                                           | Q(first_name__icontains=filter_params['sku__user__icontains']))
             search_users = list(search_objs.values_list('id', flat=True))
             del filter_params['sku__user__icontains']
             filter_params['supplier__user__in'] = search_users
@@ -463,7 +464,10 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = int(float(sku_preference))
             except:
                 sku_preference = 0
-        warehouse = User.objects.get(id=result.sku.user).username
+        warehouse_obj = User.objects.get(id=result.sku.user)
+        warehouse = warehouse_obj.username
+        if warehouse_obj.first_name:
+            warehouse = warehouse_obj.first_name
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),

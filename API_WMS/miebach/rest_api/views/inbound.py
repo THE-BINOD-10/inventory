@@ -3367,7 +3367,10 @@ def approve_pr(request, user=''):
         for i in range(0, len(myDict['wms_code'])):
             eachSku = myDict['wms_code'][i]
             amount = myDict['amount'][i]
-            tax = myDict['tax'][i]
+            if myDict['tax'][i]:
+                tax = float(myDict['tax'][i])
+            else:
+                tax = 0
             total = myDict['total'][i]
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
@@ -3385,8 +3388,32 @@ def approve_pr(request, user=''):
                 'moq': moq,
                 'total': total
             }
-            lineItemObj = lineItems.filter(sku__sku_code=eachSku)
-            TempJson.objects.create(model_id=lineItemObj[0].id,
+            pr_user = pendingPRObj.wh_user
+            store_user = get_admin(pr_user)
+            supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=supplier_id)
+            if supplyQs.exists():
+                tax_type = supplyQs[0].tax_type
+                if tax_type == 'inter_state':
+                        igst_tax = tax
+                        cgst_tax = 0
+                        sgst_tax = 0
+                else:
+                    igst_tax = 0
+                    cgst_tax = tax/2
+                    sgst_tax = tax/2
+            else:
+                cgst_tax, sgst_tax, igst_tax = [0]*3
+
+            lineItemQs = lineItems.filter(sku__sku_code=eachSku)
+            if lineItemQs.exists():
+                lineItemObj = lineItemQs[0]
+                lineItemObj.price = unit_price
+                lineItemObj.cgst_tax = cgst_tax
+                lineItemObj.sgst_tax = sgst_tax
+                lineItemObj.igst_tax = igst_tax
+                lineItemObj.save()
+
+            TempJson.objects.create(model_id=lineItemQs[0].id,
                                     model_name='PENDING_PR_PURCHASE_APPROVER',
                                     model_json=pr_approver_data)
     if pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted: #In last Level, no need to generate Hashcode, just confirmation mail is enough
@@ -4306,7 +4333,9 @@ def add_pr(request, user=''):
             else:
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
-                    lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
+                    lineItems = pendingPRObj.pending_prlineItems.filter()
+                    lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
+                    lineItemIds = lineItems.values_list('id', flat=True)
                     temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()

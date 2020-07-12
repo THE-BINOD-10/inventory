@@ -109,6 +109,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
+                                Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
                                 Q(pending_pr__sku_category__icontains=search_term) |
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
@@ -234,6 +235,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
+                                Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
                                 Q(pending_pr__sku_category__icontains=search_term) |
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
@@ -403,6 +405,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
         results = results.filter(Q(pending_po__po_number__icontains=search_term) |
+                                Q(pending_po__full_po_number__icontains=search_term) |
                                 Q(pending_po__requested_user__username__icontains=search_term) |
                                 Q(pending_po__final_status__icontains=search_term) |
                                 Q(pending_po__pending_level__icontains=search_term) |
@@ -3298,7 +3301,7 @@ def approve_pr(request, user=''):
         prev_approval_type = approval_type
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
-    if is_purchase_approver:
+    if 'total' in myDict.keys():
         for i in range(0, len(myDict['wms_code'])):
             totalAmt = 0
             try:
@@ -3321,9 +3324,8 @@ def approve_pr(request, user=''):
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
 
-    editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
+    '''editPermission = get_misc_value('po_or_pr_edit_permission_approver', user.id)
     if editPermission == 'true':
-        # myDict = dict(request.POST.iterlists())
         all_data, show_cess_tax, show_apmc_tax = get_raisepo_group_data(user, myDict)
         baseLevel = pendingPRObj.pending_level
         orderStatus = pendingPRObj.final_status
@@ -3337,7 +3339,7 @@ def approve_pr(request, user=''):
             full_pr_number = pendingPRObj.full_po_number
             createPRObjandReturnOrderAmt(request, myDict, all_data, wh_user, pr_number, baseLevel, prefix,
                     full_pr_number, orderStatus=orderStatus, is_po_creation=True,
-                    supplier=PRQs[0].supplier.supplier_id)
+                    supplier=PRQs[0].supplier.supplier_id)'''
     requestedUserEmail = PRQs[0].requested_user.email
     central_po_data = ''
     if central_data_id:

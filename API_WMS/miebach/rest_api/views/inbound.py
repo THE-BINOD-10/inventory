@@ -1752,6 +1752,14 @@ def generated_actual_pr_data(request, user=''):
                 else:
                     supplierName = ''
                 preferred_supplier = '%s:%s' %(supplierId, supplierName)
+                supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+                                                    'supplier_name': supplierName,
+                                                    'moq': json_data['moq'],
+                                                    'price': json_data['price'],
+                                                    'amount': json_data['amount'],
+                                                    'tax': json_data['tax'],
+                                                    'total': json_data['total'],
+                                                    }
              
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
@@ -1809,8 +1817,8 @@ def generated_actual_pr_data(request, user=''):
                                     json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
                     if is_doa_sent.exists():
                         is_doa_sent_flag = True
-                supplierDetailsMap = {}
-                preferred_supplier = ''
+                # supplierDetailsMap = {}
+                # preferred_supplier = ''
 
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,

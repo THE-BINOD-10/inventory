@@ -1715,8 +1715,6 @@ def generated_actual_pr_data(request, user=''):
         pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                         model_id=lineItemId)
         if pr_supplier_data.exists() and not is_purchase_approver:
-            if is_purchase_approver:
-                resubmitting_user = True
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
             supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
@@ -1735,7 +1733,17 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
         elif is_purchase_approver:
-            # parent_user = get_admin(user)
+            if pr_supplier_data.exists():
+                resubmitting_user = True
+                json_data = eval(pr_supplier_data[0].model_json)
+                supplierId = json_data['supplier_id']
+                supplierQs = SupplierMaster.objects.filter(user=parent_user.id, supplier_id=supplierId)
+                if supplierQs.exists():
+                    supplierName = supplierQs[0].name
+                else:
+                    supplierName = ''
+                preferred_supplier = '%s:%s' %(supplierId, supplierName)
+             
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
             pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
@@ -3125,9 +3133,9 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         if poFor:
-            reqURLPath = 'pending_po_request'
+            reqURLPath = 'notifications/email/pending_po_request'
         else:
-            reqURLPath = 'pending_pr_request'
+            reqURLPath = 'notifications/email/pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
@@ -6513,7 +6521,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
         if round_off_checkbox=='on':
-            total_price = round_off_total
+            total_price = float(round_off_total)
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
         else:

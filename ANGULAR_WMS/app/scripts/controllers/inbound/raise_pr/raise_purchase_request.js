@@ -315,10 +315,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     });
 
     }
-    if ($rootScope.$current_pr != '') {
-      vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
-      vm.dynamic_route($rootScope.$current_pr);
-    }
+    // if ($rootScope.$current_pr != '') {
+    //   vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
+    //   vm.dynamic_route($rootScope.$current_pr);
+    // }
     vm.base = function() {
       vm.title = "Raise PR";
       vm.vendor_produce = false;
@@ -501,7 +501,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (data.$valid) {
         // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
-          elem = elem[0];
+          elem = elem[1];
           elem = $(elem).serializeArray();
           if (is_resubmitted == 'true'){
             elem.push({name:'is_resubmitted', value:true})

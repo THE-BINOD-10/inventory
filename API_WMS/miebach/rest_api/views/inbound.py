@@ -3125,9 +3125,9 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         creation_date = get_local_date(user, result.creation_date)
         delivery_date = result.delivery_date.strftime('%d-%m-%Y')
         if poFor:
-            reqURLPath = 'pending_po_request'
+            reqURLPath = 'notifications/email/pending_po_request'
         else:
-            reqURLPath = 'pending_pr_request'
+            reqURLPath = 'notifications/email/pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
         warehouseName = user.first_name
@@ -6513,7 +6513,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9] + key[11])
         if round_off_checkbox=='on':
-            total_price = round_off_total
+            total_price = float(round_off_total)
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
         else:

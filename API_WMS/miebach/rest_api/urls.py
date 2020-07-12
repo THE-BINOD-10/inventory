@@ -31,6 +31,7 @@ urlpatterns = [
     # Master
     url(r'^get_sku_data/$', get_sku_data),
     url(r'^update_sku/$', update_sku),
+    url(r'^update_sku_doa/$', update_sku_doa),
     url(r'^get_supplier_master_data/$', get_supplier_master_data),
     url(r'^get_supplier_update/$', get_supplier_update),
     url(r'^get_machine_update/$', get_machine_update),

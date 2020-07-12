@@ -428,10 +428,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.url = "insert_sku/";
           }else{
             vm.url = "insert_sku_doa/";
+            window.location.reload();
+            vm.service.refresh(vm.dtInstance);
           }}
       else {
-         vm.url = "update_sku/";
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "update_sku/";
+          }
+        else{
+          vm.url = "update_sku_doa/";
+          window.location.reload();
         }
+        }
+         window.location.reload();
+         vm.service.refresh(vm.dtInstance);
          vm.update_sku();
       }
     }

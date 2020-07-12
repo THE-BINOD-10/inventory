@@ -96,17 +96,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('enable_serial_based').withTitle('Enable Serial Based'),
       DTColumnBuilder.newColumn('sku_type').withTitle('Sku Type'),
       DTColumnBuilder.newColumn('hsn_code').withTitle('HSN Code'),
-      DTColumnBuilder.newColumn('sale_through').withTitle('Sale Through'),
+//      DTColumnBuilder.newColumn('sale_through').withTitle('Sale Through'),
       DTColumnBuilder.newColumn('style_name').withTitle('Style Name'),
       DTColumnBuilder.newColumn('ean_number').withTitle('Ean Number'),
       DTColumnBuilder.newColumn('shelf_life').withTitle('Shelf Life'),
       DTColumnBuilder.newColumn('sku_class').withTitle('SKU Class'),
       DTColumnBuilder.newColumn('image_url').withTitle('Image Url'),
       DTColumnBuilder.newColumn('doa_status').withTitle('Status'),
+      DTColumnBuilder.newColumn('request_type').withTitle('Request Type'),
+
      ];
   if(vm.warehouse_level==0) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
     }
+  vm.update_data = {};
+    vm.zone_id = "red";
+    vm.status_data = ['Inactive','Active'];
+    vm.block_for_po_list = ['Yes', 'No'];
+    vm.sku_types = ['', 'FG', 'RM'];
+    vm.status = vm.status_data[0];
+    vm.qc_data = ['Disable','Enable'];
+    vm.qc = vm.qc_data[0];
+    vm.block_options = vm.block_for_po_list[0];
+    vm.market_list = [];
+    vm.market;
+    vm.market_data = [];
+    vm.uom_data = [];
+    vm.files = [];
+    vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
+    vm.sku_measurement_types = vm.service.units;
+    if (Service.searched_wms_code != '') {
+      vm.model_data.sku_data.sku_code = Service.searched_wms_code;
+    };
 
   function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
     $('td', nRow).unbind('click');
@@ -118,6 +139,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.apiCall("get_sku_master_doa_record/", "GET", {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
          if (data.message) {
           vm.update=true;
+          if (data.data.data.wms_code == ''){
           vm.model_data.sku_data = data.data.data;
           vm.sku_types = ['', 'FG', 'RM'];
           vm.files = [];
@@ -131,16 +153,76 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
           vm.sku_measurement_types = vm.service.units;
           $state.go('app.masters.SKUMaster.Mapping');
-        }
-        });
-      vm.title ="Add SKU";
+          vm.title ="Add SKU";
+        } else if (data.data.data.sku_data.wms_code !=''){
+          data = data.data.data;
+                  vm.update=true;
+                  vm.model_data.serial_number = vm.permissions.use_imei;
+                  vm.model_data.user_type = vm.permissions.user_type;
+                  vm.model_data.sku_data = data.sku_data;
+                  vm.model_data.market_data = data.market_data;
+                  vm.model_data.uom_data = data.uom_data;
+                  vm.model_data.zones = data.zones;
+                  vm.model_data.groups = data.groups;
+                  vm.model_data.sizes_list =  data.sizes_list;
+                  vm.model_data.combo_data = data.combo_data;
+                  vm.model_data.product_types = data.product_types;
+                  vm.model_data.sub_categories = data.sub_categories;
+                  var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
+                  vm.model_data.sku_data.zone = vm.model_data.zones[index];
+                  vm.model_data.attributes = data.attributes;
+                  vm.model_data.measurement_type = data.sku_data.measurement_type;
+                  //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
+                  //if (vm.permissions.show_vehiclemaster) {
+                  angular.forEach(vm.model_data.attributes, function(attr_dat){
+                    if(data.sku_attributes[attr_dat.attribute_name])
+                    {
+                      attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
+                    }
+                  });
+                  //}
+                  for (var j=0; j<vm.model_data.market_data.length; j++) {
+                    var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
+                    vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];
+                    vm.model_data.market_data[j]['disable'] = true;
+                  };
+
+                  var group_index = vm.model_data.groups.indexOf(vm.model_data.sku_data.sku_group);
+                  vm.model_data.sku_data.sku_group = vm.model_data.groups[group_index];
+
+                  index = vm.sku_types.indexOf(vm.model_data.sku_data.sku_type);
+                  vm.model_data.sku_data.sku_type = vm.sku_types[index];
+
+                  vm.model_data.sku_data.status = vm.status_data[vm.model_data.sku_data.status];
+                  vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
+
+                  vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
+                  vm.isEmptyUOM = (data.uom_data.length > 0) ? false : true;
+                  vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
+                  vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
+                  vm.change_size_type(vm.model_data.sku_data.size_type);
+                  if(vm.model_data.sku_data.ean_number == "0") {
+
+                      vm.model_data.sku_data.ean_number = "";
+                  }
+                  if(vm.model_data.sku_data.enable_serial_based) {
+                    vm.model_data.sku_data.enable_serial_based = true
+                  } else {
+                    vm.model_data.sku_data.enable_serial_based = false
+                  }
+                  $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
+                  $state.go('app.masters.SKUMaster.Mapping');
+                vm.title ="Update SKU";
+                }
+                }
+                });
+
       });
     });
    return nRow;
   }
   $scope.$on('change_filters_data', function(){
     vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-    vm.reloadData();
   });
 
   //close popup
@@ -159,6 +241,46 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.close();
     });
   }
+  vm.change_size_type = function(item) {
+
+    if(!(item)) {
+      item = "Default";
+    }
+    angular.forEach(vm.model_data.sizes_list, function(record) {
+
+      if(item == record.size_name)  {
+        vm.model_data.sizes = record.size_values;
+
+        if(vm.model_data.sku_data.sku_size && (vm.model_data.sizes.indexOf(vm.model_data.sku_data.sku_size) != -1)) {
+          console.log("it is there")
+        } else {
+          //vm.model_data.sku_data.sku_size = vm.model_data.sizes[0];
+          vm.model_data.sku_data.sku_size = '';
+        }
+      }
+    })
+  }
+
+  vm.find_sizes = function(item) {
+
+    if(item) {
+      angular.forEach(vm.model_data.sizes_list, function(record) {
+
+        if(record.size_values.indexOf(item) != -1) {
+          vm.model_data.sizes = record.size_values;
+        }
+      })
+    } else {
+      angular.forEach(vm.model_data.sizes_list, function(record) {
+        if(record.size_name == '') {
+          record.size_values.push('');
+          vm.model_data.sizes = record.size_values;
+          vm.model_data.sku_data.sku_size = '';
+        }
+      })
+    }
+  }
+
   vm.market_send = {market_sku_type:[],marketplace_code:[],description:[],market_id:[]}
   vm.update_sku = update_sku;
   function update_sku() {
@@ -247,7 +369,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
                   $state.go('app.outbound.CreateOrders');
                 } else {
-                  if (response == "New WMS Code Added"){
+                  if (response == "New WMS Code Added" || response == "Updated Successfully"){
                     vm.change_status_data();
                   }
                 }
@@ -262,6 +384,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if ( data.$valid ){
       if ("Add SKU" == vm.title) {
           vm.url = "insert_sku/";
+      }else{
+          vm.url = "update_sku/";
       }
       vm.update_sku();
     }

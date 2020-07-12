@@ -27,7 +27,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">SKU Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN'">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.wms_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -360,10 +360,10 @@
                       <option ng-repeat="uom_type in showCase.model_data.uom_type_list" value="{{uom_type}}" ng-selected="uom_type.toLowerCase()==uom.uom_type.toLowerCase()">{{uom_type}}</option>
                     </select>
                   </td>
-                  <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-change="showCase.update_uom_name(uom)"></td>
-                  <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-change="showCase.update_uom_name(uom)"></td>
+                  <td><input type="text" name="uom_name" class="form-control" ng-model="uom.uom_name" ng-change="showCase.update_uom_name(uom)" ng-readonly ="showCase.user_profile.warehouse_type!='ADMIN'"></td>
                   <td><input type="text" name="name" class="form-control" ng-model="uom.name" readonly></td>
-                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_uom($index, uom.uom_id)"></i></td>
+                  <td><input type="text" name="conversion" class="form-control" ng-model="uom.conversion" ng-change="showCase.update_uom_name(uom)" ng-readonly ="showCase.user_profile.warehouse_type!='ADMIN'"></td>
+                  <td><i class="fa fa-minus-square minus" ng-click="showCase.remove_uom($index, uom.uom_id)" ng-disabled ="showCase.user_profile.warehouse_type!='ADMIN'" ></i></td>
                 </tr>
               </tbody>
             </table>
@@ -373,7 +373,7 @@
 <!--              <button type="button" class="btn btn-default add-market" ng-click="showCase.add_market()">Add New Market place</button>-->
 <!--            </center>-->
             <center>
-              <button type="button" class="btn btn-default add-uom" ng-click="showCase.add_uom()">Add New UOM</button>
+              <button type="button" class="btn btn-default add-uom" ng-click="showCase.add_uom()" ng-disabled ="showCase.user_profile.warehouse_type!='ADMIN'">Add New UOM</button>
             </center>
           </div>
           <div class="row" ng-if="showCase.combo && showCase.update">
@@ -468,6 +468,10 @@
         <div ng-if="showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa)">
           <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa) && (!showCase.update))"
                 style="background: green;color: white;" ng-if="(!showCase.update)">Send For Approval</button>
+        </div>
+        <div ng-if="showCase.update">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (showCase.update))"
+                style="background: green;color: white;">Send For Approval</button>
         </div>
       <div ng-if="showCase.user_profile.warehouse_type =='ADMIN'">
         <button type="submit" class="btn pop pop-green"  ng-click="showCase.submit(form)" ng-disabled="process">

@@ -540,7 +540,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.submit_enquiry = function(form){
-      var elem = angular.element($('form'));
+      // var elem = angular.element($('form'));
+      var elem = angular.element($("form[name='pending_for_approval']"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       // if (vm.is_purchase_request){

@@ -533,7 +533,7 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number',
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number',
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -610,6 +610,7 @@ data_datatable = {  # masters
     'CreatedRTV': 'get_saved_rtvs', \
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
+    'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
@@ -928,7 +929,9 @@ def pr_request(request):
         return HttpResponse("Error")
     prApprObj = prApprQs[0]
     fieldsMap = {}
+    send_path = ''
     if prApprObj.pending_pr:
+        send_path = 'app.inbound.RaisePr'
         lineItems = prApprObj.pending_pr.pending_prlineItems
         prefix = prApprObj.pending_pr.prefix
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
@@ -949,6 +952,7 @@ def pr_request(request):
                 }
         purchase_type = 'PR'
     else:
+        send_path = 'app.inbound.RaisePo'
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
@@ -1008,7 +1012,7 @@ def pr_request(request):
         purchase_data_id = prApprObj.pending_po_id
     else:
         purchase_data_id = prApprObj.pending_pr_id
-    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
+    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number, 'path': send_path}})
     #Data Table Data
     temp_data = {'aaData':[]}
     user = parentUser
@@ -1182,9 +1186,10 @@ def add_update_pr_config(request,user=''):
     company_id = get_company_id(user)
     if toBeUpdateData:
         data = toBeUpdateData
-        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'default')
         update_purchase_approval_config_data(company_id, purchase_type, data, user, 'ranges')
-        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'approved')
+        if purchase_type == 'PR':
+            update_purchase_approval_config_data(company_id, purchase_type, data, user, 'default')
+            update_purchase_approval_config_data(company_id, purchase_type, data, user, 'approved')
             # To Delete Existing Mails from  Level
             # mailsList = [i.strip() for i in mails.split(',')]
             # memQs = MasterEmailMapping.objects.filter(master_type=master_type,
@@ -12428,20 +12433,29 @@ def get_warehouse_department_list(request, user=''):
     return HttpResponse(json.dumps({'department_list': department_list}))
 
 
-def get_purchase_config_role_mailing_list(user, app_config, company_id):
+def get_purchase_config_role_mailing_list(request_user, user, app_config, company_id):
     user_roles = app_config.user_role.filter().values_list('role_name', flat=True)
     mail_list = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
+        emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
             staff_check['plant__name'] = get_admin(user).username
+        elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            del staff_check['user']
+            staff_check['plant__name'] = user.username
         if app_config.department_type:
             staff_check['department_type'] = app_config.department_type
-        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+        if user_role == 'Reporting Manager':
+            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+            if cur_staff_obj.exists():
+                emails = [cur_staff_obj[0].reportingto_email_id]
+        if not emails:
+            emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
             break_loop = True
             admin_user = user
@@ -12630,3 +12644,27 @@ def get_uom_conversion_value(sku, uom_type):
         conversion = uom_obj[0].conversion
         conversion_name = uom_obj[0].name
     return conversion_name, conversion
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_staff_plants_list(request, user=''):
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+    plants_list = []
+    department_type_list = []
+    if staff_obj:
+        staff_obj = staff_obj[0]
+        plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+        if not plants_list:
+            plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                      company_id=user.userprofile.company_id)
+            plants_list = dict(plant_objs.values_list('username', 'first_name'))
+        if staff_obj.department_type:
+            department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+        else:
+            department_type_list = department_type_mapping
+    return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))

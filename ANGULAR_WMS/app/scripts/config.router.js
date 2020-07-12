@@ -25,14 +25,16 @@ var app = angular.module('urbanApp')
        window.scrollTo(0, 0);
      });
      FastClick.attach(document.body);
-     if(window.location.href.includes('pending_pr_request') || window.location.href.includes('pending_po_request')){
-       var tmp_route = window.location.href.includes('pending_pr_request') ? 'pending_pr_request' : 'pending_po_request';
-       if(window.location.href.split(tmp_route)[1].includes('hash_code')) {
+     if(window.location.href.includes('notifications/email')){
+       var request_hash_code = window.location.href.split('notifications/email/')[1];
+       var tmp_route = request_hash_code.split('?hash_code')[0];
+       if(request_hash_code.includes('hash_code')) {
          Session.unset();
          $rootScope.$redirect = tmp_route;
-         var data = window.location.href.split(tmp_route)[1];
+         var data = request_hash_code.split(tmp_route)[1];
+         var loader_header = tmp_route == 'pending_pr_request' ? 'PR' : 'PO';
          swal2({
-           title: 'Redirecting to Validate PO',
+           title: 'Redirecting to Validate '+loader_header,
            text: 'User Authentication in Progress..',
            imageUrl: 'images/default_loader.gif',
            imageWidth: 150,
@@ -43,11 +45,10 @@ var app = angular.module('urbanApp')
          $http.get(Session.url + tmp_route +'/'+data).then(function (resp) {
           if (resp) {
            resp = resp.data;
+           var main_route = resp['pr_data']['path'];
            if (tmp_route == 'pending_pr_request') {
-             var main_route = "app.inbound.RaisePr";
              $rootScope.$current_pr = resp.aaData['aaData'][0]
            } else {
-             var main_route = "app.inbound.RaisePo";
              $rootScope.$current_po = resp.aaData['aaData'][0]
            }
            localStorage.clear();
@@ -58,7 +59,7 @@ var app = angular.module('urbanApp')
              }
            }
        });
-       }
+      }
      } else {
         var skipAsync = false;
         var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
@@ -953,6 +954,10 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_pr/raise_purchase_request.js'
                 ]).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/inbound/raise_pr/pending_for_approval_pr.js'
+                  ])
+                }).then( function() {
                     return $ocLazyLoad.load([
                       'scripts/controllers/inbound/pending_pr_enquiries.js'
                   ])

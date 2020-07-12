@@ -1,5 +1,6 @@
 <div class="row">
   <div class="col-md-12">
+    is_pa_resubmitted::{{showCase.is_pa_resubmitted}}
     <table class="table" class="pull-left">
       <thead>
         <tr>
@@ -20,12 +21,12 @@
       <tbody>
         <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
           <td>
-            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
+            <input type="text" autocomplete="off" ng-if="!product.fields.preferred_supplier" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', 'is_parent')" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
             ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');"
             >
-            <select ui-select class="form-control" name="supplier" style="width:140px;"
+            <select ui-select class="form-control" name="supplier_id" style="width:140px;"
             ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
             ng-model="product.fields.supplier_id_name" 
             ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields)"
@@ -35,8 +36,8 @@
               value="{{supplier_id_name}}" ng-selected="supplier_id_name==product.fields.suppleir_id_name">{{supplier_id_name}}
               </option>
             </select>
-            <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide"
-            ng-if="product.fields.supplierDetails">
+            <!-- <input type="text" name="supplier_id" ng-model="product.fields.supplier_id" class="hide"
+            ng-if="product.fields.supplierDetails"> -->
           </td>
           <td>
             <input type="text" autocomplete="off" name="wms_code"
@@ -56,7 +57,7 @@
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()"
-                   ng-readonly="showCase.permissions.change_pendingpr && !showCase.permissions.po_or_pr_edit_permission_approver"
+                   ng-readonly="!showCase.quantity_editable"
                    ng-change="showCase.checkResubmit(product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
           </td>

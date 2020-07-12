@@ -194,7 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
                 if (vm.permissions.dispatch_qc_check) {
                   vm.main_sr_number = aData['SR Number']
-                } 
+                }
                 else {
                   vm.main_sr_number = ''
                 }
@@ -440,6 +440,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
+      vm.display_approval_button_DOA = false;
       vm.send_admin_mail = false;
       if (vm.discrepancy_data) {
          vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
@@ -863,7 +864,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             elem.push(elem_dict)
           }
         }
-        if(vm.send_for_approval_check){
+        if(vm.display_approval_button==true){
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
           elem.push({'name':'total_order_qty', 'value': vm.total_order_qty});
           elem.push({'name':'total_receivable_qty', 'value': vm.total_receivable_qty});
@@ -879,7 +880,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        if(vm.send_for_approval_check){
+        if(vm.display_approval_button==true){
 
           url = "send_for_approval_confirm_grn/"
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
@@ -912,7 +913,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else{
                      angular.element(".modal-body").html($(data.data));
                 }
-  
+
                 vm.print_enable = true;
                 vm.service.refresh(vm.dtInstance);
                 if(vm.permissions.use_imei) {
@@ -2790,6 +2791,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return
     }
     vm.display_approval_button = false;
+    vm.display_approval_button_DOA = false;
     vm.send_admin_mail = false;
     if (outerindex != undefined) {
       vm.model_data.data[outerindex][innerindex].wrong_sku = 0

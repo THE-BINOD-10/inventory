@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.is_contracted_supplier = false;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
+    vm.quantity_editable = false;
     vm.filters = {'datatable': 'PendingPRApproval', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
                   'special-key':'approved'}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -248,29 +249,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
-          vm.checkResubmit = function(sku_data){
-            vm.is_resubmitted = false;
-            if (!vm.permissions.change_pendingpr){
-              if (sku_data.order_quantity){
-                angular.forEach(vm.model_data.data, function(eachField){
-                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
-                    vm.is_resubmitted = true
-                    vm.update = true;
-                  }
-                })
-              }
-            } else {
-              if (sku_data.order_quantity){
-                angular.forEach(vm.model_data.data, function(eachField){
-                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
-                    vm.update = true;
-                  }
-                })
-              }
-            }
-          }
+          // vm.checkResubmit = function(sku_data){
+          //   vm.is_resubmitted = false;
+          //   if (!vm.permissions.change_pendingpr){
+          //     if (sku_data.order_quantity){
+          //       angular.forEach(vm.model_data.data, function(eachField){
+          //         var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+          //         if (oldQty != parseInt(eachField.fields.order_quantity)){
+          //           vm.is_resubmitted = true
+          //           vm.update = true;
+          //         }
+          //       })
+          //     }
+          //   } else {
+          //     if (sku_data.order_quantity){
+          //       angular.forEach(vm.model_data.data, function(eachField){
+          //         var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
+          //         if (oldQty != parseInt(eachField.fields.order_quantity)){
+          //           vm.update = true;
+          //         }
+          //       })
+          //     }
+          //   }
+          // }
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];

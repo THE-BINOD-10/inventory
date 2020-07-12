@@ -1455,16 +1455,35 @@ vm.checkWHSupplierExist  = function (sup_id) {
 
   vm.plants_list = {};
   vm.department_type_list = {};
+  vm.department_type_mapping = {};
   vm.get_staff_plants_list = get_staff_plants_list;
   function get_staff_plants_list() {
     vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
       if(data.message) {
         vm.plants_list = data.data.plants_list;
         vm.department_type_list = data.data.department_type_list;
+        vm.department_type_mapping = data.data.department_type_list;
       }
     });
   }
   vm.get_staff_plants_list();
+
+  vm.department_list = [];
+  vm.get_warehouse_department_list = get_warehouse_department_list;
+  function get_warehouse_department_list() {
+    var wh_data = {};
+    vm.department_type_list = {};
+    wh_data['warehouse'] = vm.model_data.plant;
+    wh_data['warehouse_type'] = 'DEPT';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        angular.forEach(data.data.warehouse_list, function(dat){
+          vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code]
+        });
+      }
+    });
+  }
+
 }
 
 // angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {

@@ -282,21 +282,24 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                 pr_user=pr_user, product_category=product_category).exclude(status='on_approved').order_by('-creation_date')
-                last_updated_by = prApprQs[0].validated_by
-                last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                last_updated_remarks = prApprQs[0].remarks
+                if prApprQs.exists():
+                    last_updated_by = prApprQs[0].validated_by
+                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                    last_updated_remarks = prApprQs[0].remarks
             else:
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                     pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
-                    last_updated_by = prApprQs[0].validated_by
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
-                    last_updated_remarks = prApprQs[0].remarks
+                    if prApprQs.exists():
+                        last_updated_by = prApprQs[0].validated_by
+                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                        last_updated_remarks = prApprQs[0].remarks
                 else:
                     prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                     pr_user=pr_user, level=result['pending_pr__pending_level'], product_category=product_category)
-                    last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+                    if prApprQs.exists():
+                        last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         if result['pending_pr__sub_pr_number']:
             full_pr_number = "%s/%s" % (result['pending_pr__full_pr_number'], result['pending_pr__sub_pr_number'])
         else:
@@ -1622,6 +1625,7 @@ def generated_actual_pr_data(request, user=''):
     levelWiseRemarks = []
     pr_delivery_date = ''
     pr_created_date = ''
+    approval_remarks = ''
     validateFlag = 0
     uploaded_file_dict = {}
     enquiryRemarks = []
@@ -1630,6 +1634,8 @@ def generated_actual_pr_data(request, user=''):
             pr_delivery_date = record[0].delivery_date.strftime('%d-%m-%Y')
         pr_created_date = record[0].creation_date.strftime('%d-%m-%Y')
         levelWiseRemarks.append({"level": 'creator', "validated_by": record[0].requested_user.email, "remarks": record[0].remarks})
+        if record[0].final_status == 'saved':
+            approval_remarks = record[0].remarks
     convertPoFlag = False
     if record[0].final_status == 'approved':
         db_wh_level = int(record[0].wh_user.userprofile.warehouse_level)
@@ -1831,7 +1837,8 @@ def generated_actual_pr_data(request, user=''):
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,
                                     'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
                                     'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category,
-                                    'resubmitting_user': resubmitting_user}))
+                                    'resubmitting_user': resubmitting_user,
+                                    'approval_remarks': approval_remarks}))
 
 
 @csrf_exempt

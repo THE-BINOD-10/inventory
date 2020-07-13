@@ -3327,9 +3327,6 @@ def approve_pr(request, user=''):
                                                         level=pending_level, approval_type=approval_type)
         apprConfObjId = confObj[0].id
         mailsList = get_purchase_config_role_mailing_list(request.user, user, confObj[0], company_id)
-        # mailsList = MasterEmailMapping.objects.filter(user=pr_user,
-        #             master_id=apprConfObjId,
-        #             master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
 
@@ -3355,12 +3352,6 @@ def approve_pr(request, user=''):
         temp_jsons = TempJson.objects.filter(model_id=central_data_id, model_name='CENTRAL_PO')
         if temp_jsons.exists():
             central_po_data = temp_jsons[0].model_json
-
-    # change_pendinglineitem = get_permission(request.user, 'change_pendinglineitems')
-    # change_pr = get_permission(request.user, 'change_pendingpr')
-    # is_purchase_approver = False
-    # if change_pendinglineitem and change_pr:
-    #     is_purchase_approver = True
     is_resubmitted = False
     if is_purchase_approver:
         lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
@@ -4085,6 +4076,7 @@ def get_pr_preview_data(request, user=''):
         supplierDetailsMap = {}
         lineItemId = lineItem.id
         sku_code = lineItem.sku.sku_code
+        hsn_code = lineItem.sku.hsn_code
         description_edited = ''
         tempLineItemQs = TempJson.objects.filter(model_id=lineItemId,
             model_name='PendingLineItemMiscDetails')
@@ -4136,7 +4128,8 @@ def get_pr_preview_data(request, user=''):
                       'pr_number': ','.join(skuPrNumsMap[uniq_key]),
                       'product_category': prod_catg,
                       'supplierDetails': supplierDetailsMap,
-                      'preferred_supplier': supplierDetailsMap.keys()[0]}
+                      'preferred_supplier': supplierDetailsMap.keys()[0],
+                      'hsn_code': hsn_code}
         if description_edited:
             reqLineMap['description_edited'] = description_edited
         reqLineMap['supplierDetails'] = supplierDetailsMap

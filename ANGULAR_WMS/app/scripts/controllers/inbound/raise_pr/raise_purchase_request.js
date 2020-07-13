@@ -817,7 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.update_raise_pr = function() {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
@@ -1478,7 +1478,9 @@ vm.checkWHSupplierExist  = function (sup_id) {
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
         angular.forEach(data.data.warehouse_list, function(dat){
-          vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code]
+          if(vm.department_type_mapping[dat.stockone_code]) {
+            vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code];
+          }
         });
       }
     });

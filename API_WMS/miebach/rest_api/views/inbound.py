@@ -5984,7 +5984,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     else:
         total_grn_value = float(request.POST.get('grn_total_amount', 0))
     credit_status = 0
-    if inv_value > total_grn_value:
+    if (inv_value - total_grn_value) > 20:
         credit_status = 1
     invoice_datum = {'invoice_value': inv_value, 'invoice_quantity': inv_qty, 'status': credit_status}
     for i in range(len(myDict['id'])):
@@ -14707,7 +14707,7 @@ def get_credit_note_po_data(request, user=''):
                 if other_charges.exists():
                     other_charges = other_charges[0]['total']
                     grn_total_price = grn_total_price + other_charges
-    return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': grn_total_price}))
+    return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': round(grn_total_price, 2)}))
 
 @csrf_exempt
 @login_required

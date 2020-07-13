@@ -799,13 +799,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-    {
-      name: "Edit permission to Approvers for POs/PRs",
-      model_name: "po_or_pr_edit_permission_approver",
-      param_no: 111,
-      class_name: "fa fa-server",
-      display: true
-    },
+    //{ 
+    //   name: "Edit permission to Approvers for POs/PRs",
+    //   model_name: "po_or_pr_edit_permission_approver",
+    //   param_no: 111,
+    //   class_name: "fa fa-server",
+    //   display: true
+    // },
     {
       name: "Stock Transfer Auto Receive",
       model_name: "stock_auto_receive",

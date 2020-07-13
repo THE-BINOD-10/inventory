@@ -25,7 +25,7 @@
                   <th>Product Category</th>
                   <th>SKU Code</th>
                   <th>SKU Desc</th>
-                  <th ng-if="data.product_category=='Services'">Details</th>
+                  <th ng-if="showCase.preview_data.data[0]['product_category']=='Services'">Details</th>
                   <!-- <th>MOQ</th> -->
                   <th>Quantity</th>
                   <th>Unit Rate(INR)</th>
@@ -72,9 +72,9 @@
           </div>
         </div>
         <div class="row mb10">
-          <button type="button" class="btn btn-success pull-left ml15" ng-click="showCase.send_to_parent_store(form)" ng-if="showCase.warehouse_type == 'SUB_STORE'">
+          <!-- <button type="button" class="btn btn-success pull-left ml15" ng-click="showCase.send_to_parent_store(form)" ng-if="showCase.warehouse_type == 'SUB_STORE'">
             Send To Parent Store
-          </button>
+          </button> -->
           <button type="button" class="btn btn-danger pull-right mr15" ng-click="showCase.convert_pr_to_po(form)">
             Convert to PO
           </button>

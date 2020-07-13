@@ -258,29 +258,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
-          vm.checkResubmit = function(sku_data){
-            vm.is_resubmitted = false;
-            if (!vm.permissions.change_pendingpr){
-              if (sku_data.order_quantity){
-                angular.forEach(vm.model_data.data, function(eachField){
-                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
-                    vm.is_resubmitted = true
-                    vm.update = true;
-                  }
-                })
-              }
-            } else {
-              if (sku_data.order_quantity){
-                angular.forEach(vm.model_data.data, function(eachField){
-                  var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-                  if (oldQty != parseInt(eachField.fields.order_quantity)){
-                    vm.update = true;
-                  }
-                })
-              }
-            }
-          }
 
           vm.checkResubmitPurchaseApprover = function(sku_data) {
             if (!vm.resubmitting_user) {
@@ -507,26 +484,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-    vm.save_raise_pr = function(data, type, is_resubmitted=false) {
-      if (data.$valid) {
-        // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
-          var elem = angular.element($('form'));
-          elem = elem[0];
-          elem = $(elem).serializeArray();
-          if (is_resubmitted == 'true'){
-            elem.push({name:'is_resubmitted', value:true})
-          }
-          // if (vm.pr_number){
-          //   // elem.push({name:'pr_number', value:vm.pr_number})
-          // }
-          var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-          if (type == 'save'){
-            confirm_api ? vm.update_raise_pr() : '';
-          } else {
-            confirm_api ? vm.add_raise_pr(elem) : '';
-          }
-      }
-    }
 
     vm.approve_pr = function(form, validation_type) {
       var elem = angular.element($("form[name='pending_for_approval']"));
@@ -583,7 +540,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.submit_enquiry = function(form){
-      var elem = angular.element($('form'));
+      // var elem = angular.element($('form'));
+      var elem = angular.element($("form[name='pending_for_approval']"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       // if (vm.is_purchase_request){

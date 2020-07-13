@@ -1674,6 +1674,7 @@ def generated_actual_pr_data(request, user=''):
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:
         validated_users.insert(0, record[0].requested_user.email)
+    validated_users = list(set(validated_users))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}

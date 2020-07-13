@@ -817,7 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.update_raise_pr = function() {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})

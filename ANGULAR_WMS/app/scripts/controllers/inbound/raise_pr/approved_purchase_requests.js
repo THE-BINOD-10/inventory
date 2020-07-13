@@ -642,8 +642,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
+      var hsn_code_err_flag = false;
       angular.forEach(vm.preview_data.data, function(eachLineItem){
         if (eachLineItem.checkbox){
+          if (!eachLineItem.hsn_code) {
+            vm.service.showNoty("HSN Code is missing");
+            var hsn_code_err_flag = true;
+            return;
+          }
           if (eachLineItem.product_category == 'Kits&Consumables' && 
                 (Object.keys(eachLineItem.supplierDetails).length == 0)){
             vm.service.showNoty("Supplier Should be present for Kits&Consumables");
@@ -659,7 +665,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       });
-      if (selectedItems.length == 0){
+      if (selectedItems.length == 0 && !hsn_code_err_flag){
         vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
       }
       var finalAlerMsg = '';

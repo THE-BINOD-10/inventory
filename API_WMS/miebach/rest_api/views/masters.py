@@ -4780,7 +4780,7 @@ def update_staff_values(request, user=''):
     sub_user = User.objects.get(username=data.email_id)
     if old_position != position:
         update_user_role(user, sub_user, position, old_position=old_position)
-    data.position = position
+        data.position = position
     data.phone_number = phone
     data.status = status
     data.reportingto_email_id = reportingto_email_id

@@ -935,7 +935,9 @@ def pr_request(request):
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
                         'pending_pr__requested_user__username', 'pending_pr__pr_number',
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
-                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number']
+                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number',
+                        'pending_pr__product_category', 'pending_pr__sku_category',
+                        'pending_pr__wh_user__username', 'pending_pr__priority_type']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -947,6 +949,10 @@ def pr_request(request):
                     'delivery_date': 'pending_pr__delivery_date',
                     'purchase_id': 'pending_pr_id',
                     'full_purchase_number': 'pending_pr__full_pr_number',
+                    'product_category': 'pending_pr__product_category',
+                    'sku_category': 'pending_pr__sku_category',
+                    'wh_user': 'pending_pr__wh_user__username',
+                    'priority_type': 'pending_pr__priority_type',
                 }
         purchase_type = 'PR'
     else:
@@ -957,7 +963,11 @@ def pr_request(request):
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
                         'pending_po__delivery_date', 'pending_po__supplier__supplier_id',
-                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number']
+                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number',
+                        'pending_po__product_category', 'pending_po__sku_category',
+                        'pending_po__pending_level', 'pending_po__wh_user__username',
+                        'pending_pr__priority_type'
+                        ]
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -969,23 +979,27 @@ def pr_request(request):
                     'delivery_date': 'pending_po__delivery_date',
                     'purchase_id': 'pending_po_id',
                     'full_purchase_number': 'pending_po__full_po_number',
+                    'product_category': 'pending_po__product_category',
+                    'sku_category': 'pending_po__sku_category',
+                    'wh_user': 'pending_po__wh_user__username',
+                    'priority_type': 'pending_pr__priority_type',
                 }
         purchase_type = 'PO'
 
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
     admin_user = None
-    if parentUser.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-        userQs = UserGroups.objects.filter(user=parentUser)
-        if userQs.exists:
-            parentCompany = userQs[0].company_id
-            admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-            admin_user = admin_userQs[0].user
-    if admin_user:
-        sub_users = get_sub_users(admin_user)
-    else:
-        sub_users = get_sub_users(parentUser)
-    reqSubUser = sub_users.get(email=email_id)
+
+    linked_whs = get_related_users_filters(parentUser.id, send_parent=True)
+    sub_user_id_list = []
+    for linked_wh in linked_whs:
+        sub_objs =  get_sub_users(linked_wh)
+        sub_user_id_list = list(chain(sub_user_id_list, sub_objs.values_list('id', flat=True)))
+    try:
+        reqSubUser = User.objects.get(email=email_id, id__in=sub_user_id_list)
+    except Exception as e:
+        import traceback;
+        log.info("Issue with Email:%s" %email_id)
     if reqSubUser and reqSubUser.is_active:
         login(request, reqSubUser)
         user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
@@ -1024,6 +1038,17 @@ def pr_request(request):
     temp_data['recordsFiltered'] = results.count()
     for result in results:
         warehouse = user.first_name
+        
+        product_category = result[fieldsMap['product_category']]
+        sku_category = result[fieldsMap['sku_category']]
+        sku_category_val = sku_category
+        if sku_category == 'All':
+            sku_category_val = ''
+        pr_user = User.objects.get(username=result[fieldsMap['wh_user']])
+        storeObj = get_admin(pr_user)
+        store = storeObj.first_name
+        warehouse_type = pr_user.userprofile.stockone_code
+
         po_created_date = resultsWithDate.get(result[fieldsMap['purchase_number']])
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
@@ -1070,6 +1095,13 @@ def pr_request(request):
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),
+                                                ('Product Category', product_category),
+                                                ('Category', sku_category),
+                                                ('Priority Type', result[fieldsMap['priority_type']]),
+                                                ('Store', store),
+                                                ('Department Type', warehouse_type),
+                                                ('PR Created Date', po_date),
+                                                ('PR Delivery Date', po_delivery_date),                                                
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
@@ -1079,6 +1111,7 @@ def pr_request(request):
                                                 ('Requested User', result[fieldsMap['username']]),
                                                 ('Validation Status', final_status),
                                                 ('Pending Level', '%s Of %s' %(pending_level, lastLevel)),
+                                                ('LevelToBeApproved', result[fieldsMap['pending_level']]),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),

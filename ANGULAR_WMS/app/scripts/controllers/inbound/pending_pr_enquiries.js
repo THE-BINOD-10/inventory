@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.extra_width = { 'width': '1250px' };
-
+    vm.PendingPREnquiriesCtrl = false;
     vm.filters = {'datatable': 'PendingPREnquiries', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -65,7 +65,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     };
-
+    vm.loadjs = function () {
+      vm.PendingPREnquiriesCtrl = true;
+    }
     vm.submit_enquiry = function(data_id, response){
       var elem = {'data_id': data_id, 'response': response}
       vm.service.apiCall('submit_pending_enquiry/', 'POST', elem, true).then(function(data){

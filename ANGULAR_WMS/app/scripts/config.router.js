@@ -924,11 +924,11 @@ var app = angular.module('urbanApp')
                   ])
                 }).then( function() {
                     return $ocLazyLoad.load([
-                      'scripts/controllers/inbound/pending_pr_enquiries.js'
+                      'scripts/controllers/inbound/raise_pr/approved_purchase_requests.js'
                   ])
                 }).then( function() {
                     return $ocLazyLoad.load([
-                      'scripts/controllers/inbound/raise_pr/approved_purchase_requests.js'
+                      'scripts/controllers/inbound/pending_pr_enquiries.js'
                   ])
                 });
               }]

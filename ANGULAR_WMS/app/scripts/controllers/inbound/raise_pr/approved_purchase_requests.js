@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.extra_width = { 'width': '1450px' };
+    vm.ApprovedPurchaseRequestCtrl = false;
     vm.selected = {};
     vm.selectAll = false;
     vm.date = new Date();
@@ -304,6 +305,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
       vm.dynamic_route($rootScope.$current_pr);
+    }
+    vm.loadjs = function () {
+      vm.ApprovedPurchaseRequestCtrl = true;
     }
     vm.base = function() {
       vm.title = "Raise PR";

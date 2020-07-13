@@ -325,7 +325,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         formData.append(val.name, val.value);
     });
 
-//    $rootScope.process = true;
+    $rootScope.process = true;
     $.ajax({url: Session.url+vm.url,
             data: formData,
             method: 'POST',
@@ -371,12 +371,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   if (response == "New WMS Code Added" || response == "Updated Successfully"){
                     vm.change_status_data();
+                    window.location.reload();
+                    $state.go('app.masters.SKUMaster');
                   }
                 }
               } else {
                 vm.pop_msg(response);
               }
-//              $rootScope.process = false;
+              $rootScope.process = false;
             }});
   }
 

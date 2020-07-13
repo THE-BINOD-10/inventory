@@ -429,7 +429,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }else{
             vm.url = "insert_sku_doa/";
             window.location.reload();
-            vm.service.refresh(vm.dtInstance);
           }}
       else {
         if (vm.user_profile.warehouse_type == 'ADMIN'){
@@ -440,8 +439,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           window.location.reload();
         }
         }
-         window.location.reload();
-         vm.service.refresh(vm.dtInstance);
          vm.update_sku();
       }
     }

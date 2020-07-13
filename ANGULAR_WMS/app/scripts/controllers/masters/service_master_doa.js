@@ -236,6 +236,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   if (response == "New WMS Code Added"){
                     vm.change_status_data();
+                    window.location.reload();
+                    $state.go('app.masters.ServiceMaster');
                   }
                 }
               } else {

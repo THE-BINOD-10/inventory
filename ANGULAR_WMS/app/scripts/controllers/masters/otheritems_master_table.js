@@ -367,6 +367,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.url = "insert_sku/";
           }else{
             vm.url = "insert_sku_doa/";
+            window.location.reload();
           }} else {
         vm.url = "update_sku/";
       }

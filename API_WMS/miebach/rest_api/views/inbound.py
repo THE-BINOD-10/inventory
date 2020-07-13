@@ -1674,6 +1674,7 @@ def generated_actual_pr_data(request, user=''):
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:
         validated_users.insert(0, record[0].requested_user.email)
+    validated_users = list(set(validated_users))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
@@ -1752,6 +1753,14 @@ def generated_actual_pr_data(request, user=''):
                 else:
                     supplierName = ''
                 preferred_supplier = '%s:%s' %(supplierId, supplierName)
+                supplierDetailsMap[preferred_supplier] = {'supplier_id': supplierId,
+                                                    'supplier_name': supplierName,
+                                                    'moq': json_data['moq'],
+                                                    'price': json_data['price'],
+                                                    'amount': json_data['amount'],
+                                                    'tax': json_data['tax'],
+                                                    'total': json_data['total'],
+                                                    }
              
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=parent_user.id).order_by('preference')
@@ -1809,8 +1818,8 @@ def generated_actual_pr_data(request, user=''):
                                     json_data__regex=r'\"sku\"\: %s,' %parent_sku_id)
                     if is_doa_sent.exists():
                         is_doa_sent_flag = True
-                supplierDetailsMap = {}
-                preferred_supplier = ''
+                # supplierDetailsMap = {}
+                # preferred_supplier = ''
 
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
@@ -3367,7 +3376,10 @@ def approve_pr(request, user=''):
         for i in range(0, len(myDict['wms_code'])):
             eachSku = myDict['wms_code'][i]
             amount = myDict['amount'][i]
-            tax = myDict['tax'][i]
+            if myDict['tax'][i]:
+                tax = float(myDict['tax'][i])
+            else:
+                tax = 0
             total = myDict['total'][i]
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
@@ -3385,8 +3397,32 @@ def approve_pr(request, user=''):
                 'moq': moq,
                 'total': total
             }
-            lineItemObj = lineItems.filter(sku__sku_code=eachSku)
-            TempJson.objects.create(model_id=lineItemObj[0].id,
+            pr_user = pendingPRObj.wh_user
+            store_user = get_admin(pr_user)
+            supplyQs = SupplierMaster.objects.filter(user=store_user.id, supplier_id=supplier_id)
+            if supplyQs.exists():
+                tax_type = supplyQs[0].tax_type
+                if tax_type == 'inter_state':
+                        igst_tax = tax
+                        cgst_tax = 0
+                        sgst_tax = 0
+                else:
+                    igst_tax = 0
+                    cgst_tax = tax/2
+                    sgst_tax = tax/2
+            else:
+                cgst_tax, sgst_tax, igst_tax = [0]*3
+
+            lineItemQs = lineItems.filter(sku__sku_code=eachSku)
+            if lineItemQs.exists():
+                lineItemObj = lineItemQs[0]
+                lineItemObj.price = unit_price
+                lineItemObj.cgst_tax = cgst_tax
+                lineItemObj.sgst_tax = sgst_tax
+                lineItemObj.igst_tax = igst_tax
+                lineItemObj.save()
+
+            TempJson.objects.create(model_id=lineItemQs[0].id,
                                     model_name='PENDING_PR_PURCHASE_APPROVER',
                                     model_json=pr_approver_data)
     if pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted: #In last Level, no need to generate Hashcode, just confirmation mail is enough
@@ -3857,6 +3893,13 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
                 # netsuite_pr(user, existingPRObj)
+        for pr_id, skus in prIdSkusMap.items():
+            prObj = PendingPR.objects.get(id=pr_id)            
+            lineItemsObj = prObj.pending_prlineItems
+            lineItems = list(lineItemsObj.values_list('sku__sku_code', flat=True))
+            if lineItems.sort() == skus.sort():
+                prObj.final_status = 'pr_converted_to_po'
+                prObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4306,7 +4349,9 @@ def add_pr(request, user=''):
             else:
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
-                    lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
+                    lineItems = pendingPRObj.pending_prlineItems.filter()
+                    lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
+                    lineItemIds = lineItems.values_list('id', flat=True)
                     temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
@@ -4490,28 +4535,20 @@ def submit_pending_approval_enquiry(request, user=''):
             lineItems_attr = 'pending_prlineItems'
             purchase_number_attr = 'pr_number'
 
-
         requested_user = User.objects.get(username=requested_username)
         pendingPurchaseObj = model_name.objects.get(id=purchase_id)
         emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
-        # permission_name = 'pending po'
         admin_user = None
         user = pendingPurchaseObj.wh_user
-        if user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-            userQs = UserGroups.objects.filter(user=user)
-            if userQs.exists:
-                parentCompany = userQs[0].company_id
-                admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-                admin_user = admin_userQs[0].user
-        if admin_user:
-            user = admin_user
-
-        groupQs = user.groups.exclude(name=user.username). \
-                filter(permissions__name__contains=permission_name)
-        for grp in groupQs:
-            gp = Group.objects.get(id=grp.id)
-            approved_emails = gp.user_set.filter().exclude(id=user.id).filter(email=enquiry_to).values_list('email','id')
-            emailsOfApprovedUsersMap.update(approved_emails)
+        prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.values_list('id', flat=True)
+        validatedEmails = PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds, 
+                            pr_approval__status='approved'). \
+                            order_by('id').values_list('email', flat=True)
+        for eachMail in validatedEmails:
+            userQs = User.objects.filter(email=eachMail)
+            if userQs.exists():
+                userId = userQs[0].id
+                emailsOfApprovedUsersMap[eachMail] = userId
         receiver_userId = emailsOfApprovedUsersMap.get(enquiry_to, '')
         if not receiver_userId:
             return HttpResponse('Something Went Wrong')
@@ -8870,27 +8907,27 @@ def confirm_add_po(request, sales_data='', user=''):
                 mrp = 0
 
             supplier = SupplierMaster.objects.get(user=user.id, supplier_id=value['supplier_id'])
-            if supplier_mapping == 'false':
-                if not 'supplier_code' in myDict.keys() and value['supplier_id']:
-                    sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier.id, sku__user=user.id)
-                    if sku_supplier:
-                        supplier_code = sku_supplier[0].supplier_code
-                elif value['supplier_code']:
-                    supplier_code = value['supplier_code']
-                supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier.id,
-                                                              sku__user=user.id)
-                sku_mapping = {'supplier_id': supplier.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
-                               'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
-                               'updation_date': datetime.datetime.now()}
+            # if supplier_mapping == 'false':
+            #     if not 'supplier_code' in myDict.keys() and value['supplier_id']:
+            #         sku_supplier = SKUSupplier.objects.filter(supplier_id=supplier.id, sku__user=user.id)
+            #         if sku_supplier:
+            #             supplier_code = sku_supplier[0].supplier_code
+            #     elif value['supplier_code']:
+            #         supplier_code = value['supplier_code']
+            #     supplier_mapping = SKUSupplier.objects.filter(sku=sku_id[0], supplier_id=supplier.id,
+            #                                                   sku__user=user.id)
+            #     sku_mapping = {'supplier_id': supplier.id, 'sku': sku_id[0], 'preference': 1, 'moq': 0,
+            #                    'supplier_code': supplier_code, 'price': price, 'creation_date': datetime.datetime.now(),
+            #                    'updation_date': datetime.datetime.now()}
 
-                if supplier_mapping:
-                    supplier_mapping = supplier_mapping[0]
-                    if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
-                        supplier_mapping.supplier_code = sku_mapping['supplier_code']
-                        supplier_mapping.save()
-                else:
-                    new_mapping = SKUSupplier(**sku_mapping)
-                    new_mapping.save()
+            #     if supplier_mapping:
+            #         supplier_mapping = supplier_mapping[0]
+            #         if sku_mapping['supplier_code'] and supplier_mapping.supplier_code != sku_mapping['supplier_code']:
+            #             supplier_mapping.supplier_code = sku_mapping['supplier_code']
+            #             supplier_mapping.save()
+            #     else:
+            #         new_mapping = SKUSupplier(**sku_mapping)
+            #         new_mapping.save()
             po_suggestions['sku_id'] = sku_id[0].id
             po_suggestions['supplier_id'] = supplier.id
             po_suggestions['order_quantity'] = value['order_quantity']

@@ -9759,6 +9759,7 @@ def uom_master_upload(request, user=''):
     company_id = get_company_id(user)
     uom_data_list=[]
     sku_dict={}
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list =[],[],[],[]
     for final_data in data_list:
         name = '%s-%s' % (final_data['uom'], str(int(final_data['conversion'])))
         final_data['name'] = name
@@ -9770,12 +9771,87 @@ def uom_master_upload(request, user=''):
     for sku_code in sku_dict.keys():
         uom_data = gather_uom_master_for_sku(user, sku_code)
         uom_data_list.append(uom_data)
-    netsuite_integrateUOM(user, uom_data_list)
+        data= netsuite_sku_uom_update(sku_code, user)
+        if(data):
+            if data["instanceName"]==SKUMaster:
+                SKUMaster_list.append(data)
+            elif data["instanceName"]==ServiceMaster:
+                ServiceMaster_list.append(data)
+            elif data["instanceName"]==AssetMaster:
+                AssetMaster_list.append(data)
+            elif data["instanceName"]==OtherItemsMaster:
+                OtherItemsMaster_list.append(data)
+    intObj = Integrations(user,'netsuiteIntegration')
+    # # netsuite_integrateUOM(user, uom_data_list, intObj)
+    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
+    if(SKUMaster_list):
+        intObj.integrateSkuMaster(SKUMaster_list,"sku_code", is_multiple=True)
+    if(ServiceMaster_list):
+        intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
+    if(AssetMaster_list):
+        intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
+    if(OtherItemsMaster_list):
+        intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
 
-def netsuite_integrateUOM(user, uom_data_list):
-    intObj = Integrations(user,'netsuiteIntegration')
-    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
+def netsuite_sku_uom_update(wms_code, user):
+    temp=True
+    instanceName = SKUMaster
+    data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+    if(data):
+        temp=False
+    if(temp):
+        instanceName = ServiceMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    if(temp):
+        instanceName = AssetMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    if(temp):
+        instanceName = OtherItemsMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    sku_data_dict={}
+    if(data):
+        sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+        try:
+            sku_data_dict=gatherSkuData_uom(data)
+            if("hsn_code" in sku_data_dict):
+                sku_data_dict["hsn_code"]=""
+            department, plant, subsidary=get_plant_subsidary_and_department(user)
+            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+            try:
+                from masters import get_uom_details
+                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+            except Exception as e:
+                pass
+            sku_data_dict.update(
+                {
+                    'department': department,
+                    "subsidiary": subsidary,
+                    "plant": plant,
+                    'unitypeexid': uom_type,
+                    'stock_unit': stock_uom,
+                    'purchase_unit': purchase_uom,
+                    'sale_unit': sale_uom
+                }
+            )
+            if instanceName == ServiceMaster:
+                sku_data_dict.update({"ServicePurchaseItem":True, "instanceName": instanceName})
+            elif instanceName == AssetMaster:
+                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+            elif instanceName == OtherItemsMaster:
+                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+            else:
+                sku_data_dict.update({"instanceName": instanceName})
+                sku_data_dict.update(sku_attr_dict)
+        except Exception as e:
+            pass
+    return sku_data_dict
 
 @csrf_exempt
 def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

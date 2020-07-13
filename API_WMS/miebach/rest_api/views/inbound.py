@@ -414,12 +414,12 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if order_term:
         results = results.order_by(order_data)
 
-    resultsWithDate = dict(results.values_list('pending_po__po_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list('pending_po__full_po_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number',
+    approvedPRQs = results.values_list('pending_po__full_po_number', 'pending_po__pending_prs__full_pr_number',
                                         'pending_po__pending_prs__sub_pr_number')
     POtoPRsMap = {}
     for eachPO, pr_number, sub_pr_number in approvedPRQs:
@@ -428,9 +428,9 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
-    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
+    POtoPRDeptMap = dict(results.values_list('pending_po__full_po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
     for result in results[start_index: stop_index]:
-        po_created_date = resultsWithDate.get(result['pending_po__po_number'])
+        po_created_date = resultsWithDate.get(result['pending_po__full_po_number'])
         wh_user = result['pending_po__wh_user']
         storeObj = User.objects.filter(id=wh_user)
         if storeObj:
@@ -439,7 +439,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             store = ''
         product_category = result['pending_po__product_category']
         sku_category = result['pending_po__sku_category']
-        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
+        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__full_po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
@@ -489,7 +489,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
                                                 ('Store', store),
-                                                ('Department', POtoPRDeptMap[result['pending_po__po_number']]),
+                                                ('Department', POtoPRDeptMap[result['pending_po__full_po_number']]),
                                                 ('PO Raise By', result['pending_po__requested_user__first_name']),
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
@@ -3818,7 +3818,6 @@ def convert_pr_to_po(request, user=''):
                         PendingLineItems.objects.create(**lineItemMap)
                     pendingPoObj.pending_prs.add(newPrObj)
                     lineItems.delete()
-
             for sku_code in all_skus:
                 quantity = skuQtyMap[sku_code]
                 tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
@@ -3846,10 +3845,12 @@ def convert_pr_to_po(request, user=''):
                     try:
                         price = float(json_data['price'])
                     except:
+                        log.info("Convert PR to Failed due to Price: %s and LineItem:%s" %(json_data.get('price', ''), lineItemId))
                         price = 0
                     try:
                         tax = float(json_data.get('tax', 0))
                     except:
+                        log.info("Convert PR to Failed due to tax: %s and LineItem:%s" %(json_data.get('tax', ''), lineItemId))
                         tax = 0
                     if tax_type == 'inter_state':
                         igst_tax = tax

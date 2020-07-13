@@ -2751,11 +2751,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.round_off_total = temp_roundoff_total;
         if (vm.model_data.other_charges.length > 0) {
           angular.forEach(vm.model_data.other_charges, function(charge) {
-            vm.model_data.round_off_total += parseInt(charge.amount);
+            vm.model_data.round_off_total += parseFloat(charge.amount);
           })
+        vm.model_data.round_off_total = Math.round(vm.model_data.round_off_total * 100)/100;
         }
       } else if (type == 'remove') {
-        vm.model_data.round_off_total -= parseInt(charges.amount);
+        vm.model_data.round_off_total -= parseFloat(charges.amount);
       }
     }
   }

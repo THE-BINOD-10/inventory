@@ -1477,7 +1477,9 @@ vm.checkWHSupplierExist  = function (sup_id) {
     vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
       if(data.message) {
         angular.forEach(data.data.warehouse_list, function(dat){
-          vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code]
+          if(vm.department_type_mapping[dat.stockone_code]) {
+            vm.department_type_list[dat.stockone_code] = vm.department_type_mapping[dat.stockone_code];
+          }
         });
       }
     });

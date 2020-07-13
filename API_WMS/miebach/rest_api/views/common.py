@@ -12441,6 +12441,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
+            staff_check['department_type'] = user.userprofile.stockone_code
             staff_check['plant__name'] = get_admin(user).username
         elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
             del staff_check['user']

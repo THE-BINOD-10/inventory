@@ -190,7 +190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         formData.append(val.name, val.value);
     });
 
-//    $rootScope.process = true;
+    vm.process = true;
     $.ajax({url: Session.url+vm.url,
             data: formData,
             method: 'POST',
@@ -243,7 +243,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else {
                 vm.pop_msg(response);
               }
-//              $rootScope.process = false;
+             vm.process = false;
             }});
   }
 

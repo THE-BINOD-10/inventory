@@ -87,7 +87,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.supplier_id = aData['Supplier ID'];
           var data = {requested_user: aData['Requested User'], pr_number:aData['PR Number'],
                       pending_level:aData['LevelToBeApproved']};
-            vm.form = 'pending_for_approval';
             vm.dynamic_route(aData);
         });
       });
@@ -152,6 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
+      vm.form = 'pending_for_approval';
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {

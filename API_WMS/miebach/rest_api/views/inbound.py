@@ -1674,6 +1674,7 @@ def generated_actual_pr_data(request, user=''):
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     if request.user.email != record[0].requested_user.email:
         validated_users.insert(0, record[0].requested_user.email)
+    validated_users = list(set(validated_users))
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
@@ -3892,6 +3893,13 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
                 # netsuite_pr(user, existingPRObj)
+        for pr_id, skus in prIdSkusMap.items():
+            prObj = PendingPR.objects.get(id=pr_id)            
+            lineItemsObj = prObj.pending_prlineItems
+            lineItems = list(lineItemsObj.values_list('sku__sku_code', flat=True))
+            if lineItems.sort() == skus.sort():
+                prObj.final_status = 'pr_converted_to_po'
+                prObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

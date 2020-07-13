@@ -3892,6 +3892,13 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
                 # netsuite_pr(user, existingPRObj)
+        for pr_id, skus in prIdSkusMap.items():
+            prObj = PendingPR.objects.get(id=pr_id)            
+            lineItemsObj = prObj.pending_prlineItems
+            lineItems = list(lineItemsObj.values_list('sku__sku_code', flat=True))
+            if lineItems.sort() == skus.sort():
+                prObj.final_status = 'pr_converted_to_po'
+                prObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

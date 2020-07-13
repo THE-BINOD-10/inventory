@@ -4,7 +4,7 @@
   </div>
   <div class="layout-body"> 
     <tabset class="box-tab">
-      <tab heading="Raised Purchase Requests">
+      <tab heading="Raised Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs">
         <div ng-include="'views/inbound/raise_pr/raise_purchase_request.html'"></div>
       </tab>
       <tab heading="Pending For Approval Purchase Requests">
@@ -15,11 +15,11 @@
           <div ng-include="'views/common/datatable.html'"></div>
         </div>
       </tab>
-      <tab heading="Approved Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs && showCase.permissions.change_pendinglineitems">
-        <div ng-include="'views/inbound/raise_pr/approved_purchase_requests.html'"></div>
+      <tab heading="Approved Purchase Requests" ng-if="showCase.permissions.enable_pending_approval_prs && showCase.permissions.change_pendinglineitems" ng-controller="ApprovedPurchaseRequestCtrl as showCase" ng-click="showCase.loadjs()">
+        <div ng-if="showCase.ApprovedPurchaseRequestCtrl" ng-include="'views/inbound/raise_pr/approved_purchase_requests.html'"></div>
       </tab>
-      <tab heading="Pending PR Enquiries" ng-if="showCase.permissions.enable_pending_approval_prs">
-        <div ng-include="'views/inbound/raise_po/pending_pr_enquiries.html'"></div>
+      <tab heading="Pending PR Enquiries" ng-if="showCase.permissions.enable_pending_approval_prs" ng-controller="PendingPREnquiriesCtrl as showCase" ng-click="showCase.loadjs()">
+        <div ng-if="showCase.PendingPREnquiriesCtrl" ng-include="'views/inbound/raise_po/pending_pr_enquiries.html'"></div>
       </tab>
     </tabset>
   </div>

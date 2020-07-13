@@ -927,7 +927,9 @@ def pr_request(request):
         return HttpResponse("Error")
     prApprObj = prApprQs[0]
     fieldsMap = {}
+    send_path = ''
     if prApprObj.pending_pr:
+        send_path = 'app.inbound.RaisePr'
         lineItems = prApprObj.pending_pr.pending_prlineItems
         prefix = prApprObj.pending_pr.prefix
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
@@ -948,6 +950,7 @@ def pr_request(request):
                 }
         purchase_type = 'PR'
     else:
+        send_path = 'app.inbound.RaisePo'
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
@@ -1007,7 +1010,7 @@ def pr_request(request):
         purchase_data_id = prApprObj.pending_po_id
     else:
         purchase_data_id = prApprObj.pending_pr_id
-    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
+    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number, 'path': send_path}})
     #Data Table Data
     temp_data = {'aaData':[]}
     user = parentUser
@@ -12438,6 +12441,7 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
+            staff_check['department_type'] = user.userprofile.stockone_code
             staff_check['plant__name'] = get_admin(user).username
         elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
             del staff_check['user']

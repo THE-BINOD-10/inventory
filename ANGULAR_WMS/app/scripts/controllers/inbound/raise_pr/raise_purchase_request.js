@@ -204,6 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.levelWiseRemarks = data.data.levelWiseRemarks;
           vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
+          vm.model_data.approval_remarks = data.data.approval_remarks;
           angular.forEach(vm.model_data.data, function(data){
             if (!data.fields.cess_tax) {
               data.fields.cess_tax = 0;
@@ -315,10 +316,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     });
 
     }
-    if ($rootScope.$current_pr != '') {
-      vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
-      vm.dynamic_route($rootScope.$current_pr);
-    }
+    // if ($rootScope.$current_pr != '') {
+    //   vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
+    //   vm.dynamic_route($rootScope.$current_pr);
+    // }
     vm.base = function() {
       vm.title = "Raise PR";
       vm.vendor_produce = false;
@@ -501,7 +502,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (data.$valid) {
         // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
           var elem = angular.element($('form'));
-          elem = elem[0];
+          elem = elem[1];
           elem = $(elem).serializeArray();
           if (is_resubmitted == 'true'){
             elem.push({name:'is_resubmitted', value:true})
@@ -816,7 +817,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.update_raise_pr = function() {
       var elem = angular.element($('form'));
-      elem = elem[0];
+      elem = elem[1];
       elem = $(elem).serializeArray();
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})

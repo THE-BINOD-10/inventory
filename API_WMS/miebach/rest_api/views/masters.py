@@ -5367,10 +5367,12 @@ def send_supplier_doa(request, user=''):
     integer_data = 'preference'
     data_dict['request_from'] = request.POST.get('type', 'Master')
     data_dict['purchase_id'] = request.POST.get('purchase_id', '')
-    if data_dict.has_key('purchase_id'):
-        purchase_id = data_dict['purchase_id']
-        prObj = PendingPR.objects.get(id=purchase_id)
-        user = prObj.wh_user
+    data_dict['actual_requested_user'] = request.user.username
+    selected_wh = request.POST.get('warehouse', '')
+    if selected_wh:
+        plant = User.objects.get(username=selected_wh)
+    else:
+        plant = user
     for key, value in request.POST.iteritems():
         if key == 'wms_code':
             sku_id = SKUMaster.objects.filter(wms_code=value, user=user.id)
@@ -5398,17 +5400,12 @@ def send_supplier_doa(request, user=''):
     if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
         data_dict['preference'] = skuSupQs[0].preference
         data_dict['moq'] = skuSupQs[0].moq
-    # parentCompany = get_company_id(user)
-    # admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-    # admin_user = admin_userQs[0].user
-    # req_user = request.user
-    # if not request.user.is_staff:
-    #     if user.userprofile.warehouse_type == 'DEPT':
-    #         req_user  = get_admin(user) # Fetching Store User
-    #     else:
-    #         req_user = user
+    parentCompany = get_company_id(user)
+    admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
+    admin_user = admin_userQs[0].user
+    
     doa_dict = {
-        'requested_user': user,
+        'requested_user': plant,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),

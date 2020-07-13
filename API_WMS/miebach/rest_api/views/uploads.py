@@ -9534,7 +9534,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                                                  inv_mapping)
     if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status']).\
             issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', []
     company_id = get_company_id(user)
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)

@@ -9545,6 +9545,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
+    plants_list = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         staff_master = None
@@ -9584,6 +9585,10 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     index_status.setdefault(row_idx, set()).add('Staff Name is Mandatory')
             elif key == 'plant':
                 if cell_data:
+                    plants = cell_data.split(',')
+                    for plant in plants:
+                        if not plants_list.filter(username=plant):
+                            index_status.setdefault(row_idx, set()).add('Invalid Plant %s'% str(plant))
                     data_dict[key] = cell_data
             elif key == 'department_type':
                 if cell_data:

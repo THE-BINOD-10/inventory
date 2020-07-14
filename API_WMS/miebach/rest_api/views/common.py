@@ -12563,6 +12563,15 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
 
+def net_terms_supplier_mapping(net_code, net_desc, supplier):
+    filters = {
+        'net_code': net_code,
+        'net_description': net_desc,
+        'supplier': supplier
+    }
+    netterm_obj, created = NetTerms.objects.get_or_create(**filters)
+    return netterm_obj
+
 def get_warehouses_data(user):
     ware_houses_list = []
     warehouse_users ={}

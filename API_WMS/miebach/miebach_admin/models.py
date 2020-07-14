@@ -193,7 +193,7 @@ class MastersDOA(models.Model):
     json_data = models.TextField()
     doa_status = models.CharField(max_length=64, default='pending')
     creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)    
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MASTERS_DOA'
@@ -265,8 +265,8 @@ class LocationMaster(models.Model):
 
 
 class SupplierMaster(models.Model):
-    id = models.CharField(max_length=64, primary_key=True)
-    supplier_id = models.CharField(max_length=64, default='')
+    id = models.CharField(max_length=128, primary_key=True)
+    supplier_id = models.CharField(max_length=128, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
     address_id = models.CharField(max_length=256, null=True)
@@ -330,6 +330,17 @@ class PaymentTerms(models.Model):
         db_table = 'PAYMENT_TERMS'
         unique_together = ('payment_code', 'payment_description', 'supplier')
 
+class NetTerms(models.Model):
+    id = BigAutoField(primary_key=True)
+    net_code = models.CharField(max_length=64, default='')
+    net_description = models.CharField(max_length=256, default='')
+    supplier = models.ForeignKey(SupplierMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'NET_TERMS'
+        unique_together = ('net_code', 'net_description', 'supplier')
 
 class SKUSupplier(models.Model):
     id = BigAutoField(primary_key=True)
@@ -770,7 +781,7 @@ class PurchaseOrder(models.Model):
     priority = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-    
+
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
@@ -3817,7 +3828,7 @@ class BarcodeEntities(models.Model):
     regular_expression= models.CharField(max_length=256, null=True, blank=True)
     class Meta:
         db_table = 'BARCODE_ENTITIES'
-        
+
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)

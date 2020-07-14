@@ -12406,7 +12406,7 @@ def get_company_warehouses(request, user=''):
     else:
         warehouse = []
     parent_company_id = get_company_id(user)
-    if parent_company_id == company_id:
+    if str(parent_company_id) == str(company_id):
         company_id = ''
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
                                         company_id=company_id, send_parent=False)

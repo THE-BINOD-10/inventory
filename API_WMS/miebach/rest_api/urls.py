@@ -237,6 +237,8 @@ urlpatterns = [
     url(r'^save_credit_note_po_data/$',save_credit_note_po_data),
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
+    url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+
 
 
     # Production
@@ -698,6 +700,8 @@ urlpatterns += [
     url(r'^uom_master_upload/$', uom_master_upload),
     url(r'^user_master_form/$', user_master_form),
     url(r'^user_master_upload/$', user_master_upload),
+    url(r'^pending_pr_form/$', pending_pr_form),
+    url(r'^pending_pr_upload/$', pending_pr_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -769,6 +773,9 @@ urlpatterns += [
     url(r'^get_company_warehouses/$', get_company_warehouses),
     url(r'^get_company_roles_list/$', get_company_roles_list),
     url(r'^get_sku_category_list/$', get_sku_category_list),
+    url(r'^get_user_groups_list/$', get_user_groups_list),
+    url(r'^get_staff_plants_list/$', get_staff_plants_list),
+
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

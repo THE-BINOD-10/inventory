@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ApprovedPurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('PendingForApprovalPurchaseRequestCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', '$modal', 'Service', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, $modal, Service, Data) {
 
@@ -9,7 +9,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.extra_width = { 'width': '1450px' };
-    vm.ApprovedPurchaseRequestCtrl = false;
     vm.selected = {};
     vm.selectAll = false;
     vm.date = new Date();
@@ -25,9 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.is_contracted_supplier = false;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
-    vm.quantity_editable = false;
-    vm.filters = {'datatable': 'PendingPRApproval', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
-                  'special-key':'approved'}
+    vm.filters = {'datatable': 'PendingPRApproval', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -64,14 +61,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-                .renderWith(function(data, type, full, meta) {
-                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                    vm.selected = {};
-                  }
-                  vm.selected[meta.row] = false;
-                  return vm.service.frontHtml + meta.row + vm.service.endHtml;
-                }))
+    // vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+    //             .renderWith(function(data, type, full, meta) {
+    //               if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+    //                 vm.selected = {};
+    //               }
+    //               vm.selected[meta.row] = false;
+    //               return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    //             }))
 
     vm.dtInstance = {};
 
@@ -154,6 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.b_close = vm.close;
     vm.dynamic_route = function(aData) {
+      vm.form = 'pending_for_approval';
       var p_data = {requested_user: aData['Requested User'], purchase_id:aData['Purchase Id']};
       vm.service.apiCall('generated_actual_pr_data/', 'POST', p_data).then(function(data){
         if (data.message) {
@@ -183,6 +181,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data = {};
           vm.resubmitCheckObj = {};
           vm.is_resubmitted = false;
+          vm.is_pa_resubmitted = false;
+          if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+          }
+          vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
 
           if (vm.model_data.supplier_id){
@@ -206,6 +209,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
+            }
+            if (!data.fields.tax) {
+              if (data.fields.temp_tax){
+                data.fields.tax = data.fields.temp_tax;
+              }
             }
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
@@ -250,29 +258,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
-          // vm.checkResubmit = function(sku_data){
-          //   vm.is_resubmitted = false;
-          //   if (!vm.permissions.change_pendingpr){
-          //     if (sku_data.order_quantity){
-          //       angular.forEach(vm.model_data.data, function(eachField){
-          //         var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-          //         if (oldQty != parseInt(eachField.fields.order_quantity)){
-          //           vm.is_resubmitted = true
-          //           vm.update = true;
-          //         }
-          //       })
-          //     }
-          //   } else {
-          //     if (sku_data.order_quantity){
-          //       angular.forEach(vm.model_data.data, function(eachField){
-          //         var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
-          //         if (oldQty != parseInt(eachField.fields.order_quantity)){
-          //           vm.update = true;
-          //         }
-          //       })
-          //     }
-          //   }
-          // }
+
+          vm.checkResubmitPurchaseApprover = function(sku_data) {
+            if (!vm.resubmitting_user) {
+              vm.is_pa_resubmitted = true;
+              return;    
+            }
+            vm.is_pa_resubmitted = false;
+            if (vm.permissions.change_pendinglineitems){
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (sku_data.preferred_supplier != eachField.fields.supplier_id_name){
+                  vm.is_pa_resubmitted = true;
+                }
+              })
+            }
+          }
 
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
@@ -305,9 +305,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
       vm.dynamic_route($rootScope.$current_pr);
-    }
-    vm.loadjs = function () {
-      vm.ApprovedPurchaseRequestCtrl = true;
     }
     vm.base = function() {
       vm.title = "Raise PR";
@@ -404,13 +401,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
+        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
+      } else {
+        data.conversion = 0
       }
     }
 
     vm.reset_model_data = function(product_category){
       vm.model_data.data = [];
-      vm.model_data.sku_category = "";
+      // vm.model_data.sku_category = "";
       var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
@@ -485,8 +485,63 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
+    vm.approve_pr = function(form, validation_type) {
+      var elem = angular.element($("form[name='pending_for_approval']"));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
+      if (vm.is_actual_pr){
+        elem.push({name:'is_actual_pr', value:true})
+      }
+      // if (vm.pr_number){
+      //   elem.push({name:'pr_number', value:vm.pr_number})
+      // }
+
+      if (vm.permissions.change_pendinglineitems) {
+        angular.forEach(elem, function(key, index) {
+        if (key.name == 'supplier_id') {
+          if (!key.value) {
+            Service.showNoty('Supplier Should be provided by Purchase');
+            return;
+          }
+        } else if (key.name == 'price') {
+          if (key.value == '') {
+            Service.showNoty('Price Should be provided by Purchase');
+            return;
+          }
+        }
+      });
+
+      }
+      if (vm.validated_by){
+        elem.push({name:'validated_by', value:vm.validated_by})
+      }
+      if (vm.requested_user){
+        elem.push({name:'requested_user', value:vm.requested_user})
+      }
+      if (vm.pending_level){
+        elem.push({name:'pending_level', value:vm.pending_level})
+      }
+      if (validation_type == 'approved'){
+        elem.push({name: 'validation_type', value: 'approved'})
+      } else{
+        elem.push({name: 'validation_type', value: 'rejected'})
+      }
+      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Approved Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            vm.service.showNoty(data.data);
+          }
+        }
+      })
+    }
+
     vm.submit_enquiry = function(form){
-      var elem = angular.element($('form'));
+      // var elem = angular.element($('form'));
+      var elem = angular.element($("form[name='pending_for_approval']"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       // if (vm.is_purchase_request){
@@ -614,42 +669,36 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
-    // vm.move_to_sku_supplier = function (sku, lineItem) {
-    //   vm.display_vision = {'display': 'none'};
-    //   var data = {'sku_code': sku, };
-    //   var modalInstance = $modal.open({
-    //     templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
-    //     controller: 'skuSupplierCtrl',
-    //     controllerAs: 'showCase',
-    //     size: 'lg',
-    //     backdrop: 'static',
-    //     keyboard: false,
-    //     resolve: {
-    //       items: function () {
-    //         return data;
-    //       }
-    //     }
-    //   });
-    //   modalInstance.result.then(function (selectedItem) {
-    //     if (selectedItem){
-    //       lineItem.is_doa_sent = true;          
-    //     }
-    //     vm.display_vision = {'display': 'block'};
-    //     console.log(selectedItem);
-    //   });
-    // }
+    vm.move_to_sku_supplier = function (sku, lineItem, purchase_id) {
+      vm.display_vision = {'display': 'none'};
+      var data = {'sku_code': sku, 'purchase_id': purchase_id};
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/raise_po/supplier_sku_request.html',
+        controller: 'skuSupplierCtrl',
+        controllerAs: 'showCase',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+        if (selectedItem){
+          lineItem.is_doa_sent = true;          
+        }
+        vm.display_vision = {'display': 'block'};
+        console.log(selectedItem);
+      });
+    }
     
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
-      var hsn_code_err_flag = false;
       angular.forEach(vm.preview_data.data, function(eachLineItem){
         if (eachLineItem.checkbox){
-          if (!eachLineItem.hsn_code) {
-            vm.service.showNoty("HSN Code is missing");
-            var hsn_code_err_flag = true;
-            return;
-          }
           if (eachLineItem.product_category == 'Kits&Consumables' && 
                 (Object.keys(eachLineItem.supplierDetails).length == 0)){
             vm.service.showNoty("Supplier Should be present for Kits&Consumables");
@@ -665,7 +714,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
       });
-      if (selectedItems.length == 0 && !hsn_code_err_flag){
+      if (selectedItems.length == 0){
         vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
       }
       var finalAlerMsg = '';
@@ -1043,14 +1092,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.description_edited = item.sku_desc;
       product.fields.hsn_code = item.hsn_code;
       product.fields.sku_brand = item.sku_brand;
+      product.fields.sku_class = item.sku_class;
       product.fields.type = item.type;
-      product.fields.asset_code = item.asset_code;
+      product.fields.gl_code = item.gl_code;
       product.fields.service_start_date = item.service_start_date;
       product.fields.service_end_date = item.service_end_date;
       product.fields.order_quantity = 1;
+      product.fields.sku.conversion = item.conversion;
+      product.fields.conversion = item.conversion * product.fields.order_quantity;
       product.fields.no_of_tests = item.noOfTests;
       product.fields.ean_number = item.ean_number;
-      product.fields.price = 0;
+      product.fields.price = "";
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.blocked_sku = "";
@@ -1246,6 +1298,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // }
       // vm.model_data.total_price = 0;
       // vm.model_data.sub_total = 0;
+      if (data.fields.temp_price){
+          if (Number(data.fields.price) > Number(data.fields.temp_price)){
+            Service.showNoty('Price cant be more than Base Price'); 
+            data.fields.price = 0
+        }
+      }
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
@@ -1366,55 +1424,56 @@ vm.checkWHSupplierExist  = function (sup_id) {
   }
 }
 
-// angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
-//   var vm = this;
-//   vm.user_type = Session.roles.permissions.user_type;
-//   vm.service = Service;
-//   vm.title = 'ADD SUPPLIER SKU MAPPING';
-//   vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
-//   vm.permissions = Session.roles.permissions;
-//   vm.user_profile = Session.user_profile;
-//   vm.warehouse_level = vm.user_profile.warehouse_level;
-//   vm.industry_type = vm.user_profile.industry_type;
-//   vm.model_data = {}
-//   vm.model_data.costing_type = 'Price Based';
-//   vm.requestData = items;
-//   vm.warehouse_list = [];
-//   function get_warehouses() {
-//     vm.service.apiCall('get_warehouse_list/').then(function(data){
-//       if(data.message) {
-//         data = data.data;
-//         var list = [];
-//         angular.forEach(data.warehouses, function(d){
-//           list.push({"id": d.warehouse_id, "name": d.warehouse_name})
-//         });
-//         vm.warehouse_list = list;
-//       }
-//     });
-//   }
-//   get_warehouses();
-//   vm.send_supplier_doa = function(form) {
-//     vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
-//       if(data.message) {
-//         if(data.data == "Added Successfully") {
-//           vm.close('data');
-//         } else {
-//           vm.service.pop_msg(data.data);
-//         }
-//       }
-//     });
-//   }
+angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.service = Service;
+  vm.title = 'ADD SUPPLIER SKU MAPPING';
+  vm.costing_type_list = ['Price Based', 'Margin Based','Markup Based'];
+  vm.permissions = Session.roles.permissions;
+  vm.user_profile = Session.user_profile;
+  vm.warehouse_level = vm.user_profile.warehouse_level;
+  vm.industry_type = vm.user_profile.industry_type;
+  vm.model_data = {}
+  vm.model_data.costing_type = 'Price Based';
+  vm.requestData = items;
+  vm.warehouse_list = [];
+  function get_warehouses() {
+    vm.service.apiCall('get_warehouse_list/').then(function(data){
+      if(data.message) {
+        data = data.data;
+        var list = [];
+        angular.forEach(data.warehouses, function(d){
+          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+        });
+        vm.warehouse_list = list;
+      }
+    });
+  }
+  get_warehouses();
+  vm.send_supplier_doa = function(form) {
+    vm.model_data['purchase_id'] = vm.requestData['purchase_id'];
+    vm.service.apiCall('send_supplier_doa/', 'POST', vm.model_data, true).then(function(data){
+      if(data.message) {
+        if(data.data == "Added Successfully") {
+          vm.close('data');
+        } else {
+          vm.service.pop_msg(data.data);
+        }
+      }
+    });
+  }
 
-//   vm.get_sku_mrp = function(wms_code){
-//     vm.model_data.wms_code = wms_code
-//     vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
-//       if(data.message) {
-//         vm.model_data.mrp = data.data['mrp'];
-//       }
-//     })
-//   }
-//   vm.get_sku_mrp(vm.requestData['sku_code']);
-//   vm.close = function (value) {
-//     $modalInstance.close(value);
-//   };
-// });
+  vm.get_sku_mrp = function(wms_code){
+    vm.model_data.wms_code = wms_code
+    vm.service.apiCall('get_sku_mrp/','POST' ,{'wms_code':JSON.stringify(wms_code)}).then(function(data){
+      if(data.message) {
+        vm.model_data.mrp = data.data['mrp'];
+      }
+    })
+  }
+  vm.get_sku_mrp(vm.requestData['sku_code']);
+  vm.close = function (value) {
+    $modalInstance.close(value);
+  };
+});

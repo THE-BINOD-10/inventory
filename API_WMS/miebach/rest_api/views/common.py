@@ -533,7 +533,7 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number',
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number',
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -595,6 +595,7 @@ data_datatable = {  # masters
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
+    'ReceivePODOA':"get_confirmed_po_doa", \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
@@ -607,6 +608,7 @@ data_datatable = {  # masters
     'CreatedRTV': 'get_saved_rtvs', \
     'PastPO':'get_past_po', 'RaisePendingPurchase': 'get_pending_po_suggestions',
     'RaisePendingPR': 'get_pending_pr_suggestions',
+    'PendingPRApproval': 'get_pending_for_approval_pr_suggestions',
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
@@ -875,12 +877,13 @@ def add_extra_permissions(user):
                 user.groups.add(group)
 
 
-def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', approval_type='', sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     reqConfigName = ''
     configNameRangesMap = fetchConfigNameRangesMap(user, purchase_type=purchase_type,
-                                    product_category=product_category, approval_type=approval_type)
+                                    product_category=product_category, approval_type=approval_type,
+                                    sku_category=sku_category)
     if configNameRangesMap:
         for confName, priceRanges in configNameRangesMap.items():  #Used For..else
             min_Amt, max_Amt = priceRanges
@@ -897,13 +900,14 @@ def findReqConfigName(user, totalAmt, purchase_type='PR', product_category='', a
     return reqConfigName
 
 
-def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type=''):
+def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', product_category='', approval_type='',
+                           sku_category=''):
     if not product_category:
         product_category = 'Kits&Consumables'
     finalLevel = 'level0'
     company_id = get_company_id(user)
     reqConfigName = findReqConfigName(user, totalAmt, purchase_type=purchase_type, product_category=product_category,
-                                      approval_type=approval_type)
+                                      approval_type=approval_type, sku_category=sku_category)
     configQs = list(PurchaseApprovalConfig.objects.filter(company_id=company_id, name=reqConfigName,
                                                           approval_type=approval_type).\
                     values_list('level', flat=True).order_by('-id'))
@@ -923,13 +927,17 @@ def pr_request(request):
         return HttpResponse("Error")
     prApprObj = prApprQs[0]
     fieldsMap = {}
+    send_path = ''
     if prApprObj.pending_pr:
+        send_path = 'app.inbound.RaisePr'
         lineItems = prApprObj.pending_pr.pending_prlineItems
         prefix = prApprObj.pending_pr.prefix
         values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
                         'pending_pr__requested_user__username', 'pending_pr__pr_number',
                         'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__remarks',
-                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number']
+                        'pending_pr__delivery_date', 'pending_pr_id', 'pending_pr__full_pr_number',
+                        'pending_pr__product_category', 'pending_pr__sku_category',
+                        'pending_pr__wh_user__username', 'pending_pr__priority_type']
         fieldsMap = {
                     'requested_user': 'pending_pr__requested_user',
                     'first_name': 'pending_pr__requested_user__first_name',
@@ -941,16 +949,25 @@ def pr_request(request):
                     'delivery_date': 'pending_pr__delivery_date',
                     'purchase_id': 'pending_pr_id',
                     'full_purchase_number': 'pending_pr__full_pr_number',
+                    'product_category': 'pending_pr__product_category',
+                    'sku_category': 'pending_pr__sku_category',
+                    'wh_user': 'pending_pr__wh_user__username',
+                    'priority_type': 'pending_pr__priority_type',
                 }
         purchase_type = 'PR'
     else:
+        send_path = 'app.inbound.RaisePo'
         lineItems = prApprObj.pending_po.pending_polineItems
         prefix = prApprObj.pending_po.prefix
         values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name',
                         'pending_po__requested_user__username', 'pending_po__po_number',
                         'pending_po__final_status', 'pending_po__pending_level', 'pending_po__remarks',
                         'pending_po__delivery_date', 'pending_po__supplier__supplier_id',
-                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number']
+                        'pending_po__supplier__name', 'pending_po_id', 'pending_po__full_po_number',
+                        'pending_po__product_category', 'pending_po__sku_category',
+                        'pending_po__pending_level', 'pending_po__wh_user__username',
+                        'pending_pr__priority_type'
+                        ]
         fieldsMap = {
                     'requested_user': 'pending_po__requested_user',
                     'first_name': 'pending_po__requested_user__first_name',
@@ -962,23 +979,27 @@ def pr_request(request):
                     'delivery_date': 'pending_po__delivery_date',
                     'purchase_id': 'pending_po_id',
                     'full_purchase_number': 'pending_po__full_po_number',
+                    'product_category': 'pending_po__product_category',
+                    'sku_category': 'pending_po__sku_category',
+                    'wh_user': 'pending_po__wh_user__username',
+                    'priority_type': 'pending_pr__priority_type',
                 }
         purchase_type = 'PO'
 
     parentUser = prApprObj.pr_user
     toBeValidateLevel = prApprObj.level
     admin_user = None
-    if parentUser.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-        userQs = UserGroups.objects.filter(user=parentUser)
-        if userQs.exists:
-            parentCompany = userQs[0].company_id
-            admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
-            admin_user = admin_userQs[0].user
-    if admin_user:
-        sub_users = get_sub_users(admin_user)
-    else:
-        sub_users = get_sub_users(parentUser)
-    reqSubUser = sub_users.get(email=email_id)
+
+    linked_whs = get_related_users_filters(parentUser.id, send_parent=True)
+    sub_user_id_list = []
+    for linked_wh in linked_whs:
+        sub_objs =  get_sub_users(linked_wh)
+        sub_user_id_list = list(chain(sub_user_id_list, sub_objs.values_list('id', flat=True)))
+    try:
+        reqSubUser = User.objects.get(email=email_id, id__in=sub_user_id_list)
+    except Exception as e:
+        import traceback;
+        log.info("Issue with Email:%s" %email_id)
     if reqSubUser and reqSubUser.is_active:
         login(request, reqSubUser)
         user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
@@ -1003,7 +1024,7 @@ def pr_request(request):
         purchase_data_id = prApprObj.pending_po_id
     else:
         purchase_data_id = prApprObj.pending_pr_id
-    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number}})
+    response_data.update({'pr_data': {'requested_user': parentUser.username, 'pr_number': purchase_number, 'path': send_path}})
     #Data Table Data
     temp_data = {'aaData':[]}
     user = parentUser
@@ -1017,6 +1038,17 @@ def pr_request(request):
     temp_data['recordsFiltered'] = results.count()
     for result in results:
         warehouse = user.first_name
+        
+        product_category = result[fieldsMap['product_category']]
+        sku_category = result[fieldsMap['sku_category']]
+        sku_category_val = sku_category
+        if sku_category == 'All':
+            sku_category_val = ''
+        pr_user = User.objects.get(username=result[fieldsMap['wh_user']])
+        storeObj = get_admin(pr_user)
+        store = storeObj.first_name
+        warehouse_type = pr_user.userprofile.stockone_code
+
         po_created_date = resultsWithDate.get(result[fieldsMap['purchase_number']])
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result[fieldsMap['delivery_date']].strftime('%d-%m-%Y')
@@ -1063,6 +1095,13 @@ def pr_request(request):
                                                 ('PO Number', po_reference),
                                                 ('Supplier ID', result.get('pending_po__supplier__supplier_id', '')),
                                                 ('Supplier Name', result.get('pending_po__supplier__name', '')),
+                                                ('Product Category', product_category),
+                                                ('Category', sku_category),
+                                                ('Priority Type', result[fieldsMap['priority_type']]),
+                                                ('Store', store),
+                                                ('Department Type', warehouse_type),
+                                                ('PR Created Date', po_date),
+                                                ('PR Delivery Date', po_delivery_date),                                                
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
@@ -1072,6 +1111,7 @@ def pr_request(request):
                                                 ('Requested User', result[fieldsMap['username']]),
                                                 ('Validation Status', final_status),
                                                 ('Pending Level', '%s Of %s' %(pending_level, lastLevel)),
+                                                ('LevelToBeApproved', result[fieldsMap['pending_level']]),
                                                 ('To Be Approved By', validated_by),
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
@@ -1177,9 +1217,10 @@ def add_update_pr_config(request,user=''):
     company_id = get_company_id(user)
     if toBeUpdateData:
         data = toBeUpdateData
-        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'default')
         update_purchase_approval_config_data(company_id, purchase_type, data, user, 'ranges')
-        update_purchase_approval_config_data(company_id, purchase_type, data, user, 'approved')
+        if purchase_type == 'PR':
+            update_purchase_approval_config_data(company_id, purchase_type, data, user, 'default')
+            update_purchase_approval_config_data(company_id, purchase_type, data, user, 'approved')
             # To Delete Existing Mails from  Level
             # mailsList = [i.strip() for i in mails.split(',')]
             # memQs = MasterEmailMapping.objects.filter(master_type=master_type,
@@ -3138,16 +3179,15 @@ def search_sku_brands(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
-        'sku_brand')
-    exact_ids = list(data_exact.values_list('id', flat=True))
-    data = sku_master.exclude(id__in=exact_ids).filter(Q(sku_brand__icontains=data_id) | Q(sku_desc__icontains=data_id),
-                                                       user=user.id).order_by('sku_brand')
-    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
-                                                          sku__user=user.id).values_list('sku__sku_code',
-                                                                                         flat=True).distinct()
-    market_place_code = list(market_place_code)
-    data = list(chain(data_exact, data))
+    # data_exact = sku_master.filter(Q(sku_brand__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
+    #     'sku_brand')
+    # exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.filter(sku_brand__icontains=data_id, user=user.id)
+    # market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains=data_id,
+    #                                                       sku__user=user.id).values_list('sku__sku_code',
+    #                                                                                      flat=True).distinct()
+    # market_place_code = list(market_place_code)
+    # data = list(chain(data_exact, data))
     sku_brands = []
     count = 0
     if data:
@@ -3155,14 +3195,14 @@ def search_sku_brands(request, user=''):
             sku_brands.append(str(brand.sku_brand))
             if len(sku_brands) >= 10:
                 break
-    if len(sku_brands) <= 10:
-        if market_place_code:
-            for marketplace in market_place_code:
-                if len(sku_brands) <= 10:
-                    if marketplace not in sku_brands:
-                        sku_brands.append(marketplace)
-                else:
-                    break
+    # if len(sku_brands) <= 10:
+    #     if market_place_code:
+    #         for marketplace in market_place_code:
+    #             if len(sku_brands) <= 10:
+    #                 if marketplace not in sku_brands:
+    #                     sku_brands.append(marketplace)
+    #             else:
+    #                 break
     return HttpResponse(json.dumps(list(set(sku_brands))))
 
 @csrf_exempt
@@ -4816,6 +4856,7 @@ def search_wms_data(request, user=''):
     instanceName = SKUMaster
     product_type = request.GET.get('type')
     sku_catg = request.GET.get('sku_catg', '')
+    sku_brand = request.GET.get('sku_brand', '')
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -4834,6 +4875,8 @@ def search_wms_data(request, user=''):
                                       status = 1,user=user.id)
     if sku_catg:
         query_objects = query_objects.filter(sku_category=sku_catg)
+    if sku_brand:
+        query_objects = query_objects.filter(sku_brand=sku_brand)
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
@@ -4856,7 +4899,7 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5117,7 +5160,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -9355,25 +9398,30 @@ def get_supplier_info(request):
 
 def create_new_supplier(user, supp_id, supplier_dict=None):
     ''' Create New Supplier with dynamic supplier id'''
-    max_sup_id = SupplierMaster.objects.count()
-    run_iterator = 1
-    supplier_master = None
-    while run_iterator:
-        supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
-        if not supplier_obj:
-            if supp_id:
-                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                                supplier_id=supp_id, **supplier_dict)
-            else:
-                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                                **supplier_dict)
-                if created:
-                    supplier_master.supplier_id = supplier_master.id
-                    supplier_master.save()
-            run_iterator = 0
-            #supplier_id = supplier_master.id
-        else:
-            max_sup_id += 1
+    # max_sup_id = SupplierMaster.objects.count()
+    # run_iterator = 1
+    # supplier_master = None
+    # while run_iterator:
+    #     supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
+    #     if not supplier_obj:
+    #         if supp_id:
+    #             supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+    #                                                                             supplier_id=supp_id, **supplier_dict)
+    #         else:
+    #             supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+    #                                                                             **supplier_dict)
+    #             if created:
+    #                 supplier_master.supplier_id = supplier_master.id
+    #                 supplier_master.save()
+    #         run_iterator = 0
+    #         #supplier_id = supplier_master.id
+    #     else:
+    #         max_sup_id += 1
+    if isinstance(supp_id, (int, float)):
+        supp_id = str(int(supp_id))
+    max_sup_id = '%s_%s' % (str(user.id), supp_id)
+    supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                    supplier_id=supp_id, **supplier_dict)
     return supplier_master
 
 
@@ -11814,6 +11862,7 @@ def view_master_access(sub_perms, check_data):
                 final_lis.append(data1)
     return final_lis
 
+
 def picklist_generation_data(user, picklist_exclude_zones, enable_damaged_stock='', locations=''):
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -12105,7 +12154,7 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     else:
         user_groups = UserGroups.objects.filter(company_id=main_company_id)
     if warehouse:
-        user_groups = user_groups.filter(admin_user__username=warehouse)
+        user_groups = user_groups.filter(admin_user__username__in=warehouse)
     user_list1 = list(user_groups.values_list('user_id', flat=True))
     user_list2 = list(user_groups.values_list('admin_user_id', flat=True))
     if not send_parent:
@@ -12343,6 +12392,7 @@ def insert_admin_sku_attributes(request, user):
         sync_masters_data(user, UserAttributes, update_dict, filter_dict, 'attributes_sync', current_user=True)
     return "Success"
 
+
 @login_required
 @csrf_exempt
 @get_admin_user
@@ -12351,6 +12401,13 @@ def get_company_warehouses(request, user=''):
     warehouse_types = request.GET.get('warehouse_type', '')
     warehouse_types = warehouse_types.split(',')
     warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        warehouse = warehouse.split(',')
+    else:
+        warehouse = []
+    parent_company_id = get_company_id(user)
+    if parent_company_id == company_id:
+        company_id = ''
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
                                         company_id=company_id, send_parent=False)
     warehouse_list = []
@@ -12414,24 +12471,47 @@ def get_warehouse_department_list(request, user=''):
     return HttpResponse(json.dumps({'department_list': department_list}))
 
 
-def get_purchase_config_role_mailing_list(user, app_config, company_id):
+def get_purchase_config_role_mailing_list(request_user, user, app_config, company_id):
     user_roles = app_config.user_role.filter().values_list('role_name', flat=True)
     mail_list = []
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
     for user_role in user_roles:
+        emails = []
         staff_check = {'company_id__in': company_list, 'user': user,
                         'position': user_role}
+        if user.userprofile.warehouse_type == 'DEPT':
+            del staff_check['user']
+            staff_check['department_type'] = user.userprofile.stockone_code
+            staff_check['plant__name'] = get_admin(user).username
+        elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            del staff_check['user']
+            staff_check['plant__name'] = user.username
         if app_config.department_type:
             staff_check['department_type'] = app_config.department_type
-        emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
+        if user_role == 'Reporting Manager':
+            cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+            if cur_staff_obj.exists():
+                emails = [cur_staff_obj[0].reportingto_email_id]
         if not emails:
-            admin_user = get_admin(user)
-            emails = list(StaffMaster.objects.filter(company_id__in=company_list, user=admin_user, department_type='', position=user_role).\
-                    values_list('email_id', flat=True))
+            emails = list(StaffMaster.objects.filter(**staff_check).values_list('email_id', flat=True))
         if not emails:
-            emails = list(StaffMaster.objects.filter(company_id__in=company_list, department_type='', position=user_role).\
-                    values_list('email_id', flat=True))
+            break_loop = True
+            admin_user = user
+            while break_loop:
+                prev_admin_user = admin_user
+                admin_user = get_admin(admin_user)
+                if admin_user.id == prev_admin_user.id:
+                    break_loop = False
+                emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
+                                                         department_type='', position=user_role).\
+                        values_list('email_id', flat=True))
+                if emails:
+                    break_loop = False
+        if not emails:
+            emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
+                                                     department_type='', position=user_role). \
+                          values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
                                                                       str(mail_list)))
@@ -12525,6 +12605,15 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
 
+def net_terms_supplier_mapping(net_code, net_desc, supplier):
+    filters = {
+        'net_code': net_code,
+        'net_description': net_desc,
+        'supplier': supplier
+    }
+    netterm_obj, created = NetTerms.objects.get_or_create(**filters)
+    return netterm_obj
+
 def get_warehouses_data(user):
     ware_houses_list = []
     warehouse_users ={}
@@ -12581,3 +12670,89 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
         WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
 
     return new_user
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_groups_list(request, user=''):
+    group_names = []
+    exclude_list = ['Pull to locate', 'Admin', 'WMS']
+    exclude_group = AdminGroups.objects.filter(user_id=user.id)
+    if exclude_group:
+        exclude_list.append(exclude_group[0].group.name)
+    cur_user = user
+    groups = user.groups.filter().exclude(name__in=exclude_list)
+    total_groups = []
+    for group in groups:
+        group_name = (group.name).replace(user.username + ' ', '')
+        total_groups.append(group_name)
+    return HttpResponse(json.dumps({'groups': total_groups}))
+
+
+def update_user_groups(request, sub_user, selected_list):
+    modified_list = [request.user.username + ' ' + s for s in selected_list]
+    user_groups = request.user.groups.filter()
+    exclude_group = AdminGroups.objects.filter(user_id=request.user.id)
+    if exclude_group:
+        exclude_name = exclude_group[0].group.name
+    for group in user_groups:
+        if group.name in selected_list or group.name in modified_list:
+            sub_user.groups.add(group)
+        else:
+            if exclude_name:
+                if not group.name == exclude_name:
+                    group.user_set.remove(sub_user)
+
+
+def update_staff_plants_list(model_obj, elements):
+    exist_element_list = model_obj.plant.filter().values_list('name', flat=True)
+    exist_elements = [(str(e_elem)).lower() for e_elem in exist_element_list]
+    for elem in elements:
+        element_obj, created = TableLists.objects.get_or_create(name=elem)
+        model_obj.plant.add(element_obj)
+        if elem.lower() in exist_elements:
+            exist_elements.remove(elem.lower())
+    for exist_elem in exist_elements:
+        elem_obj = TableLists.objects.filter(name=exist_elem)
+        if elem_obj:
+            model_obj.plant.remove(elem_obj[0])
+
+
+def get_uom_conversion_value(sku, uom_type):
+    conversion_name, conversion = '', 1
+    user = User.objects.get(id=sku.user)
+    company_id = get_company_id(user)
+    uom_obj = UOMMaster.objects.filter(company_id=company_id, sku_code=sku.sku_code, uom_type=uom_type)
+    if uom_obj:
+        conversion = uom_obj[0].conversion
+        conversion_name = uom_obj[0].name
+    return conversion_name, conversion
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_staff_plants_list(request, user=''):
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+    plants_list = []
+    department_type_list = []
+    if staff_obj:
+        staff_obj = staff_obj[0]
+        plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+        if not plants_list:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj.company_id
+            if parent_company_id == staff_obj.company_id:
+                company_id = ''
+            plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                      company_id=company_id)
+            plants_list = dict(plant_objs.values_list('username', 'first_name'))
+        if staff_obj.department_type:
+            department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+        else:
+            department_type_list = department_type_mapping
+    return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
+

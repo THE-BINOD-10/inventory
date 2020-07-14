@@ -579,7 +579,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     //search input
-    vm.getSearchValues = function(val,url,extra, sku_type='') {
+    vm.getSearchValues = function(val,url,extra, sku_type='', sku_brand='') {
       vm.search_key = val;
       var type = "";
       if (extra) {
@@ -588,6 +588,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       var params = {q: val, type: type}
       if (sku_type) {
         params['sku_catg'] = sku_type;
+      }
+      if (sku_brand) {
+        params['sku_brand'] = sku_brand;
       }
       return $http.get(Session.url+url, {
         params: params

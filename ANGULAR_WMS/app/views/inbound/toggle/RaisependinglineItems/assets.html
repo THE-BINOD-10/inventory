@@ -5,6 +5,7 @@
         <tr>
           <th>Asset Code*</th>
           <th>Title</th>
+          <th>HSN Code</th>
           <!-- <th>Brand</th> -->
           <th>Class</th>
           <th class="w10_">Quantity*</th>
@@ -27,6 +28,9 @@
           <td>
             <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
+          <td>
+            <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
+          </td>
           <!--
           <td>
             <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50">
@@ -39,7 +43,7 @@
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
-                   ng-keyup="showCase.getTotals()" size="12">
+                   ng-keyup="showCase.getTotals(product)" size="12">
           </td>
           <td class="text-center"> 
             <input ng-model="product.fields.temp_price" type="text" name="temp_price" 

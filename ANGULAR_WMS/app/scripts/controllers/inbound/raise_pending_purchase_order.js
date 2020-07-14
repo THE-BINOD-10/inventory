@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "Supplier ID", "Supplier Name", "PO Number", "PR No", "Product Category", 
-                    "Category", "Total Quantity", "Total Amount", 
+                    "Category", "Total Quantity", "Total Amount",
                     "PO Created Date", "PO Delivery Date", "Store", "Department",
                      "PO Raise By",  "Validation Status", "Pending Level", "To Be Approved By",
                     "Last Updated By", "Last Updated At", "Remarks"];
@@ -212,10 +212,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
+              vm.confirm_disabled = false;
               var seller_data = data.data.sellers;
               vm.model_data.tax = data.data.tax;
               vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
               vm.model_data["receipt_types"] = data.data.receipt_types;
+              vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
+              console.log(vm.model_data.terms_condition)
               vm.model_data.seller_type = vm.dedicated_seller;
               vm.model_data.warehouse_names = data.data.warehouse
               angular.forEach(seller_data, function(seller_single){
@@ -379,14 +382,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
+          vm.confirm_disabled = false;
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
           vm.model_data.seller_supplier_map = data.data.seller_supplier_map
-          vm.model_data.terms_condition = data.data.raise_po_terms_conditions
           vm.model_data.ship_addr_names = data.data.shipment_add_names
           vm.model_data.shipment_addresses = data.data.shipment_addresses
           vm.model_data.warehouse_names = data.data.warehouse
           vm.model_data["receipt_types"] = data.data.receipt_types;
+          vm.model_data.terms_condition = (data.data.raise_po_terms_conditions == 'false' ? '' : data.data.raise_po_terms_conditions);
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
@@ -752,6 +756,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.confirm = function(data) {
       if (data.$valid) {
+        vm.confirm_disabled = true;
         if (vm.warehouse_type == 'CENTRAL_ADMIN') {
           var elem = angular.element($('form'))
           elem = elem[0]
@@ -825,6 +830,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.service.pop_msg(data.data);
               }
             }
+            vm.confirm_disabled = false;
         });
         }
       });

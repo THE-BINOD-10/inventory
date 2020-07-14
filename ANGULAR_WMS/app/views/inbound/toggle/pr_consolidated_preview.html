@@ -25,7 +25,9 @@
                   <th>Product Category</th>
                   <th>SKU Code</th>
                   <th>SKU Desc</th>
-                  <th>MOQ</th>
+                  <th>HSN Code</th>
+                  <th ng-if="showCase.preview_data.data[0]['product_category']=='Services'">Details</th>
+                  <!-- <th>MOQ</th> -->
                   <th>Quantity</th>
                   <th>Unit Rate(INR)</th>
                   <th>Amount(INR)</th>
@@ -57,22 +59,24 @@
                 <td> {{data.product_category}} </td>
                 <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
                 <td> {{data.sku_desc}} </td>
-                <td> {{data.moq}} </td>
+                <td> {{data.hsn_code}} </td>
+                <td ng-if="data.product_category=='Services'"> {{data.description_edited}} </td>
+                <!-- <td> {{data.moq}} </td> -->
                 <td> {{data.quantity}} </td>
                 <!-- <td> <input type="number" class="form-control" ng-model="data.quantity" name="quantity" size="25"> </td> -->
                 <td> {{data.price}} </td>
                 <td> {{data.amount}} </td>
                 <td> {{data.tax}} </td>
-                <td> {{data.total * data.quantity}} </td>
+                <td> {{data.total}} </td>
                </tr>
              </tbody>
            </table>
           </div>
         </div>
         <div class="row mb10">
-          <button type="button" class="btn btn-success pull-left ml15" ng-click="showCase.send_to_parent_store(form)" ng-if="showCase.warehouse_type == 'SUB_STORE'">
+          <!-- <button type="button" class="btn btn-success pull-left ml15" ng-click="showCase.send_to_parent_store(form)" ng-if="showCase.warehouse_type == 'SUB_STORE'">
             Send To Parent Store
-          </button>
+          </button> -->
           <button type="button" class="btn btn-danger pull-right mr15" ng-click="showCase.convert_pr_to_po(form)">
             Convert to PO
           </button>

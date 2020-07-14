@@ -432,10 +432,11 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
         user_objs = get_related_user_objs(user.id, level=0)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
-            search_objs = user_objs.filter(username__icontains=search_term)
+            search_objs = user_objs.filter(first_name__icontains=search_term)
             search_users = list(search_objs.values_list('id', flat=True))
         if filter_params.get('sku__user__icontains', ''):
-            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_objs = user_objs.filter(Q(username__icontains=filter_params['sku__user__icontains'])
+                                           | Q(first_name__icontains=filter_params['sku__user__icontains']))
             search_users = list(search_objs.values_list('id', flat=True))
             del filter_params['sku__user__icontains']
             filter_params['supplier__user__in'] = search_users
@@ -463,7 +464,10 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = int(float(sku_preference))
             except:
                 sku_preference = 0
-        warehouse = User.objects.get(id=result.sku.user).username
+        warehouse_obj = User.objects.get(id=result.sku.user)
+        warehouse = warehouse_obj.username
+        if warehouse_obj.first_name:
+            warehouse = warehouse_obj.first_name
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
@@ -709,15 +713,23 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         else:
             master_data = StaffMaster.objects.filter(
                 Q(staff_name__icontains=search_term) | Q(phone_number__icontains=search_term) |
-                Q(email_id__icontains=search_term),
-                company_id__in=company_list, **search_params).order_by(order_data)
+                Q(email_id__icontains=search_term) | Q(position__icontains=search_term) |
+                Q(staff_code__icontains=search_term) | Q(plant__name__icontains=search_term),
+                company_id__in=company_list, **search_params).distinct().order_by(order_data)
 
     else:
         master_data = StaffMaster.objects.filter(company_id__in=company_list, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    company_id = get_company_id(user)
+    roles_list = list(CompanyRoles.objects.filter(company_id=company_id).values_list('group__name', flat=True))
     department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    linked_whs = get_related_users_filters(user.id, send_parent=True)
+    sub_user_id_list = []
+    for linked_wh in linked_whs:
+        sub_objs =  get_sub_users(linked_wh)
+        sub_user_id_list = list(chain(sub_user_id_list, sub_objs.values_list('id', flat=True)))
     for data in master_data[start_index: stop_index]:
         status = 'Inactive'
         if data.status:
@@ -731,15 +743,31 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
             phone_number = data.phone_number
-        sub_user = User.objects.get(username=data.email_id)
         wh_user = data.user
         plant = ''
         department = ''
+        warehouse_names = ''
+        group_names = []
+        sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
+        if data.plant.filter():
+            plant_list = data.plant.filter().values_list('name', flat=True)
+            warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
+            plant = ','.join(plant_list)
         if wh_user:
+            sub_user_parent = get_sub_user_parent(sub_user)
+            roles_list1 = copy.deepcopy(roles_list)
+            roles_list1 = list(chain(roles_list1, [sub_user_parent]))
+            user_groups = sub_user.groups.filter().exclude(name__in=roles_list1)
+            if user_groups:
+                for i in user_groups:
+                    i_name = (i.name).replace(user.username + ' ', '')
+                    i_name = (i_name).replace(sub_user_parent.username + ' ', '')
+                    group_names.append(i_name)
             if wh_user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
-                plant = wh_user.username
+                #plant = wh_user.username
+                pass
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
-                plant = get_admin(wh_user).username
+                #plant = get_admin(wh_user).username
                 department = wh_user.username
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
@@ -747,8 +775,10 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('department_type', department_type_mapping.get(data.department_type, '')),
                                  ('department_code', data.department_type),
                                  ('position', data.position),
-                                 ('email_id', data.email_id), ('phone_number', phone_number),
+                                 ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
+                                 ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
+                                 ('groups', group_names), ('warehouse_names', warehouse_names),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
                          ))
         temp_data['aaData'].append(data_dict)
@@ -3121,7 +3151,7 @@ def insert_sku(request, user=''):
                     data_dict[key] = value
 
 
-            if request.POST['is_test'] == 'true':
+            if request.POST.get('is_test', '') == 'true':
                 data_dict['wms_code'] = data_dict['test_code']
                 data_dict['sku_desc'] = data_dict['test_name']
             data_dict['sku_code'] = data_dict['wms_code']
@@ -4627,12 +4657,17 @@ def insert_staff(request, user=''):
     log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     position = request.POST.get('position', '')
     password = request.POST.get('password', '')
     re_password = request.POST.get('re_password', '')
-    warehouse = request.POST.get('warehouse', '')
+    #warehouse = request.POST.get('warehouse', '')
+    plant = request.POST.get('plant', '')
+    plants = []
+    if plant:
+        plants = plant.split(',')
     department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
     staff_code = request.POST.get('staff_code', '')
@@ -4662,8 +4697,8 @@ def insert_staff(request, user=''):
         if department:
             parent_username = department
             warehouse_type = 'DEPT'
-        elif warehouse:
-            parent_username = warehouse
+        elif plants and not len(plants) > 1:
+            parent_username = plants[0]
             warehouse_type = 'STORE'
         elif str(main_company_id) != str(company_id):
             warehouse_type = 'ST_HUB'
@@ -4676,14 +4711,19 @@ def insert_staff(request, user=''):
         add_user_status = add_warehouse_sub_user(user_dict, wh_user_obj)
         if 'Added' not in add_user_status:
             return HttpResponse(add_user_status)
-        StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
+        staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
                             position=position, department_type=department_type,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
-                            staff_code=staff_code)
+                            staff_code=staff_code, reportingto_email_id=reportingto_email_id)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
+        update_staff_plants_list(staff_obj, plants)
+        request_data = dict(request.POST.iterlists())
+        if request_data.get('groups', []):
+            selected_list = request_data['groups']
+            update_user_groups(request, sub_user, selected_list)
     return HttpResponse(status_msg)
 
 
@@ -4699,6 +4739,7 @@ def update_staff_values(request, user=''):
     # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
+    reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
     department_type = request.POST.get('department_type', '')
@@ -4708,14 +4749,18 @@ def update_staff_values(request, user=''):
     data.staff_name = staff_name
     data.department_type = department_type
     old_position = data.position
+    sub_user = User.objects.get(username=data.email_id)
     if old_position != position:
-        sub_user = User.objects.get(username=data.email_id)
         update_user_role(user, sub_user, position, old_position=old_position)
-    data.position = position
+        data.position = position
     data.phone_number = phone
     data.status = status
+    data.reportingto_email_id = reportingto_email_id
     data.save()
-
+    request_data = dict(request.POST.iterlists())
+    if request_data.get('groups', []):
+        selected_list = request_data['groups']
+        update_user_groups(request, sub_user, selected_list)
     return HttpResponse("Updated Successfully")
 
 
@@ -4902,8 +4947,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         if user_role_mapping:
             login_created = True
             username = user_role_mapping[0].user.username
-        if data.phone_number:
-            data.phone_number = int(float(data.phone_number))
+        # if data.phone_number:
+        #     data.phone_number = int(float(data.phone_number))
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
@@ -5293,17 +5338,25 @@ def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'
     data_dict['request_from'] = request.POST.get('type', 'Master')
-    data_dict['po_number'] = request.POST.get('po_number', '')
+    data_dict['purchase_id'] = request.POST.get('purchase_id', '')
+    data_dict['actual_requested_user'] = request.user.username
+    selected_wh = request.POST.get('warehouse', '')
+    if selected_wh:
+        plant = User.objects.get(username=selected_wh)
+    else:
+        plant = user
     for key, value in request.POST.iteritems():
         if key == 'wms_code':
-            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
+            sku_id = SKUMaster.objects.filter(wms_code=value, user=user.id)
             if not sku_id:
                 return HttpResponse('Wrong WMS Code')
             key = 'sku'
             value = sku_id[0].id
         elif key == 'supplier_id':
-            supplier = SupplierMaster.objects.get(supplier_id=value, user=user.id)
-            value = supplier.supplier_id
+            supplierQs = SupplierMaster.objects.filter(supplier_id=value, user=user.id)
+            if supplierQs.exists():
+                supplier = supplierQs[0]
+                value = supplier.supplier_id
         elif key == 'price' and not value:
             value = 0
         elif key in integer_data:
@@ -5313,22 +5366,18 @@ def send_supplier_doa(request, user=''):
             preference = value
         if value != '':
             data_dict[key] = value
-
     skuSupQs = SKUSupplier.objects.filter(sku__user=user.id, sku_id=sku_id[0].id, supplier_id=supplier.id)
     if skuSupQs.exists() and not data_dict.has_key('DT_RowId'):
         return HttpResponse("New DOA cant be created, already SKUSupplier exists")
-    userQs = UserGroups.objects.filter(user=user)
-    parentCompany = userQs[0].company_id
+    if data_dict.get('request_from', '') == 'Inbound' and skuSupQs.exists():
+        data_dict['preference'] = skuSupQs[0].preference
+        data_dict['moq'] = skuSupQs[0].moq
+    parentCompany = get_company_id(user)
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
-    req_user = request.user
-    if not request.user.is_staff:
-        if user.userprofile.warehouse_type == 'DEPT':
-            req_user  = get_admin(user) # Fetching Store User
-        else:
-            req_user = user
+    
     doa_dict = {
-        'requested_user': req_user,
+        'requested_user': plant,
         'wh_user': admin_user,
         'model_name': 'SKUSupplier',
         'json_data': json.dumps(data_dict),

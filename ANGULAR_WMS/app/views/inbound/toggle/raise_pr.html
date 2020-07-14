@@ -140,6 +140,28 @@
         </div>
         <div class="modal-body" style="padding:5px">
           <div class="row">
+          <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
+            <div class="form-group">
+              <label class="control-label">Plant *</label>
+              <select class="form-control" name="plant"
+              ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()" required>
+                <option ng-repeat="(plant_code, plant_name) in showCase.plants_list"
+                        value="{{plant_code}}">{{plant_name}}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.warehouse_type!='DEPT'">
+            <div class="form-group">
+              <label class="control-label">Department Type *</label>
+              <select class="form-control" name="department_type"
+              ng-model="showCase.model_data.department_type" required>
+                <option ng-repeat="(dept_code, dept_name) in showCase.department_type_list"
+                        value="{{dept_code}}">{{dept_name}}
+                </option>
+              </select>
+            </div>
+          </div>
           <div class="col-md-3 col-sm-3 col-xs-6">
             <div class="form-group">
               <label class="control-label">Product Category</label>

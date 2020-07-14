@@ -2013,7 +2013,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in attr_dict.iteritems():
                 if attr_val:
-                    if attributes[attr_key] == 'Multi Input':
+                    if attributes.get(attr_key, '') == 'Multi Input':
                         attr_vals = attr_val.split(',')
                         allow_multiple = True
                     else:
@@ -2081,7 +2081,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 check_update_hot_release(sku_data, hot_release)
             for attr_key, attr_val in new_skus[sku_code].get('attr_dict', {}).iteritems():
                 if attr_val:
-                    if attributes[attr_key] == 'Multi Input':
+                    if attributes.get(attr_key, '') == 'Multi Input':
                         attr_vals = attr_val.split(',')
                         allow_multiple = True
                     else:
@@ -9532,9 +9532,9 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'password', 'phone_number', 'position', 'status']).\
+    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status']).\
             issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', []
     company_id = get_company_id(user)
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
@@ -9542,12 +9542,12 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
     # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
     # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
-    staff_master = None
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
     for row_idx in range(1, no_of_rows):
         data_dict = {}
+        staff_master = None
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'warehouse':
@@ -9592,13 +9592,12 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     else:
                         data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
+                data_dict[key] = cell_data
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
                     sub_user_email = all_sub_users.filter(email=cell_data)
                     if sub_user_email.exists():
                         index_status.setdefault(row_idx, set()).add('Email exists already')
-                    else:
-                        data_dict[key] = cell_data
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Email ID is Mandatory')
             elif key == 'password':
@@ -9624,6 +9623,11 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                         setattr(staff_master, key, cell_data)
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Position is Mandatory')
+            elif key == 'reportingto_email_id':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    if staff_master:
+                        setattr(staff_master, key, cell_data)
             elif key == 'status':
                 if cell_data:
                     if str(cell_data).lower() == 'inactive':
@@ -9684,6 +9688,7 @@ def staff_master_upload(request, user=''):
             else:
                 staff_code = final_data['staff_code']
                 email = final_data['email_id']
+                reportingto_email = final_data.get('reportingto_email_id', '')
                 staff_name = final_data['name']
                 password = final_data['password']
                 phone = final_data.get('phone_number', '')
@@ -9709,11 +9714,10 @@ def staff_master_upload(request, user=''):
                                            phone_number=phone, email_id=email, status=staff_status,
                                            position=position, department_type=department_type,
                                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
-                                           staff_code=staff_code)
+                                           staff_code=staff_code, reportingto_email_id=reportingto_email)
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
                 update_staff_plants_list(staff_obj, plants)
-            print final_data
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -9739,6 +9743,7 @@ def uom_master_form(request, user=''):
 @login_required
 @get_admin_user
 def uom_master_upload(request, user=''):
+    from masters import gather_uom_master_for_sku
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -9752,6 +9757,9 @@ def uom_master_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     company_id = get_company_id(user)
+    uom_data_list=[]
+    sku_dict={}
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list =[],[],[],[]
     for final_data in data_list:
         name = '%s-%s' % (final_data['uom'], str(int(final_data['conversion'])))
         final_data['name'] = name
@@ -9759,8 +9767,91 @@ def uom_master_upload(request, user=''):
         uom_obj = UOMMaster.objects.filter(**final_data)
         if not uom_obj:
             UOMMaster.objects.create(**final_data)
+        sku_dict[final_data["sku_code"]]=True
+    for sku_code in sku_dict.keys():
+        uom_data = gather_uom_master_for_sku(user, sku_code)
+        uom_data_list.append(uom_data)
+        data= netsuite_sku_uom_update(sku_code, user)
+        if(data):
+            if data["instanceName"]==SKUMaster:
+                SKUMaster_list.append(data)
+            elif data["instanceName"]==ServiceMaster:
+                ServiceMaster_list.append(data)
+            elif data["instanceName"]==AssetMaster:
+                AssetMaster_list.append(data)
+            elif data["instanceName"]==OtherItemsMaster:
+                OtherItemsMaster_list.append(data)
+    intObj = Integrations(user,'netsuiteIntegration')
+    # # netsuite_integrateUOM(user, uom_data_list, intObj)
+    intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
+    if(SKUMaster_list):
+        intObj.integrateSkuMaster(SKUMaster_list,"sku_code", is_multiple=True)
+    if(ServiceMaster_list):
+        intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
+    if(AssetMaster_list):
+        intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
+    if(OtherItemsMaster_list):
+        intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
 
+def netsuite_sku_uom_update(wms_code, user):
+    temp=True
+    instanceName = SKUMaster
+    data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+    if(data):
+        temp=False
+    if(temp):
+        instanceName = ServiceMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    if(temp):
+        instanceName = AssetMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    if(temp):
+        instanceName = OtherItemsMaster
+        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
+        if(data):
+            temp=False
+    sku_data_dict={}
+    if(data):
+        sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+        try:
+            sku_data_dict=gatherSkuData_uom(data)
+            if("hsn_code" in sku_data_dict):
+                sku_data_dict["hsn_code"]=""
+            department, plant, subsidary=get_plant_subsidary_and_department(user)
+            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+            try:
+                from masters import get_uom_details
+                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+            except Exception as e:
+                pass
+            sku_data_dict.update(
+                {
+                    'department': department,
+                    "subsidiary": subsidary,
+                    "plant": plant,
+                    'unitypeexid': uom_type,
+                    'stock_unit': stock_uom,
+                    'purchase_unit': purchase_uom,
+                    'sale_unit': sale_uom
+                }
+            )
+            if instanceName == ServiceMaster:
+                sku_data_dict.update({"ServicePurchaseItem":True, "instanceName": instanceName})
+            elif instanceName == AssetMaster:
+                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+            elif instanceName == OtherItemsMaster:
+                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+            else:
+                sku_data_dict.update({"instanceName": instanceName})
+                sku_data_dict.update(sku_attr_dict)
+        except Exception as e:
+            pass
+    return sku_data_dict
 
 @csrf_exempt
 def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):

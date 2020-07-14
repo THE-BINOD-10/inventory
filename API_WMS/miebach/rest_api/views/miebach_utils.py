@@ -3170,7 +3170,7 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
 STAFF_MASTER_MAPPING = OrderedDict(
     (('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),
      ('Staff Code', 'staff_code'), ('Name', 'name'),
-     ('Email', 'email_id'), ('Password', 'password'),
+     ('Email', 'email_id'), ('ReportingTO', 'reportingto_email_id'), ('Password', 'password'),
      ('Phone Number', 'phone_number'), ('Position', 'position'),
      ('Status', 'status')
      ))

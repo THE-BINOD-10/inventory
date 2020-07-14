@@ -37,6 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('department_type').withTitle('Department Type'),
         DTColumnBuilder.newColumn('position').withTitle('Position'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
+        DTColumnBuilder.newColumn('reportingto_email_id').withTitle('Reporting To'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
         DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
                         return vm.service.status(full.status);

@@ -37,19 +37,20 @@
             <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50">
-            <!-- <input type="text" autocomplete="off"
+            <!-- <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" type="text" class="form-control detectTab" readonly size="50"> -->
+            <input type="text" autocomplete="off"
                    name="sku_id" class="form-control"
                    placeholder="Search Brand"
                    typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_sku_brands?')"
                    typeahead-loading="WMSCodesLoading"
-                   ng-model="product.fields.sku_brand"> -->
+                   ng-model="product.fields.sku_brand" 
+                   ng-disabled="product.fields.sku.wms_code">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
-                   ng-keyup="showCase.getTotals()" size="12">
+                   ng-keyup="showCase.getTotals(product)" size="12">
           </td>
           <td>
             <input ng-model="product.fields.conversion" type="text" name="no_of_tests" 

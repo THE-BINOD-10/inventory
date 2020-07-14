@@ -249,9 +249,15 @@ class netsuiteIntegration(object):
                         grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
                     if(data.get("exp_date",None)):
                         grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
+                    if(data.get("mrp",None)):
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
                     line_item = {
                     'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
-                    'quantity': data['received_quantity'], 'location': ns.RecordRef(internalId=297), 'itemReceive': True,
+                    'quantity': data['received_quantity'],
+                    'description': data['sku_desc'],
+                    'rate': data['unit_price'],
+                    'location': ns.RecordRef(internalId=297),
+                    'itemReceive': True,
                     "customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
                     if data.get('uom_name', None) and data.get('unitypeexid', None):
@@ -326,9 +332,10 @@ class netsuiteIntegration(object):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=po_data['approval3']))
             if(po_data.get('approval4',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
-            purorder.location= ns.RecordRef(internalId=297)
+            # purorder.location= ns.RecordRef(internalId=297)
             if(po_data.get("plant", None)):
-                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant']))
+                 po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
+                # po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant']))
             if (po_data.get("supplier_gstin", None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_in_vendor_gstin', value=po_data["supplier_gstin"]))
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
@@ -339,7 +346,7 @@ class netsuiteIntegration(object):
                  'description': data['sku_desc'],
                  'rate': data['unit_price'],
                  'quantity':data['quantity'],
-                 'location':ns.RecordRef(internalId=297),
+                 # 'location':ns.RecordRef(internalId=297),
                  'customFieldList': ns.CustomFieldList([ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']),
                   ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number']))])
                 }
@@ -367,7 +374,7 @@ class netsuiteIntegration(object):
             purreq.tranDate = pr_data['pr_date']
             purreq.tranId = pr_data['full_pr_number']
             purreq.tranDate = pr_data['pr_date']
-            purreq.location= ns.RecordRef(internalId=297)
+            # purreq.location= ns.RecordRef(internalId=297)
             # purreq.subsidiary = ns.RecordRef(internalId=1)
             if(pr_data['subsidiary']):
                 purreq.subsidiary = ns.ListOrRecordRef(internalId=pr_data['subsidiary'])
@@ -379,20 +386,21 @@ class netsuiteIntegration(object):
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_requestor', value=pr_data['requested_by'])
             ]
             if(pr_data.get('approval2',None)):
-                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval2']))
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver2', value=pr_data['approval2']))
             if(pr_data.get('approval3',None)):
-                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval3']))
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=pr_data['approval3']))
             if(pr_data.get('approval4',None)):
-                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval4']))
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=pr_data['approval4']))
             if(pr_data.get('plant', None)):
-                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
+                custom_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=pr_data['plant'])))
+                # custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
             purreq.customFieldList =  ns.CustomFieldList(custom_list)
             for data in pr_data['items']:
                 line_item = {
                     'item':ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
-                    'location':ns.RecordRef(internalId=297)
+                    # 'location':ns.RecordRef(internalId=297)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
@@ -510,7 +518,7 @@ class netsuiteIntegration(object):
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
                  'adjustQtyBy':data['adjust_qty_by'],
-                 'location':ns.RecordRef(internalId=297),
+                 # 'location':ns.RecordRef(internalId=297),
                  "customFieldList": ns.CustomFieldList(inv_adj_custom_field_list)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):

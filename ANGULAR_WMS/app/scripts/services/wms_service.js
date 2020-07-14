@@ -590,7 +590,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         params['sku_catg'] = sku_type;
       }
       if (sku_brand) {
-        params['sku_brand'] = sku_type;
+        params['sku_brand'] = sku_brand;
       }
       return $http.get(Session.url+url, {
         params: params

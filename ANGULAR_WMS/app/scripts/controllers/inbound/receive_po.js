@@ -440,6 +440,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.sort_items = [];
       vm.sort_flag = false;
       vm.display_approval_button = false;
+      vm.display_approval_button_DOA = false;
       vm.send_admin_mail = false;
       if (vm.discrepancy_data) {
          vm.service.print_data(vm.discrepancy_data, 'Discrepancy Data');
@@ -863,7 +864,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             elem.push(elem_dict)
           }
         }
-        if(vm.send_for_approval_check==true){
+        if(vm.display_approval_button==true){
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
           elem.push({'name':'total_order_qty', 'value': vm.total_order_qty});
           elem.push({'name':'total_receivable_qty', 'value': vm.total_receivable_qty});
@@ -879,7 +880,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        if(vm.send_for_approval_check==true){
+        if(vm.display_approval_button==true){
 
           url = "send_for_approval_confirm_grn/"
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
@@ -2750,11 +2751,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.round_off_total = temp_roundoff_total;
         if (vm.model_data.other_charges.length > 0) {
           angular.forEach(vm.model_data.other_charges, function(charge) {
-            vm.model_data.round_off_total += parseInt(charge.amount);
+            vm.model_data.round_off_total += parseFloat(charge.amount);
           })
+        vm.model_data.round_off_total = Math.round(vm.model_data.round_off_total * 100)/100;
         }
       } else if (type == 'remove') {
-        vm.model_data.round_off_total -= parseInt(charges.amount);
+        vm.model_data.round_off_total -= parseFloat(charges.amount);
       }
     }
   }
@@ -2790,6 +2792,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return
     }
     vm.display_approval_button = false;
+    vm.display_approval_button_DOA = false;
     vm.send_admin_mail = false;
     if (outerindex != undefined) {
       vm.model_data.data[outerindex][innerindex].wrong_sku = 0

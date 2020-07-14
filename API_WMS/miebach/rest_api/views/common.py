@@ -9365,25 +9365,29 @@ def get_supplier_info(request):
 
 def create_new_supplier(user, supp_id, supplier_dict=None):
     ''' Create New Supplier with dynamic supplier id'''
-    max_sup_id = SupplierMaster.objects.count()
-    run_iterator = 1
-    supplier_master = None
-    while run_iterator:
-        supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
-        if not supplier_obj:
-            if supp_id:
-                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                                supplier_id=supp_id, **supplier_dict)
-            else:
-                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                                **supplier_dict)
-                if created:
-                    supplier_master.supplier_id = supplier_master.id
-                    supplier_master.save()
-            run_iterator = 0
-            #supplier_id = supplier_master.id
-        else:
-            max_sup_id += 1
+    # max_sup_id = SupplierMaster.objects.count()
+    # run_iterator = 1
+    # supplier_master = None
+    # while run_iterator:
+    #     supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
+    #     if not supplier_obj:
+    #         if supp_id:
+    #             supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+    #                                                                             supplier_id=supp_id, **supplier_dict)
+    #         else:
+    #             supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+    #                                                                             **supplier_dict)
+    #             if created:
+    #                 supplier_master.supplier_id = supplier_master.id
+    #                 supplier_master.save()
+    #         run_iterator = 0
+    #         #supplier_id = supplier_master.id
+    #     else:
+    #         max_sup_id += 1
+    max_sup_id = '%s_%s' % (str(user.id), str(supp_id))
+    supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                    supplier_id=supp_id, **supplier_dict)
+    print user, max_sup_id
     return supplier_master
 
 

@@ -9589,6 +9589,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     index_status.setdefault(row_idx, set()).add('Staff Name is Mandatory')
             elif key == 'plant':
                 if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
                     plants = cell_data.split(',')
                     for plant in plants:
                         if not plants_list.filter(username=plant):

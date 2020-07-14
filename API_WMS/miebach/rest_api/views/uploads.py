@@ -3020,6 +3020,10 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                         user = user_obj[0]
                         supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
                                                                                                 flat=True)
+                        if supplier_list:
+                            supplier_ids = []
+                            for i in supplier_list: supplier_ids.append(i)
+
             elif key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))

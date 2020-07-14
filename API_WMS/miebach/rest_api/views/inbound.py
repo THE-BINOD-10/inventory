@@ -3311,8 +3311,8 @@ def approve_pr(request, user=''):
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
     if 'total' in myDict.keys():
+        totalAmt = 0
         for i in range(0, len(myDict['wms_code'])):
-            totalAmt = 0
             try:
                 totalAmt += float(myDict['total'][i])
             except:

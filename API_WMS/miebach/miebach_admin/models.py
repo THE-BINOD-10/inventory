@@ -265,8 +265,8 @@ class LocationMaster(models.Model):
 
 
 class SupplierMaster(models.Model):
-    id = models.CharField(max_length=64, primary_key=True)
-    supplier_id = models.CharField(max_length=64, default='')
+    id = models.CharField(max_length=128, primary_key=True)
+    supplier_id = models.CharField(max_length=128, default='')
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=256)
     address_id = models.CharField(max_length=256, null=True)

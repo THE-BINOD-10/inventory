@@ -13118,7 +13118,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                    'pending_po__final_status', 'pending_po__pending_level', 'cgst_tax', 'igst_tax','sgst_tax',
                    'pending_po__sku_category','pending_po__requested_user__first_name',
                    'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
-                   'pending_po__creation_date','pending_po__full_po_number',
+                   'pending_po__creation_date','pending_po__full_po_number', 'pending_po__wh_user',
                    'pending_po__updation_date', 'pending_po__prefix', 'pending_po__delivery_date',
                    'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name']
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
@@ -13375,7 +13375,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
                    'pending_po__product_category', 'pending_po__open_po', 'pending_po__open_po__price',
                    'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username',
                    'pending_po__wh_user__first_name','pending_po__full_po_number', 'sku__sku_code', 'sku__sku_desc',
-                   'sku__sku_category', 'sku__sku_class', 'sku__sku_brand', 'sku__sku_group','sku__style_name',
+                   'sku__sku_category', 'sku__sku_class', 'sku__sku_brand', 'sku__sku_group','sku__style_name', 'pending_po__wh_user',
                    'sku__price', 'sku__mrp', 'sku__sub_category', 'sku__sku_group', 'pending_po__pending_prs__full_pr_number',
                    'pending_po__final_status', 'pending_po__pending_level','quantity', 'price', 'cgst_tax', 'igst_tax','sgst_tax',
                    'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__creation_date',

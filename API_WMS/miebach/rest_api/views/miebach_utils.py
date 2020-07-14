@@ -12686,7 +12686,7 @@ def get_pr_report_data(search_params, user, sub_user):
                             approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver1_status = approver_data[0].status
                             approver1_remarks = approver_data[0].remarks
-                            if approver_data[0].pending_pr.final_status:
+                            if approver_data[0].pending_pr:
                                 pr_status = (approver_data[0].pending_pr.final_status).title()
                                 if pr_status == "Pr_Converted_To_Po":
                                     final_status = 'Approved'
@@ -12698,7 +12698,7 @@ def get_pr_report_data(search_params, user, sub_user):
                             approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver2_status = approver_data[0].status
                             approver2_remarks = approver_data[0].remarks
-                            if approver_data[0].pending_pr.final_status:
+                            if approver_data[0].pending_pr:
                                 pr_status = (approver_data[0].pending_pr.final_status).title()
                                 if pr_status == "Pr_Converted_To_Po":
                                     final_status = 'Approved'
@@ -12710,7 +12710,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                     approver1_status = approver_data[0].status
                     approver1_remarks = approver_data[0].remarks
-                    if approver_data[0].pending_pr.final_status:
+                    if approver_data[0].pending_pr:
                         pr_status = (approver_data[0].pending_pr.final_status).title()
                         if pr_status == "Pr_Converted_To_Po":
                             final_status = 'Approved'
@@ -12936,7 +12936,7 @@ def get_pr_detail_report_data(search_params, user, request):
                             approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver1_status = approver_data[0].status
                             approver1_remarks = approver_data[0].remarks
-                            if approver_data[0].pending_pr.final_status:
+                            if approver_data[0].pending_pr:
                                 pr_status = (approver_data[0].pending_pr.final_status).title()
                                 if pr_status == "Pr_Converted_To_Po":
                                     final_status = 'Approved'
@@ -12949,7 +12949,7 @@ def get_pr_detail_report_data(search_params, user, request):
                             approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver2_status = approver_data[0].status
                             approver2_remarks = approver_data[0].remarks
-                            if approver_data[0].pending_pr.final_status:
+                            if approver_data[0].pending_pr:
                                 pr_status = (approver_data[0].pending_pr.final_status).title()
                                 if pr_status == "Pr_Converted_To_Po":
                                     final_status = 'Approved'
@@ -12961,7 +12961,7 @@ def get_pr_detail_report_data(search_params, user, request):
                     approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                     approver1_status = approver_data[0].status
                     approver1_remarks = approver_data[0].remarks
-                    if approver_data[0].pending_pr.final_status:
+                    if approver_data[0].pending_pr:
                         pr_status = (approver_data[0].pending_pr.final_status).title()
                         if pr_status == "Pr_Converted_To_Po":
                             final_status = 'Approved'

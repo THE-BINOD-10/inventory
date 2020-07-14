@@ -132,13 +132,13 @@
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check && !showCase.permissions.receive_po_inv_value_qty_check">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
-                <input class="form-control" ng-readonly="showCase.invoice_readonly_option" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
+                <input class="form-control" ng-readonly="showCase.invoice_readonly_option" ng-model="showCase.model_data.invoice_value" type="text" name="invoice_value" required>
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>
-                <input class="form-control" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
+                <input class="form-control" ng-model="showCase.model_data.invoice_value" type="text" name="invoice_value" required>
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
@@ -449,8 +449,8 @@
           <div class="row">
             <div class="col-md-4">
               <div class="form-group pull-left">
-                <label for="remarks" class="control-label"> Round Off </label>
-                <input type="checkbox" class="data-select" ng-change="showCase.round_off_effects(showCase.round_off)" ng-model="showCase.round_off" name="round_off">
+                <!-- <label for="remarks" class="control-label"> Round Off </label>
+                <input type="checkbox" class="data-select" ng-change="showCase.round_off_effects(showCase.round_off)" ng-model="showCase.round_off" name="round_off"> -->
               </div>
             </div>
             <div class="col-md-4"></div>

@@ -12624,6 +12624,7 @@ def get_pr_report_data(search_params, user, sub_user):
     else:
         results = pending_data
     count = 0
+    final_status = "Pending"
     for result in results:
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
@@ -12869,6 +12870,7 @@ def get_pr_detail_report_data(search_params, user, request):
     else:
         results = pending_data
     count = 0
+    final_status = "Pending"
     for result in results:
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')

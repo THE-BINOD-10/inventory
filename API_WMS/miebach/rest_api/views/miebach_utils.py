@@ -12687,9 +12687,10 @@ def get_pr_report_data(search_params, user, sub_user):
                             approver1_status = approver_data[0].status
                             approver1_remarks = approver_data[0].remarks
                             pr_status = (approver_data[0].pending_pr.final_status).title()
-                            if pr_status == 'Pr_Converted_To_Po':
-                                final_status = "Approved"
-
+                            if approver_data[0].pending_pr.final_status:
+                                pr_status = (approver_data[0].pending_pr.final_status).title()
+                                if pr_status == "Pr_Converted_To_Po":
+                                    final_status = 'Approved'
                     elif prev_level == 'level1' and prApprQs[0].level == 'level1' :
                         approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                                                          pr_user=pr_user,level=prev_level)
@@ -12698,10 +12699,10 @@ def get_pr_report_data(search_params, user, sub_user):
                             approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver2_status = approver_data[0].status
                             approver2_remarks = approver_data[0].remarks
-                            pr_status  = (approver_data[0].pending_pr.final_status).title()
-                            if pr_status == "Pr_Converted_To_Po":
-                                final_status = 'Approved'
-
+                            if approver_data[0].pending_pr.final_status:
+                                pr_status = (approver_data[0].pending_pr.final_status).title()
+                                if pr_status == "Pr_Converted_To_Po":
+                                    final_status = 'Approved'
             else:
                 approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                                                  level=lastLevel)
@@ -12710,9 +12711,10 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                     approver1_status = approver_data[0].status
                     approver1_remarks = approver_data[0].remarks
-                    pr_status = (approver_data[0].pending_pr.final_status).title()
-                    if pr_status == "Pr_Converted_To_Po":
-                        final_status = 'Approved'
+                    if approver_data[0].pending_pr.final_status:
+                        pr_status = (approver_data[0].pending_pr.final_status).title()
+                        if pr_status == "Pr_Converted_To_Po":
+                            final_status = 'Approved'
         last_updated_by = ''
         last_updated_time = ''
         last_updated_remarks = ''
@@ -12935,10 +12937,10 @@ def get_pr_detail_report_data(search_params, user, request):
                             approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver1_status = approver_data[0].status
                             approver1_remarks = approver_data[0].remarks
-                            pr_status = (approver_data[0].pending_pr.final_status).title()
-                            if pr_status == 'Pr_Converted_To_Po':
-                                final_status = "Approved"
-
+                            if approver_data[0].pending_pr.final_status:
+                                pr_status = (approver_data[0].pending_pr.final_status).title()
+                                if pr_status == "Pr_Converted_To_Po":
+                                    final_status = 'Approved'
                     elif prev_level == 'level1' and prApprQs[0].level == 'level1':
                         approver_data = PurchaseApprovals.objects.filter(
                             purchase_number=result['pending_pr__pr_number'],
@@ -12949,9 +12951,10 @@ def get_pr_detail_report_data(search_params, user, request):
                             approver2_status = approver_data[0].status
                             approver2_remarks = approver_data[0].remarks
                             pr_status = (approver_data[0].pending_pr.final_status).title()
-                            if pr_status == "Pr_Converted_To_Po":
-                                final_status = 'Approved'
-
+                            if approver_data[0].pending_pr.final_status:
+                                pr_status = (approver_data[0].pending_pr.final_status).title()
+                                if pr_status == "Pr_Converted_To_Po":
+                                    final_status = 'Approved'
             else:
                 approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                                                                  level=lastLevel)
@@ -12961,8 +12964,10 @@ def get_pr_detail_report_data(search_params, user, request):
                     approver1_status = approver_data[0].status
                     approver1_remarks = approver_data[0].remarks
                     pr_status = (approver_data[0].pending_pr.final_status).title()
-                    if pr_status == "Pr_Converted_To_Po":
-                        final_status = 'Approved'
+                    if approver_data[0].pending_pr.final_status:
+                        pr_status = (approver_data[0].pending_pr.final_status).title()
+                        if pr_status == "Pr_Converted_To_Po":
+                            final_status = 'Approved'
         last_updated_by = ''
         last_updated_time = ''
         last_updated_remarks = ''

@@ -713,7 +713,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         else:
             master_data = StaffMaster.objects.filter(
                 Q(staff_name__icontains=search_term) | Q(phone_number__icontains=search_term) |
-                Q(email_id__icontains=search_term),
+                Q(email_id__icontains=search_term) | Q(position__icontains=search_term) |
+                Q(staff_code__icontains=search_term) | Q(plant__name__icontains=search_term),
                 company_id__in=company_list, **search_params).order_by(order_data)
 
     else:

@@ -472,6 +472,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    perm: "add_uommaster",
                  },
                  {
+                   title: "User Master Download/ Upload",
+                   download: "Download User Master Form",
+                   upload: "Upload User Master Form",
+                   durl: "user_master_form/",
+                   uurl: "user_master_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0,
+                   perm: "add_skumaster",
+                 },{
                    title: "Purchase Request Download/ Upload",
                    download: "Download Purchase Request Form",
                    upload: "Upload Purchase Request Form",
@@ -481,7 +491,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_pendingpr"
-                 },
+                 }
                 ]
 
   $scope.download = function(data) {

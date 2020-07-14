@@ -3194,6 +3194,14 @@ UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_u
                                   ))
 
 
+USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'), 
+                                    ('Stockone Code', 'stockone_code'), ('SAP Code', 'sap_code'), ('Netsuite Id', 'reference_id'),
+                                    ('Username', 'username'), ('First Name', 'first_name'), ('Last Name', 'last_name'),
+                                    ('Phone Number', 'phone_number'), ('Email', 'email'), ('Password', 'password'),
+                                    ('Country', 'country'), ('State', 'state'), ('Address', 'address'), 
+                                    ('City', 'city'), ('Pincode', 'pincode')
+                        ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):
@@ -5044,6 +5052,31 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
                                                     col_num, exact=False)
             temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
+
+def get_po_grn_price_and_taxes(data, type=""):
+    total_qty, total_price, total_tax= [0]*3
+    if type=="PO":
+        for row in data:
+            total_qty += row.open_po.order_quantity
+            tmp_price = row.open_po.price * row.open_po.order_quantity
+            tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
+            total_tax += (tmp_tax * tmp_price) /100
+            total_price +=  tmp_price
+    if type=="GRN":
+        for row in data:
+            total_qty += row.quantity
+            if row.price > 0:
+                tmp_price = row.price * row.quantity
+            elif row.batch_detail:
+                if row.batch_detail.buy_price >0:
+                    tmp_price = row.batch_detail.buy_price * row.quantity
+            else:
+                tmp_price = row.purchase_order.open_po.price * row.quantity
+            tmp_tax = row.purchase_order.open_po.sgst_tax + row.purchase_order.open_po.cgst_tax + row.purchase_order.open_po.igst_tax
+            total_tax += (tmp_tax * tmp_price)/100
+            total_price +=  tmp_price
+    return total_qty, total_price, total_tax
+
 
 def get_po_grn_price_and_taxes(data, type=""):
     total_qty, total_price, total_tax= [0]*3

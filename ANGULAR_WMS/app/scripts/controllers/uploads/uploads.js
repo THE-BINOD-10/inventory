@@ -471,6 +471,17 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_uommaster",
                  },
+                 {
+                   title: "User Master Download/ Upload",
+                   download: "Download User Master Form",
+                   upload: "Upload User Master Form",
+                   durl: "user_master_form/",
+                   uurl: "user_master_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0,
+                   perm: "add_skumaster",
+                 }
                 ]
 
   $scope.download = function(data) {

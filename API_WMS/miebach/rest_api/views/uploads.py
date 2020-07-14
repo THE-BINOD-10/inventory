@@ -20,6 +20,8 @@ import csv
 from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
+from rest_api.views.common import create_user_wh
+
 from inbound_common_operations import *
 from stockone_integrations.views import Integrations
 
@@ -9705,6 +9707,160 @@ def staff_master_upload(request, user=''):
             str(user.username), str(data_list), str(e)))
     return HttpResponse('Success')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_master_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(USER_MASTER_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('UOM Master', excel_headers)
+    return xls_to_response(wb, '%s.user_master_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def user_master_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_user_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    company_id = get_company_id(user)
+    for final_data in data_list:
+        exist_user_profile = UserProfile.objects.get(user_id=final_data.get('parent_wh_username').id)
+        user_dict = copy.deepcopy(ADD_USER_DICT)
+        user_profile_dict = copy.deepcopy(ADD_WAREHOUSE_DICT)
+        final_data['warehouse_level'] = exist_user_profile.warehouse_level + 1
+        if final_data['warehouse_type'] != 'DEPT':
+            final_data['multi_warehouse'] = 1
+        for key, value in final_data.iteritems():
+            if key in user_dict.keys():
+                user_dict[key] = value
+            if key in user_profile_dict.keys():
+                user_profile_dict[key] = value
+        newuser = create_user_wh(
+            final_data.get('parent_wh_username'), 
+            user_dict, 
+            user_profile_dict, 
+            exist_user_profile
+        )
+        addConfigs(final_data.get('parent_wh_username'), newuser)
+        insert_skus(newuser.id)
+        insert_admin_suppliers(request, newuser)
+        insert_admin_tax_master(request, newuser)
+        insert_admin_sku_attributes(request, newuser)
+
+def addConfigs(existingUser, newUser):
+    ConfigsToUpdate = [
+        'supplier_mapping',
+        'attributes_sync',
+        'tax_master_sync',
+        'supplier_sync',
+        'inbound_supplier_invoice',
+        'enable_pending_approval_pos',
+        'enable_pending_approval_prs',
+        'receive_po_inv_value_qty_check',
+    ]
+    for config in ConfigsToUpdate:
+        doesexistinguserhas = MiscDetail.objects.filter(user=existingUser.id, misc_type=config, misc_value=True)    
+        if doesexistinguserhas:
+            misc_detail, created = MiscDetail.objects.get_or_create(
+                user=newUser.id, 
+                misc_type=config
+            )
+            misc_detail.misc_value = True
+            misc_detail.creation_date = datetime.datetime.now()
+            misc_detail.updation_date = datetime.datetime.now()
+            misc_detail.save()
+    
+
+
+@csrf_exempt
+def validate_user_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(USER_MASTER_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['company_id', 'parent_wh_username', 'warehouse_type']).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'company_id':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    company_master = CompanyMaster.objects.filter(id=cell_data)
+                    if not company_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid Company Master')
+                    else:
+                        data_dict[key] = company_master[0].id
+                else:
+                    index_status.setdefault(row_idx, set()).add('Company Is Mandatory')
+            elif key == 'parent_wh_username':
+                if cell_data:
+                    company_master = User.objects.filter(username=cell_data)
+                    if not company_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid Parent Username')
+                    else:
+                        data_dict[key] = company_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Parent Username Required')
+            elif key == 'username':
+                if cell_data:
+                    _user = User.objects.filter(username=cell_data)
+                    if _user:
+                        index_status.setdefault(row_idx, set()).add('User Exists')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Username Required')
+            elif key in ['warehouse_type', 'username']:
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+
+            else:
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
 @csrf_exempt
 @login_required

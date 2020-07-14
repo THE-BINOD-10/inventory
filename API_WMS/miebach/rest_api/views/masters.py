@@ -16,7 +16,7 @@ import os
 from sync_sku import *
 import simplejson
 from api_calls.netsuite import *
-from rest_api.views.common import internal_external_map
+from rest_api.views.common import internal_external_map, create_user_wh
 from stockone_integrations.views import Integrations
 log = init_logger('logs/masters.log')
 
@@ -2679,41 +2679,12 @@ def add_warehouse_user(request, user=''):
 
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists and not status:
-        user_dict['last_login'] = datetime.datetime.now()
-        new_user = User.objects.create_user(**user_dict)
-        new_user.is_staff = True
-        new_user.save()
-        user_profile_dict['user_id'] = new_user.id
-        user_profile_dict['location'] = user_profile_dict['state']
-        user_profile_dict['prefix'] = new_user.username[:3]
-        if not user_profile_dict.get('pin_code', 0):
-            user_profile_dict['pin_code'] = 0
-        if not user_profile_dict.get('phone_number', 0):
-            user_profile_dict['phone_number'] = 0
-        user_profile_dict['user_type'] = exist_user_profile.user_type
-        user_profile_dict['industry_type'] = exist_user_profile.industry_type
-        user_profile = UserProfile(**user_profile_dict)
-        user_profile.save()
-        add_user_type_permissions(user_profile)
-        group, created = Group.objects.get_or_create(name=new_user.username)
-        admin_dict = {'group_id': group.id, 'user_id': new_user.id}
-        admin_group = AdminGroups(**admin_dict)
-        admin_group.save()
-        new_user.groups.add(group)
-        warehouse_admin = user
-        #warehouse_admin = get_warehouse_admin(user)
-        company = user.userprofile.company
-        if company.parent:
-            company_id = company.parent_id
-        else:
-            company_id = company.id
-        UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id, company_id=company_id)
-        if customer_name:
-            WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
+        create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name)
         status = 'Added Successfully'
     else:
         status = 'Username already exists'
     return HttpResponse(status)
+
 
 
 @csrf_exempt

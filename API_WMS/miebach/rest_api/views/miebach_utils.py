@@ -2959,6 +2959,14 @@ STAFF_MASTER_MAPPING = OrderedDict(( ('Warehouse', 'warehouse'), ('Staff Code', 
                                       ('Status', 'status')
                         ))
 
+USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'), 
+                                    ('Stockone Code', 'stockone_code'), ('SAP Code', 'sap_code'), ('Netsuite Id', 'reference_id'),
+                                    ('Username', 'username'), ('First Name', 'first_name'), ('Last Name', 'last_name'),
+                                    ('Phone Number', 'phone_number'), ('Email', 'email'), ('Password', 'password'),
+                                    ('Country', 'country'), ('State', 'state'), ('Address', 'address'), 
+                                    ('City', 'city'), ('Pincode', 'pincode')
+                        ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

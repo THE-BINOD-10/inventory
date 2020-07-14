@@ -12686,7 +12686,6 @@ def get_pr_report_data(search_params, user, sub_user):
                             approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
                             approver1_status = approver_data[0].status
                             approver1_remarks = approver_data[0].remarks
-                            pr_status = (approver_data[0].pending_pr.final_status).title()
                             if approver_data[0].pending_pr.final_status:
                                 pr_status = (approver_data[0].pending_pr.final_status).title()
                                 if pr_status == "Pr_Converted_To_Po":

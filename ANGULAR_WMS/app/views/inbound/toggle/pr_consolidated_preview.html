@@ -25,6 +25,7 @@
                   <th>Product Category</th>
                   <th>SKU Code</th>
                   <th>SKU Desc</th>
+                  <th>HSN Code</th>
                   <th ng-if="showCase.preview_data.data[0]['product_category']=='Services'">Details</th>
                   <!-- <th>MOQ</th> -->
                   <th>Quantity</th>
@@ -58,6 +59,7 @@
                 <td> {{data.product_category}} </td>
                 <td> <span ng-class="showCase.getColor(data)"> {{data.sku_code}} </span> </td>
                 <td> {{data.sku_desc}} </td>
+                <td> {{data.hsn_code}} </td>
                 <td ng-if="data.product_category=='Services'"> {{data.description_edited}} </td>
                 <!-- <td> {{data.moq}} </td> -->
                 <td> {{data.quantity}} </td>
@@ -65,7 +67,7 @@
                 <td> {{data.price}} </td>
                 <td> {{data.amount}} </td>
                 <td> {{data.tax}} </td>
-                <td> {{data.total * data.quantity}} </td>
+                <td> {{data.total}} </td>
                </tr>
              </tbody>
            </table>

@@ -414,12 +414,12 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     if order_term:
         results = results.order_by(order_data)
 
-    resultsWithDate = dict(results.values_list('pending_po__po_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list('pending_po__full_po_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
-    approvedPRQs = results.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number',
+    approvedPRQs = results.values_list('pending_po__full_po_number', 'pending_po__pending_prs__full_pr_number',
                                         'pending_po__pending_prs__sub_pr_number')
     POtoPRsMap = {}
     for eachPO, pr_number, sub_pr_number in approvedPRQs:
@@ -428,9 +428,9 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         else:
             POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
 
-    POtoPRDeptMap = dict(results.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
+    POtoPRDeptMap = dict(results.values_list('pending_po__full_po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
     for result in results[start_index: stop_index]:
-        po_created_date = resultsWithDate.get(result['pending_po__po_number'])
+        po_created_date = resultsWithDate.get(result['pending_po__full_po_number'])
         wh_user = result['pending_po__wh_user']
         storeObj = User.objects.filter(id=wh_user)
         if storeObj:
@@ -439,7 +439,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             store = ''
         product_category = result['pending_po__product_category']
         sku_category = result['pending_po__sku_category']
-        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__po_number'], []))
+        approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__full_po_number'], []))
         po_date = po_created_date.strftime('%d-%m-%Y')
         po_delivery_date = result['pending_po__delivery_date'].strftime('%d-%m-%Y')
         dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
@@ -489,7 +489,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
                                                 ('Store', store),
-                                                ('Department', POtoPRDeptMap[result['pending_po__po_number']]),
+                                                ('Department', POtoPRDeptMap[result['pending_po__full_po_number']]),
                                                 ('PO Raise By', result['pending_po__requested_user__first_name']),
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
@@ -3311,8 +3311,8 @@ def approve_pr(request, user=''):
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
     if 'total' in myDict.keys():
+        totalAmt = 0
         for i in range(0, len(myDict['wms_code'])):
-            totalAmt = 0
             try:
                 totalAmt += float(myDict['total'][i])
             except:
@@ -3327,9 +3327,6 @@ def approve_pr(request, user=''):
                                                         level=pending_level, approval_type=approval_type)
         apprConfObjId = confObj[0].id
         mailsList = get_purchase_config_role_mailing_list(request.user, user, confObj[0], company_id)
-        # mailsList = MasterEmailMapping.objects.filter(user=pr_user,
-        #             master_id=apprConfObjId,
-        #             master_type=master_type).values_list('email_id', flat=True)
         if currentUserEmailId not in mailsList:
             return HttpResponse("This User Cant Approve this Request, Please Check")
 
@@ -3355,12 +3352,6 @@ def approve_pr(request, user=''):
         temp_jsons = TempJson.objects.filter(model_id=central_data_id, model_name='CENTRAL_PO')
         if temp_jsons.exists():
             central_po_data = temp_jsons[0].model_json
-
-    # change_pendinglineitem = get_permission(request.user, 'change_pendinglineitems')
-    # change_pr = get_permission(request.user, 'change_pendingpr')
-    # is_purchase_approver = False
-    # if change_pendinglineitem and change_pr:
-    #     is_purchase_approver = True
     is_resubmitted = False
     if is_purchase_approver:
         lineItemIds = pendingPRObj.pending_prlineItems.values_list('id', flat=True)
@@ -3818,7 +3809,6 @@ def convert_pr_to_po(request, user=''):
                         PendingLineItems.objects.create(**lineItemMap)
                     pendingPoObj.pending_prs.add(newPrObj)
                     lineItems.delete()
-
             for sku_code in all_skus:
                 quantity = skuQtyMap[sku_code]
                 tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
@@ -3846,10 +3836,12 @@ def convert_pr_to_po(request, user=''):
                     try:
                         price = float(json_data['price'])
                     except:
+                        log.info("Convert PR to Failed due to Price: %s and LineItem:%s" %(json_data.get('price', ''), lineItemId))
                         price = 0
                     try:
                         tax = float(json_data.get('tax', 0))
                     except:
+                        log.info("Convert PR to Failed due to tax: %s and LineItem:%s" %(json_data.get('tax', ''), lineItemId))
                         tax = 0
                     if tax_type == 'inter_state':
                         igst_tax = tax
@@ -4085,6 +4077,7 @@ def get_pr_preview_data(request, user=''):
         supplierDetailsMap = {}
         lineItemId = lineItem.id
         sku_code = lineItem.sku.sku_code
+        hsn_code = lineItem.sku.hsn_code
         description_edited = ''
         tempLineItemQs = TempJson.objects.filter(model_id=lineItemId,
             model_name='PendingLineItemMiscDetails')
@@ -4136,7 +4129,8 @@ def get_pr_preview_data(request, user=''):
                       'pr_number': ','.join(skuPrNumsMap[uniq_key]),
                       'product_category': prod_catg,
                       'supplierDetails': supplierDetailsMap,
-                      'preferred_supplier': supplierDetailsMap.keys()[0]}
+                      'preferred_supplier': supplierDetailsMap.keys()[0],
+                      'hsn_code': hsn_code}
         if description_edited:
             reqLineMap['description_edited'] = description_edited
         reqLineMap['supplierDetails'] = supplierDetailsMap
@@ -5984,7 +5978,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     else:
         total_grn_value = float(request.POST.get('grn_total_amount', 0))
     credit_status = 0
-    if inv_value > total_grn_value:
+    if (inv_value - total_grn_value) > 20:
         credit_status = 1
     invoice_datum = {'invoice_value': inv_value, 'invoice_quantity': inv_qty, 'status': credit_status}
     for i in range(len(myDict['id'])):
@@ -14707,7 +14701,7 @@ def get_credit_note_po_data(request, user=''):
                 if other_charges.exists():
                     other_charges = other_charges[0]['total']
                     grn_total_price = grn_total_price + other_charges
-    return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': grn_total_price}))
+    return HttpResponse(json.dumps({'po_data': po_data, 'data': sku_data, 'Supplier ID': supplier_id, 'Supplier Name': supplier_name, 'GRN Price': round(grn_total_price, 2)}))
 
 @csrf_exempt
 @login_required

@@ -9418,7 +9418,7 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     #     else:
     #         max_sup_id += 1
     if isinstance(supp_id, (int, float)):
-        max_sup_id = str(int(supp_id))
+        supp_id = str(int(supp_id))
     max_sup_id = '%s_%s' % (str(user.id), supp_id)
     supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
                                                                     supplier_id=supp_id, **supplier_dict)
@@ -12405,6 +12405,9 @@ def get_company_warehouses(request, user=''):
         warehouse = warehouse.split(',')
     else:
         warehouse = []
+    parent_company_id = get_company_id(user)
+    if parent_company_id == company_id:
+        company_id = ''
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
                                         company_id=company_id, send_parent=False)
     warehouse_list = []
@@ -12601,6 +12604,15 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     }
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
+
+def net_terms_supplier_mapping(net_code, net_desc, supplier):
+    filters = {
+        'net_code': net_code,
+        'net_description': net_desc,
+        'supplier': supplier
+    }
+    netterm_obj, created = NetTerms.objects.get_or_create(**filters)
+    return netterm_obj
 
 def get_warehouses_data(user):
     ware_houses_list = []

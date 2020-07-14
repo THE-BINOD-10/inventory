@@ -9417,10 +9417,11 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     #         #supplier_id = supplier_master.id
     #     else:
     #         max_sup_id += 1
-    max_sup_id = '%s_%s' % (str(user.id), str(supp_id))
+    if isinstance(supp_id, (int, float)):
+        max_sup_id = str(int(supp_id))
+    max_sup_id = '%s_%s' % (str(user.id), supp_id)
     supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
                                                                     supplier_id=supp_id, **supplier_dict)
-    print user, max_sup_id
     return supplier_master
 
 

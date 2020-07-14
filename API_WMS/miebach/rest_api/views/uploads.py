@@ -3000,9 +3000,9 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
     temp1 = ''
     supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id', flat=True)
     auto_po_switch = get_misc_value('auto_po_switch', user.id)
-    if supplier_list:
-        for i in supplier_list:
-            supplier_ids.append(i)
+    #if supplier_list:
+    #    for i in supplier_list:
+    #        supplier_ids.append(i)
     for row_idx in range(1, open_sheet.nrows):
         wms_code1 = ''
         preference1 = ''
@@ -3018,22 +3018,24 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                         index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
                     else:
                         user = user_obj[0]
-                        supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
-                                                                                                flat=True)
-                        if supplier_list:
-                            supplier_ids = []
-                            for i in supplier_list: supplier_ids.append(i)
+                        #supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
+                        #                                                                        flat=True)
+                        #if supplier_list:
+                        #    supplier_ids = []
+                        #    for i in supplier_list: supplier_ids.append(i)
 
             elif key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 supplier_id = cell_data
-                if cell_data and cell_data not in supplier_ids:
-                    index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
-                    for index, data in enumerate(supplier_ids):
-                        if data == cell_data:
-                            index_status.setdefault(index + 1, set()).add('Supplier ID Not Found')
-                supplier_ids.append(cell_data)
+                if cell_data:# and cell_data not in supplier_ids:
+                    supplier_master = SupplierMaster.objects.filter(supplier_id=cell_data, user=user.id)
+                    if not supplier_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
+                    #for index, data in enumerate(supplier_ids):
+                    #    if data == cell_data:
+                    #        index_status.setdefault(index + 1, set()).add('Supplier ID Not Found')
+                #supplier_ids.append(cell_data)
 
             elif key == 'sku_code':
                 if not cell_data:
@@ -3226,7 +3228,7 @@ def supplier_sku_upload(request, user=''):
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
-            log.info('Supplier Sku Mapping Failed for  %s' % (
+            log.info('Supplier Sku Mapping Failed for  %s, %s,%s' % (
             str(user.username), str(request.POST.dict()), str(e)))
             return HttpResponse('Failed')
         return HttpResponse('Success')

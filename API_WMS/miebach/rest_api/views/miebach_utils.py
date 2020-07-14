@@ -12751,7 +12751,7 @@ def get_pr_report_data(search_params, user, sub_user):
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
         pr_sub_date = get_local_date(user, result['pending_pr__creation_date'])
         plant = ''
-        req_user = User.objects.filter(id = result['pending_pr__requested_user'])[0]
+        req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
 
         ord_dict = OrderedDict((
@@ -13000,7 +13000,7 @@ def get_pr_detail_report_data(search_params, user, request):
         dateInPR = str(pr_date).split(' ')[0].replace('-', '')
         pr_sub_date = get_local_date(user, result['pending_pr__creation_date'])
         plant = ''
-        req_user = User.objects.filter(id=result['pending_pr__requested_user'])[0]
+        req_user = User.objects.filter(id=result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
@@ -13254,7 +13254,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
         plant = ''
-        req_user = User.objects.filter(id=result['pending_po__requested_user'])[0]
+        req_user = User.objects.filter(id=result['pending_po__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
@@ -13496,7 +13496,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             vendor_name = result['pending_po__open_po__vendor__name']
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
-        req_user = User.objects.filter(id=result['pending_po__requested_user'])[0]
+        req_user = User.objects.filter(id=result['pending_po__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
 
         ord_dict = OrderedDict((

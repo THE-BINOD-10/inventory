@@ -9418,7 +9418,7 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     #     else:
     #         max_sup_id += 1
     if isinstance(supp_id, (int, float)):
-        max_sup_id = str(int(supp_id))
+        supp_id = str(int(supp_id))
     max_sup_id = '%s_%s' % (str(user.id), supp_id)
     supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
                                                                     supplier_id=supp_id, **supplier_dict)

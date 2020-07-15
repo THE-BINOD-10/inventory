@@ -4870,6 +4870,19 @@ def get_file_content(request, user=''):
     return HttpResponse(json.dumps({'file_content': eval(file_content)}))
 
 
+def get_uom_data(user, master_data, uom_type):
+    company_id = get_company_id(user)
+    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, 
+                    uom_type=uom_type, company_id=company_id)
+    sku_conversion = 0
+    if sku_uom.exists():
+        measurement_unit = sku_uom[0].uom
+        sku_conversion = float(sku_uom[0].conversion)
+    else:
+        measurement_unit = master_data.measurement_type
+        sku_conversion = 0
+    return sku_conversion, measurement_unit
+
 @get_admin_user
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
@@ -4899,24 +4912,11 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
-        if noOfTestsQs.exists():
-            noOfTests = int(noOfTestsQs[0].attribute_value)
-        else:
-            noOfTests = 0
-        company_id = get_company_id(user)
-        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
-        sku_conversion = 0
-        if sku_uom.exists():
-            measurement_unit = sku_uom[0].uom
-            sku_conversion = float(sku_uom[0].conversion)
-        else:
-            measurement_unit = master_data.measurement_type
-            sku_conversion = 0
+        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
+                       'mrp': master_data.mrp, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
@@ -5156,15 +5156,6 @@ def build_search_data(user, to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
-            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
-            if noOfTestsQs.exists():
-                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
-                try:
-                    noOfTests = int(noOfTests)
-                except:
-                    noOfTests = 0
-            else:
-                noOfTests = 0
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
             sku_conversion = 0
@@ -5177,7 +5168,7 @@ def build_search_data(user, to_data, from_data, limit):
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
+                        'style_name': data.style_name, 'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):

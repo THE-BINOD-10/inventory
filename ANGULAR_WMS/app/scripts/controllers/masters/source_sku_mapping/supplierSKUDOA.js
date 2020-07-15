@@ -109,13 +109,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
            vm.service.pop_msg("Price  is Mandatory For Price Based");
 
         }
-       else {
-              if (Number(data.price.$viewValue) > Number(data.mrp.$viewValue) )
-              {
-                  valid = false
-                  vm.service.pop_msg("Cost price Should be Less than or Equal to MRP");
-              }
-         }
+       // else {
+       //        if (Number(data.price.$viewValue) > Number(data.mrp.$viewValue) )
+       //        {
+       //            valid = false
+       //            vm.service.pop_msg("Cost price Should be Less than or Equal to MRP");
+       //        }
+       //   }
       }
       if (data.costing_type.$modelValue == 'Margin Based' &&  data.margin_percentage.$viewValue == '') {
          valid = false

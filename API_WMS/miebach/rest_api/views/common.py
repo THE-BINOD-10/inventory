@@ -149,6 +149,22 @@ def get_plant_subsidary_and_department(user):
         print("STORE")
     return department, plant, subsidary
 
+def get_plant_and_department(user):
+    department=""
+    plant=""
+    user_profile= UserProfile.objects.get(user_id=user.id)
+    if(user_profile.warehouse_type=="DEPT"):
+        department= user.first_name
+        admin_user= get_admin(user)
+        # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+        plant= admin_user.username
+    elif(user_profile.warehouse_type=="SUB_STORE"):
+        plant= user.username
+    elif(user_profile.warehouse_type=="STORE"):
+        plant= user.username
+    return department, plant
+
+
 @fn_timer
 def get_user_permissions(request, user):
     roles = {}
@@ -1297,6 +1313,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         pac_filter1['department_type'] = ''
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        pac_filter['sku_category'] = ''
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -4851,6 +4870,19 @@ def get_file_content(request, user=''):
     return HttpResponse(json.dumps({'file_content': eval(file_content)}))
 
 
+def get_uom_data(user, master_data, uom_type):
+    company_id = get_company_id(user)
+    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, 
+                    uom_type=uom_type, company_id=company_id)
+    sku_conversion = 0
+    if sku_uom.exists():
+        measurement_unit = sku_uom[0].uom
+        sku_conversion = float(sku_uom[0].conversion)
+    else:
+        measurement_unit = master_data.measurement_type
+        sku_conversion = 0
+    return sku_conversion, measurement_unit
+
 @get_admin_user
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
@@ -4880,24 +4912,11 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
-        if noOfTestsQs.exists():
-            noOfTests = int(noOfTestsQs[0].attribute_value)
-        else:
-            noOfTests = 0
-        company_id = get_company_id(user)
-        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
-        sku_conversion = 0
-        if sku_uom.exists():
-            measurement_unit = sku_uom[0].uom
-            sku_conversion = float(sku_uom[0].conversion)
-        else:
-            measurement_unit = master_data.measurement_type
-            sku_conversion = 0
+        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
+                       'mrp': master_data.mrp, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
@@ -5137,15 +5156,6 @@ def build_search_data(user, to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
-            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
-            if noOfTestsQs.exists():
-                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
-                try:
-                    noOfTests = int(noOfTests)
-                except:
-                    noOfTests = 0
-            else:
-                noOfTests = 0
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
             sku_conversion = 0
@@ -5158,7 +5168,7 @@ def build_search_data(user, to_data, from_data, limit):
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
+                        'style_name': data.style_name, 'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):
@@ -12605,6 +12615,15 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
 
+def net_terms_supplier_mapping(net_code, net_desc, supplier):
+    filters = {
+        'net_code': net_code,
+        'net_description': net_desc,
+        'supplier': supplier
+    }
+    netterm_obj, created = NetTerms.objects.get_or_create(**filters)
+    return netterm_obj
+
 def get_warehouses_data(user):
     ware_houses_list = []
     warehouse_users ={}
@@ -12626,6 +12645,41 @@ def find_purchase_approver_permission(user):
         is_purchase_approver = True
     return is_purchase_approver
 
+
+def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name=None):
+    user_dict['last_login'] = datetime.datetime.now()
+    new_user = User.objects.create_user(**user_dict)
+    new_user.is_staff = True
+    new_user.save()
+    user_profile_dict['user_id'] = new_user.id
+    user_profile_dict['location'] = user_profile_dict['state']
+    user_profile_dict['prefix'] = new_user.username[:3]
+    if not user_profile_dict.get('pin_code', 0):
+        user_profile_dict['pin_code'] = 0
+    if not user_profile_dict.get('phone_number', 0):
+        user_profile_dict['phone_number'] = 0
+    user_profile_dict['user_type'] = exist_user_profile.user_type
+    user_profile_dict['industry_type'] = exist_user_profile.industry_type
+    user_profile = UserProfile(**user_profile_dict)
+    user_profile.save()
+    add_user_type_permissions(user_profile)
+    group, created = Group.objects.get_or_create(name=new_user.username)
+    admin_dict = {'group_id': group.id, 'user_id': new_user.id}
+    admin_group = AdminGroups(**admin_dict)
+    admin_group.save()
+    new_user.groups.add(group)
+    warehouse_admin = user
+    #warehouse_admin = get_warehouse_admin(user)
+    company = user.userprofile.company
+    if company.parent:
+        company_id = company.parent_id
+    else:
+        company_id = company.id
+    UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id, company_id=company_id)
+    if customer_name:
+        WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
+
+    return new_user
 
 @csrf_exempt
 @login_required

@@ -611,12 +611,8 @@ def get_pending_enquiry(request, user=''):
         for rec in lineItems:
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
             search_params = {'sku__user': user.id}
-            noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
-                                                    attribute_name='No.OfTests')
-            if noOfTestsQs.exists():
-                noOfTests = int(noOfTestsQs[0].attribute_value)
-            else:
-                noOfTests = 0
+            master_data = SKUMaster.objects.get(id=sku_id)
+            sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
                 skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                         search_params, includeStoreStock=True)
@@ -628,7 +624,8 @@ def get_pending_enquiry(request, user=''):
                                         'order_quantity': qty, 'price': price,
                                         'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                         'igst_tax': igst_tax,
-                                        'measurement_unit': uom,
+                                        'measurement_unit': measurement_unit,
+                                        'sku_conversion': sku_conversion,
                                         }, 'pk': apprId})
         purchase_data = {
                     'ship_to': pendingObj.ship_to, 'purchase_delivery_date': pr_delivery_date,
@@ -1578,12 +1575,14 @@ def generated_pr_data(request, user=''):
     for rec in lineItems:
         sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
         search_params = {'sku__user': user.id}
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
-                                                attribute_name='No.OfTests')
-        if noOfTestsQs.exists():
-            noOfTests = int(noOfTestsQs[0].attribute_value)
-        else:
-            noOfTests = 0
+        # noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
+        #                                         attribute_name='No.OfTests')
+        # if noOfTestsQs.exists():
+        #     noOfTests = int(noOfTestsQs[0].attribute_value)
+        # else:
+        #     noOfTests = 0
+        master_data = SKUMaster.objects.get(id=sku_id)
+        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
@@ -1595,8 +1594,8 @@ def generated_pr_data(request, user=''):
                                     'order_quantity': qty, 'price': price,
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                     'igst_tax': igst_tax,
-                                    'measurement_unit': uom,
-
+                                    'measurement_unit': measurement_unit,
+                                    'sku_conversion': sku_conversion
                                     }, 'pk': apprId})
     if pr_id:
         central_po_data = TempJson.objects.filter(model_id=pr_id, model_name='CENTRAL_PO') or ''
@@ -1670,7 +1669,7 @@ def generated_actual_pr_data(request, user=''):
     for eachRemark in allRemarks:
         level, validated_by, remarks = eachRemark
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
-    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit',
+    lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
         'sku__servicemaster__service_end_date', 'sku__hsn_code'
     ]
@@ -1688,19 +1687,15 @@ def generated_actual_pr_data(request, user=''):
     lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
-        sku_id, sku_code, sku_desc, qty, price, uom, lineItemId, \
+        sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
                 gl_code, service_stdate, service_edate, hsn_code = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
             service_edate = service_edate.strftime('%d-%m-%Y')
         search_params = {'sku__user': user.id}
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
-                                                attribute_name='No.OfTests')
-        if noOfTestsQs.exists():
-            noOfTests = int(noOfTestsQs[0].attribute_value)
-        else:
-            noOfTests = 0
+        master_data = SKUMaster.objects.get(id=sku_id)
+        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
             model_id=lineItemId)
         if updatedLineItem.exists():
@@ -1838,11 +1833,12 @@ def generated_actual_pr_data(request, user=''):
                                             },
                                     'description': sku_desc,
                                     'description_edited': sku_desc_edited,
+                                    'sku_brand': sku_brand,
                                     'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
-                                    'measurement_unit': uom,
-                                    'no_of_tests': noOfTests,
+                                    'measurement_unit': measurement_unit,
+                                    'conversion': sku_conversion,
                                     'gl_code': gl_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,
@@ -3691,6 +3687,14 @@ def splitPRtoPO(all_data, user):
     return poSuppliers, unMappedSkus
 
 
+def checkPartialPR(existingPRObj, convertingSkus):
+    partialPRFlag = False
+    allLineItems = set(existingPRObj.pending_prlineItems.filter().values_list('sku__sku_code', flat=True))
+    convertingSkus = set(convertingSkus)
+    if (allLineItems - convertingSkus):
+        partialPRFlag = True
+    return partialPRFlag
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3775,7 +3779,8 @@ def convert_pr_to_po(request, user=''):
                 eachPRLineItems = existingPRObj.pending_prlineItems.values_list('sku__sku_code', flat=True)
                 eachPRId = existingPRObj.id
                 convertingSkus = prIdSkusMap.get(str(eachPRId))
-                if convertingSkus == list(eachPRLineItems):
+                partialPRFlag = checkPartialPR(existingPRObj, convertingSkus)
+                if not partialPRFlag:
                     existingPRObj.final_status='pr_converted_to_po'
                     existingPRObj.save()
                     pendingPoObj.pending_prs.add(existingPRObj)
@@ -3836,6 +3841,7 @@ def convert_pr_to_po(request, user=''):
                 pr_supplier_data = []
                 lineItems = existingPRObj.pending_prlineItems.filter(sku__sku_code=sku_code)
                 if lineItems.exists():
+                    lineItem = lineItems[0]
                     lineItemId = lineItems[0].id
                     pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
                                     model_id=lineItemId)
@@ -3889,19 +3895,12 @@ def convert_pr_to_po(request, user=''):
                     pendingLineItems['price'] = price
                 except:
                     pendingLineItems['price'] = 0
-                pendingLineItems['measurement_unit'] = "UNITS"
+                pendingLineItems['measurement_unit'] = lineItem.measurement_unit
                 pendingLineItems['sgst_tax'] = sgst_tax
                 pendingLineItems['cgst_tax'] = cgst_tax
                 pendingLineItems['igst_tax'] = igst_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
                 # netsuite_pr(user, existingPRObj)
-        for pr_id, skus in prIdSkusMap.items():
-            prObj = PendingPR.objects.get(id=pr_id)            
-            lineItemsObj = prObj.pending_prlineItems
-            lineItems = list(lineItemsObj.values_list('sku__sku_code', flat=True))
-            if lineItems.sort() == skus.sort():
-                prObj.final_status = 'pr_converted_to_po'
-                prObj.save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

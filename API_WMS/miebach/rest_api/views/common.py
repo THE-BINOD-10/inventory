@@ -1298,6 +1298,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        pac_filter['sku_category'] = ''
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
         confMap[name] = (min_Amt, max_Amt)

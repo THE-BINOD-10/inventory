@@ -31,7 +31,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('Order Type').withTitle('Order Type')
+        DTColumnBuilder.newColumn('Order Type').withTitle('Order Type'),
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse')
     ];
 
     vm.dtInstance = {};
@@ -48,7 +49,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                 vm.message = "";
                 var data_to_send ={
                   'supplier_id': aData.DT_RowAttr["data-id"],
-                  'prefix': aData['prefix']
+                  'prefix': aData['prefix'],
+                  'po_number': aData['PO Number'],
+                  'warehouse_id': aData['warehouse_id']
                 }
                 vm.service.apiCall('get_received_orders/', 'GET', data_to_send).then(function(data){
                   if(data.message) {
@@ -61,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                       vm.extra_width = {};
                     }
 
-                    change_data(data.data);
+                    change_data(data.data, aData['warehouse_id']);
                     $state.go('app.inbound.PutAwayConfirmation.confirmation');
                   }
                 });
@@ -70,7 +73,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         return nRow;
     } 
 
-    function change_data(data) {
+    function change_data(data, warehouse_id) {
       //var dat = {};
       //dat['po_number'] = data.po_number;
       //dat['order_id'] = data.order_id;
@@ -84,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       //
       //}
       angular.copy(data, vm.model_data);
+      vm.model_data.warehouse_id = warehouse_id;
       vm.model_data["sku_total_quantities"] = data.sku_total_quantities;
       //if(vm.permissions.use_imei) {
       //  angular.forEach(vm.model_data.data, function(data){

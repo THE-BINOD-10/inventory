@@ -12711,3 +12711,10 @@ def get_staff_plants_list(request, user=''):
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
+
+
+@get_admin_multi_user
+def check_and_get_plants(request, req_users, users=''):
+    if users:
+        req_users = users
+    return req_users

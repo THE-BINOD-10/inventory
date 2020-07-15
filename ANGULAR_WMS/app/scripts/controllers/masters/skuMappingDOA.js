@@ -241,6 +241,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.delete_sku = function(data) {
     vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
+      vm.close();
+      vm.service.refresh(vm.dtInstance);
       console.log("SUCCESS")
     });
   }

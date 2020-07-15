@@ -352,6 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                  window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -363,16 +364,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     if ( data.$valid ){
       if ("Add Asset" == vm.title) {
-          if (vm.user_profile.warehouse_type == 'ADMIN'){
-            vm.url = "insert_sku/";
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "insert_sku/";
           }else{
             vm.url = "insert_sku_doa/";
-            window.location.reload();
-          }} else {
-        vm.url = "update_sku/";
-      }
-      vm.update_sku();
-    }
+          }}else{
+            if (vm.user_profile.warehouse_type == 'ADMIN'){
+              vm.url = "update_sku/";
+            }else{
+              vm.url = "update_sku_doa/";
+            }}
+        vm.update_sku();
+        $state.go('app.masters.AssetMaster')
+     }
   }
 
   vm.remove_market = function(index, id) {

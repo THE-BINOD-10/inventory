@@ -412,6 +412,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -427,8 +428,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (vm.user_profile.warehouse_type == 'ADMIN'){
             vm.url = "insert_sku/";
           }else{
-            vm.url = "insert_sku_doa/";
-            window.location.reload();
+            vm.url = "insert_sku_doa/"
           }}
       else {
         if (vm.user_profile.warehouse_type == 'ADMIN'){
@@ -436,10 +436,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         else{
           vm.url = "update_sku_doa/";
-          window.location.reload();
         }
         }
          vm.update_sku();
+         $state.go('app.masters.SKUMaster')
       }
     }
   }
@@ -528,7 +528,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
-
 
       vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
 

@@ -1884,7 +1884,7 @@ def insert_mapping(request, user=''):
     warehouse = request.POST.get('warehouse', '')
     if warehouse:
         all_users = get_related_user_objs(user.id)
-        user_obj = all_users.filter(username=warehouse)
+        user_obj = all_users.filter(id=warehouse)
         if not user_obj:
             return HttpResponse('Invalid Warehouse')
         else:
@@ -4822,7 +4822,7 @@ def get_warehouse_list(request, user=''):
     for wh in warehouses:
         if wh.id == user.id:
             continue
-        warehouse_list.append({'warehouse_id': wh.id, 'warehouse_name': wh.username})
+        warehouse_list.append({'warehouse_id': wh.id, 'warehouse_name': wh.username, 'warehouse_first_name': wh.first_name})
     return HttpResponse(json.dumps({'warehouses': warehouse_list}))
 
 

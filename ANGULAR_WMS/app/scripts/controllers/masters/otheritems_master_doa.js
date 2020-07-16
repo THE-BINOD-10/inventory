@@ -337,7 +337,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.ImageBulkUpload')
   }
   vm.base = function() {
-
     vm.title = "Add SKU";
     vm.update = false;
     vm.combo = false;
@@ -357,12 +356,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             console.log("success");
           })
         };
-  }
-  vm.change_status_data = function(){
-    vm.service.apiCall('change_status_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
-      vm.service.refresh(vm.dtInstance);
-      console.log("SUCCESS")
-    });
   }
   vm.delete_sku = function(data) {
     vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){

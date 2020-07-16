@@ -5683,8 +5683,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         grn_price=0
         if 'apmc_percent' in myDict.keys() and myDict['apmc_percent'][i]:
             apmc_tax = myDict['apmc_percent'][i]
-        if 'grn_price' in myDict.keys() and myDict['grn_price'][i]:
-            grn_price=myDict['grn_price'][i]
+        if 'buy_price' in myDict.keys() and myDict['buy_price'][i]:
+            grn_price=myDict['buy_price'][i]
         overall_discount = 0
         if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
             overall_discount = myDict['overall_discount'][0]

@@ -376,8 +376,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.pop_msg(response);
                 }
                 vm.process = false;
-                vm.close();
-                vm.dtInstance.reloadData();
+//                vm.close();
+//                vm.dtInstance.reloadData();
             }});
   }
 

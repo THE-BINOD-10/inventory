@@ -92,6 +92,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('sku_category').withTitle('Service Category'),
       DTColumnBuilder.newColumn('sku_class').withTitle('Service Class'),
       DTColumnBuilder.newColumn('doa_status').withTitle('Status'),
+      DTColumnBuilder.newColumn('request_type').withTitle('Request Type'),
      ];
   if(vm.warehouse_level==0) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
@@ -103,9 +104,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $scope.$apply(function() {
         vm.model_data = {};
         vm.suggest_id = aData.DT_RowAttr["data-id"]
+        vm.highlight_data = {};
+        vm.highlight_color = 'green';
         angular.copy(empty_data, vm.model_data);
-        vm.service.apiCall("get_sku_master_doa_record/", "GET", {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
+        vm.service.apiCall("get_sku_master_doa_record/", "GET", {data_id: aData.DT_RowAttr["data-id"], is_service:true}).then(function(data) {
          if (data.message) {
+         if (data.data.data.wms_code == ''){
           vm.update=true;
           vm.model_data.sku_data = data.data.data;
           vm.sku_types = ['', 'FG', 'RM'];
@@ -120,9 +124,72 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
           vm.sku_measurement_types = vm.service.units;
           $state.go('app.masters.ServiceMaster.Mapping');
+          vm.title ="ADD SERVICE";
+        } else if (data.data.data.sku_data.wms_code !='') {
+                  data = data.data.data;
+                  vm.update=true;
+                  vm.highlight_data = data.highlight_dict;
+                  vm.model_data.serial_number = vm.permissions.use_imei;
+                  vm.model_data.user_type = vm.permissions.user_type;
+                  vm.model_data.sku_data = data.sku_data;
+                  vm.model_data.market_data = data.market_data;
+                  vm.model_data.uom_data = data.uom_data;
+                  vm.model_data.zones = data.zones;
+                  vm.model_data.groups = data.groups;
+                  vm.model_data.sizes_list =  data.sizes_list;
+                  vm.model_data.combo_data = data.combo_data;
+                  vm.qc_data = ['Disable','Enable'];
+                  vm.status_data = ['Inactive','Active'];
+                  vm.qc = vm.qc_data[0];
+                  vm.status = vm.status_data[0];
+                  vm.model_data.product_types = data.product_types;
+                  vm.model_data.sub_categories = data.sub_categories;
+                  var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
+                  vm.model_data.sku_data.zone = vm.model_data.zones[index];
+                  vm.model_data.attributes = data.attributes;
+                  vm.model_data.measurement_type = data.sku_data.measurement_type;
+                  //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
+                  angular.forEach(vm.model_data.attributes, function(attr_dat){
+                    if(data.sku_attributes[attr_dat.attribute_name])
+                    {
+                      attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
+                    }
+                  });
+                  for (var j=0; j<vm.model_data.market_data.length; j++) {
+                    var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
+                    vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];
+                    vm.model_data.market_data[j]['disable'] = true;
+                  };
+
+                  var group_index = vm.model_data.groups.indexOf(vm.model_data.sku_data.sku_group);
+                  vm.model_data.sku_data.sku_group = vm.model_data.groups[group_index];
+
+//                  index = vm.sku_types.indexOf(vm.model_data.sku_data.sku_type);
+//                  vm.model_data.sku_data.sku_type = vm.sku_types[index];
+
+                  vm.model_data.sku_data.status = vm.status_data[vm.model_data.sku_data.status];
+                  vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
+
+                  vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
+                  vm.isEmptyUOM = (data.uom_data.length > 0) ? false : true;
+                  vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
+                  vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
+//                  vm.change_size_type(vm.model_data.sku_data.size_type);
+                  if(vm.model_data.sku_data.ean_number == "0") {
+
+                      vm.model_data.sku_data.ean_number = "";
+                  }
+                  if(vm.model_data.sku_data.enable_serial_based) {
+                    vm.model_data.sku_data.enable_serial_based = true
+                  } else {
+                    vm.model_data.sku_data.enable_serial_based = false
+                  }
+                  $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
+                  $state.go('app.masters.ServiceMaster.Mapping');
+                  vm.title = "Update Service"
+        }
         }
         });
-      vm.title ="ADD SERVICE";
       });
     });
    return nRow;

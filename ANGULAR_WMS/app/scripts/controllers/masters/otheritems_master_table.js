@@ -361,17 +361,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-    if ( data.$valid ){
-      if ("Add Item" == vm.title) {
+    {
+      if ( data.$valid ){
+        if ("Add Service" == vm.title) {
           if (vm.user_profile.warehouse_type == 'ADMIN'){
             vm.url = "insert_sku/";
           }else{
-            vm.url = "insert_sku_doa/";
-            window.location.reload();
-          }} else {
-        vm.url = "update_sku/";
+            vm.url = "insert_sku_doa/"
+          }}
+      else {
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "update_sku/";
+          }
+        else{
+          vm.url = "update_sku_doa/";
+        }
+        }
+         vm.update_sku();
+         $state.go('app.masters.ServiceMaster')
       }
-      vm.update_sku();
     }
   }
 

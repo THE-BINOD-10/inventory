@@ -3214,20 +3214,20 @@ def insert_sku(request, user=''):
             # if admin_user.get_username().lower() == 'metropolis':
             netsuite_sku(sku_master, user, instanceName=instanceName)
 
-        insert_update_brands(user)
-        # update master sku txt file
-        #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
-        #if "python" not in status:
-        #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
-        #    subprocess.call(sku_query, shell=True)
-        #else:
-        #    print "already running"
+            insert_update_brands(user)
+            # update master sku txt file
+            #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+            #if "python" not in status:
+            #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+            #    subprocess.call(sku_query, shell=True)
+            #else:
+            #    print "already running"
 
-        all_users = get_related_users(user.id)
-        sync_sku_switch = get_misc_value('sku_sync', user.id)
-        if sync_sku_switch == 'true':
             all_users = get_related_users(user.id)
-            create_update_sku([sku_master], all_users)
+            sync_sku_switch = get_misc_value('sku_sync', user.id)
+            if sync_sku_switch == 'true':
+                all_users = get_related_users(user.id)
+                create_update_sku([sku_master], all_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5539,6 +5539,7 @@ def get_sku_mapping_doa(start_index, stop_index, temp_data, search_term, order_t
 
         else:
             warehouse = get_admin(row.requested_user)
+
         temp_data['aaData'].append(OrderedDict((('sku_desc', result.get('sku_desc', '')),
                                                 ('sequence', result.get('sequence', '')),
                                                 ('max_norm_quantity', result.get('max_norm_quantity', '')),
@@ -5706,6 +5707,15 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
 
+            if instanceName == AssetMaster:
+                sku_data['asset_type'] = result.get('asset_type', '')
+                del sku_data['sku_type']
+            elif instanceName == ServiceMaster:
+                sku_data['service_type'] = result.get('service_type', '')
+                del sku_data['sku_type']
+            elif instanceName == OtherItemsMaster:
+                sku_data['item_type'] = result.get('item_type', '')
+                del sku_data['sku_type']
             substitutes_list = []
             if data.substitutes:
                 substitutes_list = list(data.substitutes.all().values_list('sku_code', flat=True))
@@ -6065,7 +6075,7 @@ def sku_rejected_sku_doa(request):
 
 @csrf_exempt
 def get_asset_master_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_desc', 'sku__sku_group', 'sku__sku_brand', 'sku_type',
+    lis = ['requested_user_id', 'sku_desc', 'sku__sku_group', 'sku__sku_brand', 'sku_type',
            'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
            'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
            'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
@@ -6148,6 +6158,7 @@ def get_asset_master_doa(start_index, stop_index, temp_data, search_term, order_
                                                 ('warehouse', warehouse.username),
                                                 ('doa_status', row.doa_status),
                                                 ('sub_category',result.get('sub_category','')),
+                                                ('request_type', result.get('request_type', '')),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', row.id),
                                                 ('DT_RowAttr', {'data-id': row.id}),
@@ -6238,6 +6249,7 @@ def get_service_master_doa(start_index, stop_index, temp_data, search_term, orde
                                                 ('sku_category', result.get('sku_category', '')),
                                                 ('image_url', result.get('image_url', '')),
                                                 ('requested_user', row.requested_user.first_name),
+                                                ('request_type', result.get('request_type', '')),
                                                 ('warehouse', warehouse.username),
                                                 ('doa_status', row.doa_status),
                                                 ('DT_RowClass', 'results'),
@@ -6345,6 +6357,29 @@ def get_other_items_master_doa(start_index, stop_index, temp_data, search_term, 
 @reversion.create_revision(atomic=False, using='reversion')
 def update_sku_doa(request, user=''):
     """ Update SKU Details"""
+    instanceName = SKUMaster
+    if request.POST.get('is_asset') == 'true':
+        instanceName = AssetMaster
+    if request.POST.get('is_service') == 'true':
+        instanceName = ServiceMaster
+    if request.POST.get('is_otheritem') == 'true':
+        instanceName = OtherItemsMaster
+    final_data_dict = copy.deepcopy(SKU_DATA)
+    if instanceName == AssetMaster:
+        final_data_dict.update(ASSET_SKU_DATA)
+    if instanceName == ServiceMaster:
+        final_data_dict.update(SERVICE_SKU_DATA)
+    if instanceName == OtherItemsMaster:
+        final_data_dict.update(OTHERITEMS_SKU_DATA)
+    final_data_dict['user'] = user.id
+
+    if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
+        respFields = [f.name for f in instanceName._meta.get_fields()]
+        for k, v in final_data_dict.items():
+            if k not in respFields:
+                final_data_dict.pop(k)
+
+    check_dict = final_data_dict
     sku_code_check = request.POST.get('wms_code', '')
     userQs = UserGroups.objects.filter(user=user)
     parentCompany = userQs[0].company_id
@@ -6352,24 +6387,25 @@ def update_sku_doa(request, user=''):
     admin_user = admin_userQs[0].user
     req_user = request.user
     data_dict = {}
-
     if not request.user.is_staff:
         req_user = user
     if sku_code_check:
         sku_data = SKUMaster.objects.filter(wms_code = sku_code_check, user=user.id)
         if sku_data.exists():
             data_dict = request.POST.dict()
-            highlight_dict = get_hlight_values(data_dict, sku_code_check)
+            highlight_dict = get_hlight_values(data_dict, check_dict, sku_code_check)
             data_dict['user'] = req_user.id
             data_dict['request_type'] = "UPDATE"
             data_dict['highlight_dict'] = highlight_dict
+            model_name = instanceName.__name__
             doa_dict = {
                 'requested_user': req_user,
                 'wh_user': admin_user,
-                'model_name': "SKUMaster",
+                'model_name': model_name,
                 'json_data': json.dumps(data_dict),
                 'doa_status': 'pending'
             }
+
         if not data_dict.has_key('DT_RowId'):
             sku_master = MastersDOA(**doa_dict)
             sku_master.save()
@@ -6386,20 +6422,11 @@ def update_sku_doa(request, user=''):
     return HttpResponse("Added SuccessFully")
 
 
-def get_hlight_values(data_dict, sku_code):
+def get_hlight_values(data_dict, check_dict, sku_code):
     data_dict = data_dict
     sku_code = sku_code
     final_dict = {}
-    check_dict = {'user': '', 'sku_code': '', 'wms_code': '',
-            'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
-            'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'max_norm_quantity': 0, 'color': '', 'mrp': 0,
-            'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
-            'price': 0,
-            'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
-            'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '',
-            'batch_based': 0}
-
+    check_dict = check_dict
     numeric_fields = ['hsn_code', 'shelf_life', 'threshold_quantity' , 'cost_price', 'price', 'mrp', 'max_norm_quantity',
                       'status', 'online_percentage', 'qc_check', 'enable_serial_based', 'batch_based']
 
@@ -6412,7 +6439,7 @@ def get_hlight_values(data_dict, sku_code):
 
     for key in check_dict.keys():
         if key in numeric_fields:
-            val = data_dict.get(key)
+            val = data_dict.get(key, '')
             if val == '':
                 if key in number_fields:
                     temp_dict[key] = 0
@@ -6430,3 +6457,159 @@ def get_hlight_values(data_dict, sku_code):
         else:
             final_dict[key] = 0
     return final_dict
+
+# @csrf_exempt
+# @login_required
+# @get_admin_user
+# @reversion.create_revision(atomic=False, using='reversion')
+# def common_update_sku_doa(request, user=''):
+#     """ Update SKU Details"""
+#     import pdb;pdb.set_trace()
+#     reversion.set_user(request.user)
+#     reversion.set_comment("update_sku")
+#     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+#     load_unit_dict = LOAD_UNIT_HANDLE_DICT
+#     today = datetime.datetime.now().strftime("%Y%m%d")
+#     admin_user = get_admin(user)
+#     try:
+#         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
+#                          'hsn_code', 'shelf_life']
+#         wms = request.POST['wms_code']
+#         description = request.POST['sku_desc']
+#         zone = request.POST.get('zone_id','')
+#         if not wms or not description:
+#             return HttpResponse('Missing Required Fields')
+#         instanceName = SKUMaster
+#         if request.POST.get('is_asset') == 'true':
+#             instanceName = AssetMaster
+#         if request.POST.get('is_service') == 'true':
+#             instanceName = ServiceMaster
+#         if request.POST.get('is_otheritem') == 'true':
+#             instanceName = OtherItemsMaster
+#         if request.POST.get('is_test') == 'true':
+#             instanceName = TestMaster
+#         data = get_or_none(instanceName, {'wms_code': wms, 'user': user.id})
+#         youtube_update_flag = False
+#         image_file = request.FILES.get('files-0', '')
+#         if image_file:
+#             save_image_file(image_file, data, user)
+#         setattr(data, 'enable_serial_based', False)
+#         for key, value in request.POST.iteritems():
+#
+#             if 'attr_' in key:
+#                 continue
+#             if key == 'status':
+#                 if value == 'Active':
+#                     value = 1
+#                 else:
+#                     value = 0
+#             elif key == 'qc_check':
+#                 if value == 'Enable':
+#                     value = 1
+#                 else:
+#                     value = 0
+#             elif key == 'zone_id' and value:
+#                 zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
+#                 key = 'zone_id'
+#                 if zone:
+#                     value = zone.id
+#             #elif key == 'ean_number':
+#             #    if not value:
+#             #        value = 0
+#             #    else:
+#             #        ean_status = check_ean_number(data.sku_code, value, user)
+#             #        if ean_status:
+#             #            return HttpResponse(ean_status)
+#             elif key == 'ean_numbers':
+#                 ean_numbers = value.split(',')
+#                 ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
+#                 if ean_status:
+#                     return HttpResponse(ean_status)
+#             elif key == 'substitutes':
+#                 if value :
+#                     substitutes = value.split(',')
+#                     subs_status = update_sku_substitutes_mapping(user, substitutes, data , True)
+#                     if subs_status:
+#                         return HttpResponse(subs_status)
+#
+#             elif key == 'load_unit_handle':
+#                 value = load_unit_dict.get(value.lower(), 'unit')
+#             elif key == 'size_type':
+#                 check_update_size_type(data, value)
+#                 continue
+#             elif key == 'hot_release':
+#                 value = 1 if (value.lower() == 'enable') else 0;
+#                 check_update_hot_release(data, value)
+#                 continue
+#             elif key == 'enable_serial_based':
+#                 value = 1
+#             elif key == 'batch_based':
+#                 if value.lower() == 'enable':
+#                     value = 1
+#                 else:
+#                     value = 0
+#             elif key == 'price':
+#                 wms_code = request.POST.get('wms_code', '')
+#             elif key == 'youtube_url':
+#                 if data.youtube_url != request.POST.get('youtube_url', ''):
+#                     youtube_update_flag = True
+#             if key in number_fields and not value:
+#                 value = 0
+#             elif key == 'block_options':
+#                 if value == '0':
+#                     value = 'PO'
+#                 else:
+#                     value = ''
+#             if instanceName == ServiceMaster:
+#                 if key in ['service_start_date', 'service_end_date']:
+#                     try:
+#                         value = datetime.datetime.strptime(value, '%d-%m-%Y')
+#                     except:
+#                         value = None
+#             setattr(data, key, value)
+#         data.save()
+#         update_sku_attributes(data, request)
+#
+#         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
+#         update_uom_master(user, data_dict=dict(request.POST.iterlists()), data=data)
+#         # update master sku txt file
+#         #status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], stderr=subprocess.STDOUT, shell=True)
+#         #if "python" not in status:
+#         #    sku_query = "%s %s/%s %s&" % ("python", settings.BASE_DIR, "sku_master_file_creator.py", str(user.id))
+#         #    subprocess.call(sku_query, shell=True)
+#         #else:
+#         #    print "already running"
+#         insert_update_brands(user)
+#         # if admin_user.get_username().lower() == 'metropolise' and instanceName == SKUMaster:
+#         netsuite_sku(data, user,instanceName=instanceName)
+#
+#         # Sync sku's with sister warehouses
+#         sync_sku_switch = get_misc_value('sku_sync', user.id)
+#         if sync_sku_switch == 'true':
+#             all_users = get_related_users(user.id)
+#             create_update_sku([data], all_users)
+#         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+#             wh_ids = get_related_users(user.id)
+#             cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+#             notified_users = []
+#             updated_fields = ''
+#             notified_users.extend(wh_ids)
+#             notified_users.extend(cust_ids)
+#             notified_users = list(set(notified_users))
+#             if youtube_update_flag and image_file:
+#                 updated_fields = 'Youtube Url, Image'
+#             elif image_file:
+#                 updated_fields = 'Image'
+#             elif youtube_update_flag:
+#                 updated_fields = 'Youtube Url'
+#             if updated_fields:
+#                 contents = {"en": " %s - has been updated for SKU : %s" % (str(updated_fields), str(description))}
+#                 send_push_notification(contents, notified_users)
+#     except Exception as e:
+#         import traceback
+#         log.debug(traceback.format_exc())
+#         log.info('Update SKU Data failed for %s and params are %s and error statement is %s' % (
+#         str(user.username), str(request.POST.dict()), str(e)))
+#         return HttpResponse('Update SKU Failed')
+#
+#     return HttpResponse('Updated Successfully')

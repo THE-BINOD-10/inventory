@@ -33,13 +33,13 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Item Description * </label>
-                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="sku_desc" ng-style="{'border-color': showCase.highlight_data['sku_desc'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Item Type </label>
-                <input type="text" name="item_type" class="form-control"
+                <input type="text" name="item_type" ng-style="{'border-color': showCase.highlight_data['item_type'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control"
                 ng-model="showCase.model_data.sku_data.item_type"
                 ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
@@ -62,7 +62,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Item Group </label>
-                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-style="{'border-color': showCase.highlight_data['threshold_quantity'] ? showCase.highlight_color : '#e4e4e4'}" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.sku_group == ''" value="">Default</option>
                   <option ng-repeat="group in showCase.model_data.groups" ng-selected="showCase.model_data.sku_data.sku_group == group" value="{{group}}">{{group}}</option>
                 </select>
@@ -73,19 +73,19 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Item Category </label>
-                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="sku_category" class="form-control" ng-style="{'border-color': showCase.highlight_data['sku_category'] ? showCase.highlight_color : '#e4e4e4'}" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName != 'sagar_fab'">
               <div class="form-group">
                 <label class="control-label"> Item Sub Category </label>
-                <input type="text" name="sub_category" class="form-control" ng-model="showCase.model_data.sku_data.sub_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="sub_category" ng-style="{'border-color': showCase.highlight_data['sub_category'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sub_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Item Brand </label>
-                <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="sku_brand" ng-style="{'border-color': showCase.highlight_data['threshold_quantity'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -102,7 +102,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Tax Type</label>
-                <select class="form-control" name="product_type" ng-model="showCase.model_data.sku_data.product_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <select class="form-control" name="product_type" ng-style="{'border-color': showCase.highlight_data['threshold_quantity'] ? showCase.highlight_color : '#e4e4e4'}" ng-model="showCase.model_data.sku_data.product_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option value ="" ng-selected="showCase.model_data.sku_data.product_type == ''"> Default </option>
                   <option ng-repeat = "type in showCase.model_data.product_types" value="{{type}}" ng-selected="showCase.model_data.sku_data.product_type == type">{{type}}</option>
                 </select>
@@ -113,7 +113,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName == 'sagar_fab'">
               <div class="form-group">
                 <label class="control-label"> Primary Category</label>
-                <input type="text" name="primary_category" class="form-control" ng-model="showCase.model_data.sku_data.primary_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="primary_category" class="form-control" ng-style="{'border-color': showCase.highlight_data['primary_category'] ? showCase.highlight_color : '#e4e4e4'}" ng-model="showCase.model_data.sku_data.primary_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName == 'sagar_fab'">
@@ -139,26 +139,26 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Cost Price </label>
-                <input type="text" name="cost_price" class="form-control" ng-model="showCase.model_data.sku_data.cost_price" decimal-number>
+                <input type="text" name="cost_price" ng-style="{'border-color': showCase.highlight_data['cost_price'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.cost_price" decimal-number>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Price </label>
-                <input type="text" name="price" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="price" ng-style="{'border-color': showCase.highlight_data['price'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
 
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> MRP </label>
-                <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="text" name="mrp" class="form-control" ng-style="{'border-color': showCase.highlight_data['mrp'] ? showCase.highlight_color : '#e4e4e4'}" ng-model="showCase.model_data.sku_data.mrp" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> HSN Code </label>
-                <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" >
+                <input type="text" name="hsn_code" class="form-control" ng-style="{'border-color': showCase.highlight_data['threshold_quantity'] ? showCase.highlight_color : '#e4e4e4'}" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" >
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -173,7 +173,7 @@
               <div class="form-group">
                 <label class="control-label"> EAN Number </label>
                 <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
-                  <input id="ean_numbers" class="ean_numbers" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
+                  <input id="ean_numbers" class="ean_numbers" ng-style="{'border-color': showCase.highlight_data['ean_numbers'] ? showCase.highlight_color : '#e4e4e4'}" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
                 </div>
               </div>
             </div>

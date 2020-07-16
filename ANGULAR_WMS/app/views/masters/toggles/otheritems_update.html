@@ -247,8 +247,12 @@
           <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (!showCase.is_doa) && (!showCase.update))"
                 style="background: green;color: white;" ng-if="(!showCase.update)">Send For Approval</button>
         </div>
+        <div ng-if="showCase.update">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="(showCase.user_profile.warehouse_type!='ADMIN' && (showCase.update))"
+                style="background: green;color: white;">Send For Approval</button>
+        </div>
       <div ng-if="showCase.user_profile.warehouse_type =='ADMIN'">
-        <button type="submit" class="btn pop pop-green"  ng-click="showCase.submit(form)" ng-disabled="process" ng-if="showCase.user_profile.warehouse_type=='ADMIN'">
+        <button type="submit" class="btn pop pop-green"  ng-click="showCase.submit(form)" ng-disabled="process">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

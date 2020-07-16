@@ -352,6 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                  window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);

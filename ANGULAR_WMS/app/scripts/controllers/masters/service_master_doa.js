@@ -205,6 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.change_status_data = function(){
     vm.service.apiCall('change_status_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
+      vm.service.refresh(vm.dtInstance);
       console.log("SUCCESS")
       vm.close();
     });
@@ -301,10 +302,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
                   $state.go('app.outbound.CreateOrders');
                 } else {
-                  if (response == "New WMS Code Added"){
+                  if (response == "New WMS Code Added" || response == "Updated Successfully"){
                     vm.change_status_data();
-                    window.location.reload();
-                    $state.go('app.masters.ServiceMaster');
+
                   }
                 }
               } else {
@@ -318,6 +318,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if ( data.$valid ){
       if ("ADD SERVICE" == vm.title) {
           vm.url = "insert_sku/";
+      }else{
+          vm.url = "update_sku/";
       }
       vm.update_sku();
     }
@@ -336,8 +338,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.delete_sku = function(data) {
     vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
-      console.log("SUCCESS")
       vm.close();
+      vm.service.refresh(vm.dtInstance);
+      console.log("SUCCESS")
     });
   }
   vm.add_uom = function() {

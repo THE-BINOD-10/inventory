@@ -6013,7 +6013,6 @@ def insert_sku_doa(request, user=''):
                         value = None
                 data_dict[key] = value
         data_dict['sku_code'] = data_dict['wms_code']
-        data_dict['request_type'] = "NEW"
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster']:
             respFields = [f.name for f in instanceName._meta.get_fields()]
             for k, v in data_dict.items():
@@ -6026,6 +6025,7 @@ def insert_sku_doa(request, user=''):
         req_user = request.user
         if not request.user.is_staff:
             req_user = user
+        data_dict['request_type'] = "NEW"
         model_name = instanceName.__name__
         doa_dict = {
             'requested_user': req_user,

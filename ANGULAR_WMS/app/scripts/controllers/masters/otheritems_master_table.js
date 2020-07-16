@@ -352,6 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                  window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -363,7 +364,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     {
       if ( data.$valid ){
-        if ("Add Service" == vm.title) {
+        if ("Add Item" == vm.title) {
           if (vm.user_profile.warehouse_type == 'ADMIN'){
             vm.url = "insert_sku/";
           }else{
@@ -378,7 +379,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         }
          vm.update_sku();
-         $state.go('app.masters.ServiceMaster')
+         $state.go('app.masters.OtherItemsMaster')
       }
     }
   }

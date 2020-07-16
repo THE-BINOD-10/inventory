@@ -5638,8 +5638,9 @@ def get_sku_master_doa_record(request, user=''):
             load_unit_dict = {'unit': 0, 'pallet': 1}
 
             zone_name = ''
-            if data.zone:
-                zone_name = data.zone.zone
+            if data:
+                if data.zone:
+                    zone_name = data.zone.zone
 
             zone_list = []
             for zone in zones:
@@ -6341,6 +6342,7 @@ def get_other_items_master_doa(start_index, stop_index, temp_data, search_term, 
                                                 ('sku_size', result.get('sku_size', '')),
                                                 ('sku_category', result.get('sku_category', '')),
                                                 ('image_url', result.get('image_url', '')),
+                                                ('request_type', result.get('request_type', '')),
                                                 ('requested_user', row.requested_user.first_name),
                                                 ('warehouse', warehouse.username),
                                                 ('doa_status', row.doa_status),

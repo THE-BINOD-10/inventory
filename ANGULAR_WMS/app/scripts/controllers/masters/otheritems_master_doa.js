@@ -96,6 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('sku_category').withTitle('Item Category'),
       DTColumnBuilder.newColumn('sku_class').withTitle('Item Class'),
       DTColumnBuilder.newColumn('doa_status').withTitle('Status'),
+      DTColumnBuilder.newColumn('request_type').withTitle('Request Type'),
      ];
   if(vm.warehouse_level==0) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
@@ -108,7 +109,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data = {};
         vm.suggest_id = aData.DT_RowAttr["data-id"]
         angular.copy(empty_data, vm.model_data);
-        vm.service.apiCall("get_sku_master_doa_record/", "GET", {data_id: aData.DT_RowAttr["data-id"], is_otheritem=true}).then(function(data) {
+        vm.highlight_data = {};
+        vm.highlight_color = 'green';
+        vm.service.apiCall("get_sku_master_doa_record/", "GET", {data_id: aData.DT_RowAttr["data-id"], is_otheritem:true}).then(function(data) {
          if (data.message) {
           vm.update=true;
           if (data.data.data.wms_code == ''){
@@ -119,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.status_data = ['Inactive','Active'];
           vm.block_for_po_list = ['Yes', 'No'];
           vm.qc = vm.qc_data[0];
-          vm.status = vm.status_data[0];
+          vm.status = vm.status_data[0];Service
           vm.block_options = vm.block_for_po_list[0];
           vm.model_data.uom_data = [];
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
@@ -138,7 +141,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.zones = data.zones;
                   vm.model_data.groups = data.groups;
                   vm.model_data.sizes_list =  data.sizes_list;
-                  vm.model_data.sku_data.status_data = ['Inactive','Active'];
+                  vm.sku_types = ['', 'FG', 'RM'];
+                  vm.qc_data = ['Disable','Enable'];
+                  vm.status_data = ['Inactive','Active'];
+                  vm.qc = vm.qc_data[0];
+                  vm.status = vm.status_data[0];
                   vm.model_data.combo_data = data.combo_data;
                   vm.model_data.product_types = data.product_types;
                   vm.model_data.sub_categories = data.sub_categories;
@@ -172,7 +179,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.isEmptyUOM = (data.uom_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
-                  vm.change_size_type(vm.model_data.sku_data.size_type);
+//                  vm.change_size_type(vm.model_data.sku_data.size_type);
                   if(vm.model_data.sku_data.ean_number == "0") {
 
                       vm.model_data.sku_data.ean_number = "";
@@ -193,10 +200,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
    return nRow;
   }
-  $scope.$on('change_filters_data', function(){
-    vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-    vm.reloadData();
-  });
+//  $scope.$on('change_filters_data', function(){
+//    vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+//    vm.reloadData();
+//  });
 
   //close popup
   vm.close = function() {
@@ -204,8 +211,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.change_status_data = function(){
     vm.service.apiCall('change_status_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
-      console.log("SUCCESS")
       vm.close();
+      vm.service.refresh(vm.dtInstance);
+      console.log("SUCCESS")
     });
   }
 
@@ -308,8 +316,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.pop_msg(response);
               }
             vm.process = false;
-            vm.close();
-            vm.dtInstance.reloadData();
+//            vm.close();
+//            vm.dtInstance.reloadData();
             }});
   }
 
@@ -358,9 +366,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.delete_sku = function(data) {
     vm.service.apiCall('sku_rejected_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
-      vm.close();
       console.log("SUCCESS")
-      vm.service.refresh(vm.dtInstance);
+      vm.close();
     });
   }
   vm.pop_msg =  function(msg) {
@@ -368,6 +375,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $timeout(function () {
       $(".insert-status > h4").text("");
     }, 3000);
+  }
+  vm.reload = function() {
+    vm.service.refresh(vm.dtInstance);
   }
   vm.remove_market = function(index, id) {
 

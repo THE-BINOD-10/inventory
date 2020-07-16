@@ -206,7 +206,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall('change_status_sku_doa/', "GET", {data_id: vm.suggest_id}).then(function(response){
       vm.service.refresh(vm.dtInstance);
       console.log("SUCCESS")
-
+      vm.close();
     });
   }
   vm.delete_sku = function(data) {
@@ -315,8 +315,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.pop_msg(response);
               }
               vm.process = false;
-              vm.close();
-              vm.dtInstance.reload();
+//              vm.close();
+//              vm.dtInstance.reload();
             }});
   }
 

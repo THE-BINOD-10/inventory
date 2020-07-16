@@ -5333,7 +5333,7 @@ def get_company_list(request, user=''):
 
 
 @csrf_exempt
-@get_admin_use
+@get_admin_user
 def send_supplier_doa(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = 'preference'

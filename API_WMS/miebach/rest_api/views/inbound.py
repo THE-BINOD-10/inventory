@@ -139,7 +139,9 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         warehouse = pr_user.first_name
         storeObj = get_admin(pr_user)
         store = storeObj.first_name
-        warehouse_type = pr_user.userprofile.stockone_code
+        department_code = pr_user.userprofile.stockone_code
+        department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        department = department_mapping.get(department_code, '')
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
                         pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
@@ -196,7 +198,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                                 ('PR Delivery Date', pr_delivery_date),
                                                 ('Store', store),
                                                 # ('Department', warehouse),
-                                                ('Department Type', warehouse_type),
+                                                ('Department', department),
                                                 ('PR Raise By', result['pending_pr__requested_user__first_name']),
                                                 ('Requested User', result['pending_pr__requested_user__username']),
                                                 ('Validation Status', result['pending_pr__final_status'].title()),
@@ -437,6 +439,9 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             store = storeObj[0].first_name
         else:
             store = ''
+        department_code = POtoPRDeptMap[result['pending_po__full_po_number']]
+        department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        department = department_mapping.get(department_code, '')
         product_category = result['pending_po__product_category']
         sku_category = result['pending_po__sku_category']
         approvedPRs = ", ".join(POtoPRsMap.get(result['pending_po__full_po_number'], []))
@@ -489,7 +494,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                                 ('PO Created Date', po_date),
                                                 ('PO Delivery Date', po_delivery_date),
                                                 ('Store', store),
-                                                ('Department', POtoPRDeptMap[result['pending_po__full_po_number']]),
+                                                ('Department', department),
                                                 ('PO Raise By', result['pending_po__requested_user__first_name']),
                                                 ('Requested User', result['pending_po__requested_user__username']),
                                                 ('Validation Status', result['pending_po__final_status'].title()),
@@ -1509,6 +1514,13 @@ def generated_pr_data(request, user=''):
     pr_user = get_warehouse_user_from_sub_user(requestedUserId)
     supplier_id = request.POST.get('supplier_id', '')
     record = PendingPO.objects.filter(requested_user__username=requested_user, id=pr_number)
+    department_id = record[0].pending_prs.filter().values_list('wh_user', flat=True)[0]
+    dept_user = User.objects.get(id=department_id)
+    department_code = dept_user.userprofile.stockone_code
+    department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+    department = department_mapping.get(department_code, '')
+    storeObj = get_admin(dept_user)
+    store = storeObj.first_name
     total_data = []
     ser_data = []
     levelWiseRemarks = []
@@ -1565,12 +1577,6 @@ def generated_pr_data(request, user=''):
     for rec in lineItems:
         sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
         search_params = {'sku__user': user.id}
-        # noOfTestsQs = SKUAttributes.objects.filter(sku_id=sku_id,
-        #                                         attribute_name='No.OfTests')
-        # if noOfTestsQs.exists():
-        #     noOfTests = int(noOfTestsQs[0].attribute_value)
-        # else:
-        #     noOfTests = 0
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
@@ -1609,7 +1615,8 @@ def generated_pr_data(request, user=''):
                                     'uploaded_file_dict': uploaded_file_dict,
                                     'pr_uploaded_file_dict': pr_uploaded_file_dict,
                                     'sku_category': record[0].sku_category,
-                                    'product_category': record[0].product_category}))
+                                    'product_category': record[0].product_category,
+                                    'store': store, 'department': department}))
 
 
 @csrf_exempt
@@ -1776,7 +1783,7 @@ def generated_actual_pr_data(request, user=''):
                     supplierId = supplierMapping.supplier.supplier_id
                     supplierName = supplierMapping.supplier.name
                     skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id,
-                                    sku_code, store)
+                                    sku_code, storeObj)
                     if skuTaxes:
                         skuTaxVal = skuTaxes[0]
                         taxes = skuTaxVal['taxes']
@@ -3162,7 +3169,19 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
             reqURLPath = 'notifications/email/pending_pr_request'
         validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
         requestedBy = result.requested_user.first_name
-        warehouseName = user.first_name
+        if not poFor:
+            storeObj = get_admin(user)
+            store = storeObj.first_name
+            department_code = user.userprofile.stockone_code
+        else:
+            storeObj = user
+            store = storeObj.first_name
+            department_id = openPurchaseObj.pending_prs.filter().values_list('wh_user', flat=True)[0]
+            dept_user = User.objects.get(id=department_id)
+            department_code = dept_user.userprofile.stockone_code
+        department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        department = department_mapping.get(department_code, '')
+        product_category = result.product_category
         pendingLevel = result.pending_level
         totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
         skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
@@ -3209,14 +3228,19 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         podetails_string = "<p> Pending %s Details </p>  \
         <p>%s Number: %s</p> \
         <p>Order Value : %s </p> \
-        <p>Warehouse NAME : %s </p> \
         <p>%s Raised By : %s </p> \
         <p>%s Approval Request To : %s </p> \
         <p>%s Created Date: %s</p> \
         <p>Need By Date : %s </p> \
         <p>Pending Level : %s </p> \
-        <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt, warehouseName, purchase_type, requestedBy, purchase_type, mailId,
-                            purchase_type, creation_date, delivery_date, pendingLevel, line_sub_heading, lineItemDetails)
+        <p>Product Category : %s </p> \
+        <p>Store : %s </p> \
+        <p>Department : %s </p> \
+        <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt, 
+                        purchase_type, requestedBy, purchase_type, mailId,
+                        purchase_type, creation_date, delivery_date, pendingLevel,
+                        product_category, store, department, line_sub_heading, 
+                        lineItemDetails)
         if hash_code:
             body = podetails_string+ "<p>Please click on the below link to validate.</p>\
             Link: %s"%(validationLink)

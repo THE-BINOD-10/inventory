@@ -45,7 +45,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     ];
     if(vm.warehouse_level==0) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'));
-      vm.make_readonly = true;
     }
 
     vm.dtInstance = {};
@@ -85,6 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
+    vm.make_readonly = false;
     $state.go('app.masters.sourceSKUMapping');
   }
 
@@ -106,6 +106,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     get_suppliers();
     get_warehouses();
     $state.go('app.masters.sourceSKUMapping.mapping');
+    vm.make_readonly = false;
+    if(vm.warehouse_level == 0){
+      vm.make_readonly = true;
+    }
   }
 
   vm.submit = function(data) {

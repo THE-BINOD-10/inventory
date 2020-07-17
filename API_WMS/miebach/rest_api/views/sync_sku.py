@@ -94,6 +94,7 @@ def create_update_sku(all_skus, all_users):
                         'measurement_type': sku.measurement_type, 'sale_through': sku.sale_through,
                         'hsn_code': sku.hsn_code, 'youtube_url': sku.youtube_url,
                         'price': sku.price, 'cost_price': sku.cost_price,
+                        'batch_based': sku.batch_based
                         }
             ean_numbers = list(sku.eannumbers_set.filter().values_list('ean_number', flat=True))
             if sku.ean_number and sku.ean_number != '0':

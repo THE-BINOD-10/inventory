@@ -2696,7 +2696,10 @@ def raise_po_toggle(request, user=''):
 def search_supplier(request, user=''):
     data_id = request.GET['q']
     arg_type = request.GET.get('type', '')
-    if arg_type == 'is_parent':
+    plant = request.GET.get('plant', '')
+    if plant:
+        user = User.objects.get(first_name=plant)
+    elif arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
                                         Q(name__icontains=data_id), user=user.id)

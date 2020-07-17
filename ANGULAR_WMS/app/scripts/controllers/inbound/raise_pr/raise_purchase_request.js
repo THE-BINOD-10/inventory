@@ -177,6 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
+                  "store_id": data.data.store_id,
                   "department": data.data.department,
                   "data": data.data.data,
           };

@@ -1852,7 +1852,7 @@ def generated_actual_pr_data(request, user=''):
                                     }, 'pk': lineItemId})
     return HttpResponse(json.dumps({'ship_to': record[0].ship_to, 'pr_delivery_date': pr_delivery_date,
                                     'pr_created_date': pr_created_date, 'store': store,
-                                    'department': department,
+                                    'department': department, 'store_id': storeObj.id,
                                     'data': ser_data, 'levelWiseRemarks': levelWiseRemarks, 'is_approval': 1,
                                     'validateFlag': validateFlag, 'product_category': record[0].product_category,
                                     'priority_type': record[0].priority_type, 'convertPoFlag': convertPoFlag,

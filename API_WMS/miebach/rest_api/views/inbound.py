@@ -58,7 +58,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId)
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -66,8 +66,9 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 pr_filter_check = {'configName': configName, 'level': currentUserLevel, 'status__in': status_in}
                 if status:
                     pr_filter_check['pending_pr__final_status'] = status
-                pr_numbers = list(PurchaseApprovals.objects.filter(**pr_filter_check).distinct().
-                                  values_list('pending_pr_id', flat=True))
+                #pr_numbers = list(PurchaseApprovals.objects.filter(**pr_filter_check).distinct().
+                #                  values_list('pending_pr_id', flat=True))
+                pr_numbers = [pa_mail.pr_approval.pending_pr_id]
                 filtersMap.setdefault('pending_pr_id__in', [])
                 filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
         # if status != 'approved': # Creator Sub Users
@@ -141,7 +142,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         store = storeObj.first_name
         warehouse_type = pr_user.userprofile.stockone_code
         mailsList = []
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                         pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
         approval_type = ''
         if prApprQs:
@@ -158,7 +159,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                 pr_user=pr_user, product_category=product_category).exclude(status='on_approved').order_by('-creation_date')
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -166,13 +167,13 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             else:
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, level=result['pending_pr__pending_level'], product_category=product_category)
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
         if result['pending_pr__sub_pr_number']:
@@ -265,7 +266,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         store = storeObj.first_name
         warehouse_type = pr_user.userprofile.stockone_code
         mailsList = []
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                         pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
         approval_type = ''
         if prApprQs:
@@ -282,7 +283,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                 pr_user=pr_user, product_category=product_category).exclude(status='on_approved').order_by('-creation_date')
                 if prApprQs.exists():
                     last_updated_by = prApprQs[0].validated_by
@@ -291,14 +292,14 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             else:
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
                     if prApprQs.exists():
                         last_updated_by = prApprQs[0].validated_by
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                         last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_pr__pr_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
                                     pr_user=pr_user, level=result['pending_pr__pending_level'], product_category=product_category)
                     if prApprQs.exists():
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -447,7 +448,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         mailsList = []
         reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'],
                                     result['total_amt'], purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], pr_user=wh_user,
+        prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'], pr_user=wh_user,
                                     level=result['pending_po__pending_level'])
 
         last_updated_by = ''
@@ -458,7 +459,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         if prApprQs.exists():
             validated_by = prApprQs[0].validated_by
             if result['pending_po__final_status'] not in ['pending', 'saved']:
-                prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
                                         pr_user=wh_user, level=result['pending_po__pending_level'])
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -466,15 +467,17 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
             else:
                 if result['pending_po__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_po__pending_level'].replace('level', '')) - 1)
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
                                         pr_user=wh_user, level=prev_level)
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
                 else:
-                    prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
+                    prApprQs = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
                                         pr_user=wh_user, level=result['pending_po__pending_level'])
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
+        if result['pending_po__final_status'] == 'approved':
+            validated_by = ''
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_po_id']),
                                                 ('PR Number', result['pending_po__po_number']),

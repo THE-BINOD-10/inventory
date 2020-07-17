@@ -3458,11 +3458,14 @@ def approve_pr(request, user=''):
                 # PRQs.update(remarks=remarks)
                 updatePRApproval(pr_number, pr_user, pending_level, currentUserEmailId, validation_type,
                                  remarks, purchase_type=purchase_type)
-                sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
-                                     '%s_approval_at_last_level' % mailSubTypePrefix,
-                                     requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
+                # sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
+                #                      '%s_approval_at_last_level' % mailSubTypePrefix,
+                #                      requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
                 for eachMail in mailsList:
                     generateHashCodeForMail(prObj, eachMail, 'level0')
+                    sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, 
+                        '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor, 
+                        central_po_data=central_po_data)
             # pass
             try:
                 netsuite_pr(user, PRQs, full_pr_number)

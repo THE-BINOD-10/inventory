@@ -12,8 +12,9 @@
                   <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.warehouse_level == 0">
                   <div class="form-group">
                     <label class="control-label"> Warehouse * </label>
-                    <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse" ng-if="(!(showCase.update))" ng-change="showCase.make_readonly=false">
-                      <option ng-repeat="obj in showCase.warehouse_list" value="{{obj.id}}" ng-selected="obj == showCase.model_data.warehouse" required>{{obj.first_name}}</option>
+                    <input type="hidden" name="warehouse_id" ng-model="showCase.model_data.warehouse_id" value="{{showCase.model_data.warehouse_id}}">
+                    <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse" ng-if="(!(showCase.update))" ng-change="showCase.update_warehouse_id()">
+                      <option ng-repeat="obj in showCase.warehouse_list" value="{{obj.name}}" ng-selected="obj == showCase.model_data.warehouse" required>{{obj.first_name}}</option>
                     </select>
                     <input type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" readonly>
                   </div>
@@ -22,9 +23,9 @@
                   <div class="form-group">
                     <label class="control-label"> Supplier ID * </label>
                     <input type="text" autocomplete="off" ng-if="(!(showCase.update))" name="supplier_id" ng-model="showCase.model_data.supplier_id" placeholder="Search Supplier"
-                      typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?warehouse_id='+ showCase.model_data.warehouse)" typeahead-loading="loadingLocations" class="form-control"
+                      typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?warehouse_id='+ showCase.model_data.warehouse_id)" typeahead-loading="loadingLocations" class="form-control"
                       typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id); showCase.update_wms_records()"
-                      ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');"
+                      ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?warehouse_id='+showCase.model_data.warehouse_id, $event, '', 'Supplier');"
                       ng-keyup="$event.keyCode == 13 ? showCase.checkSupplierExist(showCase.model_data.supplier_id) : null"
                       ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"
                            ng-readonly="showCase.make_readonly"

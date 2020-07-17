@@ -44,7 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time'),
     ];
     if(vm.warehouse_level==0) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'));
+      vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse_name').withTitle('Warehouse'));
     }
 
     vm.dtInstance = {};
@@ -70,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {supplier_id: "", wms_code: "", supplier_code: "", preference: "", moq: "", price: ""};
+  var empty_data = {supplier_id: "", wms_code: "", supplier_code: "", preference: "", moq: "", price: "", warehouse_id: ""};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
 
@@ -211,6 +211,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           list.push({"id": d.warehouse_id, "name": d.warehouse_name, "first_name": d.warehouse_first_name})
         });
         vm.warehouse_list = list;
+      }
+    });
+  }
+
+  vm.update_warehouse_id = function (){
+    vm.make_readonly = false;
+    angular.forEach(vm.warehouse_list, function(wh) {
+      if(wh.name==vm.model_data.warehouse){
+        vm.model_data.warehouse_id = wh.id;
       }
     });
   }

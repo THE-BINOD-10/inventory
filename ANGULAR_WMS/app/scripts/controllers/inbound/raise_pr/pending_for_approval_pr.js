@@ -57,7 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
-                    "Total Quantity", "PR Created Date", "Store", "Department Type",
+                    "Total Quantity", "PR Created Date", "Store", "Department",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -175,7 +175,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
-                  "warehouse": data.data.warehouse,
+                  "store": data.data.store,
+                  "store_id": data.data.store_id,
+                  "department": data.data.department,
                   "data": data.data.data,
           };
           vm.model_data = {};
@@ -588,7 +590,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          var deptType = temp['_aData']['Department Type'];
+          var deptType = temp['_aData']['Department'];
           var prodCatg = temp['_aData']['Product Category'];
           var catg = temp['_aData']['Category'];
           prIds.push(temp['_aData']["Purchase Id"]);

@@ -143,7 +143,18 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'costing_type': 'Price Based',
                      'margin_percentage': 0}
 
+SKU_MAPPING_DATA = {'user': '','sku_code': '', 'wms_code': '',
+                    'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
+                    'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'max_norm_quantity': 0, 'color': '', 'mrp': 0,
+                    'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
+                    'price': 0,
+                    'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
+                    'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
+                    'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '',
+                    'batch_based':0}
+
 SKU_PACK_DATA = {'sku': '', 'pack_id': '', 'pack_quantity': '', 'creation_date': datetime.datetime.now()}
+
 
 REPLENUSHMNENT_DATA = {'classification': '', 'size': '', 'max_days': 0, 'min_days': 0,
                        'creation_date': datetime.datetime.now()}

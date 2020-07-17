@@ -51,13 +51,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
         })
        .withPaginationType('full_numbers')
+       .withOption('order', [0, 'desc'])
        .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
-                    "Total Quantity", "PR Created Date", "Store", "Department Type",
+                    "Total Quantity", "PR Created Date", "Store", "Department",
                     "PR Raise By",  "Validation Status", "Pending Level", 
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
@@ -175,7 +176,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
-                  "warehouse": data.data.warehouse,
+                  "store": data.data.store,
+                  "store_id": data.data.store_id,
+                  "department": data.data.department,
                   "data": data.data.data,
           };
           vm.model_data = {};
@@ -304,7 +307,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
-      vm.dynamic_route($rootScope.$current_pr);
+      vm.current_pr = $rootScope.$current_pr
+      vm.dynamic_route(vm.current_pr);
+      $rootScope.$current_pr = '';
     }
     vm.base = function() {
       vm.title = "Raise PR";
@@ -588,7 +593,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
-          var deptType = temp['_aData']['Department Type'];
+          var deptType = temp['_aData']['Department'];
           var prodCatg = temp['_aData']['Product Category'];
           var catg = temp['_aData']['Category'];
           prIds.push(temp['_aData']["Purchase Id"]);
@@ -692,51 +697,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.display_vision = {'display': 'block'};
         console.log(selectedItem);
       });
-    }
-    
-    vm.convert_pr_to_po = function(form) {
-      var selectedItems = [];
-      var alertMsg = "";
-      angular.forEach(vm.preview_data.data, function(eachLineItem){
-        if (eachLineItem.checkbox){
-          if (eachLineItem.product_category == 'Kits&Consumables' && 
-                (Object.keys(eachLineItem.supplierDetails).length == 0)){
-            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
-          } else {
-            if (eachLineItem.moq > eachLineItem.quantity){
-              alertMsg = alertMsg + " " + eachLineItem.sku_code 
-            } else {
-              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-            };
-          }
-        }
-      });
-      if (selectedItems.length == 0){
-        vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
-      }
-      var finalAlerMsg = '';
-      if (alertMsg) {
-        finalAlerMsg = alertMsg+" - Can't be processed";
-      }
-      if (selectedItems.length > 0){
-        vm.service.alert_msg(finalAlerMsg).then(function(msg) {
-          if (msg == "true") {
-            vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
-            if(data.message){
-                if(data.data == 'Converted PR to PO Successfully') {
-                  vm.close();
-                  vm.service.refresh(vm.dtInstance);
-                } else {
-                  vm.service.pop_msg(data.data);
-                }
-              }
-            })
-          }
-        })
-      }
     }
 
     vm.print_pending_po = function(form, validation_type) {

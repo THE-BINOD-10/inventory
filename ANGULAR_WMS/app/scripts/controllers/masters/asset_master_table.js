@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
+    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
 
     vm.filters = {'datatable': 'AssetMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -351,6 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                  window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -362,12 +364,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = function(data) {
     if ( data.$valid ){
       if ("Add Asset" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
-        vm.url = "update_sku/";
-      }
-      vm.update_sku();
-    }
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/";
+          }}else{
+            if (vm.user_profile.warehouse_type == 'ADMIN'){
+              vm.url = "update_sku/";
+            }else{
+              vm.url = "update_sku_doa/";
+            }}
+        vm.update_sku();
+        $state.go('app.masters.AssetMaster')
+     }
   }
 
   vm.remove_market = function(index, id) {

@@ -12844,9 +12844,12 @@ def get_past_po(start_index, stop_index, temp_data, search_term, order_term, col
 def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     company_name = user_company_name(request.user)
     all_prod_catgs = True
-    sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
+    #sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     search_params = {}
-    search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
+    #search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name',
             'purchase_order__order_id', 'purchase_order__order_id', 'invoice_number', 'invoice_date',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
@@ -12889,14 +12892,14 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                         values_list('seller_po_summary_id', flat=True)
     if search_term:
         results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0,
-                                            purchase_order__open_po__sku__user=user.id, **search_params). \
+                                            purchase_order__open_po__sku__user__in=user_ids, **search_params). \
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                  'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',
                  'quantity', 'purchase_order__creation_date', 'grn_number').order_by(order_data).distinct()
 
     elif order_term:
         db_results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
-                                            filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
+                                            filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user__in=user_ids, **search_params).\
             only('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date','challan_number',
                    'quantity', 'purchase_order__creation_date', 'batch_detail__buy_price',
@@ -12960,6 +12963,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                 total_amt += temp_qty * seller_summary.purchase_order.open_po.price
             rem_quantity += temp_qty
         total_amt = total_amt + ((total_amt/100) * tax)
+        warehouse = User.objects.get(id=open_po.sku.user)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id), ('prefix', result['prefix']),
                                                 ('Supplier ID', result['supplier_id']),
                                                 ('Supplier Name', result['supplier_name']), ('Purchase Order ID', result['po_number']),
@@ -12967,7 +12971,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
-                                                ('id', count),
+                                                ('id', count), ('warehouse_id', warehouse.id),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 

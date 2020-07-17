@@ -725,51 +725,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     //     console.log(selectedItem);
     //   });
     // }
-    
-    vm.convert_pr_to_po = function(form) {
-      var selectedItems = [];
-      var alertMsg = "";
-      angular.forEach(vm.preview_data.data, function(eachLineItem){
-        if (eachLineItem.checkbox){
-          if (eachLineItem.product_category == 'Kits&Consumables' && 
-                (Object.keys(eachLineItem.supplierDetails).length == 0)){
-            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
-          } else {
-            if (eachLineItem.moq > eachLineItem.quantity){
-              alertMsg = alertMsg + " " + eachLineItem.sku_code 
-            } else {
-              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-            };
-          }
-        }
-      });
-      if (selectedItems.length == 0){
-        vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
-      }
-      var finalAlerMsg = '';
-      if (alertMsg) {
-        finalAlerMsg = alertMsg+" - Can't be processed";
-      }
-      if (selectedItems.length > 0){
-        vm.service.alert_msg(finalAlerMsg).then(function(msg) {
-          if (msg == "true") {
-            vm.service.apiCall('convert_pr_to_po/', 'POST', selectedItems, true).then(function(data){
-            if(data.message){
-                if(data.data == 'Converted PR to PO Successfully') {
-                  vm.close();
-                  vm.service.refresh(vm.dtInstance);
-                } else {
-                  vm.service.pop_msg(data.data);
-                }
-              }
-            })
-          }
-        })
-      }
-    }
 
     vm.print_pending_po = function(form, validation_type) {
       var elem = angular.element($('form'));
@@ -853,11 +808,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(data.data == 'success') {
             vm.service.apiCall('save_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
-                if(data.data == 'Saved Successfully') {
+                var response = JSON.parse(data.data);
+                if(response['status'] == 'Saved Successfully') {
                   vm.close();
-                  vm.service.refresh(vm.dtInstance);
+                  swal2({
+                    title: 'Confirmed PR Number',
+                    text: response['pr_number'],
+                    icon: "success",
+                    button: "OK",
+                    allowOutsideClick: false
+                  }).then(function (text) {
+                      vm.service.refresh(vm.dtInstance);
+                  });
                 } else {
-                  vm.service.pop_msg(data.data);
+                  vm.service.showNoty(data.data);
                 }
               }
             })
@@ -1288,9 +1252,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(data.data == 'success') {
             vm.service.apiCall('add_pr/', 'POST', form_data, true, true).then(function(data){
               if(data.message){
-                if(data.data == 'Added Successfully') {
+                var response = JSON.parse(data.data);
+                if(response['status'] == 'Added Successfully') {
                   vm.close();
-                  vm.service.refresh(vm.dtInstance);
+                  swal2({
+                    title: 'Confirmed PR Number',
+                    text: response['pr_number'],
+                    icon: "success",
+                    button: "OK",
+                    allowOutsideClick: false
+                  }).then(function (text) {
+                      vm.service.refresh(vm.dtInstance);
+                  });
                 } else {
                   vm.service.showNoty(data.data);
                 }

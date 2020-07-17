@@ -4395,6 +4395,7 @@ def add_pr(request, user=''):
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
                         sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+            return HttpResponse(json.dumps({'pr_number': full_pr_number, 'status': 'Added Successfully'}))
         else:
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
                                         baseLevel, prefix, full_pr_number, is_po_creation=True,
@@ -4510,6 +4511,8 @@ def save_pr(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Save PR data failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
         return HttpResponse('Save PR Failed')
+    if is_actual_pr == 'true':
+        return HttpResponse(json.dumps({'pr_number': full_purchase_number, 'status': 'Saved Successfully'}))
     return HttpResponse("Saved Successfully")
 
 @csrf_exempt

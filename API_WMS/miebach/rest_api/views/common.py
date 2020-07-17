@@ -149,6 +149,22 @@ def get_plant_subsidary_and_department(user):
         print("STORE")
     return department, plant, subsidary
 
+def get_plant_and_department(user):
+    department=""
+    plant=""
+    user_profile= UserProfile.objects.get(user_id=user.id)
+    if(user_profile.warehouse_type=="DEPT"):
+        department= user.first_name
+        admin_user= get_admin(user)
+        # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+        plant= admin_user.username
+    elif(user_profile.warehouse_type=="SUB_STORE"):
+        plant= user.username
+    elif(user_profile.warehouse_type=="STORE"):
+        plant= user.username
+    return department, plant
+
+
 @fn_timer
 def get_user_permissions(request, user):
     roles = {}
@@ -590,8 +606,10 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
+    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'SKUMasterDOA': 'get_sku_mapping_doa', 'AssetMasterDOA': 'get_asset_master_doa',
+    'ServiceMasterDOA': 'get_service_master_doa', 'OtherItemsMasterDOA': 'get_other_items_master_doa', 'TestMaster': 'get_sku_results',
+    'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -1297,6 +1315,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         pac_filter1['department_type'] = ''
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
+    if not purchase_config:
+        pac_filter['sku_category'] = ''
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -4851,6 +4872,19 @@ def get_file_content(request, user=''):
     return HttpResponse(json.dumps({'file_content': eval(file_content)}))
 
 
+def get_uom_data(user, master_data, uom_type):
+    company_id = get_company_id(user)
+    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, 
+                    uom_type=uom_type, company_id=company_id)
+    sku_conversion = 0
+    if sku_uom.exists():
+        measurement_unit = sku_uom[0].uom
+        sku_conversion = float(sku_uom[0].conversion)
+    else:
+        measurement_unit = master_data.measurement_type
+        sku_conversion = 0
+    return sku_conversion, measurement_unit
+
 @get_admin_user
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
@@ -4880,24 +4914,11 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-        noOfTestsQs = SKUAttributes.objects.filter(sku_id=master_data.id, attribute_name='No.OfTests')
-        if noOfTestsQs.exists():
-            noOfTests = int(noOfTestsQs[0].attribute_value)
-        else:
-            noOfTests = 0
-        company_id = get_company_id(user)
-        sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, uom_type='Purchase',company_id=company_id)
-        sku_conversion = 0
-        if sku_uom.exists():
-            measurement_unit = sku_uom[0].uom
-            sku_conversion = float(sku_uom[0].conversion)
-        else:
-            measurement_unit = master_data.measurement_type
-            sku_conversion = 0
+        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'noOfTests': noOfTests, 'conversion': sku_conversion,
+                       'mrp': master_data.mrp, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
         if instanceName == ServiceMaster:
@@ -5137,15 +5158,6 @@ def build_search_data(user, to_data, from_data, limit):
         return to_data
     else:
         for data in from_data:
-            noOfTestsQs = SKUAttributes.objects.filter(sku_id=data.id, attribute_name='No.OfTests')
-            if noOfTestsQs.exists():
-                noOfTests = noOfTestsQs.values_list('attribute_value', flat=True)[0]
-                try:
-                    noOfTests = int(noOfTests)
-                except:
-                    noOfTests = 0
-            else:
-                noOfTests = 0
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
             sku_conversion = 0
@@ -5158,7 +5170,7 @@ def build_search_data(user, to_data, from_data, limit):
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'noOfTests': noOfTests,'conversion': sku_conversion,
+                        'style_name': data.style_name, 'conversion': sku_conversion,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
             if isinstance(data, ServiceMaster):
@@ -9420,8 +9432,10 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     if isinstance(supp_id, (int, float)):
         supp_id = str(int(supp_id))
     max_sup_id = '%s_%s' % (str(user.id), supp_id)
-    supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                    supplier_id=supp_id, **supplier_dict)
+    supplier_dict['id'] = max_sup_id
+    supplier_dict['supplier_id'] = supp_id
+    supplier_dict['user'] = user.id
+    supplier_master = SupplierMaster.objects.create(**supplier_dict)
     return supplier_master
 
 
@@ -9808,6 +9822,7 @@ def update_sku_attributes(data, request):
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
+
     if not value == '':
         master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
                                                           attribute_model=attribute_model,
@@ -10543,7 +10558,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
@@ -12268,8 +12283,18 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
     else:
         user_ids = [user.id]
     master_objs = {}
+    admin_supplier = None
+    company_admin = get_company_admin_user(user)
+    company_admin_id = int(company_admin.id)
+    if not current_user:
+        if company_admin_id not in user_ids or user_ids.index(company_admin_id) != 0:
+            if company_admin_id in user_ids:
+                user_ids.remove(company_admin_id)
+            user_ids.insert(0, company_admin_id)
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)
+        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) != str(admin_supplier.subsidiary)):
+            continue
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
@@ -12284,6 +12309,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         else:
             exist_supplier.update(**user_data_dict)
             supplier_master = exist_supplier[0]
+        if company_admin_id == int(user_id):
+            admin_supplier = supplier_master
         master_objs[user_id] = supplier_master
         upload_master_file(request, user, supplier_master.id, "SupplierMaster")
         supplier_master.save()
@@ -12335,10 +12362,12 @@ def insert_admin_suppliers(request, user):
     admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
-    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id, subsidiary=user.userprofile.company.reference_id)
     rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    print suppliers.count()
     for supplier in suppliers:
         filter_dict = {'supplier_id': supplier.supplier_id}
+        print filter_dict
         data_dict = copy.deepcopy(supplier.__dict__)
         for rem in rem_list:
             if rem in data_dict.keys():

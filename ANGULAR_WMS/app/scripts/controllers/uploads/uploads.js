@@ -86,16 +86,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    show: true,
                    perm: "add_stockdetail"
                  }, {
-                   title: "Supplier Download/ Upload",
-                   download: "Download 	Supplier Form",
-                   upload: "Upload Supplier Form",
-                   durl: "supplier_form/",
-                   uurl: "supplier_upload/",
-                   dparam: "download-supplier-file",
-                   value: "",
-                   show: true,
-                   perm: "add_suppliermaster"
-                 }, {
+//                   title: "Supplier Download/ Upload",
+//                   download: "Download 	Supplier Form",
+//                   upload: "Upload Supplier Form",
+//                   durl: "supplier_form/",
+//                   uurl: "supplier_upload/",
+//                   dparam: "download-supplier-file",
+//                   value: "",
+//                   show: false,
+//                   perm: false //"add_suppliermaster"
+//                 }, {
                    title: "Supplier-SKU Download/ Upload",
                    download: "Download Supplier-SKU Form",
                    upload: "Upload Supplier-SKU Form",

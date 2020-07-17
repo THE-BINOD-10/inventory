@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
+    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
     if (vm.permissions.show_vehiclemaster){
     vm.service.apiCall('get_user_attributes_list', 'GET', {attr_model: 'sku'}).then(function(data){
       vm.attributes = data.data.data;
@@ -351,7 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $.each(files, function(i, file) {
         formData.append('files-' + i, file);
     });
-    // SKU Related Files
+    // SKU Related Files"background: green;color: white;"
     $.each(vm.model_data.sku_files, function(i, file) {
         formData.append('sku-related-files-' + i, file);
     });
@@ -411,6 +412,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -420,13 +422,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-    if ( data.$valid ){
-      if ("Add SKU" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
-        vm.url = "update_sku/";
+    {
+      if ( data.$valid ){
+        if ("Add SKU" == vm.title) {
+          if (vm.user_profile.warehouse_type == 'ADMIN'){
+            vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/"
+          }}
+      else {
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "update_sku/";
+          }
+        else{
+          vm.url = "update_sku_doa/";
+        }
+        }
+         vm.update_sku();
+         $state.go('app.masters.SKUMaster')
       }
-      vm.update_sku();
     }
   }
 
@@ -514,7 +528,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
-
 
       vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
 

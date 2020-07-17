@@ -88,15 +88,15 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         filtersMap.setdefault('pending_pr_id__in', [])
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
 
-    lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
-            'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__pr_number',
-            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks']
+            'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
+            'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
-        order_data = '%s' % order_data
+        order_data = '-%s' % order_data
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name',
         'pending_pr__requested_user__username', 'pending_pr__pr_number', 'pending_pr__final_status',
         'pending_pr__pending_level', 'pending_pr__remarks', 'pending_pr__delivery_date',
@@ -120,13 +120,13 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
     if order_term:
         results = results.order_by(order_data)
 
-    resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
 
     count = 0
     for result in results[start_index: stop_index]:
-        pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
+        pr_created_date = resultsWithDate.get(result['pending_pr__full_pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         pr_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']
@@ -217,11 +217,11 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id}
     status =  request.POST.get('special-key', '')
-    lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
-            'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__pr_number',
-            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks']
+            'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
+            'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -385,11 +385,11 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
     else:
         filtersMap['pending_po__wh_user'] = user
     sku_master, sku_master_ids = get_sku_master(user, user)
-    lis = ['-pending_po__po_number','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
+    lis = ['pending_po_id','pending_po__supplier__supplier_id', 'pending_po__supplier__name',
             'pending_po__po_number', 'total_qty', 'total_amt', 'creation_date',
             'pending_po__delivery_date', 'sku__user', 'pending_po__requested_user__username',
             'pending_po__final_status', 'pending_po__pending_level',
-            'pending_po__po_number__in', 'pending_po__po_number__in', 'pending_po__po_number__in',
+            'pending_po_id', 'pending_po_id', 'pending_po_id',
             'pending_po__remarks']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]

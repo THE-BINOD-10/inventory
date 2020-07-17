@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
         })
        .withPaginationType('full_numbers')
+       .withOption('order', [0, 'desc'])
        .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);

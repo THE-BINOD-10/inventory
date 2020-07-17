@@ -171,6 +171,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "pr_delivery_date": data.data.pr_delivery_date,
             "pr_created_date": data.data.pr_created_date,
             "product_category": data.data.product_category,
+            "store": data.data.store,
+            "department": data.data.department,
             "sku_category": data.data.sku_category,
             "supplier_name": data.data.supplier_name,
             "warehouse": data.data.warehouse,

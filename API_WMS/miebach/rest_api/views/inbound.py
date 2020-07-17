@@ -1797,10 +1797,10 @@ def generated_actual_pr_data(request, user=''):
                     supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                               'supplier_name': supplierName,
                                                               'moq': moq,
-                                                              'price': price,
-                                                              'amount': amount,
+                                                              'price': round(price, 2),
+                                                              'amount': round(amount, 2),
                                                               'tax': tax,
-                                                              'total': total,
+                                                              'total': round(total, 2)
                                                               }
                     if not preferred_supplier:
                         preferred_supplier = supplier_id_name

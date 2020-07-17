@@ -1482,7 +1482,14 @@ def update_uom_master(user, data_dict={}, data=''):
         if uom_type.lower() == 'base':
             base_uom_name = uom_name
             continue
-        name = '%s-%s' % (uom_name, str(int(conversion)))
+        if isinstance(conversion, (float)):
+            try:
+                conversion = str(int(conversion))
+            except:
+                conversion = str(conversion)
+        else:
+            conversion = str(conversion)
+        name = '%s-%s' % (uom_name, conversion)
         if uom_id:
             uom_master = UOMMaster.objects.filter(id=uom_id)
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)

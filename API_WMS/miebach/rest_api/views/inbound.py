@@ -2696,10 +2696,10 @@ def raise_po_toggle(request, user=''):
 def search_supplier(request, user=''):
     data_id = request.GET['q']
     arg_type = request.GET.get('type', '')
-    plant = request.GET.get('plant', '')
-    if plant:
-        user = User.objects.get(first_name=plant)
-    elif arg_type == 'is_parent':
+    warehouse_id = request.GET.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
+    if arg_type == 'is_parent':
         user = get_admin(user)
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
                                         Q(name__icontains=data_id), user=user.id)
@@ -5721,8 +5721,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         grn_price=0
         if 'apmc_percent' in myDict.keys() and myDict['apmc_percent'][i]:
             apmc_tax = myDict['apmc_percent'][i]
-        if 'grn_price' in myDict.keys() and myDict['grn_price'][i]:
-            grn_price=myDict['grn_price'][i]
+        if 'buy_price' in myDict.keys() and myDict['buy_price'][i]:
+            grn_price=myDict['buy_price'][i]
         overall_discount = 0
         if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
             overall_discount = myDict['overall_discount'][0]

@@ -80,7 +80,7 @@ def create_update_sku(all_skus, all_users):
                               only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
         new_ean_objs = []
         for sku in all_skus:
-            if not sku or sku.user == user:
+            if not sku or sku.user == user or sku.sku_code == '':
                 continue
             size_type = ''
             sku_size_type = sku.skufields_set.filter(field_type='size_type').only('field_value')
@@ -172,6 +172,8 @@ def create_update_sku(all_skus, all_users):
                 for attr_key, attr_val in attr_dict.iteritems():
                     create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
+                
+                print(sku_obj.__dict__)
                 sku_obj.save()
                 if size_type:
                     check_update_size_type(sku_obj, size_type)

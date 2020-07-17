@@ -822,10 +822,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
         var mrp = parseInt($(elem).find('input[name="mrp"]').val());
 
-        if(buy_price > mrp) {
-          pop_msg("Buy Price should be less than or equal to MRP");
-          return false;
-        }
+        // if(buy_price > mrp) {
+        //   pop_msg("Buy Price should be less than or equal to MRP");
+        //   return false;
+        // }
         elem = $(elem).serializeArray();
         var form_data = new FormData();
         var files = $(".grn-form").find('[name="files"]')[0].files;
@@ -2769,10 +2769,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(sku_row_data.mrp == ''){
       sku_row_data.mrp = 0;
     }
-    if(Number(sku_row_data.buy_price) > Number(sku_row_data.mrp)){
-      pop_msg("Buy Price should be less than or equal to MRP");
-      data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
-    }
+    // if(Number(sku_row_data.buy_price) > Number(sku_row_data.mrp)){
+    //   pop_msg("Buy Price should be less than or equal to MRP");
+    //   data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
+    // }
   }
 
 

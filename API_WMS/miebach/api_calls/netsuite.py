@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -592,7 +592,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'lead_time': 'leadtime', 'credit_period': 'creditperiod', 'bank_name': 'bankname', 'ifsc_code': 'ifsccode',
 		                 'branch_name': 'branchname', 'account_number': 'accountnumber', 'account_holder_name': 'accountholdername',
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
-                         'payment':'paymentterms', 'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
+                         'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
 		                }
         number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
         data_dict = {}
@@ -639,7 +639,16 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         if not (row.has_key('reference_id') and row.has_key('description')):
                             update_error_message(failed_status, 5024, 'Required Parameter Missing In Payment Terms', supplier_id, 'supplierid')
                 else:
-                    data_dict[key] = value
+                    if key == 'netterms':
+                        net_term_arr = value
+                        for row in net_term_arr:
+                            if not (row.has_key('reference_id') and row.has_key('description')):
+                                update_error_message(failed_status, 5024, 'Required Parameter Missing In Net Terms', supplier_id, 'supplierid')
+                    else:
+                        data_dict[key] = value
+
+                # else:
+                #     data_dict[key] = value
                 gst_check.append(address['gstno'])
             secondary_email_id = supplier.get('secondaryemailid', '')
             if secondary_email_id:
@@ -649,7 +658,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
-                createPaymentTermsForSuppliers(master_objs, payment_term_arr)
+                createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()
@@ -660,15 +669,26 @@ def netsuite_validate_supplier(request, supplier, user=''):
         log_err.info('Update supplier data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         failed_status = [{'status': 0,'message': 'Internal Server Error'}]
         return failed_status
-        
-def createPaymentTermsForSuppliers(master_objs, paymentterms):
+
+def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
     for userId, supplier_obj in master_objs.iteritems():
         for paymentTerm in paymentterms:
             try:
                 payment_supplier_mapping(
-                    paymentTerm.get('reference_id'), 
-                    paymentTerm.get('description'), 
+                    paymentTerm.get('reference_id'),
+                    paymentTerm.get('description'),
                     supplier_obj
                 )
             except Exception as e:
                 log_err.info('Payment Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+        for netterm in netterms:
+            try:
+                if(netterm.get('description')):
+                    net_terms_supplier_mapping(
+                        netterm.get('reference_id'),
+                        netterm.get('description'),
+                        supplier_obj
+                    )
+            except Exception as e:
+                print(e)
+                log_err.info('Net Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))

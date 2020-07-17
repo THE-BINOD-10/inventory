@@ -149,6 +149,22 @@ def get_plant_subsidary_and_department(user):
         print("STORE")
     return department, plant, subsidary
 
+def get_plant_and_department(user):
+    department=""
+    plant=""
+    user_profile= UserProfile.objects.get(user_id=user.id)
+    if(user_profile.warehouse_type=="DEPT"):
+        department= user.first_name
+        admin_user= get_admin(user)
+        # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
+        plant= admin_user.username
+    elif(user_profile.warehouse_type=="SUB_STORE"):
+        plant= user.username
+    elif(user_profile.warehouse_type=="STORE"):
+        plant= user.username
+    return department, plant
+
+
 @fn_timer
 def get_user_permissions(request, user):
     roles = {}
@@ -590,8 +606,10 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
+    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'SKUMasterDOA': 'get_sku_mapping_doa', 'AssetMasterDOA': 'get_asset_master_doa',
+    'ServiceMasterDOA': 'get_service_master_doa', 'OtherItemsMasterDOA': 'get_other_items_master_doa', 'TestMaster': 'get_sku_results',
+    'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -9414,8 +9432,10 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     if isinstance(supp_id, (int, float)):
         supp_id = str(int(supp_id))
     max_sup_id = '%s_%s' % (str(user.id), supp_id)
-    supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                    supplier_id=supp_id, **supplier_dict)
+    supplier_dict['id'] = max_sup_id
+    supplier_dict['supplier_id'] = supp_id
+    supplier_dict['user'] = user.id
+    supplier_master = SupplierMaster.objects.create(**supplier_dict)
     return supplier_master
 
 
@@ -9802,6 +9822,7 @@ def update_sku_attributes(data, request):
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
+
     if not value == '':
         master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
                                                           attribute_model=attribute_model,
@@ -10537,7 +10558,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
@@ -12262,8 +12283,18 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
     else:
         user_ids = [user.id]
     master_objs = {}
+    admin_supplier = None
+    company_admin = get_company_admin_user(user)
+    company_admin_id = int(company_admin.id)
+    if not current_user:
+        if company_admin_id not in user_ids or user_ids.index(company_admin_id) != 0:
+            if company_admin_id in user_ids:
+                user_ids.remove(company_admin_id)
+            user_ids.insert(0, company_admin_id)
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)
+        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) != str(admin_supplier.subsidiary)):
+            continue
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
@@ -12278,6 +12309,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         else:
             exist_supplier.update(**user_data_dict)
             supplier_master = exist_supplier[0]
+        if company_admin_id == int(user_id):
+            admin_supplier = supplier_master
         master_objs[user_id] = supplier_master
         upload_master_file(request, user, supplier_master.id, "SupplierMaster")
         supplier_master.save()
@@ -12329,10 +12362,12 @@ def insert_admin_suppliers(request, user):
     admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
-    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id, subsidiary=user.userprofile.company.reference_id)
     rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    print suppliers.count()
     for supplier in suppliers:
         filter_dict = {'supplier_id': supplier.supplier_id}
+        print filter_dict
         data_dict = copy.deepcopy(supplier.__dict__)
         for rem in rem_list:
             if rem in data_dict.keys():
@@ -12599,6 +12634,15 @@ def payment_supplier_mapping(payment_code, payment_desc, supplier):
     payment_obj, created = PaymentTerms.objects.get_or_create(**filters)
     return payment_obj
 
+def net_terms_supplier_mapping(net_code, net_desc, supplier):
+    filters = {
+        'net_code': net_code,
+        'net_description': net_desc,
+        'supplier': supplier
+    }
+    netterm_obj, created = NetTerms.objects.get_or_create(**filters)
+    return netterm_obj
+
 def get_warehouses_data(user):
     ware_houses_list = []
     warehouse_users ={}
@@ -12620,6 +12664,41 @@ def find_purchase_approver_permission(user):
         is_purchase_approver = True
     return is_purchase_approver
 
+
+def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name=None):
+    user_dict['last_login'] = datetime.datetime.now()
+    new_user = User.objects.create_user(**user_dict)
+    new_user.is_staff = True
+    new_user.save()
+    user_profile_dict['user_id'] = new_user.id
+    user_profile_dict['location'] = user_profile_dict['state']
+    user_profile_dict['prefix'] = new_user.username[:3]
+    if not user_profile_dict.get('pin_code', 0):
+        user_profile_dict['pin_code'] = 0
+    if not user_profile_dict.get('phone_number', 0):
+        user_profile_dict['phone_number'] = 0
+    user_profile_dict['user_type'] = exist_user_profile.user_type
+    user_profile_dict['industry_type'] = exist_user_profile.industry_type
+    user_profile = UserProfile(**user_profile_dict)
+    user_profile.save()
+    add_user_type_permissions(user_profile)
+    group, created = Group.objects.get_or_create(name=new_user.username)
+    admin_dict = {'group_id': group.id, 'user_id': new_user.id}
+    admin_group = AdminGroups(**admin_dict)
+    admin_group.save()
+    new_user.groups.add(group)
+    warehouse_admin = user
+    #warehouse_admin = get_warehouse_admin(user)
+    company = user.userprofile.company
+    if company.parent:
+        company_id = company.parent_id
+    else:
+        company_id = company.id
+    UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id, company_id=company_id)
+    if customer_name:
+        WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
+
+    return new_user
 
 @csrf_exempt
 @login_required
@@ -12705,3 +12784,4 @@ def get_staff_plants_list(request, user=''):
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
+

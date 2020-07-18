@@ -3990,6 +3990,16 @@ def netsuite_pr(user, PRQs, full_pr_number):
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name',None)
+            pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
+                                        model_id=apprId)
+            supplierName, vendor_refrence_id="",""
+            if pr_supplier_data.exists() :
+                json_data = eval(pr_supplier_data[0].model_json)
+                supplierId = json_data['supplier_id']
+                supplierQs = SupplierMaster.objects.filter(user=get_admin(user).id, supplier_id=supplierId)
+                if supplierQs.exists():
+                    supplierName = supplierQs[0].name
+                    vendor_refrence_id = supplierQs[0].reference_id
             item = {
                 'sku_code': sku_code,
                 'sku_desc':sku_desc,
@@ -3997,7 +4007,9 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 'price':price,
                 'uom':uom,
                 'unitypeexid': unitexid,
-                'uom_name': purchaseUOMname
+                'uom_name': purchaseUOMname,
+                "reference_id": vendor_refrence_id,
+                "supplier_name": supplierName
             }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)

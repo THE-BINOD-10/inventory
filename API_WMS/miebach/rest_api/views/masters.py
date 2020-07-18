@@ -466,8 +466,9 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = 0
         warehouse_obj = User.objects.get(id=result.sku.user)
         warehouse = warehouse_obj.username
+        warehouse_name = warehouse
         if warehouse_obj.first_name:
-            warehouse = warehouse_obj.first_name
+            warehouse_name = warehouse_obj.first_name
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
@@ -475,6 +476,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
                                                 ('lead_time', result.lead_time),
                                                 ('warehouse', warehouse),
+                                                ('warehouse_name', warehouse_name),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -1482,7 +1484,14 @@ def update_uom_master(user, data_dict={}, data=''):
         if uom_type.lower() == 'base':
             base_uom_name = uom_name
             continue
-        name = '%s-%s' % (uom_name, str(int(conversion)))
+        if isinstance(conversion, (float)):
+            try:
+                conversion = str(int(conversion))
+            except:
+                conversion = str(conversion)
+        else:
+            conversion = str(conversion)
+        name = '%s-%s' % (uom_name, conversion)
         if uom_id:
             uom_master = UOMMaster.objects.filter(id=uom_id)
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
@@ -1882,7 +1891,7 @@ def insert_mapping(request, user=''):
     warehouse = request.POST.get('warehouse', '')
     if warehouse:
         all_users = get_related_user_objs(user.id)
-        user_obj = all_users.filter(id=warehouse)
+        user_obj = all_users.filter(username=warehouse)
         if not user_obj:
             return HttpResponse('Invalid Warehouse')
         else:

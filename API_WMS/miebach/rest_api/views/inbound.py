@@ -6533,6 +6533,7 @@ def confirm_grn(request, confirm_returns='', user=''):
         if doaQs.exists():
             doa_obj = doaQs[0]
             request.user=User.objects.get(id=doa_obj.requested_user_id)
+            user=request.user
     reversion.set_user(request.user)
     reversion.set_comment("generate_grn")
     data_dict = ''
@@ -6809,10 +6810,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "dc_date" : dc_date,
                 "vendorbill_url": vendorbill_url
      }
-    if(service_doa):
-        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
-    else:
-        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    # if(service_doa):
+    #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
+    # else:
+    purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
     for index, data in  enumerate(po_data):
         _open = purchase_order[index].open_po
         user_obj = User.objects.get(pk=_open.sku.user)

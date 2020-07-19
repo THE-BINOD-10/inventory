@@ -13845,4 +13845,3 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
-

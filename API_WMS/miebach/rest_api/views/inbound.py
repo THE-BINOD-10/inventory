@@ -3990,6 +3990,16 @@ def netsuite_pr(user, PRQs, full_pr_number):
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name',None)
+            pr_supplier_data = TempJson.objects.filter(model_name='PENDING_PR_PURCHASE_APPROVER',
+                                        model_id=apprId)
+            supplierName, vendor_refrence_id="",""
+            if pr_supplier_data.exists() :
+                json_data = eval(pr_supplier_data[0].model_json)
+                supplierId = json_data['supplier_id']
+                supplierQs = SupplierMaster.objects.filter(user=get_admin(user).id, supplier_id=supplierId)
+                if supplierQs.exists():
+                    supplierName = supplierQs[0].name
+                    vendor_refrence_id = supplierQs[0].reference_id
             item = {
                 'sku_code': sku_code,
                 'sku_desc':sku_desc,
@@ -3997,7 +4007,9 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 'price':price,
                 'uom':uom,
                 'unitypeexid': unitexid,
-                'uom_name': purchaseUOMname
+                'uom_name': purchaseUOMname,
+                "reference_id": vendor_refrence_id,
+                "supplier_name": supplierName
             }
             pr_data['items'].append(item)
         pr_datas.append(pr_data)
@@ -6533,6 +6545,7 @@ def confirm_grn(request, confirm_returns='', user=''):
         if doaQs.exists():
             doa_obj = doaQs[0]
             request.user=User.objects.get(id=doa_obj.requested_user_id)
+            user=request.user
     reversion.set_user(request.user)
     reversion.set_comment("generate_grn")
     data_dict = ''
@@ -6809,10 +6822,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "dc_date" : dc_date,
                 "vendorbill_url": vendorbill_url
      }
-    if(service_doa):
-        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
-    else:
-        purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    # if(service_doa):
+    #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
+    # else:
+    purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
     for index, data in  enumerate(po_data):
         _open = purchase_order[index].open_po
         user_obj = User.objects.get(pk=_open.sku.user)

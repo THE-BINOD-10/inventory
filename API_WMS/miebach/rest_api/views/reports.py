@@ -1364,6 +1364,8 @@ def print_po_reports(request, user=''):
             tin_number = purchase_order.open_po.supplier.tin_number
         remarks = purchase_order.remarks
         order_id = purchase_order.order_id
+        grn_number=results.values("sellerposummary__grn_number").get()
+        grn_number=grn_number["sellerposummary__grn_number"]
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
@@ -1405,7 +1407,7 @@ def print_po_reports(request, user=''):
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
-                   'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company.company_name,
+                   'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                    'overall_discount': overall_discount,
                    'st_grn':st_grn,

@@ -606,8 +606,10 @@ data_datatable = {  # masters
     'ReplenushmentMaster':'get_replenushment_master', 'supplierSKUAttributes': 'get_source_sku_attributes_mapping',
     'LocationMaster' :'get_zone_details','AttributePricingMaster': 'get_attribute_price_master_results',\
     'AssetMaster': 'get_sku_results', 'ServiceMaster': 'get_sku_results', 'OtherItemsMaster': 'get_sku_results',
-    'VehicleMaster': 'get_customer_master','TestMaster': 'get_sku_results', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
-    'PRApprovalTable': 'get_pr_approval_config_data', 'MachineMaster':'get_machine_master_results',
+    'VehicleMaster': 'get_customer_master', 'SupplierSKUMappingDOAMaster': 'get_supplier_mapping_doa',
+    'PRApprovalTable': 'get_pr_approval_config_data', 'SKUMasterDOA': 'get_sku_mapping_doa', 'AssetMasterDOA': 'get_asset_master_doa',
+    'ServiceMasterDOA': 'get_service_master_doa', 'OtherItemsMasterDOA': 'get_other_items_master_doa', 'TestMaster': 'get_sku_results',
+    'MachineMaster':'get_machine_master_results',
 
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
@@ -9430,8 +9432,10 @@ def create_new_supplier(user, supp_id, supplier_dict=None):
     if isinstance(supp_id, (int, float)):
         supp_id = str(int(supp_id))
     max_sup_id = '%s_%s' % (str(user.id), supp_id)
-    supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                    supplier_id=supp_id, **supplier_dict)
+    supplier_dict['id'] = max_sup_id
+    supplier_dict['supplier_id'] = supp_id
+    supplier_dict['user'] = user.id
+    supplier_master = SupplierMaster.objects.create(**supplier_dict)
     return supplier_master
 
 
@@ -9818,6 +9822,7 @@ def update_sku_attributes(data, request):
 
 
 def update_master_attributes_data(user, data, key, value, attribute_model):
+
     if not value == '':
         master_attr_obj = MasterAttributes.objects.filter(user_id=user.id, attribute_id=data.id,
                                                           attribute_model=attribute_model,
@@ -10553,7 +10558,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
@@ -12278,8 +12283,18 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
     else:
         user_ids = [user.id]
     master_objs = {}
+    admin_supplier = None
+    company_admin = get_company_admin_user(user)
+    company_admin_id = int(company_admin.id)
+    if not current_user:
+        if company_admin_id not in user_ids or user_ids.index(company_admin_id) != 0:
+            if company_admin_id in user_ids:
+                user_ids.remove(company_admin_id)
+            user_ids.insert(0, company_admin_id)
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)
+        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) != str(admin_supplier.subsidiary)):
+            continue
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
@@ -12294,6 +12309,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         else:
             exist_supplier.update(**user_data_dict)
             supplier_master = exist_supplier[0]
+        if company_admin_id == int(user_id):
+            admin_supplier = supplier_master
         master_objs[user_id] = supplier_master
         upload_master_file(request, user, supplier_master.id, "SupplierMaster")
         supplier_master.save()
@@ -12345,10 +12362,12 @@ def insert_admin_suppliers(request, user):
     admin_user = get_company_admin_user(user)
     if admin_user.id == user.id:
         return "Success"
-    suppliers = SupplierMaster.objects.filter(user=admin_user.id)
+    suppliers = SupplierMaster.objects.filter(user=admin_user.id, subsidiary=user.userprofile.company.reference_id)
     rem_list = ['_state', 'creation_date', 'updation_date', 'id', 'supplier_id', 'user']
+    print suppliers.count()
     for supplier in suppliers:
         filter_dict = {'supplier_id': supplier.supplier_id}
+        print filter_dict
         data_dict = copy.deepcopy(supplier.__dict__)
         for rem in rem_list:
             if rem in data_dict.keys():

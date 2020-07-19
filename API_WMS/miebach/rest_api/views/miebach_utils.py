@@ -142,7 +142,18 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'costing_type': 'Price Based',
                      'margin_percentage': 0}
 
+SKU_MAPPING_DATA = {'user': '','sku_code': '', 'wms_code': '',
+                    'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
+                    'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'max_norm_quantity': 0, 'color': '', 'mrp': 0,
+                    'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
+                    'price': 0,
+                    'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
+                    'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
+                    'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '',
+                    'batch_based':0}
+
 SKU_PACK_DATA = {'sku': '', 'pack_id': '', 'pack_quantity': '', 'creation_date': datetime.datetime.now()}
+
 
 REPLENUSHMNENT_DATA = {'classification': '', 'size': '', 'max_days': 0, 'min_days': 0,
                        'creation_date': datetime.datetime.now()}
@@ -588,7 +599,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
-            "PR Qty", "Category", "Plant" , "UOM", "Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
+            "PR Qty", "Category", "Plant" ,"Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
             "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date", "Vendor code", "Vendor Name", "Vendor Dispatch Date",
             'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
             "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
@@ -4329,8 +4340,9 @@ def sku_wise_purchase_data(search_params, user, sub_user):
 
 def get_sku_wise_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from masters import gather_uom_master_for_sku
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
     is_market_user = False
     if user_profile.user_type == 'marketplace_user':
@@ -4624,9 +4636,9 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             remarks = ','.join(custom_remarks)
         if not remarks and result.remarks:
             remarks = result.remarks
-        product_category, category, pr_number, pr_date, pr_raised_user ,uom,pr_qty = '', '', '', '', '', '',''
+        product_category, category, pr_number, pr_date, pr_raised_user ,uom,pr_qty = '', '', '', '', '', '',0
         po_data =  PendingPO.objects.filter(full_po_number=data['purchase_order__po_number'])
-        pr_plant,last_approvals_date,pr_Total_Amt,pr_price="","",0,0
+        pr_plant,last_approvals_date,pr_Total_Amt,pr_price,pr_tax_amount="","",0,0,0
         all_approvals=[]
         if po_data.exists():
             po_data=po_data[0]
@@ -4643,7 +4655,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 pr_dept = get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
                 user_profile= UserProfile.objects.get(user_id=pr_dept.id)
                 if(user_profile.warehouse_type=="DEPT"):
-                    pr_department = pr_dept.username
+                    if(user_profile.stockone_code):
+                        pr_department = user_profile.stockone_code
+                    else:
+                        pr_department = pr_dept.username
                 else:
                     pr_department = pr_raised_user
                 pr_plant = get_admin(pr_dept)
@@ -4659,11 +4674,13 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 category = pending_pr.sku_category
                 pending_line_item=PendingLineItems.objects.filter(pending_pr=pending_pr.id)
                 if pending_line_item.exists():
-                    uom=pending_line_item[0].measurement_unit
-                    pr_qty= pending_line_item[0].quantity
-                    pr_price= pending_line_item[0].price
-                    pr_tax_amount=pending_line_item[0].sgst_tax+ pending_line_item[0].cgst_tax + pending_line_item[0].igst_tax + pending_line_item[0].utgst_tax
-                    pr_Total_Amt = (pr_tax_amount * (pr_price*pr_qty))/100
+                    for row in pending_line_item:
+                        # uom=row.measurement_unit
+                        pr_qty += row.quantity
+                        pr_price += row.price
+                        pr_tax_amount += row.sgst_tax+ row.cgst_tax + row.igst_tax + row.utgst_tax
+                        pr_Total_Amt += (pr_tax_amount * (pr_price*pr_qty))/100
+                    # uom=pending_line_item[0].measurement_unit
         if(data["invoice_number"]):
             Type_of_GRN="Invoice"
         else:
@@ -4695,6 +4712,13 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                            prefix=data['purchase_order__prefix'])
         po_total_qty, po_total_price, po_total_tax= [0]*3
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
+
+        unitdata = gather_uom_master_for_sku(user, data['purchase_order__open_po__sku__sku_code'])
+        unitexid = unitdata.get('name',None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', None):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name',None)
         ord_dict = OrderedDict((("PR Number",pr_number),('PR date', pr_date),
                                 ('PR raised time', pr_date_time),
                                 ('PR raised By', pr_raised_user),
@@ -4705,7 +4729,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                 ('PO Basic Price', po_total_price),
                                 ('Tax Amt', po_total_tax),
                                 ('PO total amt', po_total_price + po_total_tax),
-                                ('UOM', uom),
+                                ('UOM',  purchaseUOMname),
                                 ('Total Amt', pr_Total_Amt),
                                 ('Price per Unit', pr_price),
                                 ("Plant", pr_plant),
@@ -5091,10 +5115,17 @@ def get_po_grn_price_and_taxes(data, type=""):
 def get_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    lis = ['purchase_order__order_id', 'purchase_order__open_po__po_name', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'ordered_qty',
-           'received_quantity', 'received_quantity']
+    lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number', 'purchase_order__creation_date',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+           'purchase_order__expected_date', 'purchase_order__open_po__vendor__vendor_id', 'purchase_order__open_po__vendor__name',
+           'purchase_order__open_po__vendor__creation_date', 'grn_number', '', '', '', '', '', 'purchase_order__open_po__sku__user',
+           '',  '','challan_number', 'challan_date', 'invoice_number','invoice_date', '', 'credit__credit_number', 'status','',
+           'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name','challan_number', 'challan_date']
     unsorted_dict = {}
     model_name = SellerPOSummary
     field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date', 'order_id': 'purchase_order__order_id',
@@ -5103,8 +5134,8 @@ def get_po_filter_data(search_params, user, sub_user):
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id', 'supplier_name': 'purchase_order__open_po__supplier__name'}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
                      'receipt_number', 'grn_number', 'invoice_date', 'challan_date','invoice_number', 'challan_number',
-                     'purchase_order__po_number', "purchase_order__creation_date", "credit_type", "price", "purchase_order__open_po__vendor__vendor_id",
-                     "purchase_order__open_po__vendor__name", "credit__credit_number", "purchase_order__open_po__vendor__name",
+                     'purchase_order__po_number', "purchase_order__creation_date", "credit_type", "purchase_order__open_po__vendor__vendor_id",
+                     "purchase_order__open_po__vendor__name", "credit__credit_number",
                      "purchase_order__expected_date", "purchase_order__open_po__vendor__creation_date", "status", "credit_status","purchase_order__open_po__sku__user"
                  ]
     excl_status = {'purchase_order__status': ''}
@@ -5130,7 +5161,6 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'grn_to_date' in search_params:
         search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
                                                                  datetime.time())
-
         search_parameters['creation_date__lte'] = search_params['grn_to_date']
         if field_mapping['to_date'] + '__lte' in search_parameters.keys():
             del search_parameters[field_mapping['to_date'] + '__lte']
@@ -5156,9 +5186,12 @@ def get_po_filter_data(search_params, user, sub_user):
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                        total_received=Sum(rec_quan))
     # grn_rec=Sum(rec_quan1))
-    col_num = search_params.get('order_index', 0)
+    col_num = search_params.get('order_index', 25)
     order_term = search_params.get('order_term', 'asc')
     if order_term:
+        if col_num==0:
+            col_num = 14
+            order_term = 'desc'
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = "-%s" % order_data
@@ -5218,9 +5251,9 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 purchase_order__open_po__sku__user=user.id)
             if lr_detail.exists():
                 lr_detail_no = lr_detail[0].lr_number
-        product_category, category, pr_number, pr_date, pr_raised_user ,uom,pr_qty = '', '', '', '', '', '',''
+        product_category, category, pr_number, pr_date, pr_raised_user ,uom, pr_qty = '', '', '', '', '', '',0
         po_data =  PendingPO.objects.filter(full_po_number=result.po_number)
-        pr_plant,last_approvals_date,pr_Total_Amt,pr_price="","",0,0
+        pr_plant,last_approvals_date,pr_Total_Amt,pr_price, pr_tax_amount="","",0,0,0
         all_approvals=[]
         if po_data.exists():
             po_data=po_data[0]
@@ -5237,7 +5270,11 @@ def get_po_filter_data(search_params, user, sub_user):
                 pr_dept = get_warehouse_user_from_sub_user(pending_pr.requested_user_id)
                 user_profile= UserProfile.objects.get(user_id=pr_dept.id)
                 if(user_profile.warehouse_type=="DEPT"):
-                    pr_department = pr_dept.username
+                    if(user_profile.stockone_code):
+                        pr_department = user_profile.stockone_code
+                    else:
+                        pr_department = pr_dept.username
+                    # pr_department = pr_dept.username
                 else:
                     pr_department = pr_raised_user
                 pr_plant = get_admin(pr_dept)
@@ -5253,11 +5290,12 @@ def get_po_filter_data(search_params, user, sub_user):
                 category = pending_pr.sku_category
                 pending_line_item=PendingLineItems.objects.filter(pending_pr=pending_pr.id)
                 if pending_line_item.exists():
-                    uom=pending_line_item[0].measurement_unit
-                    pr_qty= pending_line_item[0].quantity
-                    pr_price= pending_line_item[0].price
-                    pr_tax_amount=pending_line_item[0].sgst_tax+ pending_line_item[0].cgst_tax + pending_line_item[0].igst_tax + pending_line_item[0].utgst_tax
-                    pr_Total_Amt = (pr_tax_amount * (pr_price*pr_qty))/100
+                    for row in pending_line_item:
+                        # uom=row.measurement_unit
+                        pr_qty += row.quantity
+                        pr_price += row.price
+                        pr_tax_amount += row.sgst_tax+ row.cgst_tax + row.igst_tax + row.utgst_tax
+                        pr_Total_Amt += (pr_tax_amount * (pr_price*pr_qty))/100
         discrepancy_quantity = 0
         if user.userprofile.industry_type == 'FMCG':
             discrepancy_filter['user'] = user.id
@@ -5312,7 +5350,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 ("Vendor code", vendor_code),
                                                 ("Vendor Name", vendor_name),
                                                 ('Vendor Dispatch Date',vendor_dispatch_date),
-                                                ('UOM', uom),
+                                                # ('UOM', uom),
                                                 ('Total Amt', pr_Total_Amt),
                                                 ('Price per Unit', pr_price),
                                                 ("Plant", pr_plant),

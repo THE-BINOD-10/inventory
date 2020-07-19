@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.permissions = Session.roles.permissions;
     vm.warehouse_type = Session.user_profile.warehouse_type;
+    vm.make_readonly = false;
     vm.filters = {'datatable': 'SupplierSKUMappingMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -43,7 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('lead_time').withTitle('Lead Time'),
     ];
     if(vm.warehouse_level==0) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse').withTitle('Warehouse'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('warehouse_name').withTitle('Warehouse'));
     }
 
     vm.dtInstance = {};
@@ -69,7 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   /**************************************/
   vm.update = false;
-  var empty_data = {supplier_id: "", wms_code: "", supplier_code: "", preference: "", moq: "", price: ""};
+  var empty_data = {supplier_id: "", wms_code: "", supplier_code: "", preference: "", moq: "", price: "", warehouse_id: ""};
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
 
@@ -83,6 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
+    vm.make_readonly = false;
     $state.go('app.masters.sourceSKUMapping');
   }
 
@@ -104,6 +106,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     get_suppliers();
     get_warehouses();
     $state.go('app.masters.sourceSKUMapping.mapping');
+    vm.make_readonly = false;
+    if(vm.warehouse_level == 0){
+      vm.make_readonly = true;
+    }
   }
 
   vm.submit = function(data) {
@@ -202,9 +208,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         data = data.data;
         var list = [];
         angular.forEach(data.warehouses, function(d){
-          list.push({"id": d.warehouse_id, "name": d.warehouse_name})
+          list.push({"id": d.warehouse_id, "name": d.warehouse_name, "first_name": d.warehouse_first_name})
         });
         vm.warehouse_list = list;
+      }
+    });
+  }
+
+  vm.update_warehouse_id = function (){
+    vm.make_readonly = false;
+    angular.forEach(vm.warehouse_list, function(wh) {
+      if(wh.name==vm.model_data.warehouse){
+        vm.model_data.warehouse_id = wh.id;
       }
     });
   }

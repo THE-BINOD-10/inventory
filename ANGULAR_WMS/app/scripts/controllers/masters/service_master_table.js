@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
+    vm.user_profile.warehouse_type = Session.user_profile.warehouse_type;
 
     vm.filters = {'datatable': 'ServiceMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -351,6 +352,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();
+                  window.location.reload();
                 }
               } else {
                 vm.pop_msg(response);
@@ -360,13 +362,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.submit = function(data) {
-    if ( data.$valid ){
-      if ("Add Service" == vm.title) {
-        vm.url = "insert_sku/";
-      } else {
-        vm.url = "update_sku/";
+    {
+      if ( data.$valid ){
+        if ("Add Service" == vm.title) {
+          if (vm.user_profile.warehouse_type == 'ADMIN'){
+            vm.url = "insert_sku/";
+          }else{
+            vm.url = "insert_sku_doa/"
+          }}
+      else {
+        if (vm.user_profile.warehouse_type == 'ADMIN'){
+          vm.url = "update_sku/";
+          }
+        else{
+          vm.url = "update_sku_doa/";
+        }
+        }
+         vm.update_sku();
+         $state.go('app.masters.ServiceMaster')
       }
-      vm.update_sku();
     }
   }
 

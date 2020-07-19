@@ -45,7 +45,7 @@ class SupplierMasterAdmin(admin.ModelAdmin):
     list_display = ('supplier_id', 'user', 'address_id')
 
 class UserPrefixesAdmin(admin.ModelAdmin):
-    search_fields = ['user']
+    search_fields = ['user__username', 'product_category', 'sku_category', 'type_name']
     list_display = ('user', 'product_category', 'sku_category', 'type_name', 'prefix')
 
 class CompanyRolesAdmin(admin.ModelAdmin):
@@ -54,7 +54,7 @@ class CompanyRolesAdmin(admin.ModelAdmin):
 
 @admin.register(UOMMaster)
 class UOMMasterAdmin(admin.ModelAdmin):
-    search_fields = ['company', 'name']
+    search_fields = ['company__company_name', 'name']
     list_display = ('company', 'name', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
     list_filter = ('company',)
 

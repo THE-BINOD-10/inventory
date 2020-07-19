@@ -352,7 +352,7 @@ class netsuiteIntegration(object):
                 item_custom_list=[]
                 if(data.get('mrp',None)):
                     item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
-                if(data.get('full_pr_number',None)):
+                if(po_data.get('full_pr_number',None)):
                     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),

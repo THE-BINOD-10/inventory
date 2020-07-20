@@ -101,7 +101,7 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Tax Type</label>
+                <label class="control-label">HSN Code</label>
                 <select class="form-control" name="product_type" ng-model="showCase.model_data.sku_data.product_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option value ="" ng-selected="showCase.model_data.sku_data.product_type == ''"> Default </option>
                   <option ng-repeat = "type in showCase.model_data.product_types" value="{{type}}" ng-selected="showCase.model_data.sku_data.product_type == type">{{type}}</option>
@@ -157,8 +157,7 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> HSN Code </label>
-                <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="hidden" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.product_type" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

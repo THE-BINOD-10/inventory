@@ -83,6 +83,8 @@ class netsuiteIntegration(object):
                 internId = self.netsuite_get_uom(data['sale_unit'], data['unitypeexid'])
                 if internId:
                     invitem.saleUnit = ns.RecordRef(internalId=internId)
+            if data.get('ServicePurchaseItem', None):
+                invitem.isFulfillable="T"
             # invitem.taxtype = data.product_type
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
@@ -352,7 +354,7 @@ class netsuiteIntegration(object):
                 item_custom_list=[]
                 if(data.get('mrp',None)):
                     item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
-                if(data.get('full_pr_number',None)):
+                if(po_data.get('full_pr_number',None)):
                     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),

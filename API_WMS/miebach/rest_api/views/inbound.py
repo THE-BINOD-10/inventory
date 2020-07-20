@@ -6723,7 +6723,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
-                                'po_number': po_number, 'bill_no': bill_no,
+                                'po_number': po_number, 'bill_no': bill_no, 'product_category': po_product_category,
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}

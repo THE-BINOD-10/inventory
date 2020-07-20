@@ -501,22 +501,27 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if (vm.pr_number){
       //   elem.push({name:'pr_number', value:vm.pr_number})
       // }
-
+      var keepGoing = true;
       if (vm.permissions.change_pendinglineitems) {
         angular.forEach(elem, function(key, index) {
-        if (key.name == 'supplier_id') {
-          if (!key.value) {
-            Service.showNoty('Supplier Should be provided by Purchase');
-            return;
+          if (key.name == 'supplier_id') {
+            if (!key.value) {
+              keepGoing = false;
+              Service.showNoty('Supplier Should be provided by Purchase');
+              return;
+            }
+          } else if (key.name == 'price') {
+            if (key.value == '') {
+              keepGoing = false;
+              Service.showNoty('Price Should be provided by Purchase');
+              return;
+            }
+          } else if (key.name == 'hsn_code' && (!key.value || key.value == 0)) {
+              keepGoing = false;
+              Service.showNoty('HSN Code Mandate, Please Update in Masters !!');
+              return;
           }
-        } else if (key.name == 'price') {
-          if (key.value == '') {
-            Service.showNoty('Price Should be provided by Purchase');
-            return;
-          }
-        }
-      });
-
+        });
       }
       if (vm.validated_by){
         elem.push({name:'validated_by', value:vm.validated_by})
@@ -532,16 +537,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else{
         elem.push({name: 'validation_type', value: 'rejected'})
       }
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
-        if(data.message){
-          if(data.data == 'Approved Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            vm.service.showNoty(data.data);
+      if (keepGoing) {
+        vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+          if(data.message){
+            if(data.data == 'Approved Successfully') {
+              vm.close();
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              vm.service.showNoty(data.data);
+            }
           }
-        }
-      })
+        })
+      }
     }
 
     vm.submit_enquiry = function(form){

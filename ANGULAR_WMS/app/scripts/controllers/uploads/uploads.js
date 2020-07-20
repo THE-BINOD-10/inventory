@@ -500,7 +500,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    dparam: "download-grn-file",
                    value: "",
                    show: true,
-                   perm: "add_skumaster"
+                   perm: "add_purchaseorder"
                  }
                 ]
 

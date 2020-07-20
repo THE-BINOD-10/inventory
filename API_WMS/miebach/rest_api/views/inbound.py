@@ -11466,7 +11466,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     lis = ['purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__name',
-           'purchase_order__open_po__order_quantity', 'quantity', 'id', 'invoice_number']
+           'purchase_order__open_po__order_quantity', 'quantity', 'id', 'invoice_number', 'invoice_number']
     user_filter = {'purchase_order__open_po__sku__user__in': user_ids, 'order_status_flag': 'supplier_invoices', 'status':0}
     #result_values = ['receipt_number', 'purchase_order__order_id',
     result_values = ['purchase_order__open_po__supplier__name', 'invoice_number', 'purchase_order__open_po__sku__user']

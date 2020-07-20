@@ -13015,7 +13015,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
-                                                ('id', count), ('warehouse_id', warehouse.id),
+                                                ('id', count), ('warehouse_id', warehouse.id), ('Warehouse', warehouse.first_name),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
@@ -13024,6 +13024,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 @login_required
 @get_admin_user
 def get_po_putaway_summary(request, user=''):
+    warehouse_id = request.GET['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     order_id, invoice_num = request.GET['data_id'].split(':')
     po_order_prefix = request.GET['prefix']
     challan_number = request.GET['challan_number']
@@ -13347,6 +13349,8 @@ def save_update_rtv(data_list, return_type=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def save_rtv(request, user=''):
     reversion.set_user(request.user)
+    warehouse_id = request.POST['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     request_data = dict(request.POST.iterlists())
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     if enable_dc_returns == 'true':
@@ -13374,6 +13378,8 @@ def save_rtv(request, user=''):
 @reversion.create_revision(atomic=False, using='reversion')
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
+    warehouse_id = request.POST['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     request_data = dict(request.POST.iterlists())
     log.info('Request params for Create RTV' + user.username + ' is ' + str(request_data))
     sku_codes = request_data['sku_code']
@@ -13495,8 +13501,8 @@ def write_html_to_pdf(f_name, html_data):
     return attachments
 
 def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
-    search_params = {'status': 1, 'seller_po_summary__purchase_order__open_po__sku_id__in': sku_master_ids}
+    #sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_params = {'status': 1}#'seller_po_summary__purchase_order__open_po__sku_id__in': sku_master_ids}
     lis = ['seller_po_summary__purchase_order__open_po__supplier__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name',
@@ -13511,6 +13517,9 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
         #lis.append('seller_po_summary__invoice_number')
         #dc_or_inv_number = 'seller_po_summary__invoice_number'
 
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     headers1, filters, filter_params1 = get_search_params(request)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -13523,7 +13532,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                    'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
                    'seller_po_summary__challan_number', 'seller_po_summary__challan_date').distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
-            filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+            filter(seller_po_summary__purchase_order__open_po__sku__user__in=user_ids, **search_params).order_by(order_data)
 
     else:
         results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier__supplier_id',
@@ -13532,7 +13541,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                    'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
                    'seller_po_summary__challan_number', 'seller_po_summary__challan_date').distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
-            filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+            filter(seller_po_summary__purchase_order__open_po__sku__user__in=user_ids, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
@@ -13542,7 +13551,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
         rem_quantity = result['total']
         rtvs = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku',
                                                                 'seller_po_summary__purchase_order').\
-                                                    filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
+                                                    filter(seller_po_summary__purchase_order__open_po__sku__user__in=user_ids,
                                                            seller_po_summary__purchase_order__order_id=result['seller_po_summary__purchase_order__order_id'],
                                                            seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'],
                                                            seller_po_summary__challan_number=result['seller_po_summary__challan_number'])
@@ -13573,6 +13582,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
             else:
                 total_amt += rtv.quantity * rtv.seller_po_summary.purchase_order.open_po.price
         total_amt = total_amt + ((total_amt/100) * tax)
+        warehouse = User.objects.get(id=open_po.sku.user)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['seller_po_summary__purchase_order__open_po__supplier__supplier_id']),
                                                 ('Supplier Name', result['seller_po_summary__purchase_order__open_po__supplier__name']),
@@ -13581,16 +13591,18 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
                                                 ('id', count), ('Challan Number', dc_number),
                                                 ('Challan Date', challan_date),
+                                                ('Warehouse', warehouse.first_name), ('warehouse_id', warehouse.id),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 
 
 @csrf_exempt
 @login_required
-@get_admin_user
-def get_saved_rtv_data(request, user=''):
+@get_admin_multi_user
+def get_saved_rtv_data(request, users=''):
+    user_ids = list(users.values_list('id', flat=True))
     order_id, invoice_num = request.GET['data_id'].split(':')
-    rtv_filter = {'seller_po_summary__purchase_order__open_po__sku__user': user.id,
+    rtv_filter = {'seller_po_summary__purchase_order__open_po__sku__user__in': user_ids,
                     'seller_po_summary__purchase_order__order_id': order_id,
                   'status': 1}
     if invoice_num:
@@ -13601,7 +13613,7 @@ def get_saved_rtv_data(request, user=''):
     seller_summary = rtv_objs[0].seller_po_summary
     po_reference = seller_summary.purchase_order.po_number #get_po_reference(seller_summary.purchase_order)
     invoice_number = seller_summary.invoice_number
-    invoice_date = get_local_date(user, seller_summary.creation_date, send_date=True).strftime("%d %b, %Y")
+    invoice_date = get_local_date(request.user, seller_summary.creation_date, send_date=True).strftime("%d %b, %Y")
     if seller_summary.invoice_date:
         invoice_date = seller_summary.invoice_date.strftime("%d %b, %Y")
     orders = []
@@ -13642,7 +13654,7 @@ def get_saved_rtv_data(request, user=''):
     if rtv_objs.exists():
         purchase_order = rtv_objs[0].seller_po_summary.purchase_order
         supplier_name = purchase_order.open_po.supplier.name
-        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
+        order_date = get_local_date(request.user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
         remarks = purchase_order.remarks
         if rtv_objs[0].seller_po_summary.seller_po:
             seller = rtv_objs[0].seller_po_summary.seller_po.seller
@@ -14660,15 +14672,24 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
         order_data = '-%s' % order_data
     else:
         order_data = '%s' % order_data
-    main_master_data = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id, credit_status=stat).exclude(status=1)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    main_master_data = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user__in=user_ids, credit_status=stat).exclude(status=1)
     master_data = main_master_data.values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
     if search_term:
-        master_data = main_master_data.filter(Q(invoice_number__icontains=search_term) | Q(invoice_quantity__icontains=search_term) | Q(invoice_value__icontains=search_term) | Q(credit_id__credit_number__icontains=search_term)| Q(credit_type__icontains=search_term)).values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
+        master_data = main_master_data.filter(Q(invoice_number__icontains=search_term) |
+                                              Q(invoice_quantity__icontains=search_term) |
+                                              Q(invoice_value__icontains=search_term) |
+                                              Q(credit_id__credit_number__icontains=search_term)|
+                                              Q(credit_type__icontains=search_term)).\
+            values('invoice_number', 'purchase_order__open_po__supplier__supplier_id').distinct()
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for invoice_num in master_data[start_index:stop_index]:
         grn_qty, challan_date, challan_number, invoice_number, invoice_date = 0, '', '', '', ''
         data = main_master_data.filter(invoice_number=invoice_num['invoice_number'], purchase_order__open_po__supplier__supplier_id=invoice_num['purchase_order__open_po__supplier__supplier_id'])
+        warehouse = user
         if data.exists():
             ids = list(data.values_list('id', flat=True))
             seller_po_data = data[0]
@@ -14691,6 +14712,7 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
                 credit_date = seller_po_data.credit.credit_date
                 if credit_date:
                     credit_date = credit_date.strftime("%d %b, %Y")
+            warehouse = User.objects.get(id=data[0].purchase_order.open_po.sku.user)
         temp_data['aaData'].append({
                             'credit_number': credit_number,
                             'credit_date': credit_date,
@@ -14703,6 +14725,8 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
                             'challan_number': challan_number,
                             'challan_date': challan_date,
                             'invoice_date': invoice_date,
+                            'warehouse': warehouse.first_name,
+                            'warehouse_id': warehouse.id,
                             'id': json.dumps(ids)
                             })
 
@@ -14712,6 +14736,8 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
 def get_credit_note_po_data(request, user=''):
     sku_data = []
     po_data = []
+    warehouse_id = request.POST['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     invoice_number = request.POST.get('invoice_number', '')
     ids = request.POST.get('id', '')
     if not invoice_number or not ids:
@@ -14781,6 +14807,8 @@ def get_credit_note_po_data(request, user=''):
 @get_admin_user
 def save_credit_note_po_data(request, user=''):
     sku_data = []
+    warehouse_id = request.POST['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     credit_ids = json.loads(request.POST.get('credit_id', ''))
     credit_number = request.POST.get('credit_number', '')
     credit_date = request.POST.get('credit_date', '')

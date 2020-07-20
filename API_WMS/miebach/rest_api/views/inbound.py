@@ -5981,7 +5981,7 @@ def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
     return put_zone
 
 
-def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=False):
+def generate_grn(myDict, reqData, user, failed_qty_dict={}, passed_qty_dict={}, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
     po_new_data = OrderedDict()
@@ -5995,43 +5995,43 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
     created_qc_ids = {}
     invoice_datum = {}
     mrp = 0
-    supplier_id = request.POST['supplier_id']
+    supplier_id = reqData['supplier_id']
     supplier_mapping_off = get_misc_value('supplier_mapping', user.id)
     update_mrp_on_grn = get_misc_value('update_mrp_on_grn', user.id)
-    remarks = request.POST.get('remarks', '')
-    expected_date = request.POST.get('expected_date', '')
-    remainder_mail = request.POST.get('remainder_mail', '')
-    invoice_number = request.POST.get('invoice_number', '')
-    dc_level_grn = request.POST.get('dc_level_grn', '')
-    round_off_checkbox = request.POST.get('round_off', '')
-    product_category = request.POST.get('product_category', '')
-    round_off_total = request.POST.get('round_off_total', 0) if round_off_checkbox=='on' else 0
+    remarks = reqData.get('remarks', '')
+    expected_date = reqData.get('expected_date', '')
+    remainder_mail = reqData.get('remainder_mail', '')
+    invoice_number = reqData.get('invoice_number', '')
+    dc_level_grn = reqData.get('dc_level_grn', '')
+    round_off_checkbox = reqData.get('round_off', '')
+    product_category = reqData.get('product_category', '')
+    round_off_total = reqData.get('round_off_total', 0) if round_off_checkbox=='on' else 0
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
-    challan_number = request.POST.get('dc_number', '')
-    challan_date = request.POST.get('dc_date', '')
+    challan_number = reqData.get('dc_number', '')
+    challan_date = reqData.get('dc_date', '')
     mandate_supplier = get_misc_value('mandate_sku_supplier', user.id)
     send_discrepencey = False
     if challan_date:
         challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
     else:
         challan_date = None
-    if request.POST.get('invoice_date', ''):
-        bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
+    if reqData.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(reqData.get('invoice_date', ''), "%m/%d/%Y").date()
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-    inv_qty = int(request.POST.get('invoice_quantity', 0))
-    inv_value = float(request.POST.get('invoice_value', 0))
-    if request.POST.get('grn_quantity', 0) == 'undefined':
+    inv_qty = int(reqData.get('invoice_quantity', 0))
+    inv_value = float(reqData.get('invoice_value', 0))
+    if reqData.get('grn_quantity', 0) == 'undefined':
         total_grn_qty = 0
     else:
-        total_grn_qty = int(request.POST.get('grn_quantity', 0))
-    if request.POST.get('grn_total_amount', 0) == 'undefined':
+        total_grn_qty = int(reqData.get('grn_quantity', 0))
+    if reqData.get('grn_total_amount', 0) == 'undefined':
         total_grn_value = 0
     else:
-        total_grn_value = float(request.POST.get('grn_total_amount', 0))
+        total_grn_value = float(reqData.get('grn_total_amount', 0))
     credit_status = 0
     if (inv_value - total_grn_value) > 20:
         credit_status = 1
@@ -6085,7 +6085,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         po_new_data[cond]['discrepency_quantity']+=discrepency_quantity
                         po_new_data[cond]['discrepency_reason'] = discrepency_reason
                     continue
-                get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
+                get_data = create_purchase_order(reqData, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
 
         if not value and not discrepency_quantity:
@@ -6538,15 +6538,18 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def confirm_grn(request, confirm_returns='', user=''):
-    service_doa=request.POST.get('doa_id', '')
+    reqData = request.POST
+    confirm_grn_func(reqData, user)
+
+def confirm_grn_func(reqData, requestUser, user):
+    service_doa= reqData.get('doa_id', '')
     if(service_doa):
-        model_id=request.POST['doa_id']
+        model_id= reqData['doa_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
         if doaQs.exists():
             doa_obj = doaQs[0]
-            request.user=User.objects.get(id=doa_obj.requested_user_id)
-            user=request.user
-    reversion.set_user(request.user)
+            user=User.objects.get(id=doa_obj.requested_user_id)
+    reversion.set_user(requestUser)
     reversion.set_comment("generate_grn")
     data_dict = ''
     owner_email = ''
@@ -6567,32 +6570,32 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_receipt_id = 0
     extra_charges_amt = 0
     fmcg = False
-    po_product_category = request.POST.get('product_category', '')
+    po_product_category = reqData.get('product_category', '')
     if user.userprofile.industry_type == 'FMCG':
         fmcg = True
-    if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
+    if user.username in MILKBASKET_USERS and (not reqData.get('invoice_number', '') and not reqData.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
-    if user.username in MILKBASKET_USERS and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
+    if user.username in MILKBASKET_USERS and (not reqData.get('invoice_date', '') and not reqData.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
-    invoice_num = request.POST.get('invoice_number', '')
-    lr_number = request.POST.get('lr_number', '')
+    invoice_num = reqData.get('invoice_number', '')
+    lr_number = reqData.get('lr_number', '')
     if invoice_num:
         supplier_id = ''
-        if request.POST.get('supplier_id', ''):
-            supplier_id = request.POST['supplier_id']
+        if reqData.get('supplier_id', ''):
+            supplier_id = reqData['supplier_id']
         inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
             return HttpResponse(inv_status)
-    grn_other_charges = request.POST.get('other_charges', '')
-    challan_date = request.POST.get('dc_date', '')
+    grn_other_charges = reqData.get('other_charges', '')
+    challan_date = reqData.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
-    round_off_checkbox = request.POST.get('round_off', '')
-    round_off_total = request.POST.get('round_off_total', 0)
-    if request.POST.get('invoice_date', ''):
-        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    round_off_checkbox = reqData.get('round_off', '')
+    round_off_total = reqData.get('round_off_total', 0)
+    if reqData.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(str(reqData.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     if not confirm_returns:
-        request_data = request.POST
+        request_data = reqData
         myDict = dict(request_data.iterlists())
     else:
         myDict = confirm_returns
@@ -6665,7 +6668,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             gstin_number = purchase_data['gstin_number']
             remarks = purchase_data['remarks']
             order_id = data.order_id
-            order_date = get_local_date(request.user, data.creation_date)
+            order_date = get_local_date(requestUser, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
@@ -10709,7 +10712,7 @@ def confirm_receive_qc(request, user=''):
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
         po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency, grn_number = generate_grn(myDict, request, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
+        purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepency, grn_number = generate_grn(myDict, request.POST, user, failed_qty_dict=failed_serial_number, passed_qty_dict=passed_serial_number, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             if not myDict['id'][i] or not (int(myDict['id'][i]) in created_qc_ids):
                 continue

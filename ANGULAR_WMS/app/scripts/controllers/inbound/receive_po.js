@@ -758,7 +758,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
               temp_str = temp_str + " - Quantity"
             }
-            if (parseInt(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
             vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {

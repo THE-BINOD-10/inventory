@@ -3969,7 +3969,13 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 approval1 = user.email
             else:
                 approval1 = user.first_name
-        department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
+        department_obj= existingPRObj.wh_user
+        department = department_obj.userprofile.reference_id
+        # UserProfile.objects.get(user_id=user.id)
+        plant_obj= get_admin(department_obj)
+        plant = plant_obj.userprofile.reference_id
+        subsidary=department_obj.userprofile.company.reference_id
+        # department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
         if(not plant):
             admin_user= get_admin(user)
             p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
@@ -6818,7 +6824,9 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    department= ""
     grn_data = {'po_number': po_number,
                 'department': department,
                 "subsidiary": subsidary,
@@ -9257,8 +9265,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     address_id=''
     supplier_gstin=''
     try:
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        # department, plant, subsidary=get_plant_subsidary_and_department(user)
         if prQs:
+            plant_obj =prQs[0].wh_user
+            plant = plant_obj.userprofile.reference_id
+            subsidary= plant_obj.userprofile.company.reference_id
             if (prQs[0].supplier_payment):
                 payment_code= prQs[0].supplier_payment.payment_code
             if prQs[0].pending_prs.all():
@@ -9314,7 +9325,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
         po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
-                    'department': department, "subsidiary":subsidary, "plant":plant,
+                    'department': "", "subsidiary":subsidary, "plant":plant,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                     'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,

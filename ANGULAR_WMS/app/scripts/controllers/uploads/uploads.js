@@ -481,7 +481,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_skumaster",
-                 },{
+                 }, {
                    title: "Purchase Request Download/ Upload",
                    download: "Download Purchase Request Form",
                    upload: "Upload Purchase Request Form",
@@ -491,6 +491,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_pendingpr"
+                 }, {
+                   title: "GRN Download/ Upload",
+                   download: "Download GRN Form",
+                   upload: "Upload GRN Form",
+                   durl: "grn_form/",
+                   uurl: "grn_upload/",
+                   dparam: "download-grn-file",
+                   value: "",
+                   show: true,
+                   perm: "add_skumaster"
                  }
                 ]
 

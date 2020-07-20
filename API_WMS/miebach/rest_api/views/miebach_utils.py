@@ -3195,6 +3195,24 @@ STAFF_MASTER_MAPPING = OrderedDict(
      ('Status', 'status')
      ))
 
+GRN_MAPPING = OrderedDict(
+                  (
+                      ('Plant Id', 'plant_id'),
+                      ('SKU Code', 'sku_code'), 
+                      ('Quantity', 'quantity'),
+                      ('GRN Number', 'grn_number'), 
+                      ('Batch No', 'batch_no'),
+                      ('Manufacturing Date - MM/DD/YYYY', 'mfg_date'),
+                      ('Expiry Date - MM/DD/YYYY', 'exp_date'),
+                      ('PO Number', 'po_number'),
+                      ('Supplier Id', 'supplier_id'),
+                      ('Invoice Number', 'invoice_number'),
+                      ('Invoice Date - MM/DD/YYYY', 'invoice_date'),
+                      ('Invoice Value', 'invoice_value'),
+                      ('Invoice Quantity', 'invoice_quantity'), 
+                  )
+              )
+
 PENDING_PR_MAPPING = OrderedDict((('Priority Type', 'priority_type'), ('Need By Date', 'delivery_date'),
                                   ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
                                   ))

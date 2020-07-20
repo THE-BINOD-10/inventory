@@ -96,7 +96,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
             field_name = temp['check_field'];
             var grn_no = temp['GRN NO'];
-            grn_no = grn_no.split('/');
+            if(grn_no){
+              grn_no = grn_no.split('/');
+            }
 
             if (click_type == 'cancel_inv') {
               var send_data = JSON.stringify({
@@ -106,7 +108,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
-                cancel: 'true'
+                cancel: 'true',
+                warehouse_id: temp['warehouse_id']
               });
             } else {
               var send_data = JSON.stringify({
@@ -115,7 +118,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
-                receipt_number: temp['receipt_number']
+                receipt_number: temp['receipt_number'],
+                warehouse_id: temp['warehouse_id']
               });
             }
 
@@ -168,8 +172,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
+            var invoice_no = temp['Invoice ID']
             var grn_no = temp['GRN NO'];
-            grn_no = grn_no.split('/');
+            if(grn_no){
+              grn_no = grn_no.split('/');
+            }
 
             if(supplier_name && field_name == 'Supplier Name') {
               send_data['sor_id'] = supplier_name;
@@ -185,7 +192,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 data: 'true',
                 edit_invoice: 'true',
                 edit_poc: 'false',
-                po_challan: DC
+                po_challan: DC,
+                warehouse_id: temp['warehouse_id']
               });
             } else {
               send_data = JSON.stringify({
@@ -195,6 +203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
+                warehouse_id: temp['warehouse_id']
               });
             }
           }

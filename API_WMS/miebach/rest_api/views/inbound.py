@@ -11462,11 +11462,14 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     lis = ['purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'id', 'invoice_number']
-    user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices', 'status':0}
+    user_filter = {'purchase_order__open_po__sku__user__in': user_ids, 'order_status_flag': 'supplier_invoices', 'status':0}
     #result_values = ['receipt_number', 'purchase_order__order_id',
-    result_values = ['purchase_order__open_po__supplier__name', 'invoice_number']
+    result_values = ['purchase_order__open_po__supplier__name', 'invoice_number', 'purchase_order__open_po__sku__user']
                      #'purchase_order__creation_date', 'id', 'invoice_number']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -11522,6 +11525,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                             .filter(invoice_number=data['invoice_number'],\
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
         tot_amt, rem_quantity = 0, 0
+        warehouse = User.objects.get(id=data['purchase_order__open_po__sku__user'])
         for seller_sum in seller_summary_obj:
             rem_quantity = 0
             price = seller_sum.purchase_order.open_po.price
@@ -11554,6 +11558,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                  ('Order Date', ''),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
                                  ('Invoice ID', data['invoice_number']),
+                                 ('Warehouse', warehouse.first_name), ('warehouse_id', warehouse.id),
                                  ('receipt_number', ''),
                                  ('purchase_order__order_id', '')
                                ))
@@ -11567,13 +11572,18 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     #lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
-           'challan_number', 'challan_number', 'challan_number', 'challan_number']
+           'challan_number', 'challan_number', 'challan_number', 'challan_number', 'challan_number']
     filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
-    user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans', 'status':0}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix', 'grn_number']
+    user_filter = {'purchase_order__open_po__sku__user__in': user_ids, 'order_status_flag': 'po_challans', 'status':0}
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id',
+                     'purchase_order__open_po__supplier__name', 'purchase_order__prefix', 'grn_number',
+                     'purchase_order__open_po__sku__user']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -11623,15 +11633,18 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'],
+                                          open_po__sku__user=data['purchase_order__open_po__sku__user'])[0]
         grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
         full_grn_number = data['grn_number']
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
-                                            purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+                                            purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'],
+                                            purchase_order__open_po__sku__user=data['purchase_order__open_po__sku__user'])
 
         tot_amt, rem_quantity, temp_qty = 0, 0, 0
+        warehouse = User.objects.get(id=seller_summary_obj[0].purchase_order.open_po.sku.user)
         for seller_sum in seller_summary_obj:
             rem_quantity = 0
             temp_qty = temp_qty + float(seller_sum.quantity)
@@ -11664,6 +11677,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('Challan ID', data['challan_number']),
                                  ('receipt_number', data['receipt_number']),
                                  ('prefix', data['purchase_order__prefix']),
+                                 ('Warehouse', warehouse.first_name),
+                                 ('warehouse_id', warehouse.id),
                                  ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
         temp_data['aaData'].append(data_dict)
@@ -11676,10 +11691,14 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
-           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
-    user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos', 'status':0}
-    result_values = ['grn_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix']
+           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'purchase_order__order_id', 'purchase_order__order_id']
+    user_filter = {'purchase_order__open_po__sku__user__in': user_ids, 'order_status_flag': 'processed_pos', 'status':0}
+    result_values = ['grn_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
+                     'purchase_order__prefix', 'purchase_order__open_po__sku__user']
                      #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -11719,14 +11738,16 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
+        #po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'])[0]
         grn_number = data['grn_number']
         po_date = str(data['date_only'])
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
-                                            purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+                                            purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'],
+                                            purchase_order__open_po__sku__user=data['purchase_order__open_po__sku__user'])
 
         tot_amt = 0
+        warehouse = User.objects.get(id=data['purchase_order__open_po__sku__user'])
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
             quantity = seller_sum.quantity
@@ -11751,8 +11772,9 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
+                                 ('Warehouse', warehouse.first_name), ('warehouse_id', warehouse.id),
                                  ('receipt_number', data['receipt_number']),
-                                 ('purchase_order__order_id', data['purchase_order__order_id'])
+                                 ('purchase_order__order_id', data['purchase_order__order_id']),
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -11768,6 +11790,8 @@ def move_to_poc(request, user=''):
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
+        warehouse_id = req_data[0]['warehouse_id']
+        user = User.objects.get(id=warehouse_id)
         for item in req_data:
             cancel_flag = item.get('cancel', '')
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
@@ -11833,6 +11857,8 @@ def move_to_invoice(request, user=''):
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
+        warehouse_id = req_data[0]['warehouse_id']
+        user = User.objects.get(id=warehouse_id)
         if invoice_number:
             supplier_id = ''
             if req_data and req_data[0].get('purchase_order__order_id', ''):
@@ -11955,6 +11981,8 @@ def generate_supplier_invoice(request, user=''):
         if req_data:
             request_data = eval(req_data)
             request_data = (request_data,) if isinstance(request_data,dict) else request_data
+            warehouse_id = request_data[0]['warehouse_id']
+            user = User.objects.get(id=warehouse_id)
             result_data["data"] = []
             result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
             result_data["total_quantity"], result_data["total_tax"], result_data["extra_other_charges"] = [0]*6

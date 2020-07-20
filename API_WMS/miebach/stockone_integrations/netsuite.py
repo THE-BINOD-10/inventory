@@ -83,6 +83,8 @@ class netsuiteIntegration(object):
                 internId = self.netsuite_get_uom(data['sale_unit'], data['unitypeexid'])
                 if internId:
                     invitem.saleUnit = ns.RecordRef(internalId=internId)
+            if data.get('ServicePurchaseItem', None):
+                invitem.isFulfillable="T"
             # invitem.taxtype = data.product_type
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
             # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))

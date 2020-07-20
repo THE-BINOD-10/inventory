@@ -10129,6 +10129,10 @@ def grn_upload(request, user=''):
     except:
         return HttpResponse('Invalid File')
     status, data_list = validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+    
+    if status != 'Success':
+        return HttpResponse(status)
+        
     data_list = group_list_on_grn_number(data_list)
     for grn_number, list_of_items  in data_list.items():
         dataToPost = make_data_to_acceptable_params(list_of_items)
@@ -10136,8 +10140,8 @@ def grn_upload(request, user=''):
         request.POST = dataToPost
         confirm_grn(request, confirm_returns='', user=plant_user)
 
-    if status != 'Success':
-        return HttpResponse(status)
+
+    
     
     
     return HttpResponse('Success')
@@ -10167,6 +10171,8 @@ def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'plant_id':
+                if user.userprofile.warehouse_type == 'STORE' and int(user.userprofile.stockone_code) != int(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Access Denied To Plant %s' % cell_data)
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = int(cell_data)

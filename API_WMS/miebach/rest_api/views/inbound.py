@@ -15246,6 +15246,11 @@ def confirm_central_add_po(request, sales_data='', user=''):
     rendered_data['data'] = all_warehouse_data
     return render(request, 'templates/toggle/central_po_template.html', rendered_data)
 
+def get_parent_company(companyObj):
+    if companyObj.parent:
+        return get_parent_company(companyObj.parent)
+    else:
+        return companyObj
 
 def gather_uom_master_for_sku(user, sku_code):
     UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=get_parent_company(user.userprofile.company))

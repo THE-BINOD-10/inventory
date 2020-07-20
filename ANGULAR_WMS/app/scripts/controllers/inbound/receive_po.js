@@ -761,12 +761,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
-            vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
-              if (msg == "true") {
-                vm.total_grn_quantity = inv_match_qty;
-                vm.confirm_grn_api()
-              }
-            })
+            if (temp_str.includes('Quantity') || temp_str.includes('Value')) {
+              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
+            } else {
+              vm.total_grn_quantity = inv_match_qty;
+              vm.confirm_grn_api()
+            }
           }
         }
       })

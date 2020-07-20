@@ -401,8 +401,8 @@ class netsuiteIntegration(object):
             # purreq.subsidiary = ns.RecordRef(internalId=1)
             if(pr_data['subsidiary']):
                 purreq.subsidiary = ns.ListOrRecordRef(internalId=pr_data['subsidiary'])
-            if(pr_data['department']):
-                purreq.department = ns.RecordRef(internalId=pr_data['department'])
+            # if(pr_data['department']):
+            #     purreq.department = ns.RecordRef(internalId=pr_data['department'])
             custom_list=[
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_prtype', value=pr_data['product_category']),
                 ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver1', value=pr_data['approval1']),
@@ -416,7 +416,8 @@ class netsuiteIntegration(object):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=pr_data['approval4']))
             if(pr_data.get('plant', None)):
                 custom_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=pr_data['plant'])))
-                # custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=pr_data['plant']))
+            if(pr_data['department']):
+                custom_list.append(ns.SelectCustomFieldRef(scriptId='cseg_mhl_custseg_de', value=ns.ListOrRecordRef(internalId=pr_data['department'])))
             purreq.customFieldList =  ns.CustomFieldList(custom_list)
             for data in pr_data['items']:
                 line_item = {

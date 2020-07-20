@@ -174,6 +174,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "priority_type": data.data.priority_type,
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
+                  'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -531,7 +532,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       } else{
         elem.push({name: 'validation_type', value: 'rejected'})
       }
-      vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+
+      var form_data = new FormData();
+      if (vm.model_data.product_category != "Kits&Consumables" && $(".approve_form").find('[name="files"]').length > 0){
+        var files = $(".approve_form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+      }
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('approve_pr/', 'POST', form_data, true, true).then(function(data){
         if(data.message){
           if(data.data == 'Approved Successfully') {
             vm.close();

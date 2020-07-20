@@ -88,7 +88,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         filtersMap.setdefault('pending_pr_id__in', [])
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
 
-    lis = ['-pending_pr__pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+    lis = ['-pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',
             'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr__pr_number',
@@ -1665,6 +1665,12 @@ def generated_actual_pr_data(request, user=''):
         uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
+    pa_uploaded_file_dict = {}
+    master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
+    if master_docs.exists():
+        pa_uploaded_file_dict = {'file_name': 'PA File', 'id': master_docs[0].id,
+                              'file_url': '/' + master_docs[0].uploaded_file.name}
+
     prApprQs = record[0].pending_prApprovals
     allRemarks = prApprQs.exclude(status__in=['', 'on_approved']).values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
@@ -1862,7 +1868,8 @@ def generated_actual_pr_data(request, user=''):
                                     'validated_users': validated_users, 'uploaded_file_dict': uploaded_file_dict,
                                     'enquiryRemarks': enquiryRemarks, 'sku_category': record[0].sku_category,
                                     'resubmitting_user': resubmitting_user,
-                                    'approval_remarks': approval_remarks}))
+                                    'approval_remarks': approval_remarks,
+                                    'pa_uploaded_file_dict': pa_uploaded_file_dict}))
 
 
 @csrf_exempt
@@ -3450,6 +3457,19 @@ def approve_pr(request, user=''):
             TempJson.objects.create(model_id=lineItemQs[0].id,
                                     model_name='PENDING_PR_PURCHASE_APPROVER',
                                     model_json=pr_approver_data)
+
+        file_obj = request.FILES.get('files-0', '')
+        if file_obj:
+            master_docs_obj = MasterDocs.objects.filter(master_id=pendingPRObj.id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE',
+                                                        user_id=user.id)
+            if not master_docs_obj:
+                upload_master_file(request, user, pendingPRObj.id, 'PENDING_PR_PURCHASE_APPROVER_FILE', master_file=file_obj)
+            else:
+                master_docs_obj = master_docs_obj[0]
+                if os.path.exists(master_docs_obj.uploaded_file.path):
+                    os.remove(master_docs_obj.uploaded_file.path)
+                master_docs_obj.uploaded_file = file_obj
+                master_docs_obj.save()
     if pending_level == lastLevel and prev_approval_type == approval_type and not is_resubmitted: #In last Level, no need to generate Hashcode, just confirmation mail is enough
         if purchase_type == 'PR':
             display_name = PurchaseApprovalConfig.objects.filter(name=reqConfigName, company_id=company_id)[0].display_name

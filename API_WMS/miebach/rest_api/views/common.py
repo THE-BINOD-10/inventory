@@ -4907,7 +4907,7 @@ def search_wms_data(request, user=''):
     # lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id)
-    if sku_catg:
+    if sku_catg and sku_catg != 'All':
         query_objects = query_objects.filter(sku_category=sku_catg)
     if sku_brand:
         query_objects = query_objects.filter(sku_brand=sku_brand)

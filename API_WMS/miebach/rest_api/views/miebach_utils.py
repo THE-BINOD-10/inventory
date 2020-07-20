@@ -2840,7 +2840,7 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # Supplier Invoices page headers based on user type
 
-WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount', 'Warehouse']
 WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN NO', 'Supplier Name', 'PO Quantity', 'Received Quantity',
                                   'Order Date', 'Total Amount', 'Warehouse']
 

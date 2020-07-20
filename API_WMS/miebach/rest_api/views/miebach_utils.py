@@ -1689,7 +1689,7 @@ SALES_RETURN_REPORT = {
             (('Date', 'creation_date'),))), }
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
+SKU_HEADERS = ['SKU Code', 'SKU Description','SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
                'Primary Category',
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price',
                'Selling Price',
@@ -1709,7 +1709,7 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
-ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Tax Type',
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                  'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                  'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                  'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']

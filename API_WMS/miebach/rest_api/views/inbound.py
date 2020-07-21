@@ -668,7 +668,14 @@ def submit_pending_enquiry(request, user=''):
         enqObj.response = response
         enqObj.status = 'submitted'
         enqObj.save()
-
+        if enqObj.master_type == 'pendingPR':
+            prObj = PendingPR.objects.get(id=enqObj.master_id)
+            body = "<p> Enquiry for  %s Details </p>  \
+                    <p>Response From : %s </p> \
+                    <p>Enquiry : <b> %s </b></p> \
+                    <p>Response : <b> %s </b></p>" %(prObj.full_pr_number, enqObj.receiver.email, enqObj.enquiry, enqObj.response)
+            subject = "Enquiry Response: for %s from %s " %(prObj.full_pr_number, enqObj.receiver.email)
+            send_mail([enqObj.sender.email], subject, body)
     return HttpResponse('Submitted Successfully')
 
 
@@ -1057,18 +1064,19 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.industry_type == 'FMCG':
             discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
                                             .values_list('quantity',flat=True)))
-        # if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
-        #     warehouse = wh_details.get(result['open_po__sku__user'])
-        warehouse = User.objects.get(id=result['open_po__sku__user'])
-        productType = ''
+        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+            warehouse = wh_details.get(result['open_po__sku__user'])
+        productType, send_to = '', ''
         if supplier.open_po is not None:
             productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
             if productQs.exists():
                 productType = productQs[0]
         display_approval_button_DOA=False
-        if(productType=="Services"):
+        if productType=="Services":
             doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=supplier.id, doa_status="pending")
             if doaQs.exists():
+                receive_status = 'Pending from PR Requester'
+                send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('display_approval_button_DOA', display_approval_button_DOA),
@@ -1080,7 +1088,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
-                                      ('warehouse_id', warehouse.id)
+                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to)
                                       )))
     temp_data['aaData'] = data_list
 
@@ -3146,6 +3154,18 @@ def generateHashCodeForMail(prObj, mailId, level):
     mailObj.save()
     return hash_code
 
+def generateHashCodeForEnquiryMail(master_id, master_type, mailId):
+    hash_code = hashlib.md5(b'%s:%s' % (master_id, mailId)).hexdigest()
+    enquiryMailsMap = {
+                    'master_id': master_id,
+                    'master_type': master_type,
+                    'email': mailId,
+                    'hash_code': hash_code,
+                }
+    mailObj = GenericEnquiryMails(**enquiryMailsMap)
+    mailObj.save()
+    return hash_code
+
 
 def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True, central_po_data=None):
     from mail_server import send_mail
@@ -4585,6 +4605,9 @@ def submit_pending_approval_enquiry(request, user=''):
     enquiry_to = request.POST.get('enquiry_to', '')
     enquiry_remarks = request.POST.get('enquiry_remarks', '')
     emailsOfApprovedUsersMap = {}
+    urlPath = request.META.get('HTTP_ORIGIN')
+    desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
+        Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     try:
         if is_purchase_request == 'true':
             permission_name = 'pending po'
@@ -4626,13 +4649,14 @@ def submit_pending_approval_enquiry(request, user=''):
             'enquiry': enquiry_remarks,
             'status': 'pending'
         }
-        GenericEnquiry.objects.create(**sendEnquiryMap)
+        enquiryObj = GenericEnquiry.objects.create(**sendEnquiryMap)
 
         lineItems = getattr(pendingPurchaseObj, lineItems_attr)
         prefix = pendingPurchaseObj.prefix
         po_number = getattr(pendingPurchaseObj, purchase_number_attr)
 
         if lineItems.exists():
+            hash_code = generateHashCodeForEnquiryMail(enquiryObj.id, master_type, enquiry_to)
             result = pendingPurchaseObj
             dateforPo = str(result.creation_date).split(' ')[0].replace('-', '')
             po_reference = '%s%s_%s' % (prefix, dateforPo, po_number)
@@ -4658,6 +4682,12 @@ def submit_pending_approval_enquiry(request, user=''):
                             requestedBy, purchase_type, creation_date, delivery_date, pendingLevel,
                             enquiry_remarks, line_sub_heading, lineItemDetails)
             subject = "Enquiry Submission: Pending %s %s for %s " %(purchase_type, po_reference, requestedBy)
+            if hash_code:
+                reqURLPath = 'notifications/email/'+master_type+'Enquiry'
+                validationLink = "%s/#/%s?hash_code=%s" %(urlPath, reqURLPath, hash_code)
+                body = body + "<p>Please click on the below link to validate.</p>\
+                Link: %s"%(validationLink)
+                body = body + desclaimer
             send_mail([enquiry_to], subject, body)
     except Exception as e:
         import traceback
@@ -6764,7 +6794,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
-                                'po_number': po_number, 'bill_no': bill_no,
+                                'po_number': po_number, 'bill_no': bill_no, 'product_category': po_product_category,
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
@@ -6847,13 +6877,21 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
+    prQs = PendingPO.objects.filter(full_po_number=po_number)
+    product_category=""
+    if prQs:
+        product_category = prQs[0].product_category
     plant = user.userprofile.reference_id
     subsidary= user.userprofile.company.reference_id
     department= ""
+    remarks=""
+    if "remarks" in myDict:
+        remarks= str(myDict["remarks"][0])
     grn_data = {'po_number': po_number,
                 'department': department,
                 "subsidiary": subsidary,
                 "plant": plant,
+                "remarks": remarks,
                 'grn_number': grn_number,
                 'items':[],
                 'grn_date': grn_date,
@@ -6861,7 +6899,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
                 "dc_date" : dc_date,
-                "vendorbill_url": vendorbill_url
+                "vendorbill_url": vendorbill_url,
+                "product_category": product_category,
      }
     # if(service_doa):
     #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)

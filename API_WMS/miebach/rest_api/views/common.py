@@ -4892,6 +4892,7 @@ def search_wms_data(request, user=''):
     product_type = request.GET.get('type')
     sku_catg = request.GET.get('sku_catg', '')
     sku_brand = request.GET.get('sku_brand', '')
+
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -5187,6 +5188,8 @@ def build_search_data(user, to_data, from_data, limit):
                 data_dict.update({'gl_code': gl_code,
                                 'service_start_date': service_start_date,
                                 'service_end_date': service_end_date})
+            elif isinstance(data, OtherItemsMaster):
+                data_dict['type'] =  data.item_type
             if (len(to_data) >= limit):
                 break
             else:

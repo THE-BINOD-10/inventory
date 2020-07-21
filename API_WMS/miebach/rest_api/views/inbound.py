@@ -1545,12 +1545,19 @@ def generated_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     pr_uploaded_file_dict = {}
+    pa_uploaded_file_dict = {}
     respectivePrIds = record[0].pending_prs.values_list('id', flat=True)
     if respectivePrIds:
         master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='pending_pr')
         if master_docs.exists():
             pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                                   'file_url': '/' + master_docs[0].uploaded_file.name}
+
+        pa_master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
+        if pa_master_docs.exists():
+            pa_uploaded_file_dict = {'file_name': 'PA File', 'id': pa_master_docs[0].id,
+                                  'file_url': '/' + pa_master_docs[0].uploaded_file.name}
+
 
 
     prApprQs = record[0].pending_poApprovals
@@ -1618,7 +1625,8 @@ def generated_pr_data(request, user=''):
                                     'pr_uploaded_file_dict': pr_uploaded_file_dict,
                                     'sku_category': record[0].sku_category,
                                     'product_category': record[0].product_category,
-                                    'store': store, 'department': department}))
+                                    'store': store, 'department': department,
+                                    'pa_uploaded_file_dict':pa_uploaded_file_dict}))
 
 
 @csrf_exempt

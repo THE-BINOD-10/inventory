@@ -154,7 +154,7 @@ def get_plant_and_department(user):
     plant=""
     user_profile= UserProfile.objects.get(user_id=user.id)
     if(user_profile.warehouse_type=="DEPT"):
-        department= user.first_name
+        department= user.username
         admin_user= get_admin(user)
         # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
         plant= admin_user.username

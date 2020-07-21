@@ -96,12 +96,17 @@ def get_report_data(request, user=''):
 
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report', 'sku_wise_rtv_report']:
         if 'sister_warehouse' in filter_keys:
-            sister_wh = get_sister_warehouse(user)
+            sister_wh =UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+
             data_index = data['filters'].index(
-                filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
-            sister_warehouses = [user.username]
-            sister_warehouses1 = list(
-                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
+                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            sister_warehouses = []
+            # sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_warehouses, warehouse_type="DEPT").\
+            #                           values_list('user__username',flat=True).distinct())
+
+            sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+                'user__username', flat=True))
+
             data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
 
         if 'final_status' in filter_keys:

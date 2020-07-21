@@ -12700,11 +12700,7 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
 
     return new_user
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def get_user_groups_list(request, user=''):
-    group_names = []
+def get_user_groups_names(user):
     exclude_list = ['Pull to locate', 'Admin', 'WMS']
     exclude_group = AdminGroups.objects.filter(user_id=user.id)
     if exclude_group:
@@ -12715,6 +12711,26 @@ def get_user_groups_list(request, user=''):
     for group in groups:
         group_name = (group.name).replace(user.username + ' ', '')
         total_groups.append(group_name)
+
+    return total_groups
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_groups_list(request, user=''):
+    group_names = []
+    # exclude_list = ['Pull to locate', 'Admin', 'WMS']
+    # exclude_group = AdminGroups.objects.filter(user_id=user.id)
+    # if exclude_group:
+    #     exclude_list.append(exclude_group[0].group.name)
+    # cur_user = user
+    # groups = user.groups.filter().exclude(name__in=exclude_list)
+    # total_groups = []
+    # for group in groups:
+    #     group_name = (group.name).replace(user.username + ' ', '')
+    #     total_groups.append(group_name)
+    total_groups = get_user_groups_names(user)
     return HttpResponse(json.dumps({'groups': total_groups}))
 
 

@@ -4794,10 +4794,6 @@ def insert_staff(request, user=''):
 def update_staff_values(request, user=''):
     """ Update Staff values"""
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
-    # staff_name = request.POST.get('name', '')
-    # email = request.POST.get('email_id', '')
-    # phone = request.POST.get('phone_number', '')
-    # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
     reportingto_email_id = request.POST.get('reportingto_email_id', '')

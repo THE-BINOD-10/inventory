@@ -3194,7 +3194,7 @@ STAFF_MASTER_MAPPING = OrderedDict(
      ('Staff Code', 'staff_code'), ('Name', 'name'),
      ('Email', 'email_id'), ('ReportingTO', 'reportingto_email_id'), ('Password', 'password'),
      ('Phone Number', 'phone_number'), ('Position', 'position'),
-     ('Status', 'status')
+     ('Status', 'status'), ('Groups', 'groups')
      ))
 
 PENDING_PR_MAPPING = OrderedDict((('Priority Type', 'priority_type'), ('Need By Date', 'delivery_date'),

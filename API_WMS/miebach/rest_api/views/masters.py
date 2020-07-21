@@ -466,8 +466,9 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                 sku_preference = 0
         warehouse_obj = User.objects.get(id=result.sku.user)
         warehouse = warehouse_obj.username
+        warehouse_name = warehouse
         if warehouse_obj.first_name:
-            warehouse = warehouse_obj.first_name
+            warehouse_name = warehouse_obj.first_name
         temp_data['aaData'].append(OrderedDict((('supplier_id', result.supplier.supplier_id), ('wms_code', result.sku.wms_code),
                                                 ('supplier_code', result.supplier_code), ('moq', result.moq),
                                                 ('preference', sku_preference),
@@ -475,6 +476,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
                                                 ('margin_percentage', result.margin_percentage),('markup_percentage',result.markup_percentage),
                                                 ('lead_time', result.lead_time),
                                                 ('warehouse', warehouse),
+                                                ('warehouse_name', warehouse_name),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result.id), ('mrp', result.sku.mrp))))
 
@@ -1482,7 +1484,14 @@ def update_uom_master(user, data_dict={}, data=''):
         if uom_type.lower() == 'base':
             base_uom_name = uom_name
             continue
-        name = '%s-%s' % (uom_name, str(int(conversion)))
+        if isinstance(conversion, (float)):
+            try:
+                conversion = str(int(conversion))
+            except:
+                conversion = str(conversion)
+        else:
+            conversion = str(conversion)
+        name = '%s-%s' % (uom_name, conversion)
         if uom_id:
             uom_master = UOMMaster.objects.filter(id=uom_id)
             uom_master.update(name=name, conversion=conversion, uom=uom_name, base_uom=base_uom_name)
@@ -1865,11 +1874,63 @@ def update_sku_supplier_values(request, user=''):
         if len(open_po_ids) > 0:
             OpenPO.objects.filter(id__in=open_po_ids).update(price=sku_price)
             MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier').update(doa_status='created')
+            try:
+                netsuite_po_update(user, request, "Open PO", po_number,updated_user, skus_code, sp_id_sku, sku_price)
+                return HttpResponse('Updated Successfully')
+            except Exception as e:
+                pass
     if 'Current PO' in update_places and updated_user and po_number:
         OpenPO.objects.filter(sku__user=updated_user.id, purchaseorder__po_number=po_number, sku__sku_code=skus_code).update(price=sku_price)
         MastersDOA.objects.filter(model_id=data_id, model_name='SKUSupplier').update(doa_status='created')
+        try:
+            netsuite_po_update(user, request, "Current PO", po_number,updated_user, skus_code, sp_id_sku, sku_price)
+        except Exception as e:
+            pass
     return HttpResponse('Updated Successfully')
 
+def get_item_list_data(open_po, po_number,updated_user,user):
+    po_data =  PendingPO.objects.filter(full_po_number=po_number)
+    full_pr_number=""
+    if po_data.exists():
+        po_data=po_data[0]
+        pending_pr= po_data.pending_prs.all()
+        if(pending_pr.exists()):
+            full_pr_number= pending_pr[0].full_pr_number
+    po_data_final = {'user_id':updated_user.id,"po_number": po_number,
+                'items':[], 'full_pr_number': full_pr_number}
+    for _open in open_po:
+        user_obj = User.objects.get(pk=_open.sku.user)
+        unitdata = gather_uom_master_for_sku(user_obj, _open.sku.sku_code)
+        unitexid = unitdata.get('name', None)
+        purchaseUOMname = None
+        for row in unitdata.get('uom_items', None):
+            if row.get('unit_type', '') == 'Purchase':
+                purchaseUOMname = row.get('unit_name', None)
+        item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
+                'quantity':_open.order_quantity, 'unit_price':_open.price,
+                'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
+                'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,
+                'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
+        po_data_final['items'].append(item)
+    return po_data_final
+
+def netsuite_po_update(user, request, type, po_number,updated_user, skus_code, sp_id_sku, sku_price):
+    if type=='Current PO':
+        open_po= OpenPO.objects.filter(sku__user=updated_user.id, purchaseorder__po_number=po_number)
+        po_data=get_item_list_data(open_po, po_number,updated_user,user)
+        intObj = Integrations(updated_user, 'netsuiteIntegration')
+        intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
+    if type=='Open PO':
+        open_po_ids = list(PurchaseOrder.objects.filter(open_po__sku__user=updated_user.id, open_po__sku__sku_code=skus_code, received_quantity=0, open_po__supplier__supplier_id=sp_id_sku).\
+                        exclude(status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']))
+        if len(open_po_ids) > 0:
+            list_po_data=[]
+            for po_data in open_po_ids:
+                open_po= OpenPO.objects.filter(sku__user=updated_user.id, purchaseorder__po_number=po_data.po_number)
+                po_data_dict=get_item_list_data(open_po, po_data.po_number, updated_user, user)
+                list_po_data.append(po_data_dict)
+            intObj = Integrations(updated_user, 'netsuiteIntegration')
+            intObj.IntegratePurchaseOrder(list_po_data, "po_number", is_multiple=True)
 
 
 
@@ -1882,7 +1943,7 @@ def insert_mapping(request, user=''):
     warehouse = request.POST.get('warehouse', '')
     if warehouse:
         all_users = get_related_user_objs(user.id)
-        user_obj = all_users.filter(id=warehouse)
+        user_obj = all_users.filter(username=warehouse)
         if not user_obj:
             return HttpResponse('Invalid Warehouse')
         else:

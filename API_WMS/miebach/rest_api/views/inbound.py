@@ -1135,6 +1135,7 @@ def get_confirmed_po_doa(start_index, stop_index, temp_data, search_term, order_
                                                 ('receive_status', result.get('lead_time', '')),
                                                 ('requested_user_id', row.requested_user.first_name),
                                                 ('warehouse', warehouse.username),
+                                                ('warehouse_id', warehouse.id),
                                                 ('status', row.doa_status),
                                                 ("customer_name", ""),
                                                 ("received_qty", total_received_qty),
@@ -3795,7 +3796,7 @@ def convert_pr_to_po(request, user=''):
                 'sku_category':existingPRObj.sku_category,
             }
             try:
-                dept_code = pr_user.userprofile.stockone_code
+                dept_code = dept_user.userprofile.stockone_code
             except:
                 dept_code = ''
             po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(pr_user, 'po_prefix',
@@ -4770,6 +4771,8 @@ def delete_po(request, user=''):
 @get_admin_multi_user
 def get_supplier_data(request, users=''):
     model_id=''
+    warehouse_id = request.GET['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     if('doa_model_id'in request.GET):
         model_id=request.GET['doa_model_id']
         doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', id=model_id, doa_status="pending")
@@ -4777,8 +4780,6 @@ def get_supplier_data(request, users=''):
             doa_obj = doaQs[0]
             user=User.objects.get(id=doa_obj.requested_user_id)
 
-    warehouse_id = request.GET['warehouse_id']
-    user = User.objects.get(id=warehouse_id)
     all_prod_catgs = SellerPOSummary
     sku_master, sku_master_ids = get_sku_master(user, request.user, all_prod_catgs=all_prod_catgs)
     temp = get_misc_value('pallet_switch', user.id)
@@ -6430,6 +6431,8 @@ def validate_grn_wms(user, myDict):
 def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
     reversion.set_comment("send_for_approval_confirm_grn")
+    warehouse_id = request.POST['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     data_dict = ''
     owner_email = ''
     headers = (

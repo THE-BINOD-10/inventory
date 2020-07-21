@@ -219,6 +219,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   'po_number': aData['PO No'],
                   'warehouse_id': aData['warehouse_id']
                 }
+                vm.form = 'grn_form';
                 vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];

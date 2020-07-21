@@ -10,7 +10,7 @@
   }
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate" id="{{showCase.form}}">
   <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
     <div class="modal-content mw100">
       <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>

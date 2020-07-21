@@ -2418,6 +2418,7 @@ PERMISSION_DICT = OrderedDict((
                        ("Change PendingPO", "change_pendingpo"),
                        ("View PendingPR", "view_pendingpr"), ("Add PendingPR", "add_pendingpr"),
                        ("Change PendingPR", "change_pendingpr"),
+                       ("Approve Service GRN DOA", "change_mastersdoa"),
                        )),
 
     # Production

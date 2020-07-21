@@ -573,6 +573,20 @@ class OpenPO(models.Model):
         return str(str(self.sku) + " : " + str(self.supplier))
 
 
+class GenericEnquiryMails(models.Model):
+    id = BigAutoField(primary_key=True)
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    email = models.EmailField(max_length=64)
+    hash_code = models.CharField(max_length=256, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "GENERIC_ENQUIRY_MAILS"
+
+
 @reversion.register()
 class GenericEnquiry(models.Model):
     id = BigAutoField(primary_key=True)

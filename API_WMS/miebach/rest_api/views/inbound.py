@@ -6880,10 +6880,9 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "vendorbill_url": vendorbill_url,
                 "product_category": product_category,
      }
-    # if(service_doa):
-    #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
-    # else:
     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=user.id)
+    received_sku_list=[]
+    data_order_idx=[]
     for index, data in  enumerate(po_data):
         _open = purchase_order[index].open_po
         user_obj = User.objects.get(pk=_open.sku.user)
@@ -6897,7 +6896,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
                 'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
-                'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
+                'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname, "itemReceive": True}
         if(data.get("mfg_date",None)):
             mfg_date = datetime.strptime(data["mfg_date"], '%m/%d/%Y').strftime('%d-%m-%Y')
             m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
@@ -6909,6 +6908,20 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             exp_date= e_date.isoformat()
             item.update({"exp_date":exp_date})
         grn_data['items'].append(item)
+        received_sku_list.append(data['wms_code'])
+        data_order_idx.append(data["order_idx"])
+    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
+    if(partial_grn_skus_po_obj):
+        po_line_items_length=len(partial_grn_skus_po_obj)+ len(data_order_idx)
+        temp_list=[]
+        for i in range(1,po_line_items_length+1):
+            if i not in data_order_idx:
+                temp_list.append(i)
+        for idx, row in enumerate(partial_grn_skus_po_obj):
+            item = {'sku_code':row.get("open_po__sku__sku_code",""), 'sku_desc':row.get("open_po__sku__sku_desc",""),
+                     "order_idx": temp_list[idx],
+                     "itemReceive": False }
+            grn_data['items'].append(item)
     try:
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegrateGRN(grn_data, "grn_number", is_multiple=False)
@@ -13497,7 +13510,9 @@ def create_rtv(request, user=''):
             if(len(attachments)>0):
                 show_data_invoice["debit_note_url"]=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+attachments[0]["path"]
             # from api_calls.netsuite import netsuite_update_create_rtv
-            department, plant, subsidary=get_plant_subsidary_and_department(user)
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+            department= ""
             try:
                 intObj = Integrations(user, 'netsuiteIntegration')
                 show_data_invoice.update({'department': department, "subsidiary":subsidary, "plant":plant})

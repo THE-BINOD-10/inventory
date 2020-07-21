@@ -252,13 +252,17 @@ class netsuiteIntegration(object):
                     if(data.get("exp_date",None)):
                         grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                     if(data.get("mrp",None)):
-                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                        if grn_data.get("product_category",None):
+                            if grn_data["product_category"]== 'Services' and data.get("unit_price", None):
+                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['unit_price']))
+                            else:
+                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
                     line_item = {
                     'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
                     'quantity': data['received_quantity'],
                     'description': data['sku_desc'],
                     'rate': data['unit_price'],
-                    'location': ns.RecordRef(internalId=297),
+                    # 'location': ns.RecordRef(internalId=297),
                     'itemReceive': True,
                     "customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
@@ -270,6 +274,8 @@ class netsuiteIntegration(object):
                 grnrec.itemList = {'item':item, 'replaceAll': False}
                 grnrec.tranId = grn_data['grn_number']
                 grnrec.tranDate = grn_data["grn_date"]
+                if grn_data.get('remarks',None):
+                    grnrec.memo = grn_data['remarks']
             grnrec.externalId = grn_data['grn_number']
         except Exception as e:
             import traceback
@@ -346,7 +352,7 @@ class netsuiteIntegration(object):
             # purorder.location= ns.RecordRef(internalId=297)
             if(po_data.get("plant", None)):
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
-                # po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=po_data['plant']))
+                 po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
             if (po_data.get("supplier_gstin", None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_in_vendor_gstin', value=po_data["supplier_gstin"]))
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)

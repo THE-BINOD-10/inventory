@@ -6824,13 +6824,21 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
+    prQs = PendingPO.objects.filter(full_po_number=po_number)
+    product_category=""
+    if prQs:
+        product_category = prQs[0].product_category
     plant = user.userprofile.reference_id
     subsidary= user.userprofile.company.reference_id
     department= ""
+    remarks=""
+    if "remarks" in myDict:
+        remarks= str(myDict["remarks"][0])
     grn_data = {'po_number': po_number,
                 'department': department,
                 "subsidiary": subsidary,
                 "plant": plant,
+                "remarks": remarks,
                 'grn_number': grn_number,
                 'items':[],
                 'grn_date': grn_date,
@@ -6838,7 +6846,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
                 "dc_date" : dc_date,
-                "vendorbill_url": vendorbill_url
+                "vendorbill_url": vendorbill_url,
+                "product_category": product_category,
      }
     # if(service_doa):
     #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)

@@ -188,7 +188,7 @@ class netsuiteIntegration(object):
                 'orderLine': idx+1,
                 'rate': data['price'],
                 'quantity': data['order_qty'],
-                'location': ns.RecordRef(internalId=297),
+                # 'location': ns.RecordRef(internalId=297),
                 # 'itemReceive': True
                 'description': data['sku_desc'],
                 "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
@@ -252,11 +252,9 @@ class netsuiteIntegration(object):
                     if(data.get("exp_date",None)):
                         grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                     if(data.get("mrp",None)):
-                        if grn_data.get("product_category",None):
-                            if grn_data["product_category"]== 'Services' and data.get("unit_price", None):
-                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['unit_price']))
-                            else:
-                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                    if data.get("unit_price", None):
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_unit_price_grn', value=data['unit_price']))
                     line_item = {
                     'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
                     'quantity': data['received_quantity'],

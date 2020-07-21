@@ -126,15 +126,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
-    if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }
-    if (vm.industry_type == 'FMCG') {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
-    }
+    // if (vm.industry_type == 'FMCG') {
+    //   vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+    // }
     vm.dtColumns.push(DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('send_to').withTitle('Send To'))
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -663,10 +660,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (vm.model_data.other_charges.length > 0) {
         elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
       }
-      if (vm.permissions.receive_po_inv_value_qty_check) {
-        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-      }
+      // if (vm.permissions.receive_po_inv_value_qty_check) {
+      //   elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+      //   elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      // }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -761,7 +758,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
-            if (temp_str.includes('Quantity') || temp_str.includes('Value')) {
+            if (temp_str.includes('Value')) {
               vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
                 if (msg == "true") {
                   vm.total_grn_quantity = inv_match_qty;

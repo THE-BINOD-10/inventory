@@ -70,7 +70,7 @@
             size="12">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
             </span> 
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
@@ -80,7 +80,7 @@
             <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
             </span> 
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>

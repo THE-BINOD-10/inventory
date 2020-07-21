@@ -938,11 +938,12 @@ def pr_request(request):
     response_data = {'data': {}, 'message': 'Fail'}
     hash_code = request.GET.get('hash_code', '')
     storedData = PurchaseApprovalMails.objects.filter(hash_code=hash_code)
-    prApprId = storedData[0].pr_approval_id
-    email_id = storedData[0].email
-    prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
+    if storedData.exists():
+        prApprId = storedData[0].pr_approval_id
+        email_id = storedData[0].email
+        prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
     if not prApprQs.exists():
-        return HttpResponse("Error")
+        return HttpResponse("Purchase Approval not found.")
     prApprObj = prApprQs[0]
     fieldsMap = {}
     send_path = ''

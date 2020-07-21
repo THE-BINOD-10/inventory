@@ -3143,7 +3143,7 @@ def generateHashCodeForMail(prObj, mailId, level):
 
 
 def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, urlPath=None, hash_code=None, poFor=True, 
-                            central_po_data=None, currentLevelMailList=[]):
+                            central_po_data=None, currentLevelMailList=[], is_resubmitted=False):
     from mail_server import send_mail
     subject = ''
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
@@ -3164,8 +3164,12 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         openPurchaseObj = openPurchaseQs[0]
         if poFor:
             lineItems = openPurchaseObj.pending_polineItems
+            allApprovedMailsList = list(set(openPurchaseObj.pending_poApprovals.filter(status='approved').
+                                values_list('validated_by', flat=True)))
         else:
             lineItems = openPurchaseObj.pending_prlineItems
+            allApprovedMailsList = list(set(openPurchaseObj.pending_prApprovals.filter(status='approved').
+                                values_list('validated_by', flat=True)))
         prefix = openPurchaseObj.prefix
     if lineItems.exists():
         result = openPurchaseQs[0]
@@ -3263,9 +3267,14 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         send_mail([mailId], subject, body)
         if reqUserMailID !=  mailId:
             send_mail([reqUserMailID], subject, podetails_string)
-        if currentLevelMailList:
-            subject = 'Pending PR %s got approved at your current level' %po_reference
+        if currentLevelMailList and not resubmitted:
+            subject = 'Pending PR %s got processed, no action needed to be taken.' %po_reference
             send_mail(currentLevelMailList, subject, podetails_string)
+        if subjectType in ['pr_rejected', 'po_rejected']:
+            send_mail(allApprovedMailsList, subject, podetails_string)
+        if is_resubmitted:
+            subject = 'Pending PR %s got resubmitted, approval process will be restarted.' %po_reference
+            send_mail(allApprovedMailsList, subject, podetails_string)
 
 
 @csrf_exempt
@@ -3501,7 +3510,8 @@ def approve_pr(request, user=''):
                     generateHashCodeForMail(prObj, eachMail, 'level0')
                     sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
                         '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
-                        central_po_data=central_po_data, currentLevelMailList=currentLevelMailList)
+                        central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
+                        is_resubmitted=is_resubmitted)
             # pass
             try:
                 netsuite_pr(user, PRQs, full_pr_number)
@@ -3515,7 +3525,7 @@ def approve_pr(request, user=''):
             sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
                                  '%s_approval_at_last_level' % mailSubTypePrefix,
                                  requestedUserEmail, poFor=poFor, central_po_data=central_po_data,
-                                 currentLevelMailList=currentLevelMailList)
+                                 currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
     else:
         if prev_approval_type == approval_type and not is_resubmitted:
             nextLevel = 'level' + str(int(pending_level.replace('level', '')) + 1)
@@ -3528,7 +3538,7 @@ def approve_pr(request, user=''):
                                 remarks, purchase_type=purchase_type)
             sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, '%s_rejected' %mailSubTypePrefix,
                             requestedUserEmail, poFor=poFor, central_po_data=central_po_data, 
-                            currentLevelMailList=currentLevelMailList)
+                            currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
         else:
             prObj, mailsList = createPRApproval(request, pr_user, reqConfigName, nextLevel, pr_number, pendingPRObj,
                                     master_type=master_type, forPO=poFor, approval_type=approval_type)
@@ -3542,7 +3552,7 @@ def approve_pr(request, user=''):
                 hash_code = generateHashCodeForMail(prObj, eachMail, nextLevel)
                 sendMailforPendingPO(pendingPRObj.id, pr_user, nextLevel, '%s_approval_pending' %mailSubTypePrefix,
                         eachMail, urlPath, hash_code, poFor=poFor, central_po_data=central_po_data,
-                        currentLevelMailList=currentLevelMailList)
+                        currentLevelMailList=currentLevelMailList, is_resubmitted=is_resubmitted)
     status = 'Approved Successfully'
     return HttpResponse(status)
 
@@ -4581,14 +4591,12 @@ def cancel_pr(request, user=''):
     is_actual_pr = request.POST.get('is_actual_pr', '')
     if not pr_number:
         return HttpResponse("Please Select PO to Delete")
-    filtersMap = {'wh_user': user.id}
+    filtersMap = {'id': pr_number}
     if is_actual_pr == 'true':
         model_name = PendingPR
-        filtersMap['id'] = pr_number
         reversion.set_comment("CancelPR")
     else:
         model_name = PendingPO
-        filtersMap['id'] = pr_number
         reversion.set_comment("CancelPO")
     prQs = model_name.objects.filter(**filtersMap)
     if prQs.exists():

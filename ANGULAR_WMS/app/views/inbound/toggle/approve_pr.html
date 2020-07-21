@@ -101,6 +101,16 @@
             <div ng-include="'views/inbound/toggle/ApprovalPendingLineItems/approval_otheritems.html'">
             </div>
           </div>
+          <div class="row" style="padding-bottom:0px;">
+            <div class="col-md-6 col-sm-6">
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
+            </div>
+          </div>
           <div class="row">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <div class="col-md-2 col-sm-1 col-xs-2">

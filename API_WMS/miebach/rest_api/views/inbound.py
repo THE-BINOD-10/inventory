@@ -1064,8 +1064,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         if user.userprofile.industry_type == 'FMCG':
             discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
                                             .values_list('quantity',flat=True)))
-        if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
-            warehouse = wh_details.get(result['open_po__sku__user'])
+        warehouse = User.objects.get(id=order_data['sku'].user)
         productType, send_to = '', ''
         if supplier.open_po is not None:
             productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
@@ -1084,7 +1083,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
-                                      ('Remarks', supplier.remarks), ('Store', warehouse.username),('Order Type', order_type),
+                                      ('Remarks', supplier.remarks), ('Store', warehouse.first_name),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),

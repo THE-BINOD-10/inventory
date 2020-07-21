@@ -76,7 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
-        DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Store'),
     ];
 
     var row_click_bind = 'td';

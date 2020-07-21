@@ -122,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('total_qty').withTitle("Total Qty"),
         DTColumnBuilder.newColumn('receivable_qty').withTitle("Receivable Qty"),
         DTColumnBuilder.newColumn('received_qty').withTitle("Received Qty"),
-        DTColumnBuilder.newColumn('warehouse').withTitle("Warehouse"),
+        DTColumnBuilder.newColumn('warehouse').withTitle("Store"),
         DTColumnBuilder.newColumn('supllier_id_name').withTitle('Supplier ID/Name'),
         DTColumnBuilder.newColumn('order_type').withTitle('Order Type'),
         DTColumnBuilder.newColumn('receive_status').withTitle('Receive Status'),

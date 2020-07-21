@@ -41,6 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('credit_type').withTitle('Credit Type'),
         DTColumnBuilder.newColumn('credit_number').withTitle('Credit Number'),
         DTColumnBuilder.newColumn('credit_date').withTitle('Credit Date'),
+        DTColumnBuilder.newColumn('warehouse').withTitle('Store'),
       ];
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)

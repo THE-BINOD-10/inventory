@@ -1076,7 +1076,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
-                                      ('Remarks', supplier.remarks), ('Warehouse', warehouse.username),('Order Type', order_type),
+                                      ('Remarks', supplier.remarks), ('Store', warehouse.username),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
@@ -11595,7 +11595,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                  ('Order Date', ''),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
                                  ('Invoice ID', data['invoice_number']),
-                                 ('Warehouse', warehouse.first_name), ('warehouse_id', warehouse.id),
+                                 ('Store', warehouse.first_name), ('warehouse_id', warehouse.id),
                                  ('receipt_number', ''),
                                  ('purchase_order__order_id', '')
                                ))
@@ -11714,7 +11714,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('Challan ID', data['challan_number']),
                                  ('receipt_number', data['receipt_number']),
                                  ('prefix', data['purchase_order__prefix']),
-                                 ('Warehouse', warehouse.first_name),
+                                 ('Store', warehouse.first_name),
                                  ('warehouse_id', warehouse.id),
                                  ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
@@ -11809,7 +11809,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
-                                 ('Warehouse', warehouse.first_name), ('warehouse_id', warehouse.id),
+                                 ('Store', warehouse.first_name), ('warehouse_id', warehouse.id),
                                  ('receipt_number', data['receipt_number']),
                                  ('purchase_order__order_id', data['purchase_order__order_id']),
                                ))

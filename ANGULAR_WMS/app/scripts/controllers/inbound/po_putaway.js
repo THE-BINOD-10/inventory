@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('Order Type').withTitle('Order Type'),
-        DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse')
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Store')
     ];
 
     vm.dtInstance = {};

@@ -1734,7 +1734,6 @@ def generated_actual_pr_data(request, user=''):
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
-
         is_doa_sent_flag = False
         is_purchase_approver = find_purchase_approver_permission(request.user)
         supplierDetailsMap = OrderedDict()
@@ -1746,9 +1745,11 @@ def generated_actual_pr_data(request, user=''):
         if pr_supplier_data.exists() and not is_purchase_approver:
             json_data = eval(pr_supplier_data[0].model_json)
             supplierId = json_data['supplier_id']
+            supplier_gst_num = ''
             supplierQs = SupplierMaster.objects.filter(user=storeObj.id, supplier_id=supplierId)
             if supplierQs.exists():
                 supplierName = supplierQs[0].name
+                supplier_gst_num = supplierQs[0].tin_number
             else:
                 supplierName = ''
             preferred_supplier = '%s:%s' %(supplierId, supplierName)
@@ -1759,6 +1760,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
                                                     'total': json_data['total'],
+                                                    'gstin': supplier_gst_num
                                                     }
 
         elif is_purchase_approver:
@@ -1766,9 +1768,11 @@ def generated_actual_pr_data(request, user=''):
                 resubmitting_user = True
                 json_data = eval(pr_supplier_data[0].model_json)
                 supplierId = json_data['supplier_id']
+                supplier_gst_num = ''
                 supplierQs = SupplierMaster.objects.filter(user=storeObj.id, supplier_id=supplierId)
                 if supplierQs.exists():
                     supplierName = supplierQs[0].name
+                    supplier_gst_num = supplierQs[0].tin_number
                 else:
                     supplierName = ''
                 preferred_supplier = '%s:%s' %(supplierId, supplierName)
@@ -1779,6 +1783,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
                                                     'total': json_data['total'],
+                                                    'gstin': supplier_gst_num
                                                     }
 
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
@@ -1794,6 +1799,7 @@ def generated_actual_pr_data(request, user=''):
                 for supplierMapping in supplierMappings:
                     supplierId = supplierMapping.supplier.supplier_id
                     supplierName = supplierMapping.supplier.name
+                    supplier_gstin = supplierMapping.supplier.tin_number
                     skuTaxes = get_supplier_sku_price_values(supplierMapping.supplier.supplier_id,
                                     sku_code, storeObj)
                     if skuTaxes:
@@ -1824,7 +1830,8 @@ def generated_actual_pr_data(request, user=''):
                                                               'price': round(price, 2),
                                                               'amount': round(amount, 2),
                                                               'tax': tax,
-                                                              'total': round(total, 2)
+                                                              'total': round(total, 2),
+                                                              'gstin': supplier_gstin
                                                               }
                     if not preferred_supplier:
                         preferred_supplier = supplier_id_name

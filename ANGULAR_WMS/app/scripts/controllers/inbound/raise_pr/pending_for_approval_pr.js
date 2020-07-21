@@ -218,6 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 data.fields.tax = data.fields.temp_tax;
               }
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
@@ -490,64 +491,86 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
+    vm.confirm_purchase_approval_request = function(data, validation_type) {
+      var status = true;
+      var sku_list = '';
+      if (validation_type == "approved" && vm.permissions.change_pendinglineitems) {
+        for (var i = 0; i < data.length; i++) {
+          var compare_gstin = vm.model_data.data[i].fields.supplierDetails[vm.model_data.data[i].fields.supplier_id_name].gstin
+          if (compare_gstin != '' || compare_gstin != 0) {
+            if (!vm.model_data.data[i].fields.hsn_code || vm.model_data.data[i].fields.hsn_code == 0) {
+              status = false;
+              sku_list = sku_list + ', ' + vm.model_data.data[i].fields.sku.wms_code;
+            }
+          }
+          if (i+1 == data.length) {
+            if (!status) {
+              Service.showNoty('HSN Code Mandate for These Sku : ' + sku_list);
+            }
+            return status;
+          }
+        }
+      } else {
+        return status;
+      }
+    }
+
     vm.approve_pr = function(form, validation_type) {
-      var elem = angular.element($("form[name='pending_for_approval']"));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
-      if (vm.is_actual_pr){
-        elem.push({name:'is_actual_pr', value:true})
-      }
-      // if (vm.pr_number){
-      //   elem.push({name:'pr_number', value:vm.pr_number})
-      // }
-      var keepGoing = true;
-      if (vm.permissions.change_pendinglineitems) {
-        angular.forEach(elem, function(key, index) {
-          if (key.name == 'supplier_id') {
-            if (!key.value) {
-              keepGoing = false;
-              Service.showNoty('Supplier Should be provided by Purchase');
-              return;
+      if (vm.confirm_purchase_approval_request(vm.model_data.data, validation_type)) {
+        var elem = angular.element($("form[name='pending_for_approval']"));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        elem.push({name:'purchase_id', value:vm.model_data.purchase_id})
+        if (vm.is_actual_pr){
+          elem.push({name:'is_actual_pr', value:true})
+        }
+        // if (vm.pr_number){
+        //   elem.push({name:'pr_number', value:vm.pr_number})
+        // }
+        var keepGoing = true;
+        if (vm.permissions.change_pendinglineitems) {
+          angular.forEach(elem, function(key, index) {
+            if (key.name == 'supplier_id') {
+              if (!key.value) {
+                keepGoing = false;
+                Service.showNoty('Supplier Should be provided by Purchase');
+                return;
+              }
+            } else if (key.name == 'price') {
+              if (key.value == '') {
+                keepGoing = false;
+                Service.showNoty('Price Should be provided by Purchase');
+                return;
+              }
             }
-          } else if (key.name == 'price') {
-            if (key.value == '') {
-              keepGoing = false;
-              Service.showNoty('Price Should be provided by Purchase');
-              return;
+          });
+        }
+        if (vm.validated_by){
+          elem.push({name:'validated_by', value:vm.validated_by})
+        }
+        if (vm.requested_user){
+          elem.push({name:'requested_user', value:vm.requested_user})
+        }
+        if (vm.pending_level){
+          elem.push({name:'pending_level', value:vm.pending_level})
+        }
+        if (validation_type == 'approved'){
+          elem.push({name: 'validation_type', value: 'approved'})
+        } else{
+          elem.push({name: 'validation_type', value: 'rejected'})
+        }
+        if (keepGoing) {
+          vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+            if(data.message){
+              if(data.data == 'Approved Successfully') {
+                vm.close();
+                vm.service.refresh(vm.dtInstance);
+              } else {
+                vm.service.showNoty(data.data);
+              }
             }
-          } else if (key.name == 'hsn_code' && (!key.value || key.value == 0)) {
-              keepGoing = false;
-              Service.showNoty('HSN Code Mandate, Please Update in Masters !!');
-              return;
-          }
-        });
-      }
-      if (vm.validated_by){
-        elem.push({name:'validated_by', value:vm.validated_by})
-      }
-      if (vm.requested_user){
-        elem.push({name:'requested_user', value:vm.requested_user})
-      }
-      if (vm.pending_level){
-        elem.push({name:'pending_level', value:vm.pending_level})
-      }
-      if (validation_type == 'approved'){
-        elem.push({name: 'validation_type', value: 'approved'})
-      } else{
-        elem.push({name: 'validation_type', value: 'rejected'})
-      }
-      if (keepGoing) {
-        vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
-          if(data.message){
-            if(data.data == 'Approved Successfully') {
-              vm.close();
-              vm.service.refresh(vm.dtInstance);
-            } else {
-              vm.service.showNoty(data.data);
-            }
-          }
-        })
+          })
+        }
       }
     }
 

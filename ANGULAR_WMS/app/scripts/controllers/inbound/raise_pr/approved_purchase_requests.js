@@ -210,6 +210,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
@@ -407,7 +408,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
+        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
+      } else {
+        data.conversion = 0
       }
     }
 
@@ -645,34 +649,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
-      var hsn_code_err_flag = false;
-      var keepGoing = true;
       angular.forEach(vm.preview_data.data, function(eachLineItem){
-        if (keepGoing) {
-          if (eachLineItem.checkbox){
-            if (!eachLineItem.hsn_code || eachLineItem.hsn_code == '0') {
-              hsn_code_err_flag = true;
-              keepGoing = false;
-              vm.service.showNoty("HSN Code is missing");
-              return;
-            }
-            if (eachLineItem.product_category == 'Kits&Consumables' && 
-                  (Object.keys(eachLineItem.supplierDetails).length == 0)){
-              vm.service.showNoty("Supplier Should be present for Kits&Consumables");
+        if (eachLineItem.checkbox){
+          if (eachLineItem.product_category == 'Kits&Consumables' && 
+                (Object.keys(eachLineItem.supplierDetails).length == 0)){
+            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
+          } else {
+            if (eachLineItem.moq > eachLineItem.quantity){
+              alertMsg = alertMsg + " " + eachLineItem.sku_code 
             } else {
-              if (eachLineItem.moq > eachLineItem.quantity){
-                alertMsg = alertMsg + " " + eachLineItem.sku_code 
-              } else {
-                selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-                selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-                selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-                selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-              };
-            }
+              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+            };
           }
         }
       });
-      if (selectedItems.length == 0 && !hsn_code_err_flag){
+      if (selectedItems.length == 0){
         vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
       }
       var finalAlerMsg = '';

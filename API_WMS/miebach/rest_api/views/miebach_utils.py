@@ -3210,11 +3210,11 @@ UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_u
                                   ))
 
 
-USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'), 
+USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'),
                                     ('Stockone Code', 'stockone_code'), ('SAP Code', 'sap_code'), ('Netsuite Id', 'reference_id'),
                                     ('Username', 'username'), ('First Name', 'first_name'), ('Last Name', 'last_name'),
                                     ('Phone Number', 'phone_number'), ('Email', 'email'), ('Password', 'password'),
-                                    ('Country', 'country'), ('State', 'state'), ('Address', 'address'), 
+                                    ('Country', 'country'), ('State', 'state'), ('Address', 'address'),
                                     ('City', 'city'), ('Pincode', 'pincode')
                         ))
 
@@ -4668,7 +4668,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 else:
                     pr_department = pr_raised_user
                 pr_plant = get_admin(pr_dept)
-                pr_plant = pr_plant.username
+                if pr_plant.first_name:
+                    pr_plant = pr_plant.first_name
+                else:
+                    pr_plant = pr_plant.username
                 pr_number = pending_pr.full_pr_number
                 prApprQs = pending_pr.pending_prApprovals
                 all_approvals_data= list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
@@ -4696,8 +4699,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
         grn_genrated_user=grn_genrated_user.username
         if(data["purchase_order__expected_date"]):
-            Expected_delivery_date = get_local_date(user, data['purchase_order__expected_date']).split(' ')
-            Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
+            Expected_delivery_date = data['purchase_order__expected_date'].strftime("%d %b, %Y")
         if data['purchase_order__open_po__vendor__vendor_id']:
             vendor_code = data['purchase_order__open_po__vendor__vendor_id']
         if data['purchase_order__open_po__vendor__name']:
@@ -4708,8 +4710,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             grn_status="Cancelled"
             credit_note_status= "Cancelled"
         elif(data["credit_status"]==1):
+            grn_status="Completed"
             credit_note_status="Created"
         elif(data["credit_status"]==2):
+            grn_status="Completed"
             credit_note_status="Completed"
         else:
             grn_status="Completed"
@@ -5092,7 +5096,6 @@ def get_sku_wise_st_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
-
 def get_po_grn_price_and_taxes(data, type=""):
     total_qty, total_price, total_tax= [0]*3
     if type=="PO":
@@ -5113,6 +5116,34 @@ def get_po_grn_price_and_taxes(data, type=""):
             else:
                 tmp_price = row.purchase_order.open_po.price * row.quantity
             tmp_tax = row.purchase_order.open_po.sgst_tax + row.purchase_order.open_po.cgst_tax + row.purchase_order.open_po.igst_tax
+            total_tax += (tmp_tax * tmp_price)/100
+            total_price +=  tmp_price
+    return total_qty, total_price, total_tax
+
+
+def get_po_grn_price_and_taxes(data, type=""):
+    total_qty, total_price, total_tax= [0]*3
+    if type=="PO":
+        for row in data:
+            total_qty += row.open_po.order_quantity
+            tmp_price = row.open_po.price * row.open_po.order_quantity
+            tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
+            total_tax += (tmp_tax * tmp_price) /100
+            total_price +=  tmp_price
+    if type=="GRN":
+        for row in data:
+            total_qty += row.quantity
+            if row.price > 0:
+                tmp_price = row.price * row.quantity
+            elif row.batch_detail:
+                if row.batch_detail.buy_price >0:
+                    tmp_price = row.batch_detail.buy_price * row.quantity
+            else:
+                tmp_price = row.purchase_order.open_po.price * row.quantity
+            if(row.purchase_order.open_po):
+                tmp_tax = row.purchase_order.open_po.sgst_tax + row.purchase_order.open_po.cgst_tax + row.purchase_order.open_po.igst_tax
+            else:
+                tmp_tax = 0
             total_tax += (tmp_tax * tmp_price)/100
             total_price +=  tmp_price
     return total_qty, total_price, total_tax
@@ -5284,7 +5315,10 @@ def get_po_filter_data(search_params, user, sub_user):
                 else:
                     pr_department = pr_raised_user
                 pr_plant = get_admin(pr_dept)
-                pr_plant = pr_plant.username
+                if pr_plant.first_name:
+                    pr_plant = pr_plant.first_name
+                else:
+                    pr_plant = pr_plant.username
                 pr_number = pending_pr.full_pr_number
                 prApprQs = pending_pr.pending_prApprovals
                 all_approvals_data= list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
@@ -5318,8 +5352,8 @@ def get_po_filter_data(search_params, user, sub_user):
         grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
         grn_genrated_user=grn_genrated_user.username
         if(data["purchase_order__expected_date"]):
-            Expected_delivery_date = get_local_date(user, data['purchase_order__expected_date']).split(' ')
-            Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
+            Expected_delivery_date = data['purchase_order__expected_date'].strftime("%d %b, %Y")
+            # Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
         if data['purchase_order__open_po__vendor__vendor_id']:
             vendor_code = data['purchase_order__open_po__vendor__vendor_id']
         if data['purchase_order__open_po__vendor__name']:
@@ -5330,8 +5364,10 @@ def get_po_filter_data(search_params, user, sub_user):
             grn_status="Cancelled"
             credit_note_status= "Cancelled"
         elif(data["credit_status"]==1):
+            grn_status="Completed"
             credit_note_status="Created"
         elif(data["credit_status"]==2):
+            grn_status="Completed"
             credit_note_status="Completed"
         else:
             grn_status="Completed"
@@ -13910,4 +13946,3 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
-

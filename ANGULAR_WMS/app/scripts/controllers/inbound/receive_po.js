@@ -126,15 +126,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
-    if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }
-    if (vm.industry_type == 'FMCG') {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
-    }
+    // if (vm.industry_type == 'FMCG') {
+    //   vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+    // }
     vm.dtColumns.push(DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('send_to').withTitle('Send To'))
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -663,10 +660,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (vm.model_data.other_charges.length > 0) {
         elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
       }
-      if (vm.permissions.receive_po_inv_value_qty_check) {
-        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-      }
+      // if (vm.permissions.receive_po_inv_value_qty_check) {
+      //   elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+      //   elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      // }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -755,18 +752,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.confirm_grn_api()
           } else {
             var temp_str = "Invoice "
-            if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
-              temp_str = temp_str + " - Quantity"
-            }
-            if (parseInt(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
+            //   temp_str = temp_str + " - Quantity"
+            // }
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
-            vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
-              if (msg == "true") {
-                vm.total_grn_quantity = inv_match_qty;
-                vm.confirm_grn_api()
-              }
-            })
+            if (temp_str.includes('Value')) {
+              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
+            } else {
+              vm.total_grn_quantity = inv_match_qty;
+              vm.confirm_grn_api()
+            }
           }
         }
       })
@@ -813,19 +815,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.confirm_grn_api = function(){
+    vm.confirm_grn_api = function() {
       if(check_receive()){
         var that = vm;
         var elem = angular.element($('form'));
         elem = elem[0];
-
-        var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
-        var mrp = parseInt($(elem).find('input[name="mrp"]').val());
-
-        // if(buy_price > mrp) {
-        //   pop_msg("Buy Price should be less than or equal to MRP");
-        //   return false;
-        // }
         elem = $(elem).serializeArray();
         var form_data = new FormData();
         var files = $(".grn-form").find('[name="files"]')[0].files;
@@ -841,28 +835,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (vm.permissions.receive_po_inv_value_qty_check) {
           elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
           elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-        }
-        if (vm.permissions.dispatch_qc_check) {
-          if (!$.isEmptyObject(vm.collect_imei_details)) {
-            var elem_dict = {'name':'imei_qc_details', 'value': JSON.stringify(vm.collect_imei_details)}
-            elem.push(elem_dict)
-          }
-          if (!$.isEmptyObject(vm.passed_serial_number)) {
-            var elem_dict = {'name':'passed_serial_number', 'value': JSON.stringify(vm.passed_serial_number)}
-            elem.push(elem_dict)
-          }
-          if (!$.isEmptyObject(vm.failed_serial_number)) {
-            var elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
-            elem.push(elem_dict)
-          }
-          if (vm.main_sr_number) {
-            var elem_dict = {'name':'main_sr_number', 'value': vm.main_sr_number}
-            elem.push(elem_dict)
-          }
-          if (vm.selected_order_type == 'Stock Transfer') {
-            var elem_dict = {'name':'confirm_order_type', 'value': 'StockTransfer'}
-            elem.push(elem_dict)
-          }
         }
         if(vm.display_approval_button==true){
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
@@ -880,8 +852,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        if(vm.display_approval_button==true){
-
+        if (vm.display_approval_button==true) {
           url = "send_for_approval_confirm_grn/"
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
             if(data.message) {
@@ -893,8 +864,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             }
           });
-        }
-        else{
+        } else {
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
             if (data.message) {
               if (data.data.search("<div") != -1) {
@@ -903,17 +873,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.failed_serial_number = {}
                 vm.collect_imei_details = {}
                 vm.extra_width = {}
-  //              vm.html = $(data.data);
-                vm.extra_width = {}
-                //var html = $(vm.html).closest("form").clone();
-                //angular.element(".modal-body").html($(html).find(".modal-body"));
                 if (data.data.search('discrepancy_data') != -1) {
-                     vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
-                     angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+                  vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                  angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
                 } else{
-                     angular.element(".modal-body").html($(data.data));
+                  angular.element(".modal-body").html($(data.data));
                 }
-
                 vm.print_enable = true;
                 vm.service.refresh(vm.dtInstance);
                 if(vm.permissions.use_imei) {
@@ -939,20 +904,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     function check_receive() {
-      var status = false;
+      var status = true;
+      var sku_list = "Buy Price should not more than Unit Price Following Sku's: "
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
-            status = true;
+        if (parseFloat(vm.model_data.data[i][0]['price']) < parseFloat(vm.model_data.data[i][0]['buy_price'])) {
+          sku_list = sku_list + ' - ' + vm.model_data.data[i][0]['wms_code']
+          status = false;
+        }
+        if (i+1 == vm.model_data.data.length) {
+          if (status) {
+            return true;
+          } else {
+            colFilters.showNoty(sku_list);
+            return false;
           }
-        });
-      }
-
-      if(status){
-        return true;
-      } else {
-        pop_msg("Please Update the received quantity");
-        return false;
+        }
+        // angular.forEach(vm.model_data.data[i], function(sku){
+        //   if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
+        //     status = true;
+        //   }
+        // });
       }
     }
 

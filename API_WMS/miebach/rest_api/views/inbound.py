@@ -74,7 +74,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         # if status != 'approved': # Creator Sub Users
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
-        #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))        
+        #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
@@ -1780,7 +1780,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'tax': json_data['tax'],
                                                     'total': json_data['total'],
                                                     }
-             
+
             supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
                         sku__user=storeObj.id).order_by('preference')
             pr_req_provided_data = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
@@ -3118,8 +3118,8 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
     return prObj, mailsList
 
 
-def updatePRApproval(pr_number, user, level, validated_by, validation_type, 
-                    remarks, purchase_type='PO', approval_type='', 
+def updatePRApproval(pr_number, user, level, validated_by, validation_type,
+                    remarks, purchase_type='PO', approval_type='',
                     product_category='Kits&Consumables'):
     apprQs = PurchaseApprovals.objects.filter(purchase_number=pr_number,
                                             pr_user=user,
@@ -3263,10 +3263,10 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         <p>Product Category : %s </p> \
         <p>Store : %s </p> \
         <p>Department : %s </p> \
-        <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt, 
+        <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt,
                         purchase_type, requestedBy, purchase_type, mailId,
                         purchase_type, creation_date, delivery_date, pendingLevel,
-                        product_category, store, department, line_sub_heading, 
+                        product_category, store, department, line_sub_heading,
                         lineItemDetails)
         if hash_code:
             body = podetails_string+ "<p>Please click on the below link to validate.</p>\
@@ -3490,8 +3490,8 @@ def approve_pr(request, user=''):
                 #                      requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
                 for eachMail in mailsList:
                     generateHashCodeForMail(prObj, eachMail, 'level0')
-                    sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, 
-                        '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor, 
+                    sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
+                        '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
                         central_po_data=central_po_data)
             # pass
             try:
@@ -3990,7 +3990,13 @@ def netsuite_pr(user, PRQs, full_pr_number):
                 approval1 = user.email
             else:
                 approval1 = user.first_name
-        department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
+        department_obj= existingPRObj.wh_user
+        department = department_obj.userprofile.reference_id
+        # UserProfile.objects.get(user_id=user.id)
+        plant_obj= get_admin(department_obj)
+        plant = plant_obj.userprofile.reference_id
+        subsidary=department_obj.userprofile.company.reference_id
+        # department, plant, subsidary=get_plant_subsidary_and_department(existingPRObj.requested_user)
         if(not plant):
             admin_user= get_admin(user)
             p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
@@ -4497,7 +4503,7 @@ def save_pr(request, user=''):
             if dept_user_obj:
                 user = dept_user_obj[0]
             else:
-                return HttpResponse('Department Login not found')        
+                return HttpResponse('Department Login not found')
         if myDict.get('is_actual_pr'):
             is_actual_pr = myDict.get('is_actual_pr')[0]
             reversion.set_comment("SavePendingPR")
@@ -4614,7 +4620,7 @@ def submit_pending_approval_enquiry(request, user=''):
         admin_user = None
         user = pendingPurchaseObj.wh_user
         prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.values_list('id', flat=True)
-        validatedEmails = PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds, 
+        validatedEmails = PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds,
                             pr_approval__status='approved'). \
                             order_by('id').values_list('email', flat=True)
         for eachMail in validatedEmails:
@@ -6552,7 +6558,19 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                 # if not data_dict['temp_json_id'][i]:
                 doa_obj = MastersDOA(**doa_dict)
                 doa_obj.save()
-                    # TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(po_data))
+            file_obj = request.FILES.get('files-0', '')
+            if file_obj:
+                master_docs_obj = MasterDocs.objects.filter(master_id=po.order_id, master_type='PO_TEMP',
+                                                            user_id=user.id)
+                if not master_docs_obj:
+                    upload_master_file(request, user, po.order_id, 'PO_TEMP', master_file=file_obj)
+                else:
+                    master_docs_obj = master_docs_obj[0]
+                    if os.path.exists(master_docs_obj.uploaded_file.path):
+                        os.remove(master_docs_obj.uploaded_file.path)
+                    master_docs_obj.uploaded_file = file_obj
+                    master_docs_obj.save()
+                        # TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(po_data))
                 # else:
                 #     doa_obj = doaQs[0]
                 #     doa_obj.json_data = json.dumps(po_data)
@@ -6825,12 +6843,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
     vendorbill_url=""
     if purchase_order_obj:
-        file_obj = grn_params.FILES.get('files-0', '')
-        if file_obj:
-            po_order_id = purchase_order_obj[0].order_id
-            master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
-                                                    master_type='GRN')
-            vendorbill_url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+        po_order_id = purchase_order_obj[0].order_id
+        master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                                master_type='GRN')
+        vendorbill_url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     grn_qty=float(data_dict.get("total_received_qty",0.0))
     grn_value=float(data_dict.get("net_amount",0.0))
     invoice_quantity= float(invoice_quantity)
@@ -6839,11 +6855,21 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         vendorbill_url=""
         invoice_no=""
         invoice_date=""
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    prQs = PendingPO.objects.filter(full_po_number=po_number)
+    product_category=""
+    if prQs:
+        product_category = prQs[0].product_category
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    department= ""
+    remarks=""
+    if "remarks" in myDict:
+        remarks= str(myDict["remarks"][0])
     grn_data = {'po_number': po_number,
                 'department': department,
                 "subsidiary": subsidary,
                 "plant": plant,
+                "remarks": remarks,
                 'grn_number': grn_number,
                 'items':[],
                 'grn_date': grn_date,
@@ -6851,7 +6877,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
                 "dc_date" : dc_date,
-                "vendorbill_url": vendorbill_url
+                "vendorbill_url": vendorbill_url,
+                "product_category": product_category,
      }
     # if(service_doa):
     #     purchase_order = PurchaseOrder.objects.filter(order_id=data_dict["order_id"], open_po__sku__user=grn_params.user.id)
@@ -9278,8 +9305,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     address_id=''
     supplier_gstin=''
     try:
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        # department, plant, subsidary=get_plant_subsidary_and_department(user)
         if prQs:
+            plant_obj =prQs[0].wh_user
+            plant = plant_obj.userprofile.reference_id
+            subsidary= plant_obj.userprofile.company.reference_id
             if (prQs[0].supplier_payment):
                 payment_code= prQs[0].supplier_payment.payment_code
             if prQs[0].pending_prs.all():
@@ -9335,7 +9365,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
         po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
-                    'department': department, "subsidiary":subsidary, "plant":plant,
+                    'department': "", "subsidiary":subsidary, "plant":plant,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                     'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,

@@ -12341,10 +12341,13 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
         if user.id != user_id:
-            if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
-                user_data_dict['tax_type'] = 'intra_state'
+            if user_filter_dict.get('tin_number', ''):
+                if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
+                    user_data_dict['tax_type'] = 'intra_state'
+                else:
+                    user_data_dict['tax_type'] = 'inter_state'
             else:
-                user_data_dict['tax_type'] = 'inter_state'
+                user_data_dict['tax_type'] = ''
         exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
         if not exist_supplier.exists():
             supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)

@@ -13,6 +13,7 @@ class IntegrationMaster(models.Model):
     integration_data = models.TextField()
     module_type = models.CharField(max_length=64)
     stockone_reference = models.CharField(max_length=64)
+    integration_error = models.TextField()
     action_type = models.CharField(
         max_length=6, 
         choices=(

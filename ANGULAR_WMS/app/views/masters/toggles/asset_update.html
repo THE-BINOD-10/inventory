@@ -157,7 +157,9 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <input type="hidden" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.product_type" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <input type="hidden" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.product_type"
+                       value="{{showCase.model_data.sku_data.product_type}}"
+                       ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

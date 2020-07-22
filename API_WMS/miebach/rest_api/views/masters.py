@@ -5485,14 +5485,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = [user.id]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
-                    model_name="SKUSupplier",
-                    doa_status="pending").order_by(order_data)
-    else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
-                    model_name="SKUSupplier",
-                    doa_status="pending").order_by(order_data)
+    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier", 
+                            doa_status="pending").order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -5508,7 +5502,18 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         if row.requested_user.is_staff:
             warehouse = row.requested_user
         else:
-            warehouse = get_admin(row.requested_user)
+            warehouse = get_admin(row.requested_user)        
+        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username, 
+                        row.doa_status, result.get('request_from', 'Master'), result.get('price', ''), str(skuObj.mrp),
+                        row.requested_user.first_name]
+        is_searchable = False
+        if search_term:
+            for constraint in search_constraints:
+                if search_term.lower() in constraint.lower():
+                    is_searchable = True
+                    break
+            if not is_searchable:
+                continue
         temp_data['aaData'].append(OrderedDict((('supplier_id', result['supplier_id']), ('wms_code', skuObj.wms_code),
                                                 ('supplier_code', result['supplier_code']), ('moq', result['moq']),
                                                 ('preference', sku_preference),

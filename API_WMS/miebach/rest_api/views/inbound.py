@@ -1315,7 +1315,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                     'prefix': supplier.prefix,
                                     'Order Date': get_local_date(request.user, supplier.creation_date),
                                     'DT_RowClass': 'results', 'PO Number': po_reference,
-                                    'Warehouse': warehouse.username, 'warehouse_id': warehouse.id,
+                                    'Warehouse': warehouse.first_name, 'warehouse_id': warehouse.id,
                                     'DT_RowAttr': {'data-id': supplier.order_id}})
 
 

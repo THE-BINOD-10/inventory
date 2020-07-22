@@ -690,7 +690,8 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id', 'phone_number', 'status']
+    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id',
+           'reportingto_email_id','phone_number', 'status']
 
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)

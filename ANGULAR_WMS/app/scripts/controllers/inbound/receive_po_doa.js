@@ -845,10 +845,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               //var html = $(vm.html).closest("form").clone();
               //angular.element(".modal-body").html($(html).find(".modal-body"));
               if (data.data.search('discrepancy_data') != -1) {
-                    vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
-                    angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+                vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
               } else{
-                    angular.element(".modal-body").html($(data.data));
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
               }
 
               vm.print_enable = true;

@@ -111,7 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     var columns = ['PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
+                   'Remarks', 'Store','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
 
@@ -212,13 +212,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   'supplier_id': aData['DT_RowId'],
                   'warehouse': aData['Warehouse'] ,
                   'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
-                  'prefix': aData['prefix']
+                  'prefix': aData['prefix'],
+                  'po_number': aData['PO No'],
+                  'warehouse_id': aData['warehouse_id']
                 }
+                vm.form = 'grn_form';
                 vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data.warehouse_id = aData['warehouse_id'];
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
                     vm.title = "Generate GRN";

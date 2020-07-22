@@ -30,10 +30,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       var data_to_send = {
         'po_number': aData['PO Number'],
-        'prefix': aData['prefix']
+        'prefix': aData['prefix'],
+        'warehouse_id': aData['warehouse_id']
       }
       vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
         vm.model_data = data.data;
+        vm.model_data.warehouse_id = aData['warehouse_id'];
         if (vm.industry_type == 'FMCG') {
           vm.extra_width = {
             'width': '1200px'

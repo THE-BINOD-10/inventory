@@ -22,6 +22,7 @@ from miebach_admin.choices import SELLABLE_CHOICES
 from dateutil.relativedelta import *
 from django.db.models.functions import ExtractHour, ExtractMinute
 import unicodedata
+from miebach_admin.custom_decorators import get_admin_multi_user
 
 # from inbound import *
 
@@ -638,8 +639,9 @@ GRN_EDIT_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type':
                              {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                              ],
                  'dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity',
-                                'Product Category'],
-                 'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+                                'Product Category', 'Store'],
+                 'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity',
+                                   'Store'],
                  'dt_url': 'get_grn_edit_filter', 'excel_name': '', 'print_url': ''
                  }
 
@@ -2417,6 +2419,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Change PendingPO", "change_pendingpo"),
                        ("View PendingPR", "view_pendingpr"), ("Add PendingPR", "add_pendingpr"),
                        ("Change PendingPR", "change_pendingpr"),
+                       ("Approve Service GRN DOA", "change_mastersdoa"),
+                       ("Pending Invoice Mismatches", "change_pocreditnote"),
                        )),
 
     # Production
@@ -2839,9 +2843,9 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # Supplier Invoices page headers based on user type
 
-WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount', 'Store']
 WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN NO', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                                  'Order Date', 'Total Amount']
+                                  'Order Date', 'Total Amount', 'Store']
 
 DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
 
@@ -3192,7 +3196,7 @@ STAFF_MASTER_MAPPING = OrderedDict(
      ('Staff Code', 'staff_code'), ('Name', 'name'),
      ('Email', 'email_id'), ('ReportingTO', 'reportingto_email_id'), ('Password', 'password'),
      ('Phone Number', 'phone_number'), ('Position', 'position'),
-     ('Status', 'status')
+     ('Status', 'status'), ('Groups', 'groups')
      ))
 
 GRN_MAPPING = OrderedDict(
@@ -10227,15 +10231,18 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
 
 def get_grn_edit_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
-    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    users = [user.id]
+    users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     user_profile = UserProfile.objects.get(user_id=user.id)
     lis = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'ordered_qty', 'order_id',
-           'order_id']
+           'order_id', 'open_po__sku__user']
     unsorted_dict = {}
     model_name = PurchaseOrder
     field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id',
-                     'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user',
+                     'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user__in',
                      'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix',
                      'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
     result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
@@ -10261,8 +10268,8 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
             search_parameters[field_mapping['order_id']] = temp[-1]
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
-    search_parameters[field_mapping['user']] = user.id
-    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters[field_mapping['user']] = user_ids
+    #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0
     search_parameters['sellerposummary__status'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku', 'open_po__supplier').select_related('open_po',
@@ -10286,11 +10293,12 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id,
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user__in=user_ids,
                                            prefix=data['prefix'])
         result = po_result[0]
+        warehouse = User.objects.get(id=result.open_po.sku.user)
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
         if not total_ordered:
             total_ordered = 0
@@ -10321,6 +10329,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
                          ('Received Quantity', received_qty),
                          ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                          ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
+                         ('Store', warehouse.first_name), ('warehouse_id', warehouse.id)
                          )))
     if stop_index and custom_search:
         if temp_data['aaData']:

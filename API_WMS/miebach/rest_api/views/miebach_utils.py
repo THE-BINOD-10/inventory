@@ -864,26 +864,17 @@ METRO_PO_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
-        {'label': 'PO Status', 'name': 'final_status', 'type': 'select'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
     ],
 
-    'dt_headers': ['PR Number', 'PR Date', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
-                   'Product Category','Category', 'PR Quantity', 'UOM', 'Total Amount','Approved by all Approvers',
+    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
+                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers',
                    'Final Approver date','PO Number', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name', 'Vendor code', 'Vendor Name'],
 
-    # 'dt_headers1': ['PR Number', 'PR Raised By', 'PR Date', 'PO Number', 'PO Raised Date', 'Plant', 'Department',
-    #                'Product Category', 'Category', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'PO Status',
-    #                'Quantity Received', 'GRN Numbers',
-    #                'PO Amount Pre Tax', 'Tax Amount', 'PO Amount with Tax', 'PR Approved Date', 'Approver 1 ID',
-    #                'Approver 1 Status', 'Approver 1 Date', 'Approver 2 ID', 'Approver 2 Status', 'Approver 2 Date',
-    #                'Approver 3 ID', 'Approver 3 Status', 'Approver 3 Date', 'Approver 4 ID', 'Approver 4 Status',
-    #                'Approver 4 Date', 'PO Created by', 'Last Updated by', 'Last Updated Date', 'Expected delivery date',
-    #                'Vendor code', 'Vendor Name'],
     'dt_url': 'get_metro_po_report', 'excel_name': 'get_metro_po_report',
     'print_url': 'get_metro_po_report',
 }
@@ -895,22 +886,20 @@ METRO_PO_DETAIL_REPORT_DICT = {
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
-        {'label': 'PO Status', 'name': 'final_status', 'type': 'select'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
         {'label': 'SKU-Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['PR Number', 'PR Raised By', 'PR Date', 'PO Number', 'PO Raised Date', 'Plant', 'Department',
-                   'Product Category', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'PO Status',
-                   'Quantity Received', 'GRN Numbers',
-                   'PO Amount Pre Tax', 'Tax Amount', 'PO Amount with Tax', 'PR Approved Date', 'Material Code',
+
+    'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
+                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers',
+                   'Final Approver date','PO Number', 'PO Raised Date','Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
-                   'SKU Group', 'SKU Class', 'Approver 1 ID', 'Approver 1 Status', 'Approver 1 Date', 'Approver 2 ID',
-                   'Approver 2 Status', 'Approver 2 Date',
-                   'Approver 3 ID', 'Approver 3 Status', 'Approver 3 Date', 'Approver 4 ID', 'Approver 4 Status',
-                   'Approver 4 Date', 'PO Created by', 'Last Updated by', 'Last Updated Date', 'Expected delivery date',
-                   'Vendor code', 'Vendor Name'],
+                   'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
+                   'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
+                   'Supplier ID', 'Supplier Name', 'Vendor code', 'Vendor Name'],
+
     'dt_url': 'get_metro_po_detail_report', 'excel_name': 'get_metro_po_detail_report',
     'print_url': 'get_metro_po_detail_report',
 }
@@ -13468,8 +13457,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
     if 'supplier' in search_params:
-        supp_search = search_params['supplier'].split(':')
-        search_parameters['pending_po__supplier_id'] = supp_search[0]
+        search_parameters['pending_po__supplier__supplier_id__iexact'] = search_params['supplier'].split(':')[0]
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
@@ -13494,192 +13482,113 @@ def get_metro_po_report_data(search_params, user, sub_user):
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name', 'pending_po__open_po__price',
-                   'pending_po__product_category', 'pending_po__open_po', 'pending_po__pending_prs__creation_date',
-                   'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username',
-                   'pending_po__wh_user__first_name', 'pending_po__pending_prs__requested_user__first_name',
-                   # 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand',
-                   # 'sku__sku_group', 'pending_po__pending_prs__creation_date',
-                   # 'sku__style_name', 'sku__price', 'sku__mrp', 'sku__sub_category', 'sku__sku_group',
-                   'pending_po__pending_prs__full_pr_number','pending_po__full_po_number',
-                   'pending_po__final_status', 'pending_po__pending_level', 'cgst_tax', 'igst_tax','sgst_tax',
-                   'pending_po__sku_category','pending_po__requested_user__first_name',
-                   'pending_po__remarks', 'pending_po__supplier_id', 'pending_po__supplier__name',
-                   'pending_po__creation_date','pending_po__full_po_number', 'pending_po__wh_user',
-                   'pending_po__updation_date', 'pending_po__prefix', 'pending_po__delivery_date',
-                   'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name']
+
+    values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
+                   'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
+                   'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
+                   'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
+                   'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id',
+                   'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
+
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
-    resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
-    resultsWithDate_1 = dict(pending_data.values_list('pending_po__po_number', 'updation_date'))
-
     if order_term:
         pending_data = pending_data.order_by(order_data)
     temp_data['recordsTotal'] = pending_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-
-    approvedPRQs = pending_data.values_list('pending_po__po_number', 'pending_po__pending_prs__full_pr_number',
-                                       'pending_po__pending_prs__sub_pr_number')
-    POtoPRsMap = {}
-    for eachPO, pr_number, sub_pr_number in approvedPRQs:
-        if sub_pr_number:
-            POtoPRsMap.setdefault(eachPO, []).append(str(pr_number) + '/' + str(sub_pr_number))
-        else:
-            POtoPRsMap.setdefault(eachPO, []).append(str(pr_number))
-
-    POtoPRDeptMap = dict(
-        pending_data.values_list('pending_po__po_number', 'pending_po__pending_prs__wh_user__userprofile__stockone_code'))
-
     if stop_index:
         results = pending_data[start_index:stop_index]
     else:
         results = pending_data
 
     for result in results:
-        po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-        po_date = po_created_date.strftime('%d-%m-%Y')
-        po_updation_date = resultsWithDate_1.get(result['pending_po__po_number'])
-        po_update_date = po_updation_date.strftime('%d-%m-%Y')
-        dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
+        pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
+        pr_creation_date = result['pending_po__pending_prs__creation_date']
+        if pr_creation_date:
+            pr_date = get_local_date(user, pr_creation_date)
+        pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
 
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'],
-                                                          purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], purchase_type='PO',
-                                                    level=result['pending_po__pending_level'])
-        approver1, approver2, approver3, approver4 = '', '', '', ''
-        approver1_date, approver2_date, approver3_date, approver4_date = '', '', '', ''
-        approver1_status, approver2_status, approver3_status, approver4_status = '', '', '', ''
-        cgst_tax = result['cgst_tax']
-        sgst_tax = result['sgst_tax']
-        igst_tax = result['igst_tax']
-        total_tax = cgst_tax + sgst_tax + igst_tax
-        if result.get('pending_po__open_po__price', '') is None:
-            result['pending_po__open_po__price'] = 0
-        if result['pending_po__open_po__price'] > 0:
-            result['total_amt'] = round(result['pending_po__open_po__price'] * result['total_qty'], 4)
-        tax_amount = result['total_amt'] * (total_tax / 100)
-        if prApprQs.exists():
-            if lastLevel != 'level0':
-                check_level = lastLevel
-                level_end = int(check_level[-1])
-                prev_level = ''
-                for level_d in range(0, level_end + 1):
-                    prev_level = 'level' + str(level_d)
-                    if prev_level == 'level0':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver1 = approver_data[0].validated_by
-                            approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver1_status = approver_data[0].status
-
-                    elif prev_level == 'level1':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver2 = approver_data[0].validated_by
-                            approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver2_status = approver_data[0].status
-
-                    elif prev_level == 'level2':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver3 = approver_data[0].validated_by
-                            approver3_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver3_status = approver_data[0].status
-
-                    elif prev_level == 'level3':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO',
-                            pr_user=user, level=prev_level)
-                        if approver_data.exists():
-                            approver4 = approver_data[0].validated_by
-                            approver4_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver4_status = approver_data[0].status
-
+        pr_dept = get_warehouse_user_from_sub_user(result['pending_po__pending_prs__requested_user__id'])
+        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+        if (user_profile.warehouse_type == "DEPT"):
+            if (user_profile.stockone_code):
+                pr_department = user_profile.stockone_code
             else:
-
-                approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                 purchase_type='PO',
-                                                                 level=lastLevel)
-                if approver_data.exists():
-                    approver1 = approver_data[0].validated_by
-                    approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                    approver1_status = approver_data[0].status
-        po_con_date, grn_number, release_date, po_status, warehouse, warehouse_type, received_quantity = '', '', '', '', '', '', ''
-        if result['pending_po__creation_date']:
-            po_con_date = get_local_date(user, result['pending_po__creation_date'])
-        if result['pending_po__final_status']:
-            po_status = result['pending_po__final_status'].title()
+                pr_department = pr_dept.username
+        else:
+            pr_department = pr_request_user
+        pr_plant = get_admin(pr_dept)
+        if pr_plant.first_name:
+            pr_plant = pr_plant.first_name
+        else:
+            pr_plant = pr_plant.username
+        all_approvals = []
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=result['pending_po__pending_prs__id'])
+        all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
+        last_approvals_date = ''
+        if (all_approvals_data):
+            for approvals in all_approvals_data:
+                all_approvals.append(approvals[0])
+            last_approvals_date = get_local_date(user, all_approvals_data[-1][1]).split(' ')
+            last_approvals_date = ' '.join(last_approvals_date[0:3])
+        pending_line_item = PendingLineItems.objects.filter(pending_pr=result['pending_po__pending_prs__id'])
+        pr_qty, pr_price, pr_tax_amount, pr_Total_Amt = 0, 0, 0, 0
+        if pending_line_item.exists():
+            for row in pending_line_item:
+                # uom=row.measurement_unit
+                pr_qty += row.quantity
+                pr_price += row.price
+                pr_tax_amount += row.sgst_tax + row.cgst_tax + row.igst_tax + row.utgst_tax
+                pr_Total_Amt += (pr_tax_amount * (pr_price * pr_qty)) / 100
+        po_created_date = result['pending_po__creation_date']
+        if po_created_date:
+            po_date = get_local_date(user, po_created_date)
+        po_updation_date = result['pending_po__updation_date']
+        if po_updation_date:
+            po_update_date = get_local_date(user, po_updation_date)
+        po_quantity, po_tax_amount, po_amount = get_po_price_and_tax_amount(result['pending_po__full_po_number'])
         quantity_data = SellerPOSummary.objects.filter(purchase_order__open_po=result['pending_po__open_po'])
+        grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
         if quantity_data.exists():
             grn_number = quantity_data[0].grn_number
-            received_quantity = quantity_data[0].purchase_order.received_quantity
-            release_date = get_local_date(user, quantity_data[0].purchase_order.creation_date)
-        requested_user = result['pending_po__requested_user']
-        if requested_user:
-            pr_user = get_warehouse_user_from_sub_user(requested_user)
-            warehouse = pr_user.first_name
-            warehouse_type = pr_user.userprofile.warehouse_type
-        updated_user_name = ''
-        po_user_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                        purchase_type='PO').distinct()
-        if po_user_data.exists():
-            version_obj = Version.objects.get_for_object(po_user_data[0])
+        po_user_data = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
+                                                        purchase_type='PO').last()
+        if po_user_data:
+            version_obj = Version.objects.get_for_object(po_user_data)
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
-        if result['pending_po__pending_prs__creation_date']:
-            pr_date = get_local_date(user, result['pending_po__pending_prs__creation_date'])
         if result['pending_po__open_po__vendor__vendor_id']:
             vendor_code = result['pending_po__open_po__vendor__vendor_id']
         if result['pending_po__open_po__vendor__name']:
             vendor_name = result['pending_po__open_po__vendor__name']
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
-        plant = ''
-        req_user = User.objects.filter(id=result['pending_po__wh_user'])[0]
-        department, plant = get_plant_and_department(req_user)
+
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
-            ('PR Approved Date', release_date),
-            ('PO Number', result['pending_po__full_po_number']),
-            ('PO Raised Date', po_con_date),
-            ('Plant', plant),
-            ('Department', department),
+            ('PR Number', result['pending_po__pending_prs__full_pr_number']),
+            ('PR Date', pr_date),
+            ('PR raised By ( User Name)', result['pending_po__pending_prs__requested_user__first_name']),
+            ('PR raised By ( User department name)', pr_department),
+            ('PR Plant', pr_plant),
             ('Product Category', result['pending_po__product_category']),
             ('Category', result['pending_po__sku_category']),
-            ('Supplier ID', result['pending_po__supplier_id']),
+            # ('PR Approved Date', release_date),
+            ('PO Number', result['pending_po__full_po_number']),
+            ('PO Raised Date', po_date),
+            ('PR Quantity', pr_qty),
+            ('Total Amount', pr_Total_Amt),
+            ('Approved by all Approvers', all_approvals),
+            ('Final Approver date', last_approvals_date),
+            ('Supplier ID', result['pending_po__supplier__supplier_id']),
             ('Supplier Name', result['pending_po__supplier__name']),
-            ('Order Quantity', result['total_qty']),
-            ('PO Status', po_status),
+            ('Order Quantity', po_quantity),
             ('GRN Numbers', grn_number),
-            ('PR Number', result['pending_po__pending_prs__full_pr_number']),
-            ('PR Raised By', result['pending_po__pending_prs__requested_user__first_name']),
-            ('PR Date', pr_date),
-            # ('Material Code', result['sku__sku_code']),
-            # ('Material Description', result['sku__sku_desc']),
-            ('Quantity Received', received_quantity),
-            ('PO Amount Pre Tax', round(result['total_amt'], 4)),
-            ('Tax Amount', (round(((result['total_amt']) * total_tax) / 100, 4))),
-            ('PO Amount with Tax', (
-                round(((result['total_amt']) * total_tax) / 100 + result['total_amt'],
-                      4))),
-            ('Approver 1 ID', approver1),
-            ('Approver 1 Date', approver1_date),
-            ('Approver 1 Status', approver1_status),
-            ('Approver 2 ID', approver2),
-            ('Approver 2 Date', approver2_date),
-            ('Approver 2 Status', approver2_status),
-            ('Approver 3 ID', approver3),
-            ('Approver 3 Date', approver3_status),
-            ('Approver 3 Status', approver3_date),
-            ('Approver 4 ID', approver4),
-            ('Approver 4 Date', approver4_date),
-            ('Approver 4 Status', approver4_status),
+            ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
+            ('Tax Amount', round(po_tax_amount, 4)),
+            ('PO Amount with Tax', (round(po_amount,4))),
             ('PO Created by', result['pending_po__requested_user__first_name']),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
@@ -13697,30 +13606,29 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     from inbound import findLastLevelToApprove
     from common import get_misc_value, get_admin, get_warehouses_data
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
-        get_warehouse_user_from_sub_user, get_plant_and_department
+        get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_parameters = {'purchase_type': 'PO'}
     lis = ['pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__requested_user__first_name',
-           'pending_po__pending_prs__creation_date','pending_po__po_number', 'pending_po__creation_date',
-           'pending_po__po_number', 'pending_po__po_number','pending_po__product_category','pending_po__sku_category',
-           'pending_po__supplier__id', 'pending_po__supplier__name', 'total_qty','pending_po__final_status',
-           'pending_po__po_number','total_amt', 'total_amt', 'total_amt', 'creation_date',
-           'pending_po__requested_user__username','pending_po__po_number', 'pending_po__po_number',
+           'pending_po__pending_prs__creation_date',
+           'pending_po__po_number', 'pending_po__creation_date', 'pending_po__po_number', 'pending_po__po_number',
+           'pending_po__product_category',
+           'pending_po__sku_category', 'pending_po__supplier__id', 'pending_po__supplier__name', 'total_qty',
+           'pending_po__final_status', 'pending_po__po_number',
+           'total_amt', 'total_amt', 'total_amt', 'creation_date', 'pending_po__requested_user__username',
+           'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__updation_date', 'pending_po__updation_date',
-           'pending_po__po_number', 'pending_po__delivery_date', 'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__po_number', 'pending_po__po_number', 'pending_po__po_number',
-           'pending_po__po_number', 'pending_po__po_number', 'pending_po__po_number']
+           'pending_po__po_number', 'pending_po__delivery_date', 'pending_po__po_number', 'pending_po__po_number']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     results = ''
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    search_parameters = {}
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -13731,47 +13639,50 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
     if 'supplier' in search_params:
-        supp_search = search_params['supplier'].split(':')
-        search_parameters['pending_po__supplier__supplier_id'] = supp_search[0]
+        search_parameters['pending_po__supplier__supplier_id__iexact'] = search_params['supplier'].split(':')[0]
     if 'po_number' in search_params:
         po_number = search_params['po_number']
         search_parameters['pending_po__full_po_number'] = po_number
-    if 'final_status' in search_params:
-        search_parameters['pending_po__final_status'] = search_params['final_status']
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
-            data = get_warehouses_data(user)
             user = User.objects.get(username=sister_warehouse_name)
-            warehouses = UserGroups.objects.filter(user_id=user.id)
-            warehouse_users = dict(warehouses.values_list('user_id', 'user__username'))
+            warehouses = get_warehouses_data(user)
+            warehouse_users = warehouses
         else:
             warehouses = get_warehouses_data(user)
-        # sku_master = SKUMaster.objects.filter(user__in=warehouse_users.keys())
-        # sku_master_ids = sku_master.values_list('id', flat=True)
-        search_parameters['pending_po__wh_user__username__in'] = warehouses.values()
+            warehouse_users = warehouses
+
+        search_parameters['pending_po__wh_user__username__in'] = warehouse_users.values()
 
     else:
         search_parameters['pending_po__wh_user__username'] = user.username
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    values_list = ['pending_po__requested_user', 'pending_po__requested_user__first_name','pending_po__pending_prs__creation_date',
-                   'pending_po__product_category', 'pending_po__open_po', 'pending_po__open_po__price',
-                   'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__wh_user__username',
-                   'pending_po__wh_user__first_name','pending_po__full_po_number', 'sku__sku_code', 'sku__sku_desc',
-                   'sku__sku_category', 'sku__sku_class', 'sku__sku_brand', 'sku__sku_group','sku__style_name', 'pending_po__wh_user',
-                   'sku__price', 'sku__mrp', 'sku__sub_category', 'sku__sku_group', 'pending_po__pending_prs__full_pr_number',
-                   'pending_po__final_status', 'pending_po__pending_level','quantity', 'price', 'cgst_tax', 'igst_tax','sgst_tax',
-                   'pending_po__remarks', 'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__creation_date',
-                   'pending_po__updation_date', 'pending_po__prefix','pending_po__pending_prs__requested_user__first_name',
-                   'pending_po__delivery_date', 'pending_po__open_po__vendor__vendor_id','pending_po__open_po__vendor__name']
+
+    values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
+                   'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
+                   'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand',
+                   'sku__sku_group', 'sku__style_name','sku__sub_category','measurement_unit','sku__hsn_code',
+                   'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
+                   'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
+                   'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id',
+                   'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
+
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
-    resultsWithDate = dict(pending_data.values_list('pending_po__po_number', 'creation_date'))
-    resultsWithDate_1 = dict(pending_data.values_list('pending_po__po_number', 'updation_date'))
+    if order_term:
+        pending_data = pending_data.order_by(order_data)
     temp_data['recordsTotal'] = pending_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
@@ -13781,128 +13692,86 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         results = pending_data
 
     for result in results:
-        po_created_date = resultsWithDate.get(result['pending_po__po_number'])
-        po_date = po_created_date.strftime('%d-%m-%Y')
-        po_updation_date = resultsWithDate_1.get(result['pending_po__po_number'])
-        po_update_date = po_updation_date.strftime('%d-%m-%Y')
-        dateInPO = str(po_created_date).split(' ')[0].replace('-', '')
-        po_reference = '%s%s_%s' % (result['pending_po__prefix'], dateInPO, result['pending_po__po_number'])
+        pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
+        pr_creation_date = result['pending_po__pending_prs__creation_date']
+        if pr_creation_date:
+            pr_date = get_local_date(user, pr_creation_date)
+        pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
 
-        reqConfigName, lastLevel = findLastLevelToApprove(user, result['pending_po__po_number'], result['total_amt'],
-                                                          purchase_type='PO')
-        prApprQs = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'], purchase_type='PO',
-                                                    level=result['pending_po__pending_level'])
-        approver1, approver2, approver3, approver4 = '', '', '', ''
-        approver1_date, approver2_date, approver3_date, approver4_date = '', '', '', ''
-        approver1_status, approver2_status, approver3_status, approver4_status = '', '', '', ''
-        cgst_tax = result['cgst_tax']
-        sgst_tax = result['sgst_tax']
-        igst_tax = result['igst_tax']
-        total_tax = cgst_tax + sgst_tax + igst_tax
-        if result.get('pending_po__open_po__price', '') is None:
-            result['pending_po__open_po__price'] = result['price']
-        if result['pending_po__open_po__price'] > 0:
-            result['total_amt'] = round(result['pending_po__open_po__price'] * result['total_qty'], 4)
-        tax_amount = result['total_amt'] * (total_tax / 100)
-
-        if prApprQs.exists():
-            if lastLevel != 'level0':
-                check_level = lastLevel
-                level_end = int(check_level[-1])
-                prev_level = ''
-                for level_d in range(0, level_end + 1):
-                    prev_level = 'level' + str(level_d)
-                    if prev_level == 'level0':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver1 = approver_data[0].validated_by
-                            approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver1_status = approver_data[0].status
-
-                    elif prev_level == 'level1':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver2 = approver_data[0].validated_by
-                            approver2_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver2_status = approver_data[0].status
-
-                    elif prev_level == 'level2':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO', level=prev_level)
-                        if approver_data.exists():
-                            approver3 = approver_data[0].validated_by
-                            approver3_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver3_status = approver_data[0].status
-
-                    elif prev_level == 'level3':
-                        approver_data = PurchaseApprovals.objects.filter(
-                            purchase_number=result['pending_po__po_number'], purchase_type='PO',
-                            pr_user=user, level=prev_level)
-                        if approver_data.exists():
-                            approver4 = approver_data[0].validated_by
-                            approver4_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                            approver4_status = approver_data[0].status
-
+        pr_dept = get_warehouse_user_from_sub_user(result['pending_po__pending_prs__requested_user__id'])
+        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+        if (user_profile.warehouse_type == "DEPT"):
+            if (user_profile.stockone_code):
+                pr_department = user_profile.stockone_code
             else:
-
-                approver_data = PurchaseApprovals.objects.filter(purchase_number=result['pending_po__po_number'],
-                                                                 purchase_type='PO',
-                                                                 level=lastLevel)
-                if approver_data.exists():
-                    approver1 = approver_data[0].validated_by
-                    approver1_date = datetime.datetime.strftime(approver_data[0].updation_date, '%d-%m-%Y')
-                    approver1_status = approver_data[0].status
-
-        received_quantity = ''
-        grn_number, release_date = '', ''
+                pr_department = pr_dept.username
+        else:
+            pr_department = pr_request_user
+        pr_plant = get_admin(pr_dept)
+        if pr_plant.first_name:
+            pr_plant = pr_plant.first_name
+        else:
+            pr_plant = pr_plant.username
+        all_approvals = []
+        last_approvals_date = ''
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=result['pending_po__pending_prs__id'])
+        all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
+        if (all_approvals_data):
+            for approvals in all_approvals_data:
+                all_approvals.append(approvals[0])
+            last_approvals_date = get_local_date(user, all_approvals_data[-1][1]).split(' ')
+            last_approvals_date = ' '.join(last_approvals_date[0:3])
+        pending_line_item = PendingLineItems.objects.filter(pending_pr=result['pending_po__pending_prs__id'])
+        pr_qty, pr_price, pr_tax_amount, pr_Total_Amt = 0, 0, 0, 0
+        if pending_line_item.exists():
+            for row in pending_line_item:
+                # uom=row.measurement_unit
+                pr_qty += row.quantity
+                pr_price += row.price
+                pr_tax_amount += row.sgst_tax + row.cgst_tax + row.igst_tax + row.utgst_tax
+                pr_Total_Amt += (pr_tax_amount * (pr_price * pr_qty)) / 100
+        po_created_date = result['pending_po__creation_date']
+        if po_created_date:
+            po_date = get_local_date(user, po_created_date)
+        po_updation_date = result['pending_po__updation_date']
+        if po_updation_date:
+            po_update_date = get_local_date(user, po_updation_date)
+        po_quantity, po_tax_amount, po_amount = get_po_price_and_tax_amount(result['pending_po__full_po_number'])
         quantity_data = SellerPOSummary.objects.filter(purchase_order__open_po=result['pending_po__open_po'])
+        grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
         if quantity_data.exists():
             grn_number = quantity_data[0].grn_number
-            received_quantity = quantity_data[0].purchase_order.received_quantity
-            release_date = get_local_date(user, quantity_data[0].purchase_order.creation_date)
-        requested_user = result['pending_po__requested_user']
-        if requested_user:
-            pr_user = get_warehouse_user_from_sub_user(requested_user)
-            warehouse = pr_user.first_name
-            warehouse_type = pr_user.userprofile.warehouse_type
-        updated_user_name = ''
-        po_user_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, status=0,
-                                                    open_po=result['pending_po__open_po']).distinct()
-        if po_user_data.exists():
-            version_obj = Version.objects.get_for_object(po_user_data[0])
+        po_user_data = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
+                                                        purchase_type='PO').last()
+        if po_user_data:
+            version_obj = Version.objects.get_for_object(po_user_data)
             if version_obj.exists():
                 updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
-        if result['pending_po__pending_prs__creation_date']:
-            pr_date = get_local_date(user, result['pending_po__pending_prs__creation_date'])
         if result['pending_po__open_po__vendor__vendor_id']:
             vendor_code = result['pending_po__open_po__vendor__vendor_id']
         if result['pending_po__open_po__vendor__name']:
             vendor_name = result['pending_po__open_po__vendor__name']
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
-        req_user = User.objects.filter(id=result['pending_po__wh_user'])[0]
-        department, plant = get_plant_and_department(req_user)
 
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
-            ('PR Approved Date', release_date),
-            ('PO Number', result['pending_po__full_po_number']),
-            ('PO Raised Date', get_local_date(user, result['pending_po__creation_date'])),
-            ('Plant', plant),
-            ('Department', department),
+            ('PR Number', result['pending_po__pending_prs__full_pr_number']),
+            ('PR Date', pr_date),
+            ('PR raised By ( User Name)', result['pending_po__pending_prs__requested_user__first_name']),
+            ('PR raised By ( User department name)', pr_department),
+            ('PR Plant', pr_plant),
             ('Product Category', result['pending_po__product_category']),
+            ('Category', result['pending_po__sku_category']),
+            # ('PR Approved Date', release_date),
+            ('PO Number', result['pending_po__full_po_number']),
+            ('PO Raised Date', po_date),
+            ('PR Quantity', pr_qty),
+            ('Total Amount', pr_Total_Amt),
+            ('Approved by all Approvers', all_approvals),
+            ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
             ('Supplier Name', result['pending_po__supplier__name']),
-            ('Order Quantity', result['total_qty']),
-            ('PO Status', result['pending_po__final_status'].title()),
-            ('GRN Numbers', grn_number),
-            ('PR Number', result['pending_po__pending_prs__full_pr_number']),
-            ('PR Raised By', result['pending_po__pending_prs__requested_user__first_name']),
-            ('PR Date', pr_date),
-            ('Quantity Received', received_quantity),
             ('Material Code', result['sku__sku_code']),
             ('Material Description', result['sku__sku_desc']),
             ('SKU Class', result['sku__sku_class']),
@@ -13911,32 +13780,14 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('SKU Brand', result['sku__sku_brand']),
             ('SKU Category', result['sku__sku_category']),
             ('SKU Sub-Category', result['sku__sub_category']),
-            ('PO QTY', result['total_qty']),
-            ('Unit Price without tax', result['pending_po__open_po__price']),
-            ('Unit Price with tax',
-             round(((result['pending_po__open_po__price'] * (cgst_tax + sgst_tax + igst_tax) / 100) + (
-             result['pending_po__open_po__price'])), 4)),
-            ('Tax Percentage', total_tax),
-            ('MRP', result['sku__mrp']),
-            ('PO Amount Pre Tax', round(result['quantity'] * result['pending_po__open_po__price'], 4)),
-            ('Tax Amount', (round(((result['quantity'] * result['pending_po__open_po__price']) * total_tax) / 100, 4))),
-            ('PO Amount with Tax', (
-                round(((result['quantity'] * result['pending_po__open_po__price']) * total_tax) / 100 + result[
-                    'quantity'] * result['pending_po__open_po__price'],
-                      4))),
-            ('Approver 1 ID', approver1),
-            ('Approver 1 Date', approver1_date),
-            ('Approver 1 Status', approver1_status),
-            ('Approver 2 ID', approver2),
-            ('Approver 2 Date', approver2_date),
-            ('Approver 2 Status', approver2_status),
-            ('Approver 3 ID', approver3),
-            ('Approver 3 Date', approver3_status),
-            ('Approver 3 Status', approver3_date),
-            ('Approver 4 ID', approver4),
-            ('Approver 4 Date', approver4_date),
-            ('Approver 4 Status', approver4_status),
-            ('PO Created by', result['pending_po__wh_user__username']),
+            ('HSN Code', result['sku__hsn_code']),
+            ('UOM', result['measurement_unit']),
+            ('Order Quantity', po_quantity),
+            ('GRN Numbers', grn_number),
+            ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
+            ('Tax Amount', round(po_tax_amount, 4)),
+            ('PO Amount with Tax', (round(po_amount,4))),
+            ('PO Created by', result['pending_po__requested_user__first_name']),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
             ('Expected delivery date', delivery_date),
@@ -13946,3 +13797,20 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
 
     return temp_data
+
+def get_po_price_and_tax_amount(po_number):
+    from miebach_admin.models import *
+    po_number = po_number
+    po_data = PurchaseOrder.objects.filter(po_number = po_number)
+    total_qty, tmp_price, tmp_tax, = 0, 0, 0
+    po_tax_amount,  po_total_amount= 0, 0,
+    if po_data.exists():
+        for row in po_data:
+            if row.open_po:
+                total_qty += row.open_po.order_quantity
+                tmp_price = row.open_po.price * row.open_po.order_quantity
+                tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
+                po_tax_amount += (tmp_tax * tmp_price) / 100
+                po_total_amount += tmp_price
+
+    return total_qty, po_tax_amount, po_total_amount

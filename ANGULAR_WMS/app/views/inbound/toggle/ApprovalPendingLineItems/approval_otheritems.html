@@ -1,6 +1,5 @@
 <div class="row">
   <div class="col-md-12">
-    is_pa_resubmitted::{{showCase.is_pa_resubmitted}}
     <table class="table" class="pull-left">
       <thead>
         <tr>
@@ -25,6 +24,7 @@
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name)"
             ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');"
+            ng-disabled="!showCase.permissions.change_pendinglineitems" size="60"
             >
           </td>
           <td>
@@ -44,6 +44,7 @@
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                   ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()"
                    ng-readonly="!showCase.quantity_editable"
                    ng-change="showCase.checkResubmit(product.fields)"
@@ -60,7 +61,7 @@
             class="form-control detectTab"
             ng-class="service.get_decimal_perm()" 
             ng-keyup="showCase.getTotals(product)" size="12"
-            ng-readonly="product.fields.preferred_supplier">
+            ng-readonly="!showCase.permissions.change_pendinglineitems">
           </td>
           <td class="text-center"> 
           <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
@@ -70,17 +71,17 @@
             size="12">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
             </span> 
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-            </span> 
-            <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
+            <input type="text" name="tax" ng-model="product.fields.tax" 
+            class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" 
+            ng-readonly="!showCase.permissions.change_pendinglineitems" size="12">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
             </span> 
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>

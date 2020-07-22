@@ -19,6 +19,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
         <div class="modal-body">
+          <input type="hidden" name="warehouse_id" ng-model="showCase.model_data.warehouse_id" value="{{showCase.model_data.warehouse_id}}">
           <div class="row" align="center" style="padding: 6px;height: 35px;background: #f0f8ffad;margin: 8px;">
             <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
               <span class="label label-default" ng-if="!showCase.model_data['status'].includes('credit_note')">Credit Note</span>

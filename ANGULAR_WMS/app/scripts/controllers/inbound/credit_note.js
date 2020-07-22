@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.alert_msg(msg).then(function(msg) {
                 if (msg == "true") {
                   var sendData = {
-                    'credit_id': aData['id']
+                    'credit_id': aData['credit_id']
                   }
                   Service.apiCall("download_credit_note_po_data/", "POST", sendData, true).then(function(data) {
                     if(data.message) {

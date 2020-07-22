@@ -14736,8 +14736,9 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
             grn_number = "%s/%s" %(po_number, seller_po_data.receipt_number)
             po_date = get_local_date(user, purchase_order_data.creation_date, True)
             po_date = po_date.strftime("%d %b, %Y")
-            credit_number, credit_date = '', ''
+            credit_number, credit_date, credit_id = '', '', ''
             if seller_po_data.credit:
+                credit_id = seller_po_data.credit_id
                 credit_number = seller_po_data.credit.credit_number
                 credit_date = seller_po_data.credit.credit_date
                 if credit_date:
@@ -14754,7 +14755,8 @@ def get_credit_note_data(start_index, stop_index, temp_data, search_term, order_
                             'challan_number': challan_number,
                             'challan_date': challan_date,
                             'invoice_date': invoice_date,
-                            'id': json.dumps(ids)
+                            'id': json.dumps(ids),
+                            'credit_id': credit_id
                             })
 
 @csrf_exempt
@@ -14771,7 +14773,6 @@ def get_credit_note_po_data(request, user=''):
     seller_po_data = SellerPOSummary.objects.filter(id__in=ids, invoice_number=invoice_number).exclude(status=1)
     master_data = seller_po_data.values('purchase_order__order_id', 'receipt_number', 'purchase_order__prefix', 'invoice_number').distinct()
     grn_total_price = 0
-
     if master_data.exists():
         for record in master_data:
             purchase_order_data = seller_po_data.filter(invoice_number=record['invoice_number'], receipt_number=record['receipt_number'],\
@@ -15247,7 +15248,7 @@ def download_credit_note_po_data(request, user=''):
     credit_id = request.POST.get('credit_id', '')
     if not credit_id:
         return HttpResponse("Input Parameter Missing")
-    pdf_obj = MasterDocs.objects.filter(master_id__in = credit_id, master_type='PO_CREDIT_FILE')
+    pdf_obj = MasterDocs.objects.filter(master_id = credit_id, master_type='PO_CREDIT_FILE')
     if pdf_obj:
         images = list(pdf_obj.values_list('uploaded_file', flat=True))
         sku_data.extend(images)

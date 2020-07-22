@@ -1618,7 +1618,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         cell_data = str(int(cell_data))
                     if cell_data not in product_types:
                         index_status.setdefault(row_idx, set()).add(
-                            'HSN Code should match with Tax master HSN')
+                            'New HSN code - Create the new code in Tax Master and in Netsuite')
 
             elif key == 'product_type':
                 if cell_data:

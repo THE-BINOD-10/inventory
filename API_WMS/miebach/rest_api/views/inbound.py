@@ -13984,6 +13984,7 @@ def get_grn_level_data(request, user=''):
     dc_number = ''
     dc_date = ''
     po_data = []
+    user = User.objects.get(id=request.GET['warehouse_id'])
     try:
         po_number = request.GET['po_number']
         po_order_prefix = request.GET['prefix']
@@ -14340,6 +14341,7 @@ def update_existing_grn(request, user=''):
 def cancel_existing_grn(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''
+    warehouse = User.objects.get(id=request.POST['warehouse_id'])
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
     'UTGST(%)', 'Amount', 'Description', 'CESS(%)')

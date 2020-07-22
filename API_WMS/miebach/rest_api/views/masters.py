@@ -690,7 +690,8 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id', 'phone_number', 'status']
+    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id',
+           'reportingto_email_id','phone_number', 'status']
 
     company_list = get_companies_list(user, send_parent=True)
     company_list = map(lambda d: d['id'], company_list)
@@ -4795,10 +4796,6 @@ def insert_staff(request, user=''):
 def update_staff_values(request, user=''):
     """ Update Staff values"""
     log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
-    # staff_name = request.POST.get('name', '')
-    # email = request.POST.get('email_id', '')
-    # phone = request.POST.get('phone_number', '')
-    # status = 1 if request.POST.get('status', '') == "Active" else 0
     staff_name = request.POST.get('name', '')
     email = request.POST.get('email_id', '')
     reportingto_email_id = request.POST.get('reportingto_email_id', '')
@@ -5485,14 +5482,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = [user.id]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    if search_term:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
-                    model_name="SKUSupplier",
-                    doa_status="pending").order_by(order_data)
-    else:
-        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
-                    model_name="SKUSupplier",
-                    doa_status="pending").order_by(order_data)
+    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier", 
+                            doa_status="pending").order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -5508,7 +5499,18 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         if row.requested_user.is_staff:
             warehouse = row.requested_user
         else:
-            warehouse = get_admin(row.requested_user)
+            warehouse = get_admin(row.requested_user)        
+        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username, 
+                        row.doa_status, result.get('request_from', 'Master'), result.get('price', ''), str(skuObj.mrp),
+                        row.requested_user.first_name]
+        is_searchable = False
+        if search_term:
+            for constraint in search_constraints:
+                if search_term.lower() in constraint.lower():
+                    is_searchable = True
+                    break
+            if not is_searchable:
+                continue
         temp_data['aaData'].append(OrderedDict((('supplier_id', result['supplier_id']), ('wms_code', skuObj.wms_code),
                                                 ('supplier_code', result['supplier_code']), ('moq', result['moq']),
                                                 ('preference', sku_preference),

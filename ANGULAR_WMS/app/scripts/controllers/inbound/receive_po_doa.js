@@ -122,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('total_qty').withTitle("Total Qty"),
         DTColumnBuilder.newColumn('receivable_qty').withTitle("Receivable Qty"),
         DTColumnBuilder.newColumn('received_qty').withTitle("Received Qty"),
-        DTColumnBuilder.newColumn('warehouse').withTitle("Warehouse"),
+        DTColumnBuilder.newColumn('warehouse').withTitle("Store"),
         DTColumnBuilder.newColumn('supllier_id_name').withTitle('Supplier ID/Name'),
         DTColumnBuilder.newColumn('order_type').withTitle('Order Type'),
         DTColumnBuilder.newColumn('receive_status').withTitle('Receive Status'),
@@ -169,13 +169,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 'warehouse': aData['Warehouse'] ,
                 'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
                 'prefix': aData['prefix'],
-                "doa_model_id": aData["doa_id"]
+                "doa_model_id": aData["doa_id"],
+                "warehouse_id": aData["warehouse_id"]
               }
+              vm.form = 'grn_doa_form';
               vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                 if(data.message) {
                   vm.serial_numbers = [];
                   vm.skus_total_amount = 0;
                   angular.copy(data.data, vm.model_data);
+                  vm.model_data.warehouse_id = aData["warehouse_id"];
                   vm.get_grn_extra_fields();
                   // vm.send_for_approval_check(event, vm.model_data);
                   vm.title = "Generate GRN";
@@ -595,7 +598,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return
         }
       }
-      var elem = angular.element($('form'));
+      var elem = angular.element($("form#grn_doa_form"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
@@ -771,8 +774,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.confirm_grn_api = function(){
       if(check_receive()){
         var that = vm;
-        var elem = angular.element($('form'));
-        elem = elem[2];
+        var elem = angular.element($("form#grn_doa_form"));
+        elem = elem[0];
 
         var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
         var mrp = parseInt($(elem).find('input[name="mrp"]').val());
@@ -823,7 +826,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
         }
         if(vm.confirm_srn){
-          elem.push({"name":"doa_id", "value":vm.doa_id})
+          elem.push({"name":"doa_id", "value":vm.doa_id});
+          elem.push({"name":"warehouse_id", "value":vm.model_data.warehouse_id});
         }
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);

@@ -1089,7 +1089,7 @@ var app = angular.module('urbanApp')
 
         .state('app.inbound.RevceivePo', {
           url: '/ReceivePO',
-          permission: 'add_purchaseorder',
+          permission: 'add_purchaseorder|change_mastersdoa|change_pocreditnote',
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

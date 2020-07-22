@@ -114,7 +114,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 data: 'true',
                 edit_invoice: 'true',
                 edit_poc: 'false',
-                po_challan: DC
+                po_challan: DC,
+                warehouse_id: temp['warehouse_id']
               });
             } else {
               send_data = JSON.stringify({
@@ -123,7 +124,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
-                challan_id: temp['Challan ID']
+                challan_id: temp['Challan ID'],
+                warehouse_id: temp['warehouse_id']
               });
             }
 
@@ -213,7 +215,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
-                cancel: 'true'
+                cancel: 'true',
+                warehouse_id: temp['warehouse_id']
               });
             } else {
               send_data = JSON.stringify({
@@ -223,7 +226,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 seller_summary_id: temp['id'],
                 prefix: temp['prefix'],
                 purchase_order__order_id: temp['purchase_order__order_id'],
-                receipt_number: temp['receipt_number']
+                receipt_number: temp['receipt_number'],
+                warehouse_id: temp['warehouse_id']
               });
             }
 

@@ -3,7 +3,7 @@ from sellerworx_api import SellerworxAPI
 from django.contrib.auth.models import User
 from django.contrib import auth
 from datetime import datetime
-from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping
+from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping, StaffMaster
 from django.contrib.auth.models import User,Permission,Group
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout as wms_logout
@@ -116,6 +116,55 @@ def get_admin_user(f):
                 user = User.objects.get(id=user_id)
 
         kwargs['user'] = user
+        return f(request, *args, **kwargs)
+    wrap.__doc__ = f.__doc__
+    wrap.__name__ = f.__name__
+    return wrap
+
+
+def get_admin_multi_user(f):
+    def wrap(request, *args, **kwargs):
+        from rest_api.views.common import get_companies_list, get_company_id
+        user = ''
+        admin_group = AdminGroups.objects.filter(user_id=request.user.id)
+        if admin_group:
+            user = admin_group[0].user
+        else:
+            groups_list = request.user.groups.all()
+            for group in groups_list:
+                group = AdminGroups.objects.filter(group_id=group.id)
+                if group:
+                    user = group[0].user
+                    break
+        if not user:
+            user = request.user
+            group,created = Group.objects.get_or_create(name=user.username)
+            admin_dict = {'group_id': group.id, 'user_id': user.id}
+            admin_group  = AdminGroups(**admin_dict)
+            admin_group.save()
+            user.groups.add(group)
+
+        user_profile = UserProfile.objects.filter(user_id=request.user.id)
+        if user_profile and user_profile[0].user_type == 'customer':
+            cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+            if cus_mapping:
+                user_id = cus_mapping[0].customer.user
+                user = User.objects.get(id=user_id)
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        staff_obj = StaffMaster.objects.filter(email_id=request.user.username, company_id__in=company_list)
+        if staff_obj.exists():
+            users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+            if not users:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                                       company_id=company_id)
+            kwargs['users'] = users
+        else:
+            kwargs['users'] = User.objects.filter(id=user.id)
         return f(request, *args, **kwargs)
     wrap.__doc__ = f.__doc__
     wrap.__name__ = f.__name__

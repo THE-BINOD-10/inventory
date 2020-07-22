@@ -78,7 +78,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
-        prQs = PurchaseApprovals.objects.filter(validated_by=pa_email).distinct()
+        prQs = PurchaseApprovals.objects.filter(validated_by__icontains=pa_email).distinct()
         if status:
             prQs = prQs.filter(pending_pr__final_status=status)
         else:
@@ -3275,7 +3275,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         send_mail([mailId], subject, body)
         if reqUserMailID !=  mailId:
             send_mail([reqUserMailID], subject, podetails_string)
-        if currentLevelMailList and not resubmitted:
+        if currentLevelMailList and not is_resubmitted:
             subject = 'Pending PR %s got processed, no action needed to be taken.' %po_reference
             send_mail(currentLevelMailList, subject, podetails_string)
         if subjectType in ['pr_rejected', 'po_rejected']:
@@ -3360,7 +3360,10 @@ def approve_pr(request, user=''):
             validation_status = validatedPR[0].status
             status = "This PO has been already %s. Further action cannot be made." %validation_status
             return HttpResponse(status)
-    currentLevelMails = list(pendingPRObj.pending_prApprovals.filter(status='').values_list('validated_by', flat=True))
+    if is_actual_pr:
+        currentLevelMails = list(pendingPRObj.pending_prApprovals.filter(status='').values_list('validated_by', flat=True))
+    else:
+        currentLevelMails = list(pendingPRObj.pending_poApprovals.filter(status='').values_list('validated_by', flat=True))
     if currentLevelMails:
         currentLevelMailList = currentLevelMails[0].split(', ')
         if request.user.email in currentLevelMailList:

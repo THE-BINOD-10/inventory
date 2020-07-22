@@ -1718,12 +1718,12 @@ TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type',
 
 MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Number', 'Brand', 'Status']
 
-SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type',
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group',
                    'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                    'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                    'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
 
-OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type',
+OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group',
                       'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
                       'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                       ]

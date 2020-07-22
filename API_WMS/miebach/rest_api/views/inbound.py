@@ -1978,6 +1978,7 @@ def print_pending_po_form(request, user=''):
     # po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     # po_number = order.full_po_number
     po_number = getattr(order, full_purchase_number)
+    remarks = order.remarks
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -2020,6 +2021,7 @@ def print_pending_po_form(request, user=''):
         'is_draft': 1,
         'title': title,
         'is_actual_pr': is_actual_pr,
+        'remarks': remarks,
     }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
@@ -3210,6 +3212,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         pendingLevel = result.pending_level
         totalAmt = lineItems.aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
         skusWithQty = lineItems.values_list('sku__sku_code', 'quantity')
+        remarks = openPurchaseObj.remarks
         if central_po_data:
             lineItemDetails = ""
             line_sub_heading = "Line Items(SKU Code, Location - Quantity)"
@@ -3261,10 +3264,11 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
         <p>Product Category : %s </p> \
         <p>Store : %s </p> \
         <p>Department : %s </p> \
+        <p>Remarks : %s </p> \
         <p>%s : %s</p>" %(purchase_type, purchase_type, po_reference, totalAmt,
                         purchase_type, requestedBy, purchase_type, mailId,
                         purchase_type, creation_date, delivery_date, pendingLevel,
-                        product_category, store, department, line_sub_heading,
+                        product_category, store, department, remarks, line_sub_heading,
                         lineItemDetails)
         if hash_code:
             body = podetails_string+ "<p>Please click on the below link to validate.</p>\

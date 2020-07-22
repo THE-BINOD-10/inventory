@@ -9607,6 +9607,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     else:
                         data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 data_dict[key] = cell_data
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
@@ -9639,6 +9641,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Position is Mandatory')
             elif key == 'reportingto_email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 if cell_data:
                     data_dict[key] = cell_data
                     if staff_master:

@@ -177,6 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "priority_type": data.data.priority_type,
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
+                  'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -196,6 +197,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }
+          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
+            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
           }
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;

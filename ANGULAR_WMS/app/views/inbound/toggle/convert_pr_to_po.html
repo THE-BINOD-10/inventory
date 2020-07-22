@@ -128,6 +128,11 @@
                 Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
             </div>
+            <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url && !showCase.quantity_editable">
+              <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+                PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+              </a>
+            </div>
           </div>
           <div class="row insert-status">
             <h4 align="center">{{ showCase.message }}</h4>

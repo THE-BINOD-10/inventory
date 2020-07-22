@@ -1553,7 +1553,7 @@ def generated_pr_data(request, user=''):
             pr_uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
                                   'file_url': '/' + master_docs[0].uploaded_file.name}
 
-        pa_master_docs = MasterDocs.objects.filter(master_id=record[0].id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
+        pa_master_docs = MasterDocs.objects.filter(master_id=respectivePrIds[0], master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
         if pa_master_docs.exists():
             pa_uploaded_file_dict = {'file_name': 'PA File', 'id': pa_master_docs[0].id,
                                   'file_url': '/' + pa_master_docs[0].uploaded_file.name}

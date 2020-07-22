@@ -27,7 +27,7 @@
       <tab heading="Receive Purchase Orders" ng-if="showCase.permissions.add_purchaseorder">
         <div ng-include="'views/inbound/receive_po/receive_po_order.html'"></div>
       </tab>
-      <tab heading="Pending Invoice Mismatches" ng-controller="CreditNoteCtrl as showCase" ng-click="showCase.firstReload()" ng-if="showCase.permissions.receive_po_inv_value_qty_check">
+      <tab heading="Pending Invoice Mismatches" ng-controller="CreditNoteCtrl as showCase" ng-click="showCase.firstReload()" ng-if="showCase.permissions.receive_po_inv_value_qty_check&&showCase.permissions.change_pocreditnote">
         <div class="panel">
           <div class="col-md-12 col-sm-12 col-xs-12" style="padding-bottom: 12px;">
             <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">

@@ -199,7 +199,7 @@
               </table>
             </div>
           </div>
-          <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables'">
+          <div class="row" ng-if="showCase.model_data.product_category!='Kits&Consumables' && showCase.permissions.change_pendinglineitems">
             <div class="form-group col-md-3" style="padding-top: 30px;">
                <span>
                  <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" />
@@ -212,7 +212,7 @@
                 Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
             </div>
-            <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url">
+            <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url && !showCase.quantity_editable">
               <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>

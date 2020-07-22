@@ -85,6 +85,16 @@
           <div class="row" ng-if="showCase.model_data.product_category=='OtherItems'" style="padding: 5px;">
             <div ng-include="'views/inbound/toggle/ApprovalPendingLineItems/approval_otheritems.html'"></div>
           </div>
+          <div class="row" style="padding-bottom:0px;">
+            <div class="col-md-6 col-sm-6">
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-12">
+              <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
+            </div>
+          </div>
           <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="col-md-3 col-sm-3 col-xs-3">
               <strong>Remarks :</strong>
@@ -126,6 +136,11 @@
             <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
               <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
                 Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+              </a>
+            </div>
+            <div class="col-md-3" ng-if="showCase.model_data.pa_uploaded_file_dict.file_url && !showCase.quantity_editable">
+              <a class="btn btn btn-success" href="{{showCase.model_data.pa_uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
+                PA Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
               </a>
             </div>
           </div>

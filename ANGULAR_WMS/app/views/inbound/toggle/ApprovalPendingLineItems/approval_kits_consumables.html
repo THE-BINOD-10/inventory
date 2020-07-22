@@ -60,6 +60,7 @@
                  ng-keyup="showCase.getTotals(product)"
                  size="12"> -->
           <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                 ng-init="showCase.getTotals(product)"
                  ng-class="service.get_decimal_perm()" 
                  ng-readonly="!showCase.quantity_editable"
                  ng-change="showCase.checkResubmit(product.fields)"
@@ -81,12 +82,12 @@
         </td>
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.price}}
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.price | number:2}}
           </span> 
           <input type="text" name="price" ng-model="product.fields.price" class="hide">
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
           </span> 
           <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
         </td>
@@ -96,7 +97,7 @@
           <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
           </span> 
           <input type="text" name="total" ng-model="product.fields.total" class="hide">
         </td>

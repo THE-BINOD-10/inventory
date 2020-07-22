@@ -1426,9 +1426,9 @@ def netsuite_sku(data, user, instanceName=''):
         except Exception as e:
             pass
         sku_data_dict.update(
-            {   
-                'department': department, 
-                "subsidiary": subsidary, 
+            {
+                'department': department,
+                "subsidiary": subsidary,
                 "plant": plant,
                 'unitypeexid': uom_type,
                 'stock_unit': stock_uom,
@@ -1440,8 +1440,9 @@ def netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
+            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
@@ -5433,7 +5434,7 @@ def send_supplier_doa(request, user=''):
     parentCompany = get_company_id(user)
     admin_userQs = CompanyMaster.objects.get(id=parentCompany).userprofile_set.filter(warehouse_type='ADMIN')
     admin_user = admin_userQs[0].user
-    
+
     doa_dict = {
         'requested_user': plant,
         'wh_user': admin_user,
@@ -5918,7 +5919,7 @@ def get_parent_company(companyObj):
         return get_parent_company(companyObj.parent)
     else:
         return companyObj
-        
+
 def gather_uom_master_for_sku(user, sku_code):
     UOMs = UOMMaster.objects.filter(sku_code=sku_code, company=get_parent_company(user.userprofile.company))
     dataDict = {}
@@ -5937,7 +5938,7 @@ def gather_uom_master_for_sku(user, sku_code):
             'unit_conversion': uom.conversion,
             'unit_type': uom.uom_type
         }
-        
+
         dataDict['uom_items'].append(uom_item)
 
     return dataDict

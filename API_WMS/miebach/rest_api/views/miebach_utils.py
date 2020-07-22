@@ -1727,7 +1727,7 @@ SALES_RETURN_REPORT = {
             (('Date', 'creation_date'),))), }
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
+SKU_HEADERS = ['SKU Code', 'SKU Description','SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
                'Primary Category',
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price',
                'Selling Price',
@@ -1747,7 +1747,7 @@ MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU G
 
 RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
 
-ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group', 'Tax Type',
+ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                  'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                  'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                  'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']
@@ -1756,12 +1756,12 @@ TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type',
 
 MACHINE_HEADERS = ['Machine Code', 'Machine Name', 'Model Number', 'Serial Number', 'Brand', 'Status']
 
-SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group', 'Tax Type',
+SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Service Group',
                    'Service Category', 'Sub Category', 'Service Class', 'Service Brand', 'Put Zone',
                    'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                    'GL Code', 'Service Start Date(YYYY-MM-DD)', 'Service End Date(YYYY-MM-DD)']
 
-OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group', 'Tax Type',
+OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group',
                       'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
                       'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
                       ]
@@ -3234,6 +3234,24 @@ STAFF_MASTER_MAPPING = OrderedDict(
      ('Phone Number', 'phone_number'), ('Position', 'position'),
      ('Status', 'status')
      ))
+
+GRN_MAPPING = OrderedDict(
+                  (
+                      ('Plant Id', 'plant_id'),
+                      ('SKU Code', 'sku_code'), 
+                      ('Quantity', 'quantity'),
+                      ('GRN Number', 'grn_number'), 
+                      ('Batch No', 'batch_no'),
+                      ('Manufacturing Date - MM/DD/YYYY', 'mfg_date'),
+                      ('Expiry Date - MM/DD/YYYY', 'exp_date'),
+                      ('PO Number', 'po_number'),
+                      ('Supplier Id', 'supplier_id'),
+                      ('Invoice Number', 'invoice_number'),
+                      ('Invoice Date - MM/DD/YYYY', 'invoice_date'),
+                      ('Invoice Value', 'invoice_value'),
+                      ('Invoice Quantity', 'invoice_quantity'), 
+                  )
+              )
 
 PENDING_PR_MAPPING = OrderedDict((('Priority Type', 'priority_type'), ('Need By Date', 'delivery_date'),
                                   ('SKU Code', 'sku_code'), ('Quantity', 'quantity')

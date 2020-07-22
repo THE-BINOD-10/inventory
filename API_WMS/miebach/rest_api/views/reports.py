@@ -94,7 +94,8 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
-    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report', 'sku_wise_rtv_report']:
+    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report', 'sku_wise_rtv_report'
+                         'cancel_grn_report', 'sku_wise_cancel_grn_report']:
         if 'sister_warehouse' in filter_keys:
             sister_wh =UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
 
@@ -2568,3 +2569,20 @@ def get_metro_po_detail_report(request, user=''):
     temp_data = get_metro_po_detail_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_cancel_grn_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_cancel_grn_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_cancel_grn_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_cancel_grn_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

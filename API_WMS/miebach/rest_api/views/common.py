@@ -981,11 +981,12 @@ def pr_request(request):
     response_data = {'data': {}, 'message': 'Fail'}
     hash_code = request.GET.get('hash_code', '')
     storedData = PurchaseApprovalMails.objects.filter(hash_code=hash_code)
-    prApprId = storedData[0].pr_approval_id
-    email_id = storedData[0].email
-    prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
+    if storedData.exists():
+        prApprId = storedData[0].pr_approval_id
+        email_id = storedData[0].email
+        prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
     if not prApprQs.exists():
-        return HttpResponse("Error")
+        return HttpResponse("Purchase Approval not found.")
     prApprObj = prApprQs[0]
     fieldsMap = {}
     send_path = ''
@@ -4933,6 +4934,7 @@ def search_wms_data(request, user=''):
     product_type = request.GET.get('type')
     sku_catg = request.GET.get('sku_catg', '')
     sku_brand = request.GET.get('sku_brand', '')
+
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -4949,7 +4951,7 @@ def search_wms_data(request, user=''):
     # lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       status = 1,user=user.id)
-    if sku_catg:
+    if sku_catg and sku_catg != 'All':
         query_objects = query_objects.filter(sku_category=sku_catg)
     if sku_brand:
         query_objects = query_objects.filter(sku_brand=sku_brand)
@@ -5228,6 +5230,8 @@ def build_search_data(user, to_data, from_data, limit):
                 data_dict.update({'gl_code': gl_code,
                                 'service_start_date': service_start_date,
                                 'service_end_date': service_end_date})
+            elif isinstance(data, OtherItemsMaster):
+                data_dict['type'] =  data.item_type
             if (len(to_data) >= limit):
                 break
             else:

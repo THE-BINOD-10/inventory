@@ -62,6 +62,7 @@
 
         <td>
           <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                 ng-init="showCase.getTotals(product)"
                  ng-class="service.get_decimal_perm()"
                  ng-readonly="!showCase.quantity_editable"
                  ng-change="showCase.checkResubmit(product.fields)"

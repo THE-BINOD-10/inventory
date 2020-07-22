@@ -85,7 +85,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             prQs = prQs.exclude(pending_pr__final_status='approved')
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
 
-        filtersMap.setdefault('pending_pr_id__in', [])
+        filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
             'total_qty', 'total_amt', 'creation_date',

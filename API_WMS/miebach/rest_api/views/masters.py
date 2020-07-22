@@ -5911,11 +5911,6 @@ def get_uom_details(user, sku_code):
 
     return uom_type, stock_uom, purchase_uom, sale_uom
 
-def get_parent_company(companyObj):
-    if companyObj.parent:
-        return get_parent_company(companyObj.parent)
-    else:
-        return companyObj
 
 def get_parent_company(companyObj):
     if companyObj.parent:

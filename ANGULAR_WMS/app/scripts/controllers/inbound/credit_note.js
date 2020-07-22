@@ -59,10 +59,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       let srcpdf = vm.host+data.data.data[0]
                       var mywindow = window.open(srcpdf, 'height=400,width=600');
                       mywindow.focus();
-                      $timeout(function(){
-                        mywindow.print();
-                        mywindow.close();
-                      }, 3000);
                       return true;
                     }
                   });

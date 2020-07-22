@@ -108,6 +108,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var status = false;
     var field_name = "";
     var data = [];
+    var wh_id = '';
     if (vm.user_type == 'distributor') {
       data = vm.checked_ids;
     } else {
@@ -119,6 +120,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           } else if (supplier_name != temp['Supplier Name']) {
             status = true;
           }
+          if(!(wh_id)) {
+            wh_id = temp['warehouse_id'];
+          } else if (wh_id != temp['warehouse_id']) {
+            status = true;
+          }
+
           field_name = temp['check_field'];
           var grn_no = temp['GRN NO'];
           grn_no = grn_no.split('/');
@@ -128,7 +135,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             seller_summary_name: supplier_name, 
             seller_summary_id: temp['id'], 
             purchase_order__order_id: temp['purchase_order__order_id'],
-            receipt_number: temp['receipt_number']
+            receipt_number: temp['receipt_number'],
+            warehouse_id: temp['warehouse_id']
           });
 
           data.push(send_data);

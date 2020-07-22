@@ -44,6 +44,7 @@
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
+                   ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()"
                    ng-readonly="!showCase.quantity_editable"
                    ng-change="showCase.checkResubmit(product.fields)"
@@ -70,7 +71,7 @@
             size="12">
           </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
             </span> 
             <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
           </td>
@@ -81,7 +82,7 @@
             ng-readonly="!showCase.permissions.change_pendinglineitems" size="50">
               </td>
           <td class="text-center"> 
-            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total}}
+            <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
             </span> 
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>

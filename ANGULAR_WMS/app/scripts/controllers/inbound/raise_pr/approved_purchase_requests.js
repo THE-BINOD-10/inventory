@@ -177,6 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "priority_type": data.data.priority_type,
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
+                  'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -196,6 +197,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }
+          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
+            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
           }
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -1245,29 +1249,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
-      // vm.model_data.total_price = 0;
-      // vm.model_data.sub_total = 0;
+      vm.model_data.total_price = 0;
+      vm.model_data.sub_total = 0;
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
-      // angular.forEach(vm.model_data.data, function(sku_data){
-        // var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        // sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
-        // if(sku_data.taxes && !not_update_tax) {
-        //     vm.get_tax_value(sku_data);
-        // }
-        // if (!sku_data.fields.tax) {
-        //   sku_data.fields.tax = 0;
-        // }
-        // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
-        // vm.model_data.total_price = vm.model_data.total_price + temp;
-        // vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
-      // })
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      })
     }
 
     vm.getCompany = function() {

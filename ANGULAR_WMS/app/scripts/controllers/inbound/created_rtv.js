@@ -76,6 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Store'),
     ];
 
     var row_click_bind = 'td';
@@ -108,10 +109,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
           $scope.$apply(function() {
-            vm.service.apiCall('get_saved_rtv_data/', 'GET', {data_id: aData.data_id, invoice_number: aData['Invoice Number']}).then(function(data){
+            var send_data = {data_id: aData.data_id, invoice_number: aData['Invoice Number'],
+                            warehouse_id: aData['warehouse_id']}
+            vm.service.apiCall('get_saved_rtv_data/', 'GET', send_data).then(function(data){
               if(data.message) {
                 // angular.copy(data.data, vm.model_data);
                 vm.model_data = data.data;
+                vm.model_data.warehouse_id = aData['warehouse_id'];
                 vm.title = "Update RTV";
                 vm.print_enable = false;
                 $state.go('app.inbound.rtv.details');
@@ -276,6 +280,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'warehouse_id', 'value': vm.model_data.warehouse_id});
       if(vm.model_data.filters) {
         elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
       }
@@ -320,6 +325,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'warehouse_id', 'value': vm.model_data.warehouse_id});
       if(vm.model_data.filters) {
         elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
       }

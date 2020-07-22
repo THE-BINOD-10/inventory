@@ -11,19 +11,20 @@ from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib import auth
 from miebach_admin.models import *
-from miebach_admin.choices import *
+# from miebach_admin.choices import *
 from common import *
-from masters import *
-from miebach_utils import *
+# from masters import *
+# from miebach_utils import *
 from django.core import serializers
 import csv
-from sync_sku import *
+# from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from rest_api.views.common import create_user_wh
-
 from inbound_common_operations import *
 from stockone_integrations.views import Integrations
+from rest_api.views.inbound import confirm_grn
+from miebach.celery import app
 
 log = init_logger('logs/uploads.log')
 
@@ -1613,13 +1614,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
-                #if not cell_data:
-                #    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
-                    if isinstance(cell_data, (int, float)):
+                    if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
-                    # if not len(cell_data) == 8:
-                    #     index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+                    if cell_data not in product_types:
+                        index_status.setdefault(row_idx, set()).add(
+                            'New HSN code - Create the new code in Tax Master and in Netsuite')
 
             elif key == 'product_type':
                 if cell_data:
@@ -1973,8 +1973,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+                data_dict['product_type']= cell_data
                 if sku_data:
                     setattr(sku_data, key, cell_data)
+                    setattr(sku_data, 'product_type', cell_data)
                 data_dict[key] = cell_data
             # elif key == 'asset_number':
             #     if isinstance(cell_data, float):
@@ -2142,8 +2144,9 @@ def upload_netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
+            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
@@ -9540,7 +9543,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status']).\
+    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status', 'groups']).\
             issubset(excel_mapping.keys()):
         return 'Invalid File', []
     company_id = get_company_id(user)
@@ -9548,8 +9551,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     company_list = map(lambda d: d['id'], company_list)
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
-    # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
-    # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
+    total_groups = get_user_groups_names(user)
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
@@ -9607,6 +9609,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     else:
                         data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 data_dict[key] = cell_data
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
@@ -9639,6 +9643,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Position is Mandatory')
             elif key == 'reportingto_email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 if cell_data:
                     data_dict[key] = cell_data
                     if staff_master:
@@ -9652,6 +9658,13 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     data_dict[key] = cell_data
                     if staff_master:
                         setattr(staff_master, key, cell_data)
+            elif key == 'groups':
+                if cell_data:
+                    groups = cell_data.split(',')
+                    for group in groups:
+                        if group not in total_groups:
+                            index_status.setdefault(row_idx, set()).add('Invalid Group %s' % group)
+                    data_dict['groups'] = groups
         data_dict['staff_master'] = staff_master
         data_list.append(data_dict)
 
@@ -9691,14 +9704,17 @@ def staff_master_upload(request, user=''):
         return HttpResponse(status)
     try:
         for final_data in data_list:
+            groups_list = final_data.get('groups', '')
             if final_data['staff_master']:
                 data = final_data['staff_master']
                 old_position = data.position
                 position = final_data.get('position', '')
+                sub_user = User.objects.get(username=data.email_id)
                 if position:
                     if old_position != position:
-                        sub_user = User.objects.get(username=data.email_id)
                         update_user_role(user, sub_user, position, old_position=old_position)
+                if groups_list:
+                    update_user_groups(request, sub_user, groups_list)
                 final_data['staff_master'].save()
             else:
                 staff_code = final_data['staff_code']
@@ -9733,6 +9749,8 @@ def staff_master_upload(request, user=''):
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
                 update_staff_plants_list(staff_obj, plants)
+                if groups_list:
+                    update_user_groups(request, sub_user, groups_list)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -9782,16 +9800,23 @@ def user_master_upload(request, user=''):
             if key in user_profile_dict.keys():
                 user_profile_dict[key] = value
         newuser = create_user_wh(
-            final_data.get('parent_wh_username'), 
-            user_dict, 
-            user_profile_dict, 
+            final_data.get('parent_wh_username'),
+            user_dict,
+            user_profile_dict,
             exist_user_profile
         )
         addConfigs(final_data.get('parent_wh_username'), newuser)
-        insert_skus(newuser.id)
-        insert_admin_suppliers(request, newuser)
-        insert_admin_tax_master(request, newuser)
-        insert_admin_sku_attributes(request, newuser)
+        syncOtherData.apply_async(args=[newuser.id])
+
+    return HttpResponse('Success')
+    
+@app.task
+def syncOtherData(newuserid):
+    insert_skus(newuserid)
+    newuser = User.objects.get(newuserid)
+    insert_admin_suppliers({}, newuser)
+    insert_admin_tax_master({}, newuser)
+    insert_admin_sku_attributes({}, newuser)
 
 def addConfigs(existingUser, newUser):
     ConfigsToUpdate = [
@@ -9805,17 +9830,17 @@ def addConfigs(existingUser, newUser):
         'receive_po_inv_value_qty_check',
     ]
     for config in ConfigsToUpdate:
-        doesexistinguserhas = MiscDetail.objects.filter(user=existingUser.id, misc_type=config, misc_value=True)    
+        doesexistinguserhas = MiscDetail.objects.filter(user=existingUser.id, misc_type=config, misc_value=True)
         if doesexistinguserhas:
             misc_detail, created = MiscDetail.objects.get_or_create(
-                user=newUser.id, 
+                user=newUser.id,
                 misc_type=config
             )
             misc_detail.misc_value = True
             misc_detail.creation_date = datetime.datetime.now()
             misc_detail.updation_date = datetime.datetime.now()
             misc_detail.save()
-    
+
 
 
 @csrf_exempt
@@ -9875,7 +9900,7 @@ def validate_user_master_form(request, reader, user, no_of_rows, no_of_cols, fna
                     if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
-                
+
         data_list.append(data_dict)
 
     if not index_status:
@@ -9958,7 +9983,8 @@ def uom_master_upload(request, user=''):
     if(ServiceMaster_list):
         intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
     if(AssetMaster_list):
-        intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
+        # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
     if(OtherItemsMaster_list):
         intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
@@ -10087,8 +10113,201 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
 @csrf_exempt
 @login_required
 @get_admin_user
+def grn_form(request, user=''):
+    excel_file = request.GET['download-grn-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(GRN_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('GRN', excel_headers)
+    return xls_to_response(wb, '%s.grn_form.xls' % str(user.username))
+
+def group_list_on_grn_number(data_list):
+    grn_dict = {}
+    for row in data_list:
+        if row['grn_number'] not in grn_dict:
+            grn_dict[row['grn_number']] = [row]
+        else:
+            grn_dict[row['grn_number']].append(row)
+
+    return grn_dict
+
+def make_data_to_acceptable_params(list_of_items):
+    from django.http import QueryDict
+    constructSting = ''
+    for row in list_of_items:
+        for key, value in row.items():
+            if key == 'sku_code':
+                key = 'wms_code'
+            constructSting += '%s=%s&' % (key, value)
+    return QueryDict(constructSting)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def grn_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+
+    if status != 'Success':
+        return HttpResponse(status)
+
+    data_list = group_list_on_grn_number(data_list)
+    for grn_number, list_of_items  in data_list.items():
+        dataToPost = make_data_to_acceptable_params(list_of_items)
+        status, plant_user = get_warehouse_id(dataToPost.get('plant_id'))
+        request.POST = dataToPost
+        confirm_grn(request, confirm_returns='', user=plant_user)
+
+
+    
+    
+    
+    return HttpResponse('Success')
+
+
+def get_warehouse_id(plant_id=None):
+    try:
+        warehouse_obj = UserProfile.objects.filter(stockone_code=plant_id)[0]
+        warehouse_obj = warehouse_obj.user
+        return True, warehouse_obj
+    except Exception as e:
+        return False , e
+    
+
+
+@csrf_exempt
+def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(GRN_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'plant_id':
+                if user.userprofile.warehouse_type == 'STORE' and int(user.userprofile.stockone_code) != int(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Access Denied To Plant %s' % cell_data)
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        status, warehouse_obj = get_warehouse_id(plant_id=cell_data)
+                        if status:
+                            data_dict[key] = cell_data
+                        else:
+                            index_status.setdefault(row_idx, set()).add(warehouse_obj)        
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant ID Is Mandatory')
+            elif key == 'sku_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=warehouse_obj.id, sku_code=cell_data)
+                    if not sku_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict[key] = sku_master[0].sku_code
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'po_number':
+                if cell_data:
+                    po = PurchaseOrder.objects.filter(
+                        open_po__sku__sku_code=sku_master[0].sku_code,
+                        po_number=cell_data, 
+                        open_po__sku__user=warehouse_obj.id
+                        )
+                    if po:
+                        data_dict['id'] = po[0].id
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid PO Number')
+                else:
+                    index_status.setdefault(row_idx, set()).add('PO Is Mandatory')
+            elif key == 'supplier_id':
+                if cell_data:
+                    sup = SupplierMaster.objects.filter(
+                        supplier_id=cell_data,
+                        user=warehouse_obj.id
+                        )
+                    if sup:
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Supplier')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Supplier Is Mandatory')
+            elif key == 'invoice_quantity':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        if cell_data == 0:
+                            index_status.setdefault(count, set()).add('Invoice Quantity is given zero')
+                        else:
+                            data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invoice Quantity is Mandatory')
+            elif key == 'quantity':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        if cell_data == 0:
+                            index_status.setdefault(count, set()).add('Line Quantity is given zero')
+                        else:
+                            data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Line Quantity is Mandatory')
+
+            elif key in ['mfg_date', 'exp_date', 'invoice_date']:
+                if cell_data:
+                    try:
+                        datetime.datetime.strptime(cell_data, "%m/%d/%Y")
+                        data_dict[key] = cell_data
+                    except Exception as e:
+                        index_status.setdefault(row_idx, set()).add('Invalid Date Format For %s' % inv_res[key])
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+            elif key in ['invoice_number', 'invoice_value', 'batch_no', 'grn_number']:
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def pending_pr_form(request, user=''):
-    excel_file = request.GET['download-file']
+    excel_file = request.GET['download-purchase-request-file']
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
@@ -10117,7 +10336,7 @@ def pending_pr_upload(request, user=''):
     sku_code = data_list[0]['sku_code']
     priority_type = data_list[0]['priority_type']
     pr_delivery_date = data_list[0]['delivery_date']
-    pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user, 
+    pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user,
                                                                         'pr_prefix', sku_code)
     purchaseMap = {
             'requested_user': request.user,
@@ -10147,7 +10366,7 @@ def pending_pr_upload(request, user=''):
         except:
             pendingLineItems['quantity'] = 0
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
-    
+
     return HttpResponse('Success')
 
 

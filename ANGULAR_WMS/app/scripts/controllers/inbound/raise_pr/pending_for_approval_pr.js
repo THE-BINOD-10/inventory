@@ -175,6 +175,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "priority_type": data.data.priority_type,
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
+                  'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -199,6 +200,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+          }
+          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
+            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
           }
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
@@ -524,9 +528,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         if (vm.is_actual_pr){
           elem.push({name:'is_actual_pr', value:true})
         }
-        // if (vm.pr_number){
-        //   elem.push({name:'pr_number', value:vm.pr_number})
-        // }
         var keepGoing = true;
         if (vm.permissions.change_pendinglineitems) {
           angular.forEach(elem, function(key, index) {
@@ -559,8 +560,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         } else{
           elem.push({name: 'validation_type', value: 'rejected'})
         }
+        var form_data = new FormData();
+        if (vm.model_data.product_category != "Kits&Consumables" && $(".approve_form").find('[name="files"]').length > 0){
+          var files = $(".approve_form").find('[name="files"]')[0].files;
+          $.each(files, function(i, file) {
+            form_data.append('files-' + i, file);
+          });
+        }
+        $.each(elem, function(i, val) {
+          form_data.append(val.name, val.value);
+        });
         if (keepGoing) {
-          vm.service.apiCall('approve_pr/', 'POST', elem, true).then(function(data){
+          vm.service.apiCall('approve_pr/', 'POST', form_data, true, true).then(function(data){
             if(data.message){
               if(data.data == 'Approved Successfully') {
                 vm.close();
@@ -1116,8 +1127,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
             sku_data = sku_data[0];
             vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
-            //sku_data["price"] = product.fields.price;
-            //vm.model_data.supplier_sku_prices = sku_data;
+            // sku_data["price"] = product.fields.price;
+            // vm.model_data.supplier_sku_prices = sku_data;
             product["taxes"] = sku_data.taxes;
             product["fields"]["edit_tax"] = sku_data.edit_tax;
             vm.get_tax_value(product);
@@ -1286,8 +1297,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
-      // vm.model_data.total_price = 0;
-      // vm.model_data.sub_total = 0;
+      vm.model_data.total_price = 0;
+      vm.model_data.sub_total = 0;
       if (data.fields.temp_price){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
             Service.showNoty('Price cant be more than Base Price'); 
@@ -1300,21 +1311,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
-      // angular.forEach(vm.model_data.data, function(sku_data){
-        // var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        // sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
-        // if(sku_data.taxes && !not_update_tax) {
-        //     vm.get_tax_value(sku_data);
-        // }
-        // if (!sku_data.fields.tax) {
-        //   sku_data.fields.tax = 0;
-        // }
-        // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
-        // vm.model_data.total_price = vm.model_data.total_price + temp;
-        // vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
-      // })
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      })
     }
 
     vm.getCompany = function() {

@@ -252,20 +252,24 @@ class netsuiteIntegration(object):
                     if(data.get("exp_date",None)):
                         grn_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
                     if(data.get("mrp",None)):
-                        if grn_data.get("product_category",None):
-                            if grn_data["product_category"]== 'Services' and data.get("unit_price", None):
-                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['unit_price']))
-                            else:
-                                grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                    if data.get("unit_price", None):
+                        grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_unit_price_grn', value=data['unit_price']))
                     line_item = {
-                    'item': ns.RecordRef(externalId=data['sku_code']), 'orderLine': data["order_idx"],
-                    'quantity': data['received_quantity'],
+                    'item': ns.RecordRef(externalId=data['sku_code']),
+                    # 'quantity': data['received_quantity'],
                     'description': data['sku_desc'],
-                    'rate': data['unit_price'],
+                    # 'rate': data['unit_price'],
                     # 'location': ns.RecordRef(internalId=297),
-                    'itemReceive': True,
+                    'itemReceive': data["itemReceive"],
                     "customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
+                    if data.get("unit_price", None):
+                        line_item.update({'rate': data["unit_price"]})
+                    if data.get("received_quantity", None):
+                        line_item.update({'quantity': data["received_quantity"]})
+                    if data.get("order_idx", None):
+                        line_item.update({'orderLine': data["order_idx"]})
                     if data.get('uom_name', None) and data.get('unitypeexid', None):
                         internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                         if internId:

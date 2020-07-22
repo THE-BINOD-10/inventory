@@ -140,6 +140,7 @@ urlpatterns = [
     url(r'^delete_pr_config/$', delete_pr_config),
     url(r'^pending_pr_request/$', pr_request),
     url(r'^pending_po_request/$', pr_request),
+    url(r'^pendingPREnquiry/$', pr_enquiry_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -708,6 +709,9 @@ urlpatterns += [
     url(r'^user_master_upload/$', user_master_upload),
     url(r'^pending_pr_form/$', pending_pr_form),
     url(r'^pending_pr_upload/$', pending_pr_upload),
+    url(r'^grn_form/$', grn_form),
+    url(r'^grn_upload/$', grn_upload),
+    
 
     # configurations
     url(r'^configurations/$', configurations),

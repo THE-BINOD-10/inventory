@@ -933,6 +933,49 @@ def findLastLevelToApprove(user, pr_number, totalAmt, purchase_type='PR', produc
         finalLevel = configQs[0]
     return reqConfigName, finalLevel
 
+def pr_enquiry_request(request):
+    response_data = {'data': {}, 'message': 'Fail'}
+    hash_code = request.GET.get('hash_code', '')
+    send_path = 'app.inbound.RaisePr'
+    mailed_data = GenericEnquiryMails.objects.filter(hash_code=hash_code)
+    if mailed_data.exists():
+        storedData = GenericEnquiry.objects.get(id=mailed_data[0].master_id)
+        email_id = storedData.receiver.email
+        prApprQs = PurchaseApprovals.objects.filter(pending_pr=storedData.master_id)
+        if not prApprQs.exists():
+            return HttpResponse("Error")
+        prApprObj = prApprQs[0]
+        parentUser = prApprObj.pr_user
+        toBeValidateLevel = prApprObj.level
+        admin_user = None
+        linked_whs = get_related_users_filters(parentUser.id, send_parent=True)
+        sub_user_id_list = []
+        for linked_wh in linked_whs:
+            sub_objs =  get_sub_users(linked_wh)
+            sub_user_id_list = list(chain(sub_user_id_list, sub_objs.values_list('id', flat=True)))
+        try:
+            reqSubUser = User.objects.get(email=email_id, id__in=sub_user_id_list)
+        except Exception as e:
+            import traceback;
+            log.info("Issue with Email:%s" %email_id)
+        if reqSubUser and reqSubUser.is_active:
+            login(request, reqSubUser)
+            user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+
+            if not user_profile:
+                prefix = re.sub('[^A-Za-z0-9]+', '', reqSubUser.username)[:3].upper()
+                up_obj = UserProfile(user=reqSubUser, phone_number='',
+                                           is_active=1, prefix=prefix, swx_id=0)
+                up_obj.save()
+                if reqSubUser.is_staff:
+                    add_user_type_permissions(up_obj)
+                user_profile = UserProfile.objects.filter(user_id=reqSubUser.id)
+        else:
+            return HttpResponse(json.dumps(response_data), content_type='application/json')
+    response_data = add_user_permissions(request, response_data)
+    response_data.update({'pr_data': {'pr_number': '123', 'path': send_path}})
+    return HttpResponse(json.dumps(response_data), content_type='application/json')
+
 
 def pr_request(request):
     response_data = {'data': {}, 'message': 'Fail'}
@@ -1034,7 +1077,6 @@ def pr_request(request):
 
     else:
         return HttpResponse(json.dumps(response_data), content_type='application/json')
-
     response_data = add_user_permissions(request, response_data)
 
     # requested_user = parentUser
@@ -12303,10 +12345,13 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
         if user.id != user_id:
-            if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
-                user_data_dict['tax_type'] = 'intra_state'
+            if user_filter_dict.get('tin_number', ''):
+                if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
+                    user_data_dict['tax_type'] = 'intra_state'
+                else:
+                    user_data_dict['tax_type'] = 'inter_state'
             else:
-                user_data_dict['tax_type'] = 'inter_state'
+                user_data_dict['tax_type'] = ''
         exist_supplier = SupplierMaster.objects.filter(**user_filter_dict)
         if not exist_supplier.exists():
             supplier_master = create_new_supplier(user_obj, filter_dict['supplier_id'], user_data_dict)

@@ -5,6 +5,7 @@ from miebach.celery import app
 from stockone_integrations.views import Integrations
 import datetime
 from stockone_integrations.utils import init_logger
+import json
 
 ListOfExecution = [
     { 'function': 'IntegrateUOM', 'objType': 'uom', 'unique_param': 'name'},
@@ -60,12 +61,23 @@ def executeAutomatedTaskForUser(userObj, row):
         import traceback
         log_err.debug(traceback.format_exc())
         log_err.info('Faied Executing %s' % row.get('objType'))
+
 def getFunctionName(moduleType):
     for row in ListOfExecution:
         if row['objType'] == moduleType:
             return row
 
-def executeTaskForRow(userObj, moduleType, integration_type, rows):
-    row = getFunctionName(moduleType)
-    intObj = Integrations(userObj, intType=integration_type, executebatch=True)
-    getattr(intObj, row.get('function'))(dataToSend, row.get('unique_param'), is_multiple=True)
+def executeTaskForRow(row):
+    function = getFunctionName(row.module_type)
+    # try:
+    intObj = Integrations(row.user, intType=row.integration_type, executebatch=True)
+    getattr(
+        intObj, 
+        function.get('function'))([json.loads(row.integration_data)], function.get('unique_param'), 
+        is_multiple=True, 
+        action=row.action_type
+        )
+    # except Exception as e:
+    #     import traceback
+    #     log_err.debug(traceback.format_exc())
+    #     log_err.info('Faied Executing %s' % function.get('objType'))

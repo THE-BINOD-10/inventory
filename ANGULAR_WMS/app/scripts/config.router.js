@@ -32,7 +32,14 @@ var app = angular.module('urbanApp')
          Session.unset();
          $rootScope.$redirect = tmp_route;
          var data = request_hash_code.split(tmp_route)[1];
-         var loader_header = tmp_route == 'pending_pr_request' ? 'PR' : 'PO';
+         var loader_header = ''
+         if (tmp_route == 'pending_pr_request') {
+            loader_header = 'PR'
+         } else if (tmp_route == 'pendingPREnquiry') {
+            loader_header = 'Pending Enquiry'
+         } else {
+            loader_header = 'PO'
+         }
          swal2({
            title: 'Redirecting to Validate '+loader_header,
            text: 'User Authentication in Progress..',
@@ -48,6 +55,8 @@ var app = angular.module('urbanApp')
            var main_route = resp['pr_data']['path'];
            if (tmp_route == 'pending_pr_request') {
              $rootScope.$current_pr = resp.aaData['aaData'][0]
+           } else if (tmp_route == 'pendingPREnquiry') {
+              $rootScope.$current_pr_enq = ''
            } else {
              $rootScope.$current_po = resp.aaData['aaData'][0]
            }

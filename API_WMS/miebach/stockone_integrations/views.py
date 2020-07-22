@@ -425,6 +425,9 @@ class Integrations():
             )
         status = True
         if hasattr(data, 'error'):
+            resultArr.update(
+                integration_error=data.error_msg
+                )
             status = False
         resultArr.update(
             integration_reference = data.internalId,

@@ -1613,13 +1613,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         str(user.username), str(request.POST.dict()), str(e)))
 
             elif key == 'hsn_code':
-                #if not cell_data:
-                #    index_status.setdefault(row_idx, set()).add('hsn Code missing')
                 if cell_data:
-                    if isinstance(cell_data, (int, float)):
+                    if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
-                    # if not len(cell_data) == 8:
-                    #     index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+                    if cell_data not in product_types:
+                        index_status.setdefault(row_idx, set()).add(
+                            'New HSN code - Create the new code in Tax Master and in Netsuite')
 
             elif key == 'product_type':
                 if cell_data:
@@ -1973,8 +1972,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
+                data_dict['product_type']= cell_data
                 if sku_data:
                     setattr(sku_data, key, cell_data)
+                    setattr(sku_data, 'product_type', cell_data)
                 data_dict[key] = cell_data
             # elif key == 'asset_number':
             #     if isinstance(cell_data, float):

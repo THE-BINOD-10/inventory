@@ -3537,16 +3537,10 @@ def approve_pr(request, user=''):
                 #                      requestedUserEmail, poFor=poFor, central_po_data=central_po_data)
                 for eachMail in mailsList:
                     generateHashCodeForMail(prObj, eachMail, 'level0')
-<<<<<<< HEAD
-                    sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level, 
-                        '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor, 
-                        central_po_data=central_po_data)
-=======
                     sendMailforPendingPO(pendingPRObj.id, pr_user, pending_level,
                         '%s_approval_at_last_level' %mailSubTypePrefix, eachMail, poFor=poFor,
                         central_po_data=central_po_data, currentLevelMailList=currentLevelMailList,
                         is_resubmitted=is_resubmitted)
->>>>>>> 6fef6408b7aeb96451ccf2941bbf7e456a8531c7
             # pass
             try:
                 netsuite_pr(user, PRQs, full_pr_number)

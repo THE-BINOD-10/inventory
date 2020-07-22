@@ -11,19 +11,20 @@ from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib import auth
 from miebach_admin.models import *
-from miebach_admin.choices import *
+# from miebach_admin.choices import *
 from common import *
-from masters import *
-from miebach_utils import *
+# from masters import *
+# from miebach_utils import *
 from django.core import serializers
 import csv
-from sync_sku import *
+# from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
 from rest_api.views.common import create_user_wh
-
 from inbound_common_operations import *
 from stockone_integrations.views import Integrations
+from rest_api.views.inbound import confirm_grn
+from miebach.celery import app
 
 log = init_logger('logs/uploads.log')
 
@@ -9789,10 +9790,17 @@ def user_master_upload(request, user=''):
             exist_user_profile
         )
         addConfigs(final_data.get('parent_wh_username'), newuser)
-        insert_skus(newuser.id)
-        insert_admin_suppliers(request, newuser)
-        insert_admin_tax_master(request, newuser)
-        insert_admin_sku_attributes(request, newuser)
+        syncOtherData.apply_async(args=[newuser.id])
+
+    return HttpResponse('Success')
+    
+@app.task
+def syncOtherData(newuserid):
+    insert_skus(newuserid)
+    newuser = User.objects.get(newuserid)
+    insert_admin_suppliers({}, newuser)
+    insert_admin_tax_master({}, newuser)
+    insert_admin_sku_attributes({}, newuser)
 
 def addConfigs(existingUser, newUser):
     ConfigsToUpdate = [
@@ -10085,6 +10093,199 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
         return f_name, data_list
 
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def grn_form(request, user=''):
+    excel_file = request.GET['download-grn-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(GRN_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('GRN', excel_headers)
+    return xls_to_response(wb, '%s.grn_form.xls' % str(user.username))
+
+def group_list_on_grn_number(data_list):
+    grn_dict = {}
+    for row in data_list:
+        if row['grn_number'] not in grn_dict:
+            grn_dict[row['grn_number']] = [row]
+        else:
+            grn_dict[row['grn_number']].append(row)
+
+    return grn_dict
+
+def make_data_to_acceptable_params(list_of_items):
+    from django.http import QueryDict
+    constructSting = ''
+    for row in list_of_items:
+        for key, value in row.items():
+            if key == 'sku_code':
+                key = 'wms_code'
+            constructSting += '%s=%s&' % (key, value)
+    return QueryDict(constructSting)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def grn_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+
+    if status != 'Success':
+        return HttpResponse(status)
+
+    data_list = group_list_on_grn_number(data_list)
+    for grn_number, list_of_items  in data_list.items():
+        dataToPost = make_data_to_acceptable_params(list_of_items)
+        status, plant_user = get_warehouse_id(dataToPost.get('plant_id'))
+        request.POST = dataToPost
+        confirm_grn(request, confirm_returns='', user=plant_user)
+
+
+    
+    
+    
+    return HttpResponse('Success')
+
+
+def get_warehouse_id(plant_id=None):
+    try:
+        warehouse_obj = UserProfile.objects.filter(stockone_code=plant_id)[0]
+        warehouse_obj = warehouse_obj.user
+        return True, warehouse_obj
+    except Exception as e:
+        return False , e
+    
+
+
+@csrf_exempt
+def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(GRN_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'plant_id':
+                if user.userprofile.warehouse_type == 'STORE' and int(user.userprofile.stockone_code) != int(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Access Denied To Plant %s' % cell_data)
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        status, warehouse_obj = get_warehouse_id(plant_id=cell_data)
+                        if status:
+                            data_dict[key] = cell_data
+                        else:
+                            index_status.setdefault(row_idx, set()).add(warehouse_obj)        
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant ID Is Mandatory')
+            elif key == 'sku_code':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=warehouse_obj.id, sku_code=cell_data)
+                    if not sku_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict[key] = sku_master[0].sku_code
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'po_number':
+                if cell_data:
+                    po = PurchaseOrder.objects.filter(
+                        open_po__sku__sku_code=sku_master[0].sku_code,
+                        po_number=cell_data, 
+                        open_po__sku__user=warehouse_obj.id
+                        )
+                    if po:
+                        data_dict['id'] = po[0].id
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid PO Number')
+                else:
+                    index_status.setdefault(row_idx, set()).add('PO Is Mandatory')
+            elif key == 'supplier_id':
+                if cell_data:
+                    sup = SupplierMaster.objects.filter(
+                        supplier_id=cell_data,
+                        user=warehouse_obj.id
+                        )
+                    if sup:
+                        data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Supplier')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Supplier Is Mandatory')
+            elif key == 'invoice_quantity':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        if cell_data == 0:
+                            index_status.setdefault(count, set()).add('Invoice Quantity is given zero')
+                        else:
+                            data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invoice Quantity is Mandatory')
+            elif key == 'quantity':
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = int(cell_data)
+                        if cell_data == 0:
+                            index_status.setdefault(count, set()).add('Line Quantity is given zero')
+                        else:
+                            data_dict[key] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Line Quantity is Mandatory')
+
+            elif key in ['mfg_date', 'exp_date', 'invoice_date']:
+                if cell_data:
+                    try:
+                        datetime.datetime.strptime(cell_data, "%m/%d/%Y")
+                        data_dict[key] = cell_data
+                    except Exception as e:
+                        index_status.setdefault(row_idx, set()).add('Invalid Date Format For %s' % inv_res[key])
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+            elif key in ['invoice_number', 'invoice_value', 'batch_no', 'grn_number']:
+                if cell_data:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
 @csrf_exempt
 @login_required

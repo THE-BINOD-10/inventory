@@ -2143,8 +2143,9 @@ def upload_netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"ServicePurchaseItem":True})
             intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
+            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
@@ -9783,9 +9784,9 @@ def user_master_upload(request, user=''):
             if key in user_profile_dict.keys():
                 user_profile_dict[key] = value
         newuser = create_user_wh(
-            final_data.get('parent_wh_username'), 
-            user_dict, 
-            user_profile_dict, 
+            final_data.get('parent_wh_username'),
+            user_dict,
+            user_profile_dict,
             exist_user_profile
         )
         addConfigs(final_data.get('parent_wh_username'), newuser)
@@ -9813,17 +9814,17 @@ def addConfigs(existingUser, newUser):
         'receive_po_inv_value_qty_check',
     ]
     for config in ConfigsToUpdate:
-        doesexistinguserhas = MiscDetail.objects.filter(user=existingUser.id, misc_type=config, misc_value=True)    
+        doesexistinguserhas = MiscDetail.objects.filter(user=existingUser.id, misc_type=config, misc_value=True)
         if doesexistinguserhas:
             misc_detail, created = MiscDetail.objects.get_or_create(
-                user=newUser.id, 
+                user=newUser.id,
                 misc_type=config
             )
             misc_detail.misc_value = True
             misc_detail.creation_date = datetime.datetime.now()
             misc_detail.updation_date = datetime.datetime.now()
             misc_detail.save()
-    
+
 
 
 @csrf_exempt
@@ -9883,7 +9884,7 @@ def validate_user_master_form(request, reader, user, no_of_rows, no_of_cols, fna
                     if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
                     data_dict[key] = cell_data
-                
+
         data_list.append(data_dict)
 
     if not index_status:
@@ -9966,7 +9967,8 @@ def uom_master_upload(request, user=''):
     if(ServiceMaster_list):
         intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
     if(AssetMaster_list):
-        intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
+        # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
     if(OtherItemsMaster_list):
         intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
@@ -10318,7 +10320,7 @@ def pending_pr_upload(request, user=''):
     sku_code = data_list[0]['sku_code']
     priority_type = data_list[0]['priority_type']
     pr_delivery_date = data_list[0]['delivery_date']
-    pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user, 
+    pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user,
                                                                         'pr_prefix', sku_code)
     purchaseMap = {
             'requested_user': request.user,
@@ -10348,7 +10350,7 @@ def pending_pr_upload(request, user=''):
         except:
             pendingLineItems['quantity'] = 0
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
-    
+
     return HttpResponse('Success')
 
 

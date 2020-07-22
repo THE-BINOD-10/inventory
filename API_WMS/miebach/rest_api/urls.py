@@ -140,6 +140,7 @@ urlpatterns = [
     url(r'^delete_pr_config/$', delete_pr_config),
     url(r'^pending_pr_request/$', pr_request),
     url(r'^pending_po_request/$', pr_request),
+    url(r'^pendingPREnquiry/$', pr_enquiry_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

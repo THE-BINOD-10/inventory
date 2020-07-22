@@ -10088,7 +10088,7 @@ def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
 @login_required
 @get_admin_user
 def pending_pr_form(request, user=''):
-    excel_file = request.GET['download-file']
+    excel_file = request.GET['download-purchase-request-file']
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)

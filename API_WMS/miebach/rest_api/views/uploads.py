@@ -24,6 +24,7 @@ from rest_api.views.common import create_user_wh
 from inbound_common_operations import *
 from stockone_integrations.views import Integrations
 from rest_api.views.inbound import confirm_grn
+from miebach.celery import app
 
 log = init_logger('logs/uploads.log')
 
@@ -9788,10 +9789,17 @@ def user_master_upload(request, user=''):
             exist_user_profile
         )
         addConfigs(final_data.get('parent_wh_username'), newuser)
-        insert_skus(newuser.id)
-        insert_admin_suppliers(request, newuser)
-        insert_admin_tax_master(request, newuser)
-        insert_admin_sku_attributes(request, newuser)
+        syncOtherData.apply_async(args=[newuser.id])
+
+    return HttpResponse('Success')
+    
+@app.task
+def syncOtherData(newuserid):
+    insert_skus(newuserid)
+    newuser = User.objects.get(newuserid)
+    insert_admin_suppliers({}, newuser)
+    insert_admin_tax_master({}, newuser)
+    insert_admin_sku_attributes({}, newuser)
 
 def addConfigs(existingUser, newUser):
     ConfigsToUpdate = [
@@ -10129,10 +10137,10 @@ def grn_upload(request, user=''):
     except:
         return HttpResponse('Invalid File')
     status, data_list = validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
-    
+
     if status != 'Success':
         return HttpResponse(status)
-        
+
     data_list = group_list_on_grn_number(data_list)
     for grn_number, list_of_items  in data_list.items():
         dataToPost = make_data_to_acceptable_params(list_of_items)

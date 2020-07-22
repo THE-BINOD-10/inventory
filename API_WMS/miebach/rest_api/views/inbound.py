@@ -13363,8 +13363,8 @@ def prepare_rtv_json_data(request_data, user):
             if stock_count < float(quantity):
                 return data_list, 'Return Quantity Exceeded available quantity'
             data_list.append(data_dict)
-        elif request_data['location'][ind] or request_data['return_qty'][ind]:
-            return data_list, 'Location or Quantity Missing'
+        elif not request_data['location'][ind]:
+            return data_list, 'Location Missing'
     return data_list, ''
 
 

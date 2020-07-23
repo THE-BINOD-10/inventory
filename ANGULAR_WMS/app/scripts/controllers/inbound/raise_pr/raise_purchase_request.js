@@ -220,6 +220,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 data.fields.tax = data.fields.temp_tax;
               }
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);

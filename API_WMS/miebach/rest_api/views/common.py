@@ -12855,6 +12855,8 @@ def get_staff_plants_list(request, user=''):
 def check_and_get_plants(request, req_users, users=''):
     if users:
         req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
     return req_users
 
 
@@ -12874,4 +12876,6 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
                                               company_id=company_id)
     if users:
         req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
     return req_users

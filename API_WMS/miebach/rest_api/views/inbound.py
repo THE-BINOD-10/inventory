@@ -4119,6 +4119,9 @@ def netsuite_pr(user, PRQs, full_pr_number):
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseRequizition(pr_datas , "full_pr_number", is_multiple=True)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Add PR failed error statement is" + str(e))
         print(e)
 
 
@@ -9471,7 +9474,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         # if(_purchase_order.open_po.supplier.tin_number):
         #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
         state=''
-        if purchase_order.open_po.supplier.state:
+        if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
@@ -9508,6 +9511,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Add PO failed for params " + str(data_dict) + " and error statement is " + str(e))
         print(e)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')

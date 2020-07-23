@@ -124,7 +124,7 @@ def get_admin_user(f):
 
 def get_admin_multi_user(f):
     def wrap(request, *args, **kwargs):
-        from rest_api.views.common import get_companies_list, get_company_id
+        from rest_api.views.common import get_companies_list, get_company_id, get_related_users_filters
         user = ''
         admin_group = AdminGroups.objects.filter(user_id=request.user.id)
         if admin_group:
@@ -156,6 +156,7 @@ def get_admin_multi_user(f):
         if staff_obj.exists():
             users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
             if not users:
+                staff_obj = staff_obj[0]
                 parent_company_id = get_company_id(user)
                 company_id = staff_obj.company_id
                 if parent_company_id == staff_obj.company_id:

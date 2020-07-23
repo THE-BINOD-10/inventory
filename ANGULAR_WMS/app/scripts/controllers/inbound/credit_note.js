@@ -53,17 +53,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.alert_msg(msg).then(function(msg) {
                 if (msg == "true") {
                   var sendData = {
-                    'credit_id': aData['id']
+                    'credit_id': aData['credit_id']
                   }
                   Service.apiCall("download_credit_note_po_data/", "POST", sendData, true).then(function(data) {
                     if(data.message) {
                       let srcpdf = vm.host+data.data.data[0]
                       var mywindow = window.open(srcpdf, 'height=400,width=600');
                       mywindow.focus();
-                      $timeout(function(){
-                        mywindow.print();
-                        mywindow.close();
-                      }, 3000);
                       return true;
                     }
                   });

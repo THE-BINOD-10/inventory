@@ -881,6 +881,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
                   angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
                 } else{
+                  vm.html = $(data.data);
                   angular.element(".modal-body").html($(data.data));
                 }
                 vm.print_enable = true;

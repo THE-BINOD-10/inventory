@@ -9795,6 +9795,8 @@ def user_master_upload(request, user=''):
         final_data['warehouse_level'] = exist_user_profile.warehouse_level + 1
         if final_data['warehouse_type'] != 'DEPT':
             final_data['multi_warehouse'] = 1
+        else:
+            final_data['multi_warehouse'] = 0
         for key, value in final_data.iteritems():
             if key in user_dict.keys():
                 user_dict[key] = value

@@ -2141,8 +2141,9 @@ def upload_netsuite_sku(data, user, instanceName=''):
         department, plant, subsidary=get_plant_subsidary_and_department(user)
         sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
-            sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            #sku_data_dict.update({"ServicePurchaseItem":True})
+            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == AssetMaster:
             # sku_data_dict.update({"non_inventoryitem":True})
             # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
@@ -9809,7 +9810,7 @@ def user_master_upload(request, user=''):
         syncOtherData.apply_async(args=[newuser.id])
 
     return HttpResponse('Success')
-    
+
 @app.task
 def syncOtherData(newuserid):
     insert_skus(newuserid)
@@ -9981,7 +9982,8 @@ def uom_master_upload(request, user=''):
     if(SKUMaster_list):
         intObj.integrateSkuMaster(SKUMaster_list,"sku_code", is_multiple=True)
     if(ServiceMaster_list):
-        intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(ServiceMaster_list,"sku_code", is_multiple=True)
+        #intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
     if(AssetMaster_list):
         intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
         # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
@@ -10167,9 +10169,9 @@ def grn_upload(request, user=''):
         confirm_grn(request, confirm_returns='', user=plant_user)
 
 
-    
-    
-    
+
+
+
     return HttpResponse('Success')
 
 
@@ -10180,7 +10182,7 @@ def get_warehouse_id(plant_id=None):
         return True, warehouse_obj
     except Exception as e:
         return False , e
-    
+
 
 
 @csrf_exempt
@@ -10206,7 +10208,7 @@ def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         if status:
                             data_dict[key] = cell_data
                         else:
-                            index_status.setdefault(row_idx, set()).add(warehouse_obj)        
+                            index_status.setdefault(row_idx, set()).add(warehouse_obj)
                 else:
                     index_status.setdefault(row_idx, set()).add('Plant ID Is Mandatory')
             elif key == 'sku_code':
@@ -10224,7 +10226,7 @@ def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     po = PurchaseOrder.objects.filter(
                         open_po__sku__sku_code=sku_master[0].sku_code,
-                        po_number=cell_data, 
+                        po_number=cell_data,
                         open_po__sku__user=warehouse_obj.id
                         )
                     if po:

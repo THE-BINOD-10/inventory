@@ -442,7 +442,7 @@ class netsuiteIntegration(object):
                     'item':ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
-                    # 'rate': data['price'] ,
+                    'rate': data['price'],
                     'estimatedRate': data['price'],
                     # 'estimatedAmount':
                     # "poVendor": ns.RecordRef(internalId=data['reference_id'], type="vendor"),

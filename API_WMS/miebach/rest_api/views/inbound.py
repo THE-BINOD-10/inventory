@@ -6585,7 +6585,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
             zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity',"product_category" ,"order_type",
-                           "grn_total_amount","total_order_qty","total_receivable_qty","supplier_id_name","total_received_qty","grn_quantity"
+                           "grn_total_amount","total_order_qty","total_receivable_qty","supplier_id_name","total_received_qty","grn_quantity",
+                           "warehouse_id"
                            ]
             for i in range(0, len(data_dict['id'])):
                 po_data = {}

@@ -500,7 +500,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var sku_list = '';
       if (validation_type == "approved" && vm.permissions.change_pendinglineitems) {
         for (var i = 0; i < data.length; i++) {
-          if (vm.model_data.data[i].fields.supplierDetails != {}) {
+          if (Object.keys(vm.model_data.data[i].fields.supplierDetails).length > 0) {
             var compare_gstin = vm.model_data.data[i].fields.supplierDetails[vm.model_data.data[i].fields.supplier_id_name].gstin
             if ((compare_gstin != '' || compare_gstin != 0) && vm.model_data.data[i].fields['order_quantity'] > 0) {
               if (!vm.model_data.data[i].fields.hsn_code || vm.model_data.data[i].fields.hsn_code == 0) {
@@ -508,12 +508,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 sku_list = sku_list + ', ' + vm.model_data.data[i].fields.sku.wms_code;
               }
             }
-            if (i+1 == data.length) {
-              if (!status) {
-                Service.showNoty('HSN Code Mandate for These Sku : ' + sku_list);
-              }
-              return status;
+          }
+          if (i+1 == data.length) {
+            if (!status) {
+              Service.showNoty('HSN Code Mandate for These Sku : ' + sku_list);
             }
+            return status;
           }
         }
       } else {

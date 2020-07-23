@@ -18,11 +18,11 @@
         <th>Amount(INR)</th>
         <th>Tax %</th>
         <th>Total(INR)</th>
-        <th class="plus"></th>
+        <th class="plus" ng-if="showCase.quantity_editable"></th>
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+      <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
         <td>
           <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
           typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
@@ -108,7 +108,11 @@
         <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
         </span> 
         <input type="text" name="total" ng-model="product.fields.total" class="hide">
-      </td>        
+      </td>
+      <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
+        <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
+        <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+      </td>      
       </tr>
     </tbody>
   </table>

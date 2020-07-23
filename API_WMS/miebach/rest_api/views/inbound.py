@@ -9460,15 +9460,18 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_date = po_date.isoformat()
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
-        if(_purchase_order.open_po.supplier.tin_number):
-            supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        # if(_purchase_order.open_po.supplier.tin_number):
+        #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        state=''
+        if purchase_order.open_po.supplier.state:
+            state= _purchase_order.open_po.supplier.state
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
         if due_date:
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
-        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
+        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),

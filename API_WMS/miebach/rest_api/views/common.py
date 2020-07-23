@@ -12484,7 +12484,7 @@ def get_company_warehouses(request, user=''):
     else:
         warehouse = []
     parent_company_id = get_company_id(user)
-    if parent_company_id == company_id:
+    if str(parent_company_id) == str(company_id):
         company_id = ''
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
                                         company_id=company_id, send_parent=False)
@@ -12749,11 +12749,7 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
 
     return new_user
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def get_user_groups_list(request, user=''):
-    group_names = []
+def get_user_groups_names(user):
     exclude_list = ['Pull to locate', 'Admin', 'WMS']
     exclude_group = AdminGroups.objects.filter(user_id=user.id)
     if exclude_group:
@@ -12764,6 +12760,26 @@ def get_user_groups_list(request, user=''):
     for group in groups:
         group_name = (group.name).replace(user.username + ' ', '')
         total_groups.append(group_name)
+
+    return total_groups
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_groups_list(request, user=''):
+    group_names = []
+    # exclude_list = ['Pull to locate', 'Admin', 'WMS']
+    # exclude_group = AdminGroups.objects.filter(user_id=user.id)
+    # if exclude_group:
+    #     exclude_list.append(exclude_group[0].group.name)
+    # cur_user = user
+    # groups = user.groups.filter().exclude(name__in=exclude_list)
+    # total_groups = []
+    # for group in groups:
+    #     group_name = (group.name).replace(user.username + ' ', '')
+    #     total_groups.append(group_name)
+    total_groups = get_user_groups_names(user)
     return HttpResponse(json.dumps({'groups': total_groups}))
 
 
@@ -12834,3 +12850,32 @@ def get_staff_plants_list(request, user=''):
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
 
+
+@get_admin_multi_user
+def check_and_get_plants(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
+
+def check_and_get_plants_wo_request(request_user, user, req_users):
+    users = []
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+    if staff_obj.exists():
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        if not users:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj.company_id
+            if parent_company_id == staff_obj.company_id:
+                company_id = ''
+            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                              company_id=company_id)
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users

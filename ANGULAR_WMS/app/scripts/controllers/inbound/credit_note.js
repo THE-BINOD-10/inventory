@@ -41,6 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('credit_type').withTitle('Credit Type'),
         DTColumnBuilder.newColumn('credit_number').withTitle('Credit Number'),
         DTColumnBuilder.newColumn('credit_date').withTitle('Credit Date'),
+        DTColumnBuilder.newColumn('warehouse').withTitle('Store'),
       ];
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
@@ -52,17 +53,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.alert_msg(msg).then(function(msg) {
                 if (msg == "true") {
                   var sendData = {
-                    'credit_id': aData['id']
+                    'credit_id': aData['credit_id']
                   }
                   Service.apiCall("download_credit_note_po_data/", "POST", sendData, true).then(function(data) {
                     if(data.message) {
                       let srcpdf = vm.host+data.data.data[0]
                       var mywindow = window.open(srcpdf, 'height=400,width=600');
                       mywindow.focus();
-                      $timeout(function(){
-                        mywindow.print();
-                        mywindow.close();
-                      }, 3000);
                       return true;
                     }
                   });
@@ -71,7 +68,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             } else {
               var dataDict = {
                 'invoice_number': aData['invoice_number'],
-                'id': aData['id']
+                'id': aData['id'],
+                'warehouse_id': aData['warehouse_id']
               }
               vm.service.apiCall('get_credit_note_po_data/', 'POST', dataDict).then(function(data){
                 if(data.message) {
@@ -89,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data['Invoice Quantity'] = aData.invoice_qty
                   vm.model_data['challan_number'] = aData.challan_number
                   vm.model_data['challan_date'] = aData.challan_date
+                  vm.model_data['warehouse_id'] = aData.warehouse_id
                   vm.title = "Credit Note Details";
                   $state.go('app.inbound.RevceivePo.CN');
                 }

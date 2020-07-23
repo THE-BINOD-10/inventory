@@ -9543,7 +9543,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
-    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status']).\
+    if not set(['warehouse', 'plant', 'department_type', 'staff_code', 'name', 'email_id', 'reportingto_email_id', 'password', 'phone_number', 'position', 'status', 'groups']).\
             issubset(excel_mapping.keys()):
         return 'Invalid File', []
     company_id = get_company_id(user)
@@ -9551,8 +9551,7 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
     company_list = map(lambda d: d['id'], company_list)
     dept_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
     dept_mapping = dict(zip(dept_mapping.values(), dept_mapping.keys()))
-    # all_staff_codes = list(StaffMaster.objects.filter(company_id__in=company_list).values_list('staff_code', flat=True))
-    # all_staff_codes = map(lambda d: str(d).lower(), all_staff_codes)
+    total_groups = get_user_groups_names(user)
     company_id = get_company_id(user)
     roles_list = list(CompanyRoles.objects.filter(company_id=company_id, group__isnull=False).\
                                     values_list('role_name', flat=True))
@@ -9610,6 +9609,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     else:
                         data_dict[key] = dept_mapping[cell_data]
             elif key == 'email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 data_dict[key] = cell_data
                 if cell_data and not staff_master:
                     all_sub_users = get_company_sub_users(user, company_id=company_id)
@@ -9642,6 +9643,8 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                 elif not staff_master:
                     index_status.setdefault(row_idx, set()).add('Position is Mandatory')
             elif key == 'reportingto_email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Invalid Email ID')
                 if cell_data:
                     data_dict[key] = cell_data
                     if staff_master:
@@ -9655,6 +9658,13 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     data_dict[key] = cell_data
                     if staff_master:
                         setattr(staff_master, key, cell_data)
+            elif key == 'groups':
+                if cell_data:
+                    groups = cell_data.split(',')
+                    for group in groups:
+                        if group not in total_groups:
+                            index_status.setdefault(row_idx, set()).add('Invalid Group %s' % group)
+                    data_dict['groups'] = groups
         data_dict['staff_master'] = staff_master
         data_list.append(data_dict)
 
@@ -9694,14 +9704,17 @@ def staff_master_upload(request, user=''):
         return HttpResponse(status)
     try:
         for final_data in data_list:
+            groups_list = final_data.get('groups', '')
             if final_data['staff_master']:
                 data = final_data['staff_master']
                 old_position = data.position
                 position = final_data.get('position', '')
+                sub_user = User.objects.get(username=data.email_id)
                 if position:
                     if old_position != position:
-                        sub_user = User.objects.get(username=data.email_id)
                         update_user_role(user, sub_user, position, old_position=old_position)
+                if groups_list:
+                    update_user_groups(request, sub_user, groups_list)
                 final_data['staff_master'].save()
             else:
                 staff_code = final_data['staff_code']
@@ -9736,6 +9749,8 @@ def staff_master_upload(request, user=''):
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
                 update_staff_plants_list(staff_obj, plants)
+                if groups_list:
+                    update_user_groups(request, sub_user, groups_list)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -10292,7 +10307,7 @@ def validate_grn_form(request, reader, user, no_of_rows, no_of_cols, fname, file
 @login_required
 @get_admin_user
 def pending_pr_form(request, user=''):
-    excel_file = request.GET['download-file']
+    excel_file = request.GET['download-purchase-request-file']
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)

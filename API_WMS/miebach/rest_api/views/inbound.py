@@ -4079,11 +4079,11 @@ def netsuite_pr(user, PRQs, full_pr_number):
                    'ship_to_address': existingPRObj.ship_to, 'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-            'sku__servicemaster__service_end_date',
+            'sku__servicemaster__service_end_date', 'sku__hsn_code'
         ]
         lineItems = existingPRObj.pending_prlineItems.values_list(*lineItemVals)
         for rec in lineItems:
-            sku_id, sku_code, sku_desc, qty, price, uom, apprId, gl_code, service_stdate, service_edate = rec
+            sku_id, sku_code, sku_desc, qty, price, uom, apprId, gl_code, service_stdate, service_edate, hsn_code = rec
             user_obj = user
             unitdata = gather_uom_master_for_sku(user_obj, sku_code)
             unitexid = unitdata.get('name',None)
@@ -4103,10 +4103,11 @@ def netsuite_pr(user, PRQs, full_pr_number):
                     vendor_refrence_id = supplierQs[0].reference_id
             item = {
                 'sku_code': sku_code,
-                'sku_desc':sku_desc,
-                'quantity':qty,
-                'price':price,
-                'uom':uom,
+                'sku_desc': sku_desc,
+                'quantity': qty,
+                'price': price,
+                "hsn_code": hsn_code,
+                'uom': uom,
                 'unitypeexid': unitexid,
                 'uom_name': purchaseUOMname,
                 "reference_id": vendor_refrence_id,
@@ -9467,15 +9468,18 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_date = po_date.isoformat()
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
-        if(_purchase_order.open_po.supplier.tin_number):
-            supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        # if(_purchase_order.open_po.supplier.tin_number):
+        #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        state=''
+        if purchase_order.open_po.supplier.state:
+            state= _purchase_order.open_po.supplier.state
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
         if due_date:
             due_date = datetime.datetime.strptime(due_date, '%d-%m-%Y')
             # due_date = datetime.datetime.strptime('01-05-2020', '%d-%m-%Y')
             due_date = due_date.isoformat()
-        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code,
+        po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
@@ -9493,6 +9497,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
+                    'hsn_code':_open.sku.hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
                     'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,

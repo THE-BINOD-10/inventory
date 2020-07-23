@@ -495,7 +495,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
 
-    vm.confirm_purchase_approval_request = function(data, validation_type) 
+    vm.confirm_purchase_approval_request = function(data, validation_type) {
       var status = true;
       var sku_list = '';
       if (validation_type == "approved" && vm.permissions.change_pendinglineitems) {

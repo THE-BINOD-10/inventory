@@ -367,9 +367,9 @@ class netsuiteIntegration(object):
                     item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
                 if(po_data.get('full_pr_number',None)):
                     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
-                if(data.get('hsn_code',None)):
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
+                # if(data.get('hsn_code',None)):
+                #     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                #     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
                  # 'item': ns.RecordRef(internalId=17346),
@@ -435,9 +435,9 @@ class netsuiteIntegration(object):
             purreq.customFieldList =  ns.CustomFieldList(custom_list)
             for data in pr_data['items']:
                 item_custom_list=[]
-                if(data.get('hsn_code',None)):
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
+                # if(data.get('hsn_code',None)):
+                #     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                #     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
                 line_item = {
                     'item':ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],

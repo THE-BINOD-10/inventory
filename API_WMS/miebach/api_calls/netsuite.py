@@ -580,7 +580,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 error_message = 'Invalid Warehouse Name'
                 update_error_message(failed_status, 5024, error_message, '')
         if supplier.has_key('supplierid'):
-            supplier_id = supplier.get('supplierid')
+            orignal_supplier_id = supplier.get('supplierid')
             # supplier_master = get_or_none(SupplierMaster, {'supplier_id': supplier_id, 'user':user.id})
         else:
             error_message = 'supplier id missing'
@@ -600,7 +600,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
         gst_check = []
         for address in supplier['addresses']:
             # if supplier_count and address['gstno'] not in gst_check:
-            supplier_id = supplier_id + '-' + str(address['addressid'])
+            supplier_id = orignal_supplier_id + '-' + str(address['addressid'])
             filter_dict = {'supplier_id': supplier_id }
             for key,val in supplier_dict.iteritems():
                 value = supplier.get(val, '')

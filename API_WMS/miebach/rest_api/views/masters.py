@@ -1419,7 +1419,10 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        # department, plant, subsidary=get_plant_subsidary_and_department(user)
+        plant = user.userprofile.reference_id
+        subsidary= user.userprofile.company.reference_id
+        department= ""
         uom_type, stock_uom, purchase_uom, sale_uom="","","",""
         try:
             uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
@@ -1437,18 +1440,20 @@ def netsuite_sku(data, user, instanceName=''):
             }
         )
         if instanceName == ServiceMaster:
-            #sku_data_dict.update({"ServicePurchaseItem":True})
+            sku_data_dict.update({"product_type":"Service"})
             #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            # sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"product_type":"Asset"})
             # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
             # intObj.initiateAuthentication()
+            sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
             integrateUOM(user, data.sku_code)

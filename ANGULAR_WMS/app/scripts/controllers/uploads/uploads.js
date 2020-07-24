@@ -491,6 +491,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_pendingpr"
+                 },{
+                   title: "Tax Master Download/ Upload",
+                   download: "Download Tax Master Form",
+                   upload: "Upload Tax Master Form",
+                   durl: "tax_master_download/",
+                   uurl: "tax_master_upload/",
+                   dparam: "download-tax-request-file",
+                   value: "",
+                   show: true,
+                   perm: "add_taxmaster"
                  }
                 ]
 

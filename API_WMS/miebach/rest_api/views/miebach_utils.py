@@ -3203,6 +3203,11 @@ UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_u
                                   ('UOM', 'uom'), ('Conversion', 'conversion')
                                   ))
 
+TAX_MASTER_MAPPING = OrderedDict((('HSN Code', 'hsn_code'), ('Tax Type(inter state / intra state)', 'tax_type'), ('Min Amount', 'min_amt'),
+                                  ('Max Amount', 'max_amt'), ('SGST Tax', 'sgst_tax'),('CGST Tax', 'cgst_tax'),('IGST Tax', 'igst_tax'),
+                                  ('CESS Tax', 'cess_tax'),('APMC Tax', 'apmc_tax')
+                                  ))
+
 
 USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'),
                                     ('Stockone Code', 'stockone_code'), ('SAP Code', 'sap_code'), ('Netsuite Id', 'reference_id'),

@@ -708,6 +708,9 @@ urlpatterns += [
     url(r'^user_master_upload/$', user_master_upload),
     url(r'^pending_pr_form/$', pending_pr_form),
     url(r'^pending_pr_upload/$', pending_pr_upload),
+    url(r'^tax_master_download/$', tax_master_download),
+    url(r'^tax_master_upload/$', tax_master_upload),
+
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -9753,6 +9753,148 @@ def user_master_form(request, user=''):
     wb, ws = get_work_sheet('UOM Master', excel_headers)
     return xls_to_response(wb, '%s.user_master_form.xls' % str(user.username))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def tax_master_download(request, user=''):
+    excel_file = request.GET['download-tax-request-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(TAX_MASTER_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Tax Master', excel_headers)
+    return xls_to_response(wb, '%s.tax_master_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def tax_master_upload(request, user=''):
+    from rest_api.views.masters import save_tax_master
+    log.info('Tax Master Upload Started for %s and params are %s ' % (str(user.username),str(request.POST.dict())))
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status , tax_data = validate_tax_master_form(request , reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        upload_status = save_tax_master(tax_data ,user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Tax Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Tax Master Upload Failed")
+    if not upload_status == 'Success':
+        return HttpResponse(upload_status)
+    return HttpResponse('Success')
+
+@csrf_exempt
+def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+        index_status = {}
+        data_list = []
+        tax_data = {'data': []}
+        tax_mapping = copy.deepcopy(TAX_MASTER_MAPPING)
+        excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 tax_mapping)
+        if not set(['hsn_code']).issubset(excel_mapping.keys()):
+            return 'Invalid File', []
+        for row_idx in range(1, no_of_rows):
+            tax_obj=''
+            data_dict = {}
+            for key, value in excel_mapping.iteritems():
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if key == 'hsn_code':
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            cell_data = str(int(cell_data))
+                        data_dict['product_type'] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('HSN Code is Mandatory')
+                elif key == 'tax_type':
+                    if cell_data:
+                        if cell_data.lower() not in ['inter state','intra state']:
+                            index_status.setdefault(row_idx, set()).add('Invalid Tax Type')
+                        else:
+                            if cell_data.lower() == 'inter state':
+                                data_dict['inter_state'] = 1
+                                data_dict[key] = 'inter_state'
+                            else:
+                                data_dict['inter_state'] = 0
+                                data_dict[key] = 'intra_state'
+                            tax_obj = TaxMaster.objects.filter(user=user.id,
+                                                               product_type=data_dict.get('product_type', ''),
+                                                               inter_state=data_dict.get('inter_state', ''))
+                            if tax_obj.exists():
+                                tax_obj = tax_obj[0]
+                                data_dict['id'] = tax_obj.id
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Tax Type is Mandatory')
+
+                elif key == 'min_amt':
+                    if cell_data:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Min Amount must be Decimal Value')
+                        else:
+                            data_dict[key] = cell_data
+                            if tax_obj:
+                                if tax_obj.min_amt <= float(cell_data) < tax_obj.max_amt:
+                                    index_status.setdefault(row_idx, set()).add('Range Already Exists')
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Enter Minimum Amount')
+                elif key == 'max_amt':
+                    if cell_data:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Max Amount must be Decimal Value')
+                        else:
+                            data_dict[key] = cell_data
+                            if int(data_dict[key]) < int(data_dict['min_amt']):
+                                index_status.setdefault(row_idx, set()).add('Max Amount Should be Greater Than  Minimum amount')
+                            if tax_obj:
+                                if tax_obj.min_amt < float(cell_data) <= tax_obj.max_amt:
+                                    index_status.setdefault(row_idx, set()).add('Range Already Exists')
+                                else:
+                                    if tax_obj.max_amt <= float(data_dict['min_amt']) or float(data_dict['max_amt'])<= tax_obj.min_amt:
+                                        if 'id' in data_dict.keys():
+                                            del data_dict['id']
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Enter Minimum Amount')
+                elif key in ['sgst_tax', 'cgst_tax','igst_tax',]:
+                    if cell_data:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Tax Values must be in Decimals')
+                        if data_dict.get('tax_type','').lower() == 'inter state' and key == 'igst':
+                            if not cell_data:
+                                index_status.setdefault(row_idx, set()).add('Fill the IGST Column for the inter state')
+                        elif data_dict.get('tax_type','').lower() == 'intra state' and key in ['cgst' ,'sgst']:
+                            if not cell_data:
+                                index_status.setdefault(row_idx, set()).add('Fill the SGST and CGST Column for the intra state')
+                        data_dict[key] = cell_data
+                elif key in ['apmc_tax','cess_tax']:
+                    if cell_data:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Tax Values must be in Decimals')
+
+            data_dict['user_id']=user.id
+            tax_data['data'].append(data_dict)
+        if not index_status:
+            return 'Success', tax_data
+
+        if index_status and file_type == 'csv':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_csv_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
+
+        elif index_status and file_type == 'xls':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_excel_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
 
 @csrf_exempt
 @login_required

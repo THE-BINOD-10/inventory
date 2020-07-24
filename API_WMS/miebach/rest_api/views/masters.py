@@ -428,8 +428,22 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
-    if user.userprofile.warehouse_level == 0:
+    staff_master = StaffMaster.objects.filter(email_id=request.user.username)
+    if user.userprofile.warehouse_level == 0 and request.user.is_staff:
         user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(first_name__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(Q(username__icontains=filter_params['sku__user__icontains'])
+                                           | Q(first_name__icontains=filter_params['sku__user__icontains']))
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    elif staff_master:
+        user_objs = [user.id]
+        user_objs = check_and_get_plants(request, user_objs)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(first_name__icontains=search_term)
@@ -4870,6 +4884,7 @@ def delete_user_attribute(request, user=''):
 @get_admin_user
 def get_warehouse_list(request, user=''):
     warehouses = get_related_user_objs(user.id, level=user.userprofile.warehouse_level)
+    warehouses = check_and_get_plants(request, warehouses)
     # warehouse_admin = get_warehouse_admin(request.user.id)
     # exclude_admin = {}
     # if warehouse_admin.id == request.user.id:
@@ -5461,14 +5476,25 @@ def send_supplier_doa(request, user=''):
 
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
-           'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
-           'lead_time', 'sku__user', 'status']
+    lis = ['requested_user_id'] * 15
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
-    if user.userprofile.warehouse_level == 0:
+    staff_master = StaffMaster.objects.filter(email_id=request.user.username)
+    if user.userprofile.warehouse_level == 0 and request.user.is_staff:
         user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    elif staff_master:
+        user_objs = [user.id]
+        user_objs = check_and_get_plants(request, user_objs)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)

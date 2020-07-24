@@ -129,12 +129,12 @@
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
           
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.send_supplier_doa(form)" ng-disabled="process" ng-if="showCase.warehouse_type!='ADMIN' && (!showCase.is_doa)">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.send_supplier_doa(form)" ng-disabled="process" ng-if="((!showCase.permissions.is_staff) || showCase.warehouse_type!='ADMIN') && (!showCase.is_doa)">
             <span>Send For Approval</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>
 
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="show_tab('change_skusupplier')" ng-disabled="process" ng-if="showCase.warehouse_type=='ADMIN'">
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="show_tab('change_skusupplier')" ng-disabled="process" ng-if="showCase.warehouse_type=='ADMIN'&&showCase.permissions.is_staff">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

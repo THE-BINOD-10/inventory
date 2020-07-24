@@ -4983,6 +4983,9 @@ def get_supplier_data(request, users=''):
                         rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
                     else:
                         rec_data = temp_json.get('quantity', 0)
+                    mrp = temp_json.get('mrp', 0)
+                    if not mrp:
+                        mrp=0
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                                     'sku_desc': order_data['sku_desc'],
                                     'weight': temp_json.get('weight', 0),
@@ -4996,7 +4999,7 @@ def get_supplier_data(request, users=''):
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price':float("%.2f"% float(order_data.get('price',0))),
-                                    'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
+                                    'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
                                     'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),

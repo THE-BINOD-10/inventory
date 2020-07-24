@@ -9834,7 +9834,7 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         index_status.setdefault(row_idx, set()).add('Tax Type is Mandatory')
 
                 elif key == 'min_amt':
-                    if cell_data:
+                    if cell_data or cell_data == 0:
                         if not isinstance(cell_data, float):
                             index_status.setdefault(row_idx, set()).add('Min Amount must be Decimal Value')
                         else:
@@ -9845,7 +9845,7 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                     else:
                         index_status.setdefault(row_idx, set()).add('Enter Minimum Amount')
                 elif key == 'max_amt':
-                    if cell_data:
+                    if cell_data or cell_data == 0:
                         if not isinstance(cell_data, float):
                             index_status.setdefault(row_idx, set()).add('Max Amount must be Decimal Value')
                         else:

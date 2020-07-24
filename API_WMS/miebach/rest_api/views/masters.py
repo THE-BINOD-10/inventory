@@ -4428,8 +4428,10 @@ def save_tax_master(tax_data, user):
             sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
             # tax_master.save()
         else:
-            if not data['min_amt'] or not data['max_amt']:
-                continue
+            if not data.get('min_amt',0) :
+                data['min_amt'] = 0
+            if not data.get('max_amt',0):
+                data['max_amt'] = 0
             for key in columns:
                 if data.get(key,0):
                     data_dict[key] = float(data[key])

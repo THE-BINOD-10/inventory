@@ -9865,10 +9865,10 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                     if not isinstance(cell_data, float):
                         index_status.setdefault(row_idx, set()).add('Tax Values must be in Decimals')
                     if data_dict.get('tax_type','').lower() == 'inter state' and key == 'igst':
-                        if not cell_data:
+                        if not cell_data and cell_data != 0:
                             index_status.setdefault(row_idx, set()).add('Fill the IGST Column for the inter state')
                     elif data_dict.get('tax_type','').lower() == 'intra state' and key in ['cgst' ,'sgst']:
-                        if not cell_data:
+                        if not cell_data and cell_data != 0:
                             index_status.setdefault(row_idx, set()).add('Fill the SGST and CGST Column for the intra state')
                     data_dict[key] = cell_data
                 elif key in ['apmc_tax','cess_tax']:

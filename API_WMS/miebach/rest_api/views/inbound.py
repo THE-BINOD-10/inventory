@@ -6577,6 +6577,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     grn_other_charges = request.POST.get('other_charges', '')
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
+    if(challan_date):
+        challan_date= challan_date.strftime('%d-%m-%Y')
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     round_off_checkbox = request.POST.get('round_off', '')
     round_off_total = request.POST.get('round_off_total', 0)
@@ -6633,8 +6635,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                                 "po_prefix": po.prefix,
                                 "round_off_checkbox":round_off_checkbox,
                                 "round_off_total":round_off_total,
-                                "bill_date":bill_date,
-                                "challan_date":challan_date,
+                                "bill_date": bill_date,
+                                "challan_date": challan_date,
                                 "grn_other_charges":grn_other_charges,
                                 "supplier_id":request.POST.get('supplier_id', ''),
                                 "invoice_num":invoice_num,

@@ -109,19 +109,19 @@ class netsuiteIntegration(object):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
                 )
-            if data.get('sub_category', None):
+            if data.get('sku_category', None):
                 customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
+                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sku_category'))
                 )
             if data.get('hsn_code', None):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
                 )
-            if data.get('sub_category', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
-                )
-            if("non_inventoryitem" not in data):
+            # if data.get('sub_category', None):
+            #     customFieldList.append(
+            #       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
+            #     )
+            if ("non_inventoryitem" not in data):
                 customFieldList.append(
                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
                 )
@@ -130,10 +130,22 @@ class netsuiteIntegration(object):
                  ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.get('service_start_date').isoformat())
                 )
             if  data.get("plant", None):
-                customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_plantcode', value=data["plant"]))
-            customFieldList.append(
-              ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=1))
-            )
+                customFieldList.append(ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_plantcode', value=ns.ListOrRecordRef(internalId=data["plant"])))
+            item_skucategory=""
+            if data.get("product_type", None):
+                if data["product_type"] == "SKU":
+                    item_skucategory = 1
+                if data["product_type"] == "Service":
+                    item_skucategory = 2
+                if data["product_type"] == "Asset":
+                    item_skucategory = 4
+                # if data["product_type"]= "OtherItem":
+                #     item_skucategory = 3
+            if(item_skucategory):
+                customFieldList.append(
+                  ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=item_skucategory))
+                )
+            customFieldList.append(ns.SelectCustomFieldRef(scriptId='custitem_in_nature', value=ns.ListOrRecordRef(internalId=1)))
             customFieldList.append(
               ns.StringCustomFieldRef(scriptId='custitem_mhl_for_purchase', value='T')
             )

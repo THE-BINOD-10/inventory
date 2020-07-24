@@ -4960,7 +4960,7 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
-                       'measurement_unit': measurement_unit,
+                       'sku_class': master_data.sku_class, 'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,

@@ -4499,11 +4499,18 @@ def add_pr(request, user=''):
                 if is_resubmitted == 'true':
                     pendingPRObj.pending_prApprovals.filter().delete()
                     lineItems = pendingPRObj.pending_prlineItems.filter()
-                    lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
+                    # lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
                     lineItemIds = lineItems.values_list('id', flat=True)
-                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, 
+                                        model_name="PENDING_PR_PURCHASE_APPROVER").delete()
+                    lineItems.delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
+                    totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                                                                 prefix, full_pr_number)
+                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
+                                                product_category=product_category, approval_type='default',
+                                              sku_category=sku_category)
                 prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')

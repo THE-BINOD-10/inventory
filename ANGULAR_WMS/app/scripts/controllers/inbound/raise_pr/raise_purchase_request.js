@@ -25,6 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.quantity_editable = true;
+    vm.is_resubmitted = false;
     vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -278,12 +279,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.is_resubmitted = false;
             var status = true;
             var saved_sku_list = Object.keys(vm.resubmitCheckObj)
-            angular.forEach(vm.model_data.data, function(eachField){
-              if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
-                vm.is_resubmitted = true;
-                status = false;
-              }
-            })
+            if (saved_sku_list.length != vm.model_data.data.length){
+              vm.is_resubmitted = true;
+              status = false;
+            } else {
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
+                  vm.is_resubmitted = true;
+                  status = false;
+                }
+              })
+            }
             return status;
           }
 
@@ -1252,6 +1258,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_resubmitted) {
         vm.service.alert_msg('PR Will Be Re-Submitted').then(function(msg) {
           if (msg == "true") {
+            vm.is_resubmitted = false;
             vm.add_raise_pr(elem);
           }
         })

@@ -383,10 +383,6 @@ class netsuiteIntegration(object):
                     line_item.update({'rate': data['unit_price']})
                 if(data.get('quantity',None)):
                     line_item.update({'quantity':data['quantity']})
-                if(data.get('mrp',None)):
-                    line_item.update({})
-                if(data.get('full_pr_number',None)):
-                    line_item.update({})
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:

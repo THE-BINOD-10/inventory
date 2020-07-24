@@ -162,13 +162,14 @@ class AssetMaster(SKUMaster):
     asset_number = models.PositiveIntegerField(default=0)
     vendor = models.CharField(max_length=128, default='')
     store_id = models.CharField(max_length=64, default='')
+    gl_code = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'ASSET_MASTER'
 
 
 class ServiceMaster(SKUMaster):
-    gl_code = models.CharField(max_length=64, default='')
+    gl_code = models.PositiveIntegerField(default=0)#models.CharField(max_length=64, default='')
     service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)

@@ -1691,6 +1691,15 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             elif key == 'block_options':
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
+            elif key == 'gl_code':
+                if cell_data:
+                    if not isinstance(cell_data, (int,float)):
+                        index_status.setdefault(row_idx, set()).add('GL Code should be Number')
+                    else:
+                        try:
+                            cell_data = int(cell_data)
+                        except:
+                            index_status.setdefault(row_idx, set()).add('GL Code should be Number')
     if not index_status:
         return 'Success'
 
@@ -1823,7 +1832,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    sku_data = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+                    sku_data = instanceName.objects.filter(user=user.id, sku_code=wms_code)
                     if sku_data:
                         sku_data = sku_data[0]
 
@@ -1959,6 +1968,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         cell_data = ''
                     setattr(sku_data, key, cell_data)
                     data_dict[key] = cell_data
+            elif key == 'gl_code':
+                if cell_data:
+                    try:
+                        cell_data = int(cell_data)
+                    except:
+                        cell_data = 0
+                    data_dict[key] = cell_data
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
             elif key in ['service_start_date', 'service_end_date']:
                 if isinstance(cell_data, float):
                     year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)

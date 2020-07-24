@@ -741,6 +741,7 @@ PR_DETAIL_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
         {'label': 'PR Number', 'name': 'pr_number', 'type': 'input'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Priority Type', 'name': 'priority_type', 'type': 'select'},
@@ -13055,29 +13056,15 @@ def get_pr_report_data(search_params, user, sub_user):
         if search_parameters['pending_pr__product_category'] == 'KitsConsumables':
             search_parameters['pending_pr__product_category'] = 'Kits&Consumables'
     if 'final_status' in search_params:
-        search_parameters['pending_pr__final_status'] = search_params['final_status']
-
+        search_parameters['pending_pr__final_status'] = search_params['final_status'].lower()
     if 'sister_warehouse' in search_params:
         search_parameters['pending_pr__wh_user__username'] = search_params['sister_warehouse']
-
-    check_dict_keys = ['pending_pr__product_category', 'pending_pr__priority_type', 'peinding_pr__final_status',
-                       'pending_pr__wh_user__username', 'pending_pr__full_pr_number']
-    check_search = search_parameters.keys()
-    if 'creation_date__gt' in check_search:
-        check_search.remove('creation_date__gt')
-    if 'creation_date__lt' in check_search:
-        check_search.remove('creation_date__lt')
-    if 'purchase_type' in check_search:
-        check_search.remove('purchase_type')
-    if len(check_search) != 0:
-        for check in check_search:
-            if check in check_dict_keys:
-                break;
     else:
         sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
         user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                     'user__id', flat=True))
-        search_parameters = {'pending_pr__wh_user__in': user_ids}
+        search_parameters['pending_pr__wh_user__in'] = user_ids
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
@@ -13102,11 +13089,9 @@ def get_pr_report_data(search_params, user, sub_user):
     else:
         results = pending_data
     count = 0
-    final_status = "Pending"
     for result in results:
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
-        final_status = 'Pending'
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
         if requested_user:
@@ -13136,11 +13121,10 @@ def get_pr_report_data(search_params, user, sub_user):
         req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         all_approver_details = {}
-        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                pr_user=pr_user, product_category=product_category).exclude(status='').values('level',
+        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],product_category=product_category).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
-
+        final_status = "Pending"
         if approver_data.exists():
             approver_len = len(approver_data)
 
@@ -13252,7 +13236,7 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Category', result['pending_pr__sku_category']),
             ('Quantity', result['total_qty']),
             ('UOM', result['measurement_unit']),
-            ('Total Amount', result['total_amt']),
+            ('Total Amount',round(result['total_amt'],4)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
             ('Approver 1 Status', approver1_status),
@@ -13302,6 +13286,14 @@ def get_pr_detail_report_data(search_params, user, sub_user):
     if 'pr_number' in search_params:
         pr_number = search_params['pr_number']
         search_parameters['pending_pr__full_pr_number'] = pr_number
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sub_category' in search_params:
+        search_parameters['sku__sub_category'] = search_params['sub_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
     if 'product_category' in search_params:
         search_parameters['pending_pr__product_category'] = search_params['product_category']
         if search_parameters['pending_pr__product_category'] == 'KitsConsumables':
@@ -13311,25 +13303,11 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
     if 'sister_warehouse' in search_params:
         search_parameters['pending_pr__wh_user__username'] = search_params['sister_warehouse']
-
-    check_dict_keys = ['pending_pr__product_category', 'pending_pr__priority_type', 'peinding_pr__final_status',
-                       'pending_pr__wh_user__username', 'pending_pr__full_pr_number']
-    check_search = search_parameters.keys()
-    if 'creation_date__gt' in check_search:
-        check_search.remove('creation_date__gt')
-    if 'creation_date__lt' in check_search:
-        check_search.remove('creation_date__lt')
-    if 'purchase_type' in check_search:
-        check_search.remove('purchase_type')
-    if len(check_search) != 0:
-        for check in check_search:
-            if check in check_dict_keys:
-                break;
     else:
         sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
         user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                     'user__id', flat=True))
-        search_parameters = {'pending_pr__wh_user__in': user_ids}
+        search_parameters['pending_pr__wh_user__in'] = user_ids
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
@@ -13357,7 +13335,6 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         results = pending_data
     count = 0
     for result in results:
-        final_status = "Pending"
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         final_status = 'Pending'
@@ -13388,8 +13365,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         all_approver_details = {}
-        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                pr_user=pr_user, product_category=product_category).exclude(status='').values('level',
+        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],product_category=product_category).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
 
@@ -13478,7 +13454,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
-                if approver_5.get('status') == 'approved':
+                if approver_5.get('status') == 'approved' or 'pr_':
                     approver5_status = 'Yes'
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
@@ -13511,7 +13487,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             ('SKU Class',result['sku__sku_class']),
             ('Quantity', result['total_qty']),
             ('UOM', result['measurement_unit']),
-            ('Total Amount', result['total_amt']),
+            ('Total Amount', round(result['total_amt'], 3)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
             ('Approver 1 Status', approver1_status),
@@ -13596,7 +13572,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                    'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
-                   'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id',
+                   'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
                    'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
 
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
@@ -13617,21 +13593,9 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if pr_creation_date:
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
-
-        pr_dept = get_warehouse_user_from_sub_user(result['pending_po__pending_prs__requested_user__id'])
-        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-        if (user_profile.warehouse_type == "DEPT"):
-            if (user_profile.stockone_code):
-                pr_department = user_profile.stockone_code
-            else:
-                pr_department = pr_dept.username
-        else:
-            pr_department = pr_request_user
-        pr_plant = get_admin(pr_dept)
-        if pr_plant.first_name:
-            pr_plant = pr_plant.first_name
-        else:
-            pr_plant = pr_plant.username
+        plant, department = '', ''
+        req_user = User.objects.filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
+        pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=result['pending_po__pending_prs__id'])
         all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
@@ -13641,15 +13605,16 @@ def get_metro_po_report_data(search_params, user, sub_user):
                 all_approvals.append(approvals[0])
             last_approvals_date = get_local_date(user, all_approvals_data[-1][1]).split(' ')
             last_approvals_date = ' '.join(last_approvals_date[0:3])
-        pending_line_item = PendingLineItems.objects.filter(pending_pr=result['pending_po__pending_prs__id'])
+
+        pending_line_item = PendingLineItems.objects.filter(pending_pr__full_pr_number=result['pending_po__pending_prs__full_pr_number'])
         pr_qty, pr_price, pr_tax_amount, pr_Total_Amt = 0, 0, 0, 0
         if pending_line_item.exists():
             for row in pending_line_item:
                 # uom=row.measurement_unit
-                pr_qty += row.quantity
-                pr_price += row.price
-                pr_tax_amount += row.sgst_tax + row.cgst_tax + row.igst_tax + row.utgst_tax
-                pr_Total_Amt += (pr_tax_amount * (pr_price * pr_qty)) / 100
+                pr_qty = row.quantity
+                pr_price = row.price
+                pr_tax_amount = row.sgst_tax + row.cgst_tax + row.igst_tax + row.utgst_tax
+                pr_Total_Amt += ((pr_tax_amount*pr_price*pr_qty)/100 ) + (pr_price * pr_qty)
         po_created_date = result['pending_po__creation_date']
         if po_created_date:
             po_date = get_local_date(user, po_created_date)
@@ -13806,20 +13771,24 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             pr_date = get_local_date(user, pr_creation_date)
         pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
 
-        pr_dept = get_warehouse_user_from_sub_user(result['pending_po__pending_prs__requested_user__id'])
-        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-        if (user_profile.warehouse_type == "DEPT"):
-            if (user_profile.stockone_code):
-                pr_department = user_profile.stockone_code
-            else:
-                pr_department = pr_dept.username
-        else:
-            pr_department = pr_request_user
-        pr_plant = get_admin(pr_dept)
-        if pr_plant.first_name:
-            pr_plant = pr_plant.first_name
-        else:
-            pr_plant = pr_plant.username
+        # pr_dept = get_warehouse_user_from_sub_user(result['pending_po__pending_prs__requested_user__id'])
+        # user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+        # if (user_profile.warehouse_type == "DEPT"):
+        #     if (user_profile.stockone_code):
+        #         pr_department = user_profile.stockone_code
+        #     else:
+        #         pr_department = pr_dept.username
+        # else:
+        #     pr_department = pr_request_user
+        # pr_plant = get_admin(pr_dept)
+        # if pr_plant.first_name:
+        #     pr_plant = pr_plant.first_name
+        # else:
+        #     pr_plant = pr_plant.username
+        pr_request_user = result['pending_po__pending_prs__requested_user__first_name']
+        plant, department = '', ''
+        req_user = User.objects.filter(id=result['pending_po__pending_prs__wh_user__id'])[0]
+        pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         last_approvals_date = ''
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=result['pending_po__pending_prs__id'])
@@ -13837,7 +13806,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
                 pr_qty += row.quantity
                 pr_price += row.price
                 pr_tax_amount += row.sgst_tax + row.cgst_tax + row.igst_tax + row.utgst_tax
-                pr_Total_Amt += (pr_tax_amount * (pr_price * pr_qty)) / 100
+                pr_Total_Amt += ((pr_tax_amount*pr_price*pr_qty)/100 )
         po_created_date = result['pending_po__creation_date']
         if po_created_date:
             po_date = get_local_date(user, po_created_date)
@@ -13922,6 +13891,7 @@ def get_po_price_and_tax_amount(po_number):
                 po_total_amount += tmp_price
 
     return total_qty, po_tax_amount, po_total_amount
+
 
 def get_cancel_grn_report_data(search_params, user, sub_user):
     from miebach_admin.models import *

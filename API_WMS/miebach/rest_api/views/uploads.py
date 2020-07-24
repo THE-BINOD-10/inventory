@@ -2122,7 +2122,12 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        department, plant, subsidary=[""]*3
+        try:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+        except Exception as e:
+            print(e)
         for sku_code, sku_id in sku_key_map.items():
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_master_data=intObj.gatherSkuData(sku_master_data)
@@ -2139,9 +2144,12 @@ def upload_netsuite_sku(data, user, instanceName=''):
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
         # department, plant, subsidary=get_plant_subsidary_and_department(user)
-        plant = user.userprofile.reference_id
-        subsidary= user.userprofile.company.reference_id
-        department= ""
+        department, plant, subsidary=[""]*3
+        try:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+        except Exception as e:
+            print(e)
         sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type": "Service"})

@@ -27,7 +27,7 @@
       <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
         <td>
           <select ui-select class="form-control" name="supplier" style="width:140px;"
-          ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields); showCase.checkResubmitPurchaseApprover(product.fields)"
+          ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
           ng-model="product.fields.supplier_id_name" 
           ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields); showCase.checkResubmitPurchaseApprover(product.fields)"
           ng-disabled="!showCase.permissions.change_pendinglineitems">

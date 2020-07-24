@@ -109,19 +109,19 @@ class netsuiteIntegration(object):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
                 )
-            if data.get('sub_category', None):
+            if data.get('sku_category', None):
                 customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
+                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sku_category'))
                 )
             if data.get('hsn_code', None):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
                 )
-            if data.get('sub_category', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
-                )
-            if("non_inventoryitem" not in data):
+            # if data.get('sub_category', None):
+            #     customFieldList.append(
+            #       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
+            #     )
+            if ("non_inventoryitem" not in data):
                 customFieldList.append(
                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
                 )
@@ -136,7 +136,7 @@ class netsuiteIntegration(object):
                 if data["product_type"] == "SKU":
                     item_skucategory = 1
                 if data["product_type"] == "Service":
-                    item_skucategory =2
+                    item_skucategory = 2
                 if data["product_type"] == "Asset":
                     item_skucategory = 4
                 # if data["product_type"]= "OtherItem":

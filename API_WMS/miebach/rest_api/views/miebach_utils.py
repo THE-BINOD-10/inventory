@@ -2421,6 +2421,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Change PendingPR", "change_pendingpr"),
                        ("Approve Service GRN DOA", "change_mastersdoa"),
                        ("Pending Invoice Mismatches", "change_pocreditnote"),
+                       ("Approve Source SKU Mapping DOA", "approve_source_sku_doa"),
+                       ("Approve SKU Master DOA", "approve_sku_master_doa"),
                        )),
 
     # Production

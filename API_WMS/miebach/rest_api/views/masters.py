@@ -4884,7 +4884,9 @@ def delete_user_attribute(request, user=''):
 @get_admin_user
 def get_warehouse_list(request, user=''):
     warehouses = get_related_user_objs(user.id, level=user.userprofile.warehouse_level)
-    warehouses = check_and_get_plants(request, warehouses)
+    if not request.user.is_staff:
+        wh_ids = list(warehouses.values_list('id', flat=True))
+        warehouses = check_and_get_plants(request, wh_ids)
     # warehouse_admin = get_warehouse_admin(request.user.id)
     # exclude_admin = {}
     # if warehouse_admin.id == request.user.id:

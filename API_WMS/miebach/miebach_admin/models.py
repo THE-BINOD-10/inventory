@@ -197,6 +197,10 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        permissions = [
+            ('approve_source_sku_doa', 'Approve Source SKU Doa'),
+            ('approve_sku_master_doa', 'Approve SKU Master Doa')
+        ]
 
 
 class EANNumbers(models.Model):

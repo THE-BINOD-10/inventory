@@ -9,7 +9,7 @@
         <th>PO Qty</th>
         <th ng-hide="true"> Offer?</th>
         <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
-        <th>Received Qty</th>
+        <th>Received Qty *</th>
         <th>UOM</th>
         <th ng-if="showCase.permissions.use_imei">Serial Number</th>
         <th>Unit Price</th>
@@ -129,7 +129,9 @@
           <button class="btn" ng-if="data.batch_based==0" style="background: #e4e4e4;">NB</button>
           <button class="btn" ng-if="data.batch_based==1" style="background: lightskyblue;">B *</button>
         </td>
-        <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')"><i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
+        <td ng-if="(showCase.permissions.pallet_switch || showCase.industry_type=='FMCG')" style="width: 45px !important;">{{innerIndex}}
+          <!-- <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, records, false)"></i> -->
+          <i ng-click="showCase.update_data(innerIndex, records)" ng-class="showCase.service.isLast($last)"></i></td>
         <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
         </td>
       </tr>

@@ -879,21 +879,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    function check_receive() {
-      var status = false;
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
-            status = true;
-          }
-        });
-      }
-
-      if(status){
-        return true;
+    vm.sku_wise_amount_check = function(datum) {
+      var status = true;
+      var sku_list = "Total GRN Price should not more than PO Price Following Sku's: "
+      angular.forEach(datum, function(sku_data, sku){
+        if (sku_data['po_total'] <= sku_data['grn_total'] && sku_data['po_total'] != sku_data['grn_total']) {
+          sku_list = sku_list + ' - ' + sku
+          status = false
+        }
+      })
+      if (status) {
+        return status;
       } else {
-        pop_msg("Please Update the received quantity");
-        return false;
+        colFilters.showNoty(sku_list);
+        return status;
+      }
+    }
+
+    function check_receive() {
+      var status = true;
+      var sku_list = "Buy Price should not more than Unit Price Following Sku's: "
+      var data_dict = {}
+      for(var i=0; i<vm.model_data.data.length; i++)  {
+        for (var j=0; j<vm.model_data.data[i].length; j++) {
+          if (!Object.keys(data_dict).includes(vm.model_data.data[i][j].wms_code)){
+            data_dict[vm.model_data.data[i][j].wms_code] = {
+              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity * vm.model_data.data[i][j].price),
+              'grn_total': parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price)
+            }
+          } else {
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price);
+          }
+          if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
+            sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']
+            status = false;
+          }
+        }
+        if (i+1 == vm.model_data.data.length) {
+          if (status) {
+            if (vm.sku_wise_amount_check(data_dict)) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            colFilters.showNoty(sku_list);
+            return false;
+          }
+        }
       }
     }
 

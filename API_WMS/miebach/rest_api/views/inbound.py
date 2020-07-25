@@ -6571,6 +6571,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     grn_other_charges = request.POST.get('other_charges', '')
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
+    if challan_date:
+        challan_date= challan_date.strftime('%d-%m-%Y')
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     round_off_checkbox = request.POST.get('round_off', '')
     round_off_total = request.POST.get('round_off_total', 0)
@@ -14168,9 +14170,11 @@ def get_grn_level_data(request, user=''):
                             status.append('putaway_pending')
                         stock_location_id = polocation_data[0].location.id
                     if seller_summary_obj.invoice_number:
-                        seller_inv_list = list(SellerPOSummary.objects.filter(invoice_number=seller_summary_obj.invoice_number).values_list('grn_number', flat=True).distinct())
+                        inv_supplier_id = ''
+                        inv_supplier_id = seller_summary_obj.purchase_order.open_po.supplier_id
+                        seller_inv_list = list(SellerPOSummary.objects.filter(invoice_number=seller_summary_obj.invoice_number, purchase_order__open_po__supplier_id=inv_supplier_id).exclude(status=1).values_list('grn_number', flat=True).distinct())
                         if len(seller_inv_list) > 1 and 'Invoice-Generated' not in status:
-                            status.append('Invoice-Generated')
+                            status.append('Multi-GRN-Invoice-Mapped')
                     if stock_location_id:
                         stock_check_params = {'location_id': stock_location_id, 'receipt_number':data.order_id,
                                 'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'grn_number': seller_summary_obj.grn_number,
@@ -14501,9 +14505,13 @@ def cancel_existing_grn(request, user=''):
                     "grn_number": model_obj.grn_number,
                 }
                 creditnote_data.append(grn_data)
-
-        intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True, action='delete')
+        try:
+            intObj = Integrations(user, 'netsuiteIntegration')
+            intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True, action='delete')
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Cancel GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Success")
     except Exception as e:
         import traceback

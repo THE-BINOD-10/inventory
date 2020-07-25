@@ -452,9 +452,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.update_data = update_data;
-    function update_data(index, data) {
+    function update_data(index, data, special_flag=true) {
       if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
-        if (index == data.length-1) {
+        if (index == data.length-1 && special_flag) {
           var new_dic = {};
           angular.copy(data[0], new_dic);
           new_dic.receive_quantity = 0;
@@ -468,17 +468,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.is_stock_transfer = "";
           data.push(new_dic);
         } else {
-          if(data[index]['temp_json_id']) {
-            var json_delete_data = {'model_name': 'PO', 'json_id': data[index]['temp_json_id']}
-            vm.service.apiCall('delete_temp_json/', 'POST', json_delete_data, true).then(function(data){
-              if(data.message) {
-                console.log("Temp Json deleted");
-              }
-            });
+          if (typeof(data[index]) != "undefined") {
+            if(data[index]['temp_json_id']) {
+              var json_delete_data = {'model_name': 'PO', 'json_id': data[index]['temp_json_id']}
+              vm.service.apiCall('delete_temp_json/', 'POST', json_delete_data, true).then(function(data){
+                if(data.message) {
+                  console.log("Temp Json deleted");
+                }
+              });
+            }
           }
           data.splice(index,1);
         }
-
       }
     }
 
@@ -787,7 +788,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = "";
     vm.confirm_grn = function(form) {
       if (form.$valid) {
-        if(!vm.model_data.dc_level_grn && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
             return
@@ -908,27 +909,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.sku_wise_amount_check = function(datum) {
+      var status = true;
+      var sku_list = "Total GRN Price should not more than PO Price Following Sku's: "
+      angular.forEach(datum, function(sku_data, sku){
+        if (sku_data['po_total'] <= sku_data['grn_total'] && sku_data['po_total'] != sku_data['grn_total']) {
+          sku_list = sku_list + ' - ' + sku
+          status = false
+        }
+      })
+      if (status) {
+        return status;
+      } else {
+        colFilters.showNoty(sku_list);
+        return status;
+      }
+    }
+
     function check_receive() {
       var status = true;
       var sku_list = "Buy Price should not more than Unit Price Following Sku's: "
+      var data_dict = {}
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        if (parseFloat(vm.model_data.data[i][0]['price']) < parseFloat(vm.model_data.data[i][0]['buy_price'])) {
-          sku_list = sku_list + ' - ' + vm.model_data.data[i][0]['wms_code']
-          status = false;
+        for (var j=0; j<vm.model_data.data[i].length; j++) {
+          if (!Object.keys(data_dict).includes(vm.model_data.data[i][j].wms_code)){
+            data_dict[vm.model_data.data[i][j].wms_code] = {
+              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity * vm.model_data.data[i][j].price),
+              'grn_total': parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price)
+            }
+          } else {
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price);
+          }
+          if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
+            sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']
+            status = false;
+          }
         }
         if (i+1 == vm.model_data.data.length) {
           if (status) {
-            return true;
+            if (vm.sku_wise_amount_check(data_dict)) {
+              return true;
+            } else {
+              return false;
+            }
           } else {
             colFilters.showNoty(sku_list);
             return false;
           }
         }
-        // angular.forEach(vm.model_data.data[i], function(sku){
-        //   if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
-        //     status = true;
-        //   }
-        // });
       }
     }
 

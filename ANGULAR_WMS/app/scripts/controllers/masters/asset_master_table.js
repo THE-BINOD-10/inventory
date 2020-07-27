@@ -72,6 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         ean_number: "",
                         load_unit_handle: "0",
                         hot_release: 0,
+                        gl_code: 0,
                         image_url:"images/wms/dflt.jpg",
                         measurement_type: "",
                         block_options: "No"

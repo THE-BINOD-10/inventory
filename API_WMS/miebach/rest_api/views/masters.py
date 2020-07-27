@@ -1039,6 +1039,7 @@ def get_sku_data(request, user=''):
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;
     sku_data['block_options'] = 'No'
+    sku_data['gl_code'] = data.gl_code
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
     substitutes_list = []
@@ -1052,7 +1053,6 @@ def get_sku_data(request, user=''):
             sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-        sku_data['gl_code'] = data.gl_code
         sku_data['service_type'] = data.service_type
     elif instanceName == AssetMaster:
         sku_data['asset_type'] = data.asset_type
@@ -1266,7 +1266,7 @@ def update_sku(request, user=''):
     admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
-                         'hsn_code', 'shelf_life']
+                         'hsn_code', 'shelf_life', 'gl_code']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST.get('zone_id','')
@@ -5747,6 +5747,7 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['block_options'] = result.get('block_options', '')
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
+            sku_data['gl_code'] = result.get('gl_code', '')
 
             if instanceName == AssetMaster:
                 sku_data['asset_type'] = result.get('asset_type', '')
@@ -5768,7 +5769,6 @@ def get_sku_master_doa_record(request, user=''):
                     sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
                 if data.service_end_date:
                     sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-                sku_data['gl_code'] = data.gl_code
                 sku_data['service_type'] = data.service_type
             elif instanceName == AssetMaster:
                 sku_data['asset_type'] = data.asset_type

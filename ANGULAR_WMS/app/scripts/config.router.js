@@ -2880,6 +2880,18 @@ var app = angular.module('urbanApp')
             title: 'RTV Report',
           }
         })
+        .state('app.reports.CancelGRNReport', {
+          url: '/CancelGRNReport',
+          templateUrl: 'views/reports/cancel_grn_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/cancel_grn_report.js');
+              }]
+          },
+          data: {
+            title: 'Cancel GRN Report',
+          }
+        })
         .state('app.reports.CreditNoteReport', {
           url: '/CreditNoteReport',
           templateUrl: 'views/reports/credit_note_report.html',

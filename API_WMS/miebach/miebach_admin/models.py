@@ -129,6 +129,7 @@ class SKUMaster(models.Model):
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.IntegerField(default=0)
+    gl_code = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -162,14 +163,14 @@ class AssetMaster(SKUMaster):
     asset_number = models.PositiveIntegerField(default=0)
     vendor = models.CharField(max_length=128, default='')
     store_id = models.CharField(max_length=64, default='')
-    gl_code = models.PositiveIntegerField(default=0)
+    #gl_code = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'ASSET_MASTER'
 
 
 class ServiceMaster(SKUMaster):
-    gl_code = models.PositiveIntegerField(default=0)#models.CharField(max_length=64, default='')
+    #gl_code = models.PositiveIntegerField(default=0)
     service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)
@@ -180,6 +181,7 @@ class ServiceMaster(SKUMaster):
 
 class OtherItemsMaster(SKUMaster):
     item_type = models.CharField(max_length=64, default='')
+    #gl_code = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'OTHERITEMS_MASTER'

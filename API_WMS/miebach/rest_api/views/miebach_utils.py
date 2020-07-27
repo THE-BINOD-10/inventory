@@ -96,7 +96,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': '', 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '',
-            'batch_based': 0}
+            'batch_based': 0, 'gl_code': 0}
 
 SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': None, 'service_end_date': None, 'service_type': '', 'gl_code': 0}
 
@@ -1691,7 +1691,7 @@ SALES_RETURN_REPORT = {
             (('Date', 'creation_date'),))), }
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['SKU Code', 'SKU Description','SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
+SKU_HEADERS = ['SKU Code', 'SKU Description', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
                'Primary Category',
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price',
                'Selling Price',
@@ -1699,7 +1699,7 @@ SKU_HEADERS = ['SKU Code', 'SKU Description','SKU Group', 'SKU Type(Options: FG,
                'Threshold Quantity', 'Max Norm Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
                'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Combo Flag', 'Block For PO', 'Batch Based',
-               'Status']
+               'GL Code', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['SKU Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1727,7 +1727,8 @@ SERVICE_HEADERS = ['Service Code', 'Service Description', 'Service Type', 'Servi
 
 OTHER_ITEM_HEADERS = ['Item Code', 'Item Description', 'Item Type', 'Item Group',
                       'Item Category', 'Sub Category', 'Item Class', 'Item Brand', 'Put Zone',
-                      'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
+                      'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code',
+                      'GL Code', 'Status'
                       ]
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
@@ -2071,7 +2072,7 @@ SKU_COMMON_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
                                   ('Enable Serial Number', 'enable_serial_based'), ('Block For PO', 'block_options'),
-                                  ('Batch Based', 'batch_based')
+                                  ('Batch Based', 'batch_based'), ('GL Code', 'gl_code')
                                   ))
 
 ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Description', 'sku_desc'),
@@ -2108,48 +2109,48 @@ OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Descr
                                          ('Put Zone', 'zone_id'),
                                          ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
                                          ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
-                                         ('HSN Code', 'hsn_code'), ('Status', 'status')
+                                         ('HSN Code', 'hsn_code'), ('GL Code', 'gl_code'), ('Status', 'status')
                                          ))
 TEST_COMMON_MAPPING = OrderedDict((('Test Code', 'test_code'), ('Test Name', 'test_name'),
                                    ('Test Type', 'test_type'), ('Department Type', 'department_type'),
                                    ('Status', 'status')))
 
-SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
-                             ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
-                             ('style_name', 9),
-                             ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('cost_price', 13), ('price', 14),
-                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),
-                             ('max_norm_quantity', 19),
-                             ('measurement_type', 20),
-                             ('sale_through', 21), ('color', 22), ('ean_number', 23), ('load_unit_handle', 24),
-                             ('hsn_code', 25),
-                             ('sub_category', 26), ('hot_release', 27), ('mix_sku', 28), ('combo_flag', 29),
-                             ('block_options', 30),
-                             ('batch_based', 31), ('status', 32)
+SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3),
+                             ('sku_category', 4), ('primary_category', 5), ('sku_class', 6), ('sku_brand', 7),
+                             ('style_name', 8),
+                             ('sku_size', 9), ('size_type', 10), ('zone_id', 11), ('cost_price', 12), ('price', 13),
+                             ('mrp', 14), ('sequence', 15), ('image_url', 16), ('threshold_quantity', 17),
+                             ('max_norm_quantity', 18),
+                             ('measurement_type', 19),
+                             ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
+                             ('hsn_code', 24),
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('combo_flag', 28),
+                             ('block_options', 29),
+                             ('batch_based', 30), ('gl_code', 31), ('status', 32)
                              ))
 
 ASSET_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
-                               ('product_type', 4), ('sku_category', 5), ('sub_category', 6),
-                               ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
-                               ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13),
-                               ('ean_number', 14), ('hsn_code', 15), ('status', 16),
-                               ('parent_asset_code', 17), ('asset_number', 18), ('vendor', 19),
-                               ('store_id', 20)
+                               ('sku_category', 4), ('sub_category', 5),
+                               ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
+                               ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
+                               ('ean_number', 13), ('hsn_code', 14), ('status', 15),
+                               ('parent_asset_code', 16), ('asset_number', 17), ('vendor', 18),
+                               ('store_id', 19), ('gl_code', 20)
                                ))
 
 SERVICE_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('service_type', 2), ('sku_group', 3),
-                                 ('product_type', 4), ('sku_category', 5), ('sub_category', 6),
-                                 ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
-                                 ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13),
-                                 ('ean_number', 14), ('hsn_code', 15), ('status', 16),
-                                 ('gl_code', 17), ('service_start_date', 18), ('service_end_date', 19),
+                                 ('sku_category', 4), ('sub_category', 5),
+                                 ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
+                                 ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
+                                 ('ean_number', 13), ('hsn_code', 14), ('status', 15),
+                                 ('gl_code', 16), ('service_start_date', 17), ('service_end_date', 18),
                                  ))
 
 OTHER_ITEM_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('asset_type', 2), ('sku_group', 3),
-                                    ('product_type', 4), ('sku_category', 5), ('sub_category', 6),
-                                    ('sku_class', 7), ('sku_brand', 8), ('zone_id', 9),
-                                    ('cost_price', 10), ('price', 11), ('mrp', 12), ('image_url', 13),
-                                    ('ean_number', 14), ('hsn_code', 15), ('status', 16)
+                                    ('sku_category', 4), ('sub_category', 5),
+                                    ('sku_class', 6), ('sku_brand', 7), ('zone_id', 8),
+                                    ('cost_price', 9), ('price', 10), ('mrp', 11), ('image_url', 12),
+                                    ('ean_number', 13), ('hsn_code', 14), ('gl_code', 15), ('status', 16)
                                     ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(

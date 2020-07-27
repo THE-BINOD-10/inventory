@@ -129,22 +129,34 @@ class netsuiteIntegration(object):
                 if data["product_type"] == "SKU":
                     item_skucategory = 1
                 if data["product_type"] == "Service":
-                    customFieldList.append(
-                      ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=29))
-                    )
                     item_skucategory = 2
                 if data["product_type"] == "Asset":
                     item_skucategory = 4
-                    if data.get('sku_category', None):
+                    if data.get('sku_class', None):
                         customFieldList.append(
                           ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=1))
                         )
-                    if data.get('sku_class', None):
+                    if data.get('sku_category', None):
                         customFieldList.append(
                           ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=ns.ListOrRecordRef(internalId=1))
                         )
                 # if data["product_type"]= "OtherItem":
                 #     item_skucategory = 3
+            # if data.get("product_type", None):
+            # if data["product_type"] == "SKU":
+            #     if data.get('sku_category', None):
+            #         customFieldList.append(
+            #           ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=5))
+            #         )
+            # if data["product_type"] == "Service" or "Asset" :
+            # if data.get('sku_category', None):
+            #     customFieldList.append(
+            #       ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=5))
+            #     )
+            if data.get('sku_category', None):
+                customFieldList.append(
+                  ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=29))
+                )
             if(item_skucategory):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=item_skucategory))

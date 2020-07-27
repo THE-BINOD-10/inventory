@@ -12879,3 +12879,13 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     else:
         req_users = User.objects.filter(id__in=req_users)
     return req_users
+
+def get_all_department_data(user):
+    linked_whs = get_related_users_filters(user.id, send_parent=True)
+    final_dict = {}
+    temp_dict = {}
+    for user_data in linked_whs:
+        if user_data.userprofile.warehouse_type =='DEPT':
+            temp_dict[user_data.id] = user_data.username
+            final_dict.update(temp_dict)
+    return final_dict

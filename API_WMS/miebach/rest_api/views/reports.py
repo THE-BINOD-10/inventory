@@ -94,10 +94,14 @@ def get_report_data(request, user=''):
                 filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
-    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report', 'sku_wise_rtv_report'
-                         'cancel_grn_report', 'sku_wise_cancel_grn_report']:
+    elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
+                         'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report']:
         if 'sister_warehouse' in filter_keys:
-            sister_wh =UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
+            if user.userprofile.warehouse_type == 'ADMIN':
+                user_data = get_all_department_data(user)
+                sister_wh = user_data.keys()
+            else:
+                sister_wh =UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
 
             data_index = data['filters'].index(
                  filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
@@ -105,8 +109,8 @@ def get_report_data(request, user=''):
             # sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_warehouses, warehouse_type="DEPT").\
             #                           values_list('user__username',flat=True).distinct())
 
-            sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
-                'user__username', flat=True))
+            sister_warehouses1 = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").\
+                values_list('user__first_name', flat=True))
 
             data['filters'][data_index]['values'] = list(set(chain(sister_warehouses, sister_warehouses1)))
 

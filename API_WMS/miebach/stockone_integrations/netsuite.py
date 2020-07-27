@@ -102,18 +102,9 @@ class netsuiteIntegration(object):
                     customFieldList.append(
                     ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
                     )
-            if data.get('sku_class', None):
-                if("non_inventoryitem" not in data):
-                    customFieldList.append(
-                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.get('sku_class'))
-                    )
             if data.get('mrp', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
-                )
-            if data.get('sku_category', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sku_category'))
                 )
             if data.get('hsn_code', None):
                 customFieldList.append(
@@ -138,9 +129,20 @@ class netsuiteIntegration(object):
                 if data["product_type"] == "SKU":
                     item_skucategory = 1
                 if data["product_type"] == "Service":
+                    customFieldList.append(
+                      ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=29))
+                    )
                     item_skucategory = 2
                 if data["product_type"] == "Asset":
                     item_skucategory = 4
+                    if data.get('sku_category', None):
+                        customFieldList.append(
+                          ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=1))
+                        )
+                    if data.get('sku_class', None):
+                        customFieldList.append(
+                          ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=ns.ListOrRecordRef(internalId=1))
+                        )
                 # if data["product_type"]= "OtherItem":
                 #     item_skucategory = 3
             if(item_skucategory):

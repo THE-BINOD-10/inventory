@@ -98,9 +98,9 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0, 'block_options': '',
             'batch_based': 0}
 
-SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': None, 'service_end_date': None, 'service_type': ''}
+SERVICE_SKU_DATA = {'asset_code': '', 'service_start_date': None, 'service_end_date': None, 'service_type': '', 'gl_code': 0}
 
-ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'asset_type': '', 'vendor': ''}
+ASSET_SKU_DATA = {'parent_asset_code': '', 'asset_number': 0, 'store_id': '', 'asset_type': '', 'vendor': '', 'gl_code': 0}
 
 OTHERITEMS_SKU_DATA = {'item_type': ''}
 
@@ -1754,7 +1754,7 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 ASSET_HEADERS = ['Asset Code', 'Asset Description', 'Asset Type', 'Asset Group',
                  'Asset Category', 'Sub Category', 'Asset Class', 'Asset Brand', 'Put Zone',
                  'Cost Price', 'Selling Price', 'MRP Price', 'Image Url', 'EAN Number', 'HSN Code', 'Status',
-                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID']
+                 'Parent Asset Code', 'Asset Number', 'Vendor', 'Store ID', 'GL Code']
 
 TEST_MASTER_HEADERS = ['Test Code', 'Test Name', 'Test Type', 'Department Type', 'Status']
 
@@ -2123,7 +2123,7 @@ ASSET_COMMON_MAPPING = OrderedDict((('Asset Code', 'wms_code'), ('Asset Descript
                                     ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                     ('HSN Code', 'hsn_code'), ('Status', 'status'),
                                     ('Parent Asset Code', 'parent_asset_code'), ('Asset Number', 'asset_number'),
-                                    ('Vendor', 'vendor'), ('Store ID', 'store_id')
+                                    ('Vendor', 'vendor'), ('Store ID', 'store_id'), ('GL Code', 'gl_code')
                                     ))
 
 SERVICEMASTER_COMMON_MAPPING = OrderedDict((('Service Code', 'wms_code'), ('Service Description', 'sku_desc'),

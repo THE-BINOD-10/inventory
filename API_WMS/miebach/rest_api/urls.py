@@ -606,6 +606,8 @@ urlpatterns = [
     url(r'^get_st_po_filter/$', get_st_po_filter),
     url(r'^get_pr_report/$', get_pr_report),
     url(r'^get_pr_detail_report/$', get_pr_detail_report),
+    url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
+    url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

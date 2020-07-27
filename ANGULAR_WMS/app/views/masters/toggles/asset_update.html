@@ -203,6 +203,12 @@
                 <input type="text" name="store_id" class="form-control" ng-model="showCase.model_data.sku_data.store_id" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> GL Code </label>
+                <input type="text" name="gl_code" class="form-control" ng-model="showCase.model_data.sku_data.gl_code">
+              </div>
+            </div>
           </div>
           <div class="row over-x" ng-hide="showCase.isEmptyMarket">
             <table class="table mw40">

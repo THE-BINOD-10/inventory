@@ -157,11 +157,11 @@ def get_plant_and_department(user):
         department= user.first_name
         admin_user= get_admin(user)
         # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
-        plant= admin_user.username
+        plant= admin_user.first_name
     elif(user_profile.warehouse_type=="SUB_STORE"):
-        plant= user.username
+        plant= user.first_name
     elif(user_profile.warehouse_type=="STORE"):
-        plant= user.username
+        plant= user.first_name
     return department, plant
 
 
@@ -12879,3 +12879,13 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     else:
         req_users = User.objects.filter(id__in=req_users)
     return req_users
+
+def get_all_department_data(user):
+    linked_whs = get_related_users_filters(user.id, send_parent=True)
+    final_dict = {}
+    temp_dict = {}
+    for user_data in linked_whs:
+        if user_data.userprofile.warehouse_type =='DEPT':
+            temp_dict[user_data.id] = user_data.username
+            final_dict.update(temp_dict)
+    return final_dict

@@ -133,13 +133,7 @@ class netsuiteIntegration(object):
                 if data["product_type"] == "Asset":
                     item_skucategory = 4
                     if data.get('sku_class', None):
-                        customFieldList.append(
-                          ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=1))
-                        )
-                    if data.get('sku_category', None):
-                        customFieldList.append(
-                          ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=ns.ListOrRecordRef(internalId=1))
-                        )
+                        customFieldList.append(ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=1)))
                 # if data["product_type"]= "OtherItem":
                 #     item_skucategory = 3
             # if data.get("product_type", None):

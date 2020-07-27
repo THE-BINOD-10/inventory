@@ -9864,14 +9864,14 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 elif key in ['igst_tax',]:
                     if not cell_data and cell_data != 0 and data_dict.get('tax_type','').lower() == 'inter_state':
                             index_status.setdefault(row_idx, set()).add('Fill the IGST Column for the inter state')
-                    elif not isinstance(cell_data , float):
+                    elif not isinstance(cell_data , float) and data_dict.get('tax_type','').lower() == 'inter_state' :
                         index_status.setdefault(row_idx, set()).add('IGST Column must be in Decimals')
                     else:
                         data_dict[key] = cell_data
                 elif key in ['sgst_tax', 'cgst_tax',]:
                     if not cell_data and cell_data != 0 and data_dict.get('tax_type','').lower() == 'intra_state':
                             index_status.setdefault(row_idx, set()).add('Fill the CGST  and SGST Column for the intra state')
-                    elif not isinstance(cell_data , float):
+                    elif not isinstance(cell_data , float) and data_dict.get('tax_type','').lower() == 'intra_state':
                         index_status.setdefault(row_idx, set()).add('CGST  and SGST Column must be in Decimals')
                     else:
                         data_dict[key] = cell_data

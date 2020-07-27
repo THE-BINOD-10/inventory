@@ -380,7 +380,7 @@ class netsuiteIntegration(object):
                 if(po_data.get('full_pr_number',None)):
                     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
                 if(data.get('hsn_code',None)):
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=data['hsn_code'])))
                     item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
                 line_item = {
                  'item': ns.RecordRef(externalId=data['sku_code']),
@@ -450,7 +450,7 @@ class netsuiteIntegration(object):
                     'item':ns.RecordRef(externalId=data['sku_code']),
                     'description': data['sku_desc'],
                     'quantity':data['quantity'],
-                    'rate': data['price'],
+                    # 'rate': data['price'],
                     'estimatedRate': data['price'],
                     # 'estimatedAmount':
                     # "poVendor": ns.RecordRef(internalId=data['reference_id'], type="vendor"),

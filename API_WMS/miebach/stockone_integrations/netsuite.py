@@ -63,6 +63,8 @@ class netsuiteIntegration(object):
             invitem.itemtype = data.get('batch_based','')
             invitem.purchaseunit = data.get('measurement_type','')
             invitem.salesDescription = data.get('sku_desc','')
+            if data.get("gl_code",None):
+                invitem.assetAccount =  ns.ListOrRecordRef(externalId=data["gl_code"])
             if data.get('subsidiary', None):
                 invitem.subsidiary = ns.ListOrRecordRef(internalId=data["subsidiary"])
             if data.get('department', None):

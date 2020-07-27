@@ -5747,6 +5747,7 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['block_options'] = result.get('block_options', '')
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
+            sku_data['gl_code'] = result.get('gl_code', '')
 
             if instanceName == AssetMaster:
                 sku_data['asset_type'] = result.get('asset_type', '')
@@ -5768,7 +5769,6 @@ def get_sku_master_doa_record(request, user=''):
                     sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
                 if data.service_end_date:
                     sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-                sku_data['gl_code'] = data.gl_code
                 sku_data['service_type'] = data.service_type
             elif instanceName == AssetMaster:
                 sku_data['asset_type'] = data.asset_type

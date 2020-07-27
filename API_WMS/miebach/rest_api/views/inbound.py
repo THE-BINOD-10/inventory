@@ -4119,6 +4119,9 @@ def netsuite_pr(user, PRQs, full_pr_number):
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseRequizition(pr_datas , "full_pr_number", is_multiple=True)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Add PR failed error statement is" + str(e))
         print(e)
 
 
@@ -4980,6 +4983,9 @@ def get_supplier_data(request, users=''):
                         rec_data = float(order_data['order_quantity']) - float(order.received_quantity)
                     else:
                         rec_data = temp_json.get('quantity', 0)
+                    mrp = temp_json.get('mrp', 0)
+                    if not mrp:
+                        mrp=0
                     orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                                     'sku_desc': order_data['sku_desc'],
                                     'weight': temp_json.get('weight', 0),
@@ -4993,7 +4999,7 @@ def get_supplier_data(request, users=''):
                                     'discrepency_reason': str(temp_json.get('discrepency_reason', '')),
                                     'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                                     'price':float("%.2f"% float(order_data.get('price',0))),
-                                    'mrp': float("%.2f" % float(temp_json.get('mrp', 0))),
+                                    'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                                     'unit': order_data['unit'],
                                     'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
@@ -6571,6 +6577,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     grn_other_charges = request.POST.get('other_charges', '')
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
+    if(challan_date):
+        challan_date= challan_date.strftime('%d-%m-%Y')
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     round_off_checkbox = request.POST.get('round_off', '')
     round_off_total = request.POST.get('round_off_total', 0)
@@ -6627,8 +6635,8 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                                 "po_prefix": po.prefix,
                                 "round_off_checkbox":round_off_checkbox,
                                 "round_off_total":round_off_total,
-                                "bill_date":bill_date,
-                                "challan_date":challan_date,
+                                "bill_date": bill_date,
+                                "challan_date": challan_date,
                                 "grn_other_charges":grn_other_charges,
                                 "supplier_id":request.POST.get('supplier_id', ''),
                                 "invoice_num":invoice_num,
@@ -9471,7 +9479,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         # if(_purchase_order.open_po.supplier.tin_number):
         #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
         state=''
-        if purchase_order.open_po.supplier.state:
+        if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
@@ -9508,6 +9516,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         intObj = Integrations(user, 'netsuiteIntegration')
         intObj.IntegratePurchaseOrder(po_data, "po_number", is_multiple=False)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Netsuite Add PO failed for params " + str(data_dict) + " and error statement is " + str(e))
         print(e)
     # if response.has_key('__values__') and not netsuite_map_obj.exists():
     #     internal_external_map(response, type_name='PO')

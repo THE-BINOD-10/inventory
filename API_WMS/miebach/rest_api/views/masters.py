@@ -1053,6 +1053,7 @@ def get_sku_data(request, user=''):
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;
     sku_data['block_options'] = 'No'
+    sku_data['gl_code'] = data.gl_code
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
     substitutes_list = []
@@ -1066,7 +1067,6 @@ def get_sku_data(request, user=''):
             sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-        sku_data['gl_code'] = data.gl_code
         sku_data['service_type'] = data.service_type
     elif instanceName == AssetMaster:
         sku_data['asset_type'] = data.asset_type
@@ -1280,7 +1280,7 @@ def update_sku(request, user=''):
     admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
-                         'hsn_code', 'shelf_life']
+                         'hsn_code', 'shelf_life', 'gl_code']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST.get('zone_id','')
@@ -1433,35 +1433,39 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        department, plant, subsidary=[""]*3
+        try:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+        except Exception as e:
+            print(e)
         uom_type, stock_uom, purchase_uom, sale_uom="","","",""
         try:
             uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
         except Exception as e:
             pass
-        sku_data_dict.update(
-            {
-                'department': department,
-                "subsidiary": subsidary,
-                "plant": plant,
-                'unitypeexid': uom_type,
-                'stock_unit': stock_uom,
+        sku_data_dict.update({
+                'department' : department, "subsidiary" : subsidary, "plant" : plant,
+                'unitypeexid' : uom_type,
+                'stock_unit' : stock_uom,
                 'purchase_unit': purchase_uom,
-                'sale_unit': sale_uom
-            }
-        )
+                'sale_unit' : sale_uom
+            })
         if instanceName == ServiceMaster:
-            sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            sku_data_dict.update({"product_type":"Service"})
+            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            # sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"product_type":"Asset"})
             # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
             # intObj.initiateAuthentication()
+            sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
             integrateUOM(user, data.sku_code)
@@ -5510,7 +5514,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = [user.id]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier", 
+    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier",
                             doa_status="pending").order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
@@ -5527,8 +5531,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         if row.requested_user.is_staff:
             warehouse = row.requested_user
         else:
-            warehouse = get_admin(row.requested_user)        
-        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username, 
+            warehouse = get_admin(row.requested_user)
+        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username,
                         row.doa_status, result.get('request_from', 'Master'), result.get('price', ''), str(skuObj.mrp),
                         row.requested_user.first_name]
         is_searchable = False
@@ -5771,6 +5775,7 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['block_options'] = result.get('block_options', '')
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
+            sku_data['gl_code'] = result.get('gl_code', '')
 
             if instanceName == AssetMaster:
                 sku_data['asset_type'] = result.get('asset_type', '')
@@ -5792,7 +5797,6 @@ def get_sku_master_doa_record(request, user=''):
                     sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
                 if data.service_end_date:
                     sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-                sku_data['gl_code'] = data.gl_code
                 sku_data['service_type'] = data.service_type
             elif instanceName == AssetMaster:
                 sku_data['asset_type'] = data.asset_type

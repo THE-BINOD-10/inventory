@@ -3566,7 +3566,7 @@ def approve_pr(request, user=''):
                         is_resubmitted=is_resubmitted)
             # pass
             try:
-                netsuite_pr(user, PRQs, full_pr_number)
+                netsuite_pr(user, PRQs, full_pr_number, request)
             except:
                 pass
         else:
@@ -4034,7 +4034,7 @@ def convert_pr_to_po(request, user=''):
         return HttpResponse('PR Convertion Failed')
     return HttpResponse("Converted PR to PO Successfully")
 
-def netsuite_pr(user, PRQs, full_pr_number):
+def netsuite_pr(user, PRQs, full_pr_number, request):
     pr_datas = []
     for existingPRObj in PRQs:
         pr_number = existingPRObj.pr_number
@@ -4043,6 +4043,16 @@ def netsuite_pr(user, PRQs, full_pr_number):
         # external_id = str(existingPRObj.prefix) + str(pr_number)
         prApprQs = existingPRObj.pending_prApprovals
         requested_by = existingPRObj.requested_user.first_name
+        master_docs_obj = MasterDocs.objects.filter(master_id=existingPRObj.id,master_type='pending_pr')
+        pr_url1, pr_url2=[""]*2
+        if master_docs_obj:
+            if len(master_docs_obj)==1:
+                pr_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+            elif len(master_docs_obj)>1:
+                pr_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+                pr_url2=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[1]
+        invoice_date = request.POST.get('inv_date', '')
+        inv_receipt_date = request.POST.get('inv_receipt_date', '')
         approval1, approval2, approval3, approval4= '', '', '', ''
         allApproavls = list(prApprQs.exclude(status='').values_list('validated_by', flat=True))
         if allApproavls:
@@ -4076,7 +4086,8 @@ def netsuite_pr(user, PRQs, full_pr_number):
             p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
             plant= p_user_profile.reference_id
         pr_data = { 'department': department, "subsidiary":subsidary, "plant":plant, 'pr_number':pr_number, 'items':[], 'product_category':existingPRObj.product_category, 'pr_date':pr_date,
-                   'ship_to_address': existingPRObj.ship_to, 'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
+                   'ship_to_address': existingPRObj.ship_to, "pr_url1":pr_url1, "pr_url2":pr_url2,
+                   'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, 'requested_by':requested_by, 'full_pr_number':full_pr_number}
         lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
             'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
             'sku__servicemaster__service_end_date', 'sku__hsn_code'
@@ -9385,7 +9396,7 @@ def confirm_add_po(request, sales_data='', user=''):
                      'terms_condition': terms_condition,'supplier_pan':supplier_pan,
                      'company_address': company_address.encode('ascii', 'ignore'), 'company_details': company_details,
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo,'left_side_logo':left_side_logo}
-        netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs)
+        netsuite_po(order_id, user, purchase_order, data_dict, po_number, product_category, prQs, request)
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
@@ -9412,7 +9423,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
@@ -9430,6 +9441,14 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             plant_obj =prQs[0].wh_user
             plant = plant_obj.userprofile.reference_id
             subsidary= plant_obj.userprofile.company.reference_id
+            master_docs_obj = MasterDocs.objects.filter(master_id=prQs[0].id,master_type='pending_po')
+            po_url1, po_url2=[""]*2
+            if master_docs_obj:
+                if len(master_docs_obj)==1:
+                    po_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+                elif len(master_docs_obj)>1:
+                    po_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+                    po_url2=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[1]
             if (prQs[0].supplier_payment):
                 payment_code= prQs[0].supplier_payment.payment_code
             if prQs[0].pending_prs.all():
@@ -9489,6 +9508,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = due_date.isoformat()
         po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
+                    "po_url1":po_url1, "po_url2":po_url2,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                     'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,

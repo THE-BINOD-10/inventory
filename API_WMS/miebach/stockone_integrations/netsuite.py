@@ -366,7 +366,10 @@ class netsuiteIntegration(object):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=po_data['approval3']))
             if(po_data.get('approval4',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
-            # purorder.location= ns.RecordRef(internalId=297)
+            if(po_data.get('po_url1',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_1', value=po_data['po_url1']))
+            if(po_data.get('po_url2',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_2', value=po_data['po_url2']))
             if(po_data.get("plant", None)):
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
@@ -436,6 +439,10 @@ class netsuiteIntegration(object):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=pr_data['approval3']))
             if(pr_data.get('approval4',None)):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=pr_data['approval4']))
+            if(pr_data.get('pr_url1',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_1', value=pr_data['pr_url1']))
+            if(pr_data.get('pr_url2',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_2', value=pr_data['pr_url2']))
             if(pr_data.get('plant', None)):
                 custom_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=pr_data['plant'])))
             if(pr_data['department']):

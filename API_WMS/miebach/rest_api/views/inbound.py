@@ -6578,7 +6578,7 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    extra_charges_amt = 0
+    extra_charges_amt = ''
     fmcg = False
     po_product_category = request.POST.get('product_category', '')
     if user.userprofile.industry_type == 'FMCG':

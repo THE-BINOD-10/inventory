@@ -1504,6 +1504,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                           only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                           only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     for row_idx in range(1, no_of_rows):
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
@@ -1691,6 +1693,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             elif key == 'block_options':
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
+            elif key == 'sku_category':
+                if cell_data not in category_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
+            elif key == 'sku_class':
+                if cell_data not in class_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Class')
             elif key == 'gl_code':
                 if cell_data:
                     if not isinstance(cell_data, (int,float)):

@@ -382,39 +382,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.check_exp_date = function(sel_date, shelf_life_ratio, index, parent_index){
       var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
       var exp_date = new Date(sel_date);
+      // if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
+      //   Service.showNoty('Your selected date is less than manufacturer date.');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else if(!vm.model_data.data[parent_index][index].mfg_date){
 
-      if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
-        Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else if(!vm.model_data.data[parent_index][index].mfg_date){
+      //   Service.showNoty('Please choose manufacturer date first');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else {
+      //   var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+      //   if(!shelf_life || shelf_life=='') {
+      //     shelf_life = 0;
+      //   }
+      //   if (shelf_life && shelf_life_ratio) {
+      //     var res_days = (shelf_life * (shelf_life_ratio / 100));
+      //     var cur_date = new Date();
+      //     if(new Date(exp_date) > new Date()){
 
-        Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else {
-        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
-        if(!shelf_life || shelf_life=='') {
-          shelf_life = 0;
-        }
-        if (shelf_life && shelf_life_ratio) {
-          var res_days = (shelf_life * (shelf_life_ratio / 100));
-          var cur_date = new Date();
-          if(new Date(exp_date) > new Date()){
+      //       var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
+      //       var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-            var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
-            var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      //       // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
+      //       if (diffDays < res_days) {
+      //         Service.showNoty('Product has crossed acceptable shelf life ratio');
+      //         //vm.model_data.data[0][0].exp_date = '';
+      //       }
 
-            // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
-            if (diffDays < res_days) {
-              Service.showNoty('Product has crossed acceptable shelf life ratio');
-              //vm.model_data.data[0][0].exp_date = '';
-            }
-
-          } else {
-            Service.showNoty('Please choose proper date');
-            vm.model_data.data[parent_index][index].exp_date = '';
-          }
-        }
-      }
+      //     } else {
+      //       Service.showNoty('Please choose proper date');
+      //       vm.model_data.data[parent_index][index].exp_date = '';
+      //     }
+      //   }
+      // }
     }
 
     vm.filter_enable = true;
@@ -911,7 +910,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.sku_wise_amount_check = function(datum) {
       var status = true;
-      var sku_list = "Total GRN Price should not more than PO Price Following Sku's: "
+      var sku_list = "Total GRN Qty should not more than PO Qty Following Sku's: "
       angular.forEach(datum, function(sku_data, sku){
         if (sku_data['po_total'] <= sku_data['grn_total'] && sku_data['po_total'] != sku_data['grn_total']) {
           sku_list = sku_list + ' - ' + sku
@@ -934,11 +933,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         for (var j=0; j<vm.model_data.data[i].length; j++) {
           if (!Object.keys(data_dict).includes(vm.model_data.data[i][j].wms_code)){
             data_dict[vm.model_data.data[i][j].wms_code] = {
-              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity * vm.model_data.data[i][j].price),
-              'grn_total': parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price)
+              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity),
+              'grn_total': parseFloat(vm.model_data.data[i][j].value)
             }
           } else {
-            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value) * vm.model_data.data[i][j].buy_price);
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value));
           }
           if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
             sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']

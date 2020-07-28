@@ -25,6 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.quantity_editable = true;
+    vm.is_resubmitted = false;
     vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -278,12 +279,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.is_resubmitted = false;
             var status = true;
             var saved_sku_list = Object.keys(vm.resubmitCheckObj)
-            angular.forEach(vm.model_data.data, function(eachField){
-              if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
-                vm.is_resubmitted = true;
-                status = false;
-              }
-            })
+            if (saved_sku_list.length != vm.model_data.data.length){
+              vm.is_resubmitted = true;
+              status = false;
+            } else {
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
+                  vm.is_resubmitted = true;
+                  status = false;
+                }
+              })
+            }
             return status;
           }
 
@@ -803,12 +809,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
 
       var product_category = '';
+      var keepGoing = true
       angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'order_quantity') {
+          if (parseInt(list_obj['value']) <= 0) {
+            keepGoing = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
 
+      if (!keepGoing) {
+        vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
 
       var form_data = new FormData();
       if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
@@ -832,6 +848,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               if(data.message){
                 var response = JSON.parse(data.data);
                 if(response['status'] == 'Saved Successfully') {
+                  vm.is_resubmitted = false;
                   vm.close();
                   swal2({
                     title: 'Confirmed PR Number',
@@ -1252,6 +1269,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (vm.is_resubmitted) {
         vm.service.alert_msg('PR Will Be Re-Submitted').then(function(msg) {
           if (msg == "true") {
+            vm.is_resubmitted = false;
             vm.add_raise_pr(elem);
           }
         })
@@ -1264,11 +1282,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         elem.push({name:'is_actual_pr', value:true})
       }
       var product_category = '';
+      var keepGoing = true
       angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'order_quantity') {
+          if (parseInt(list_obj['value']) <= 0) {
+            keepGoing = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
+      if (!keepGoing) {
+        vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
 
       var form_data = new FormData();
       if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){

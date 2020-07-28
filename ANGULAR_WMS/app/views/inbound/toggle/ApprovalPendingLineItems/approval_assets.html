@@ -7,6 +7,7 @@
           <th>Asset Code*</th>
           <th>Title</th>
           <th>HSN Code</th>
+          <th>Class</th>
           <th class="w10_">Quantity*</th>
           <th>UOM</th>
           <th>Unit Rate(INR)</th>
@@ -23,7 +24,7 @@
             <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
             typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name);showCase.checkResubmitPurchaseApprover(product.fields)"
-            ng-change="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');showCase.checkResubmitPurchaseApprover(product.fields)"
+            ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');showCase.checkResubmitPurchaseApprover(product.fields)"
             ng-disabled="!showCase.permissions.change_pendinglineitems" size="60"
             >
           </td>
@@ -41,6 +42,9 @@
           </td>
           <td>
             <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
+          </td>
+          <td>
+            <input ng-model="product.fields.sku_class" title="{{ product.fields.sku_class }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"

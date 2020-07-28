@@ -313,7 +313,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
       vm.current_pr = $rootScope.$current_pr
-      vm.dynamic_route(vm.current_pr);
+      if (vm.current_pr['approval_status'] == ''){
+        vm.dynamic_route(vm.current_pr); 
+      } else {
+        Service.showNoty("PR doesn't need to be processed..Either resubmitted or approved.");
+      }
+      // vm.dynamic_route(vm.current_pr);
       $rootScope.$current_pr = '';
     }
     vm.base = function() {
@@ -546,6 +551,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 keepGoing = false;
                 Service.showNoty('Price Should be provided by Purchase');
                 return;
+              }
+            } else if (key.name == 'order_quantity') {
+              if (key.value == '' || parseInt(key.value) <= 0) {
+                keepGoing = false;
+                Service.showNoty('Order Quantity cant be 0');
+                return; 
               }
             }
           });

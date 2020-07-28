@@ -602,7 +602,7 @@ def get_pending_enquiry(request, user=''):
             pr_created_date = pendingObj.creation_date.strftime('%d-%m-%Y')
             levelWiseRemarks.append({"level": 'creator', "validated_by": pendingObj.requested_user.email, "remarks": pendingObj.remarks})
         purchaseApprQs = getattr(pendingObj, purchaseApprls)
-        allRemarks = purchaseApprQs.exclude(status='').values_list('level', 'validated_by', 'remarks')
+        allRemarks = purchaseApprQs.exclude(status__in=['', 'resubmitted']).values_list('level', 'validated_by', 'remarks')
         pendingLevelApprovers = list(purchaseApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
         if pendingLevelApprovers:
             if request.user.email in pendingLevelApprovers[0]:
@@ -1697,7 +1697,7 @@ def generated_actual_pr_data(request, user=''):
                               'file_url': '/' + master_docs[0].uploaded_file.name}
 
     prApprQs = record[0].pending_prApprovals
-    allRemarks = prApprQs.exclude(status__in=['', 'on_approved']).values_list('level', 'validated_by', 'remarks')
+    allRemarks = prApprQs.exclude(status__in=['', 'on_approved', 'resubmitted']).values_list('level', 'validated_by', 'remarks')
     pendingLevelApprovers = list(prApprQs.filter(status__in=['pending', '']).values_list('validated_by', flat=True))
     if pendingLevelApprovers:
         if request.user.email in pendingLevelApprovers[0]:
@@ -1707,7 +1707,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date', 'sku__hsn_code'
+        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -1724,7 +1724,7 @@ def generated_actual_pr_data(request, user=''):
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
-                gl_code, service_stdate, service_edate, hsn_code = rec
+                gl_code, service_stdate, service_edate, hsn_code, sku_class = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1877,6 +1877,7 @@ def generated_actual_pr_data(request, user=''):
                                     'description': sku_desc,
                                     'description_edited': sku_desc_edited,
                                     'sku_brand': sku_brand,
+                                    'sku_class': sku_class,
                                     'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
@@ -3162,6 +3163,11 @@ def updatePRApproval(pr_number, user, level, validated_by, validation_type,
         apprQs.update(status=validation_type)
         apprQs.update(remarks=remarks)
         apprQs.update(validated_by=validated_by)
+        #Update status in Mails Model
+        mailObj = PurchaseApprovalMails.objects.filter(pr_approval_id=apprQs[0].id, level=level, 
+                    email__icontains=validated_by, status='')
+        if mailObj.exists():
+            mailObj.update(status=validation_type)
 
 
 def generateHashCodeForMail(prObj, mailId, level):
@@ -3418,7 +3424,7 @@ def approve_pr(request, user=''):
     #is_purchase_approver = find_purchase_approver_permission(request.user)
     approval_type, prev_approval_type = '', ''
     if is_actual_pr == 'true':
-        approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).order_by('-creation_date')[0].approval_type
+        approval_type = pendingPRObj.pending_prApprovals.filter(level=pending_level).exclude(status='resubmitted').order_by('-creation_date')[0].approval_type
         prev_approval_type = approval_type
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
@@ -3472,7 +3478,10 @@ def approve_pr(request, user=''):
         if temp_data:
             is_resubmitted = True
             approval_type = 'ranges'
-            pendingPRObj.pending_prApprovals.filter(approval_type='ranges').delete()
+            prApprQs = pendingPRObj.pending_prApprovals
+            prApprIds = prApprQs.values_list('id', flat=True)
+            prApprQs.filter(approval_type='ranges').update(status='resubmitted')
+            PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')
             temp_data.delete()
 
         lineItems = pendingPRObj.pending_prlineItems
@@ -3678,6 +3687,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.final_status = orderStatus
         if purchaseMap.has_key('supplier_id'):
             pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
+        if purchaseMap.get('supplier_payment', ''):
+            pendingPurchaseObj.supplier_payment = purchaseMap['supplier_payment']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)
@@ -3712,7 +3723,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 else:
                     value['price'] = skuTaxVal['mrp']
         data_id = value['data_id']
-        if data_id:
+        if data_id and PendingLineItems.objects.filter(id=data_id).exists():
             record = PendingLineItems.objects.get(id=data_id)
             setattr(record, 'quantity', value['order_quantity'])
             setattr(record, 'price', value['price'])
@@ -4510,13 +4521,23 @@ def add_pr(request, user=''):
                 pendingPRObj.save()
             else:
                 if is_resubmitted == 'true':
-                    pendingPRObj.pending_prApprovals.filter().delete()
+                    prApprQs = pendingPRObj.pending_prApprovals.filter()
+                    prApprQs.update(status='resubmitted')
+                    prApprIds = prApprQs.values_list('id', flat=True)
+                    PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')
                     lineItems = pendingPRObj.pending_prlineItems.filter()
-                    lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
+                    # lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
                     lineItemIds = lineItems.values_list('id', flat=True)
-                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, model_name="PENDING_PR_PURCHASE_APPROVER").delete()
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, 
+                                        model_name="PENDING_PR_PURCHASE_APPROVER").delete()
+                    lineItems.delete()
                     pendingPRObj.pending_level = baseLevel
                     pendingPRObj.save()
+                    totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number, baseLevel,
+                                                                 prefix, full_pr_number)
+                    reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
+                                                product_category=product_category, approval_type='default',
+                                              sku_category=sku_category)
                 prObj, mailsList = createPRApproval(request, user, reqConfigName, baseLevel, pr_number,
                                         pendingPRObj, master_type=master_type, product_category=product_category,
                                                     approval_type='default')
@@ -4525,7 +4546,8 @@ def add_pr(request, user=''):
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-                        sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False)
+                        sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, 
+                                    poFor=False, is_resubmitted=is_resubmitted)
             return HttpResponse(json.dumps({'pr_number': full_pr_number, 'status': 'Added Successfully'}))
         else:
             totalAmt, pendingPRObj= createPRObjandReturnOrderAmt(request, myDict, all_data, user, pr_number,
@@ -4706,7 +4728,7 @@ def submit_pending_approval_enquiry(request, user=''):
         emailsOfApprovedUsersMap[requested_user.email] = requested_user.id
         admin_user = None
         user = pendingPurchaseObj.wh_user
-        prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.values_list('id', flat=True)
+        prApprIds = PendingPR.objects.get(id=pendingPurchaseObj.id).pending_prApprovals.exclude(status='resubmitted').values_list('id', flat=True)
         validatedEmails = PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds,
                             pr_approval__status='approved'). \
                             order_by('id').values_list('email', flat=True)
@@ -6588,7 +6610,7 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
     grn_other_charges = request.POST.get('other_charges', '')
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
-    if(challan_date):
+    if challan_date:
         challan_date= challan_date.strftime('%d-%m-%Y')
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     round_off_checkbox = request.POST.get('round_off', '')
@@ -14205,9 +14227,11 @@ def get_grn_level_data(request, user=''):
                             status.append('putaway_pending')
                         stock_location_id = polocation_data[0].location.id
                     if seller_summary_obj.invoice_number:
-                        seller_inv_list = list(SellerPOSummary.objects.filter(invoice_number=seller_summary_obj.invoice_number).values_list('grn_number', flat=True).distinct())
-                        if len(seller_inv_list) > 1 and 'Invoice-Generated' not in status:
-                            status.append('Invoice-Generated')
+                        inv_supplier_id = ''
+                        inv_supplier_id = seller_summary_obj.purchase_order.open_po.supplier_id
+                        seller_inv_list = list(SellerPOSummary.objects.filter(invoice_number=seller_summary_obj.invoice_number, purchase_order__open_po__supplier_id=inv_supplier_id).exclude(status=1).values_list('grn_number', flat=True).distinct())
+                        if len(seller_inv_list) > 1 and 'Multi-GRN-Invoice-Mapped' not in status:
+                            status.append('Multi-GRN-Invoice-Mapped')
                     if stock_location_id:
                         stock_check_params = {'location_id': stock_location_id, 'receipt_number':data.order_id,
                                 'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'grn_number': seller_summary_obj.grn_number,
@@ -14538,9 +14562,13 @@ def cancel_existing_grn(request, user=''):
                     "grn_number": model_obj.grn_number,
                 }
                 creditnote_data.append(grn_data)
-
-        intObj = Integrations(user, 'netsuiteIntegration')
-        intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True, action='delete')
+        try:
+            intObj = Integrations(user, 'netsuiteIntegration')
+            intObj.IntegrateGRN(creditnote_data, "grn_number", is_multiple=True, action='delete')
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info("Cancel GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Success")
     except Exception as e:
         import traceback

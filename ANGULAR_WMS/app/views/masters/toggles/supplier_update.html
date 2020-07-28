@@ -222,7 +222,17 @@
                   <input type="text" name="account_holder_name" class="form-control" ng-model="showCase.model_data.account_holder_name" maxlength="256">
                 </div>
             </div>
-
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.payment_terms != ''">
+              <div class="form-group">
+                <label class="control-label">Payment Terms</label>
+                <select class="form-control">
+                  <option value="">Available Payment Terms</option>
+                  <option ng-repeat="pay_term in showCase.model_data.payment_terms"
+                            value="{{pay_term}}">{{pay_term}}
+                  </option>
+                </select>
+              </div>
+            </div>
             <div class="row col-md-12" style="padding-bottom: 15px">
               <div class="col-md-12 col-sm-12 col-xs-12">
                 Secondary Email ID

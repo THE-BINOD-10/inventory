@@ -552,6 +552,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 Service.showNoty('Price Should be provided by Purchase');
                 return;
               }
+            } else if (key.name == 'order_quantity') {
+              if (key.value == '' || parseInt(key.value) <= 0) {
+                keepGoing = false;
+                Service.showNoty('Order Quantity cant be 0');
+                return; 
+              }
             }
           });
         }

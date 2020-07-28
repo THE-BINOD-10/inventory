@@ -1334,6 +1334,7 @@ class UserProfile(models.Model):
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    place_of_supply = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'

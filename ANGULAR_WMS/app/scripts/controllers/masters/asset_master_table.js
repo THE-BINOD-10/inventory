@@ -186,6 +186,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.zones = data.zones;
                   vm.model_data.groups = data.groups;
                   vm.model_data.sizes_list =  data.sizes_list;
+                  vm.model_data.category_list = data.category_list;
+                  vm.model_data.class_list = data.class_list;
                   vm.model_data.combo_data = data.combo_data;
                   vm.model_data.product_types = data.product_types;
                   vm.model_data.sub_categories = data.sub_categories;
@@ -428,6 +430,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sku_data.sku_group = '';
         vm.model_data.market_list = data.market_places;
         vm.model_data.sizes_list = data.sizes_list;
+        vm.model_data.category_list = data.category_list;
+        vm.model_data.class_list = data.class_list;
         vm.model_data.sub_categories = data.sub_categories;
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";

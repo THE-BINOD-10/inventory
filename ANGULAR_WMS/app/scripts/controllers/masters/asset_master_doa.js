@@ -127,6 +127,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.model_data.uom_data = [];
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
           vm.sku_measurement_types = vm.service.units;
+          vm.model_data.category_list = vm.model_data.sku_data.category_list;
+          vm.model_data.class_list = vm.model_data.sku_data.class_list;
           $state.go('app.masters.AssetMaster.Mapping');
           vm.title = "Add Asset";
           } else if (data.data.data.sku_data.wms_code !='') {
@@ -142,6 +144,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.sku_types = ['', 'FG', 'RM'];
           vm.model_data.groups = data.groups;
           vm.model_data.sizes_list =  data.sizes_list;
+          vm.model_data.category_list =  data.category_list;
+          vm.model_data.class_list = data.class_list;
           vm.model_data.combo_data = data.combo_data;
           vm.qc_data = ['Disable','Enable'];
           vm.status_data = ['Inactive','Active'];

@@ -12898,3 +12898,9 @@ def get_all_department_data(user):
             temp_dict[user_data.id] = user_data.username
             final_dict.update(temp_dict)
     return final_dict
+
+
+def get_netsuite_mapping_list(type_name_list):
+    type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
+                         values_list('type_value', flat=True).distinct())
+    return type_val_list

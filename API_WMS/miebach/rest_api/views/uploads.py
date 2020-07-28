@@ -10476,3 +10476,90 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
         if file_path:
             f_name = file_path
         return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def netsuite_mapping_form(request, user=''):
+    excel_file = request.GET['download-netsuite-mapping-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(NETSUITE_MAPPING_UPLOAD_KEYS)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Netsuite Mapping', excel_headers)
+    return xls_to_response(wb, '%s.netsuite_mapping_form.xls' % str(user.username))
+
+@csrf_exempt
+def validate_netsuite_mapping_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(NETSUITE_MAPPING_UPLOAD_KEYS)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'type_name':
+                if cell_data:
+                    if cell_data not in ['sku_category', 'sku_class', 'service_category']:
+                        index_status.setdefault(row_idx, set()).add('Invalid Type Name')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Type Name is Mandatory')
+            elif key == 'type_value':
+                if cell_data:
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Type Value is Mandatory')
+            elif key == 'internal_id':
+                if cell_data:
+                    try:
+                        data_dict[key] = int(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Internal ID should be number')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Internal ID is Mandatory')
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def netsuite_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_netsuite_mapping_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for final_data in data_list:
+        NetsuiteIdMapping.objects.update_or_create(**final_data)
+    return HttpResponse("Success")

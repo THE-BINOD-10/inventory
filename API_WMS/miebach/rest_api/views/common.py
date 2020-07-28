@@ -984,6 +984,7 @@ def pr_request(request):
     if storedData.exists():
         prApprId = storedData[0].pr_approval_id
         email_id = storedData[0].email
+        approval_status = storedData[0].status
         prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
     if not prApprQs.exists():
         return HttpResponse("Purchase Approval not found.")
@@ -1178,6 +1179,7 @@ def pr_request(request):
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
                                                 ('id', purchase_data_id),
+                                                ('approval_status', approval_status),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')

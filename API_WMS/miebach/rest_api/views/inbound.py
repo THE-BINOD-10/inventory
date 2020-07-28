@@ -6964,9 +6964,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     invoice_quantity= float(invoice_quantity)
     invoice_value= float(invoice_value)
     if((invoice_quantity==grn_qty and invoice_value > grn_value) or  (invoice_quantity >grn_qty)):
-        vendorbill_url=""
-        invoice_no=""
-        invoice_date=""
+        vendorbill_url= ""
+        invoice_no= ""
+        invoice_date= ""
+        invoice_value= ""
 
     prQs = PendingPO.objects.filter(full_po_number=po_number)
     product_category=""
@@ -6988,6 +6989,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 'items':[],
                 'grn_date': grn_date,
                 "invoice_no": bill_no,
+                "invoice_value": invoice_value,
                 "invoice_date": bill_date,
                 "dc_number": dc_number,
                 "dc_date" : dc_date,
@@ -12127,6 +12129,8 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     invoice_url=""
     extra_flag= req_data[0]["receipt_number"]
     po_order_id= req_data[0]["purchase_order__order_id"]
+    invoice_value = request.POST.get('inv_value', 0)
+    invoice_quantity = request.POST.get('inv_quantity', 0)
     master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
                                             master_type='GRN')
     invoice_url=""
@@ -12145,13 +12149,15 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
         invoice_number=""
         invoice_url=""
         invoice_date=""
+        invoice_value=""
     invoice_data=[]
     for seller_po_data in seller_summary:
         grn_info= {
-                    "grn_number":seller_po_data.grn_number,
+                    "grn_number": seller_po_data.grn_number,
                     "po_number": seller_po_data.purchase_order.po_number,
                     "invoice_no": invoice_number,
                     "invoice_date": invoice_date,
+                    "invoice_value": invoice_value,
                     "inv_receipt_date": inv_receipt_date,
                     "vendorbill_url" : invoice_url
         }
@@ -15068,6 +15074,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
     import dateutil.parser as parser
     import datetime
     credit_number = credit_note_req_data.get('credit_number', '')
+    credit_value = request.POST.get('credit_value', 0)
+    credit_quantity = request.POST.get('credit_quantity', 0)
     credit_date = credit_note_req_data.get('credit_date', '')
     invoice_date = credit_note_req_data.get('invoice_date', '')
     invoice_number = credit_note_req_data.get('invoice_number', '')
@@ -15088,6 +15096,8 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         grn_no=po_data["grn_number"]
         s_po_s=SellerPOSummary.objects.filter(grn_number=grn_no)
         extra_flag=s_po_s[0].receipt_number
+        invoice_value= s_po_s[0].invoice_value
+        invoice_quantity= s_po_s[0].invoice_quantity
         po_num=po_data["po_number"]
         po_order_id=s_po_s[0].purchase_order.order_id
         master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
@@ -15100,6 +15110,10 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
          "credit_number": credit_number,
          "credit_date": credit_date,
          "grn_number": grn_no,
+         "invoice_value": invoice_value,
+         "invoice_quantity": invoice_quantity,
+         "credit_note_value": credit_value,
+         "credit_quantity": credit_quantity,
          "invoice_date": invoice_date,
          "invoice_no": invoice_number,
          "credit_note_url": url,

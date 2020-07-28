@@ -205,6 +205,8 @@ class netsuiteIntegration(object):
                     rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
                 if(data.get("exp_date",None)):
                     rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
+                if data.get("return_reason", None):
+                    rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_reason', value=data["return_reason"]))
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
@@ -245,8 +247,12 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]))
             if(grn_data.get("invoice_no",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
+            if(grn_data.get("invoice_value",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_invoice_value', value=grn_data["invoice_value"]))
             if(grn_data.get("invoice_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+            if(grn_data.get("grn_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"]))
             if grn_data.get("vendorbill_url",None):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
             if(grn_data.get("dc_date",None)):
@@ -257,6 +263,8 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]))
             if(grn_data.get("credit_number",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"]))
+            if(grn_data.get("credit_note_value",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note_value', value=grn_data["credit_note_value"]))
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)

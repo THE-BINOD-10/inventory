@@ -10045,9 +10045,13 @@ def netsuite_sku_uom_update(wms_code, user):
         sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
         try:
             sku_data_dict=gatherSkuData_uom(data)
-            if("hsn_code" in sku_data_dict):
-                sku_data_dict["hsn_code"]=""
-            department, plant, subsidary=get_plant_subsidary_and_department(user)
+            department, plant, subsidary=[""]*3
+            try:
+                plant = user.userprofile.reference_id
+                subsidary= user.userprofile.company.reference_id
+            except Exception as e:
+                print(e)
+            # department, plant, subsidary=get_plant_subsidary_and_department(user)
             uom_type, stock_uom, purchase_uom, sale_uom="","","",""
             try:
                 from masters import get_uom_details
@@ -10066,13 +10070,13 @@ def netsuite_sku_uom_update(wms_code, user):
                 }
             )
             if instanceName == ServiceMaster:
-                sku_data_dict.update({"ServicePurchaseItem":True, "instanceName": instanceName})
+                sku_data_dict.update({"ServicePurchaseItem":True, "product_type": "Service" , "instanceName": instanceName})
             elif instanceName == AssetMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+                sku_data_dict.update({"non_inventoryitem":True, "product_type": "Asset" , "instanceName": instanceName})
             elif instanceName == OtherItemsMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+                sku_data_dict.update({"non_inventoryitem":True,"product_type": "OtherItem",  "instanceName": instanceName})
             else:
-                sku_data_dict.update({"instanceName": instanceName})
+                sku_data_dict.update({"instanceName": instanceName, "product_type": "SKU"})
                 sku_data_dict.update(sku_attr_dict)
         except Exception as e:
             pass

@@ -390,6 +390,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         #if data.phone_number:
             #data.phone_number = int(float(data.phone_number))
+        payment_terms = []
+        payments = PaymentTerms.objects.filter(supplier = data.id)
+        if payments.exists():
+            for datum in payments:
+               payment_terms.append("%s:%s" %(str(datum.payment_code), datum.payment_description))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -417,6 +422,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
                                                 ('is_contracted', data.is_contracted),
+                                                ('payment_terms', payment_terms),
                                                 )))
 
 

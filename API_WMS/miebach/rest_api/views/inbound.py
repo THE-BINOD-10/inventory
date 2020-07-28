@@ -3678,6 +3678,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingPurchaseObj.final_status = orderStatus
         if purchaseMap.has_key('supplier_id'):
             pendingPurchaseObj.supplier_id = purchaseMap['supplier_id']
+        if purchaseMap.get('supplier_payment', ''):
+            pendingPurchaseObj.supplier_payment = purchaseMap['supplier_payment']
         pendingPurchaseObj.save()
     else:
         pendingPurchaseObj = model_name.objects.create(**purchaseMap)

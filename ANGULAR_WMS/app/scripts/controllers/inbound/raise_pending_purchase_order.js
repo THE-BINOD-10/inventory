@@ -187,6 +187,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           angular.copy(empty_data, vm.model_data);
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+            var supplier_data = {'supplier_id':vm.model_data.supplier_id}
+            if (aData['Validation Status'] == 'Saved'){
+              vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
+                if (data.data) {
+                  vm.model_data.supplier_payment_terms = data.data;
+                } else {
+                  vm.model_data.supplier_payment_terms = '';
+                }
+              })
+            }
           } else {
             vm.model_data['supplier_id_name'] = '';
           }

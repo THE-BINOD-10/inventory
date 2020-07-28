@@ -1097,11 +1097,14 @@ def get_sku_data(request, user=''):
         if sku_attribute_obj.attribute_value:
             sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
     #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
-                    'sku_attributes': sku_attributes, 'uom_data': uom_data}, cls=DjangoJSONEncoder))
+                    'sku_attributes': sku_attributes, 'uom_data': uom_data,
+                    'category_list': category_list, 'class_list': class_list}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -3102,9 +3105,12 @@ def get_zones_list(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     attributes = get_user_attributes(user, 'sku')
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes),
+         'category_list': category_list, 'class_list': class_list}))
 
 
 @csrf_exempt
@@ -5618,6 +5624,8 @@ def get_sku_master_doa_record(request, user=''):
     results = MastersDOA.objects.filter(id=data_id)
     ord_dict,temp_data= {}, {}
     temp_data['sku_data'] = []
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     if results.exists():
         result = json.loads(results[0].json_data)
         # final_dict = result.get('wms_code', '')
@@ -5850,6 +5858,8 @@ def get_sku_master_doa_record(request, user=''):
                 'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                 'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
                 'sku_attributes': sku_attributes, 'uom_data': uom_data, 'highlight_dict':highlight_dict}
+    result['category_list'] = category_list
+    result['class_list'] = class_list
     return HttpResponse(json.dumps({'data': result}))
 
 

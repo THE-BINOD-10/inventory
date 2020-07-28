@@ -14175,7 +14175,7 @@ def get_grn_level_data(request, user=''):
                         inv_supplier_id = ''
                         inv_supplier_id = seller_summary_obj.purchase_order.open_po.supplier_id
                         seller_inv_list = list(SellerPOSummary.objects.filter(invoice_number=seller_summary_obj.invoice_number, purchase_order__open_po__supplier_id=inv_supplier_id).exclude(status=1).values_list('grn_number', flat=True).distinct())
-                        if len(seller_inv_list) > 1 and 'Invoice-Generated' not in status:
+                        if len(seller_inv_list) > 1 and 'Multi-GRN-Invoice-Mapped' not in status:
                             status.append('Multi-GRN-Invoice-Mapped')
                     if stock_location_id:
                         stock_check_params = {'location_id': stock_location_id, 'receipt_number':data.order_id,

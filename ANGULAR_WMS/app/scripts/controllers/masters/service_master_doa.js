@@ -123,6 +123,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.model_data.uom_data = [];
           vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
           vm.sku_measurement_types = vm.service.units;
+          vm.model_data.category_list = vm.model_data.sku_data.category_list;
+          vm.model_data.class_list = vm.model_data.sku_data.class_list;
           $state.go('app.masters.ServiceMaster.Mapping');
           vm.title ="ADD SERVICE";
         } else if (data.data.data.sku_data.wms_code !='') {
@@ -147,6 +149,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   vm.model_data.attributes = data.attributes;
+                  vm.model_data.category_list = data.category_list;
+                  vm.model_data.class_list = data.class_list;
                   vm.model_data.measurement_type = data.sku_data.measurement_type;
                   //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
                   angular.forEach(vm.model_data.attributes, function(attr_dat){

@@ -1338,6 +1338,7 @@ class UserProfile(models.Model):
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    place_of_supply = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -3937,14 +3938,15 @@ class StockTransferSummary(models.Model):
         index_together = (('stock_transfer',))
 
 class NetsuiteIdMapping(models.Model):
-    external_id = models.CharField(max_length=64, default='')
     internal_id = models.CharField(max_length=64, default='')
     type_name = models.CharField(max_length=64, default='')
+    type_value = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'NETSUITE_ID_MAPPING'
+        unique_together = ('internal_id', 'type_name', 'type_value')
 
 @reversion.register()
 class Discrepancy(models.Model):

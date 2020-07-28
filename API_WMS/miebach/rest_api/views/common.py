@@ -1353,14 +1353,23 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
         pac_filter1['plant'] = admin_user.username
+    # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        pac_filter2 = copy.deepcopy(pac_filter1)
+        pac_filter2['plant'] = ''
+        #all plants that department
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+    if not purchase_config:
         pac_filter1['department_type'] = ''
+        # that plant all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        # all plants all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     if not purchase_config:
         pac_filter['sku_category'] = ''
+        # all plants all departments without sku category
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -12889,3 +12898,9 @@ def get_all_department_data(user):
             temp_dict[user_data.id] = user_data.username
             final_dict.update(temp_dict)
     return final_dict
+
+
+def get_netsuite_mapping_list(type_name_list):
+    type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
+                         values_list('type_value', flat=True).distinct())
+    return type_val_list

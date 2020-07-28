@@ -64,7 +64,11 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Service Class </label>
-                <input type="text" name="sku_class" ng-style="{'border-color': showCase.highlight_data['sku_class'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <select class="form-control" name="sku_class" ng-model="showCase.model_data.sku_data.sku_class" ng-style="{'border-color': showCase.highlight_data['sku_class'] ? showCase.highlight_color : '#e4e4e4'}">
+                  <option value="" ng-selected="showCase.model_data.sku_data.sku_class == ''">None</option>s
+                  <option ng-repeat = "sku_class in showCase.model_data.class_list" value="{{sku_class}}" ng-selected="sku_class == showCase.model_data.sku_data.sku_class">{{sku_class}}</option>
+                </select>
+<!--                <input type="text" name="sku_class" ng-style="{'border-color': showCase.highlight_data['sku_class'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">-->
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -81,7 +85,11 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Service Category </label>
-                <input type="text" name="sku_category" ng-style="{'border-color': showCase.highlight_data['sku_category'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                <select class="form-control" name="sku_category" ng-model="showCase.model_data.sku_data.sku_category" ng-style="{'border-color': showCase.highlight_data['sku_category'] ? showCase.highlight_color : '#e4e4e4'}">
+                  <option value="" ng-selected="showCase.model_data.sku_data.sku_category == ''">None</option>
+                  <option ng-repeat = "category in showCase.model_data.category_list" value="{{category}}" ng-selected="category == showCase.model_data.sku_data.sku_category">{{category}}</option>
+                </select>
+<!--                <input type="text" name="sku_category" ng-style="{'border-color': showCase.highlight_data['sku_category'] ? showCase.highlight_color : '#e4e4e4'}" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">-->
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName != 'sagar_fab'">

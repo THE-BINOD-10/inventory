@@ -3279,6 +3279,10 @@ USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Wareho
                                     ('City', 'city'), ('Pincode', 'pincode')
                         ))
 
+NETSUITE_MAPPING_UPLOAD_KEYS = OrderedDict((('Type Name', 'type_name'), ('Type Value', 'type_value'),
+                                            ('Internal ID', 'internal_id')
+                                           ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

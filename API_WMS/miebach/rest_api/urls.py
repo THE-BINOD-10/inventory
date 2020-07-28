@@ -713,7 +713,9 @@ urlpatterns += [
     url(r'^pending_pr_upload/$', pending_pr_upload),
     url(r'^grn_form/$', grn_form),
     url(r'^grn_upload/$', grn_upload),
-    
+    url(r'^netsuite_mapping_form/$', netsuite_mapping_form),
+    url(r'^netsuite_mapping_upload/$', netsuite_mapping_upload),
+
 
     # configurations
     url(r'^configurations/$', configurations),

@@ -1410,18 +1410,21 @@ def update_sku(request, user=''):
 
     return HttpResponse('Updated Successfully')
 
+def get_sku_category_internal_id(sku_category, type):
+    service_category_id= NetsuiteIdMapping.objects.get(type_value=sku_category,type_name=type)
+    sku_category_id=""
+    if service_category_id:
+        sku_category_id = service_category_id.internal_id
+    return sku_category_id
+
 def netsuite_sku(data, user, instanceName=''):
     # external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
-    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
-    # if netsuite_map_obj:
-    #     external_id = netsuite_map_obj[0].external_id
-    # if not external_id:
-    #     external_id = get_incremental(user, 'netsuite_external_id')
-    # from integrations.views import Integrations
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3
         try:
             plant = user.userprofile.reference_id
@@ -1442,22 +1445,15 @@ def netsuite_sku(data, user, instanceName=''):
             })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type":"Service"})
-            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
             sku_data_dict.update({"product_type":"Asset"})
-            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
-            # sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
-            # intObj.initiateAuthentication()
             sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
-            integrateUOM(user, data.sku_code)
+        intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+        integrateUOM(user, data.sku_code)
     except Exception as e:
         pass
 

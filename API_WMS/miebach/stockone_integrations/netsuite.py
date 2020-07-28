@@ -114,10 +114,10 @@ class netsuiteIntegration(object):
             #     customFieldList.append(
             #       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
             #     )
-            if ("non_inventoryitem" not in data):
-                customFieldList.append(
-                 ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
-                )
+            # if ("non_inventoryitem" not in data):
+            #     customFieldList.append(
+            #      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
+            #     )
             if data.get("service_start_date",None):
                 customFieldList.append(
                  ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.get('service_start_date').isoformat())
@@ -149,7 +149,7 @@ class netsuiteIntegration(object):
             #     )
             if data.get('sku_category', None):
                 customFieldList.append(
-                  ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=29))
+                  ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=data["sku_category"]))
                 )
             if(item_skucategory):
                 customFieldList.append(

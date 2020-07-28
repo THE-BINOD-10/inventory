@@ -2137,6 +2137,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     return 'success'
 
 def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
+    from masters import get_sku_category_internal_id
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
@@ -2151,6 +2152,8 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
             sku_master_data=intObj.gatherSkuData(sku_master_data)
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
+            sku_category_internal_id= get_sku_category_internal_id(sku_attr_dict["sku_category"], "service_category")
+            sku_attr_dict["sku_category"]=sku_category_internal_id
             sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant, "product_type":"SKU"})
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
@@ -2158,6 +2161,7 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
         print(e)
 
 def upload_netsuite_sku(data, user, instanceName=''):
+    from masters import get_sku_category_internal_id
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
@@ -2168,19 +2172,18 @@ def upload_netsuite_sku(data, user, instanceName=''):
             subsidary= user.userprofile.company.reference_id
         except Exception as e:
             print(e)
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
         sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type": "Service"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == AssetMaster:
             sku_data_dict.update({"product_type": "Asset"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type": "OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
         else:
             sku_data_dict.update({"product_type":"SKU"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+        intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
     except Exception as e:
         print(e)
 
@@ -10016,10 +10019,11 @@ def uom_master_upload(request, user=''):
         intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
         # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
     if(OtherItemsMaster_list):
-        intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
 
 def netsuite_sku_uom_update(wms_code, user):
+    from masters import get_sku_category_internal_id
     temp=True
     instanceName = SKUMaster
     data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
@@ -10045,6 +10049,8 @@ def netsuite_sku_uom_update(wms_code, user):
         sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
         try:
             sku_data_dict=gatherSkuData_uom(data)
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+            sku_data_dict["sku_category"]=sku_category_internal_id
             department, plant, subsidary=[""]*3
             try:
                 plant = user.userprofile.reference_id

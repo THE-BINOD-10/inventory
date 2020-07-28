@@ -2162,7 +2162,21 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
             sku_attr_dict.update(sku_master_data)
             sku_category_internal_id= get_sku_category_internal_id(sku_attr_dict["sku_category"], "service_category")
             sku_attr_dict["sku_category"]=sku_category_internal_id
-            sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant, "product_type":"SKU"})
+            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+            try:
+                from masters import get_uom_details
+                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+            except Exception as e:
+                pass
+            sku_attr_dict.update({'department': department,
+                "subsidiary":subsidary,
+                "plant":plant, 
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom,
+                "product_type":"SKU"
+            })
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
@@ -2182,10 +2196,25 @@ def upload_netsuite_sku(data, user, instanceName=''):
             print(e)
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
         sku_data_dict["sku_category"]=sku_category_internal_id
-        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            from masters import get_uom_details
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+        except Exception as e:
+            pass
+        sku_data_dict.update({'department': department, 
+        "subsidiary":subsidary,
+        "plant":plant,
+        'unitypeexid': uom_type,
+        'stock_unit': stock_uom,
+        'purchase_unit': purchase_uom,
+        'sale_unit': sale_uom
+        })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type": "Service"})
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type": "Asset"})
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type": "OtherItem"})
@@ -10086,6 +10115,8 @@ def netsuite_sku_uom_update(wms_code, user):
             if instanceName == ServiceMaster:
                 sku_data_dict.update({"ServicePurchaseItem":True, "product_type": "Service" , "instanceName": instanceName})
             elif instanceName == AssetMaster:
+                sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+                sku_data_dict["sku_class"]=sku_category_internal_id
                 sku_data_dict.update({"non_inventoryitem":True, "product_type": "Asset" , "instanceName": instanceName})
             elif instanceName == OtherItemsMaster:
                 sku_data_dict.update({"non_inventoryitem":True,"product_type": "OtherItem",  "instanceName": instanceName})

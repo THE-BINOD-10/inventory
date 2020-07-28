@@ -1446,6 +1446,8 @@ def netsuite_sku(data, user, instanceName=''):
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type":"Service"})
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type":"Asset"})
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})

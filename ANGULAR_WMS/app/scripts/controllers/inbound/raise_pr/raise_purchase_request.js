@@ -838,6 +838,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               if(data.message){
                 var response = JSON.parse(data.data);
                 if(response['status'] == 'Saved Successfully') {
+                  vm.is_resubmitted = false;
                   vm.close();
                   swal2({
                     title: 'Confirmed PR Number',

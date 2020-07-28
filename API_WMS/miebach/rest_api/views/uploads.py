@@ -10311,6 +10311,8 @@ def pending_pr_form(request, user=''):
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type == 'ADMIN':
+        excel_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
     excel_headers = excel_mapping.keys()
     wb, ws = get_work_sheet('Purchase Request', excel_headers)
     return xls_to_response(wb, '%s.purchase_request_form.xls' % str(user.username))
@@ -10336,6 +10338,17 @@ def pending_pr_upload(request, user=''):
     sku_code = data_list[0]['sku_code']
     priority_type = data_list[0]['priority_type']
     pr_delivery_date = data_list[0]['delivery_date']
+
+    plant_name = data_list[0].get('plant', '')
+    department_name = data_list[0].get('department_type', '')
+    if plant_name and department_name:
+        sister_whs = get_sister_warehouse(User.objects.get(Q(username=plant_name) | Q(first_name=plant_name)))
+        sister_wh_ids = sister_whs.values_list('user_id', flat=True)
+        DEPT_NAMES_MAPPING = dict([(value, key) for key, value in DEPARTMENT_TYPES_MAPPING.items()])
+        department_type = DEPT_NAMES_MAPPING.get(department_name)
+        dept_user_obj = User.objects.filter(id__in=sister_wh_ids, userprofile__stockone_code=department_type)
+        if dept_user_obj:
+            user = dept_user_obj[0]
     pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user,
                                                                         'pr_prefix', sku_code)
     purchaseMap = {
@@ -10375,6 +10388,31 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
     index_status = {}
     data_list = []
     inv_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type == 'ADMIN':
+        inv_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        plants_list = []
+        department_type_list = []
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('first_name', flat=True)
+            if staff_obj.department_type:
+                department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+            else:
+                department_type_list = department_type_mapping
+
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -10423,6 +10461,24 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         data_dict[key] = cell_data
                 else:
                     data_dict[key] = 'normal'
+            elif key == 'plant':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in plants_list:
+                        index_status.setdefault(row_idx, set()).add('Proper plant name should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant should be mentioned.')
+            elif key == 'department_type':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in department_type_list.values():
+                        index_status.setdefault(row_idx, set()).add('Proper department type should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Department type should be mentioned.')
 
         data_list.append(data_dict)
 

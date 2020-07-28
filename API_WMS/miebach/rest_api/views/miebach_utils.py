@@ -3221,6 +3221,11 @@ PENDING_PR_MAPPING = OrderedDict((('Priority Type', 'priority_type'), ('Need By 
                                   ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
                                   ))
 
+PENDING_PR_ADMIN_MAPPING = OrderedDict((('Plant', 'plant'), ('Department Type', 'department_type'),
+                                  ('Priority Type', 'priority_type'), ('Need By Date', 'delivery_date'),
+                                  ('SKU Code', 'sku_code'), ('Quantity', 'quantity')
+                                  ))
+
 UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'),
                                   ('UOM', 'uom'), ('Conversion', 'conversion')
                                   ))

@@ -12569,13 +12569,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
-            staff_check['department_type'] = user.userprofile.stockone_code
+            staff_check['department_type__name'] = user.userprofile.stockone_code
             staff_check['plant__name'] = get_admin(user).username
         elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
             del staff_check['user']
             staff_check['plant__name'] = user.username
         if app_config.department_type:
-            staff_check['department_type'] = app_config.department_type
+            staff_check['department_type__name'] = app_config.department_type
         if user_role == 'Reporting Manager':
             cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
             if cur_staff_obj.exists():
@@ -12591,13 +12591,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                 if admin_user.id == prev_admin_user.id:
                     break_loop = False
                 emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
-                                                         department_type='', position=user_role).\
+                                                         department_type__isnull=True, position=user_role).\
                         values_list('email_id', flat=True))
                 if emails:
                     break_loop = False
         if not emails:
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
-                                                     department_type='', position=user_role). \
+                                                     department_type__isnull=True, position=user_role). \
                           values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
@@ -12821,6 +12821,20 @@ def update_staff_plants_list(model_obj, elements):
             model_obj.plant.remove(elem_obj[0])
 
 
+def update_staff_depts_list(model_obj, elements):
+    exist_element_list = model_obj.department_type.filter().values_list('name', flat=True)
+    exist_elements = [(str(e_elem)).lower() for e_elem in exist_element_list]
+    for elem in elements:
+        element_obj, created = TableLists.objects.get_or_create(name=elem)
+        model_obj.department_type.add(element_obj)
+        if elem.lower() in exist_elements:
+            exist_elements.remove(elem.lower())
+    for exist_elem in exist_elements:
+        elem_obj = TableLists.objects.filter(name=exist_elem)
+        if elem_obj:
+            model_obj.department_type.remove(elem_obj[0])
+
+
 def get_uom_conversion_value(sku, uom_type):
     conversion_name, conversion = '', 1
     user = User.objects.get(id=sku.user)
@@ -12853,8 +12867,11 @@ def get_staff_plants_list(request, user=''):
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
             plants_list = dict(plant_objs.values_list('username', 'first_name'))
-        if staff_obj.department_type:
-            department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+        if staff_obj.department_type.filter():
+            department_type_list = {}
+            dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
+            for dept_name in dept_list:
+                department_type_list = {dept_name: department_type_mapping[dept_name]}
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))

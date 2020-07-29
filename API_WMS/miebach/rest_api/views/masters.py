@@ -704,7 +704,7 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id',
+    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type__name', 'position', 'email_id',
            'reportingto_email_id','phone_number', 'status']
 
     company_list = get_companies_list(user, send_parent=True)
@@ -765,11 +765,18 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         department = ''
         warehouse_names = ''
         group_names = []
+        department_type_list = ''
         sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
         if data.plant.filter():
             plant_list = data.plant.filter().values_list('name', flat=True)
             warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
             plant = ','.join(plant_list)
+        if data.department_type.filter():
+            department_type_names = data.department_type.filter().values_list('name', flat=True)
+            department_type_list = []
+            for department_type_name in department_type_names:
+                department_type_list.append(department_type_mapping.get(department_type_name, ''))
+            department_type_list = ','.join(department_type_list)
         if wh_user:
             sub_user_parent = get_sub_user_parent(sub_user)
             roles_list1 = copy.deepcopy(roles_list)
@@ -789,8 +796,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
-                                 ('department_type', department_type_mapping.get(data.department_type, '')),
-                                 ('department_code', data.department_type),
+                                 ('department_type', department_type_list),#department_type_mapping.get(data.department_type, '')),
+                                 ('department_code', department_type_list),
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
                                  ('phone_number', phone_number),
@@ -4755,8 +4762,12 @@ def insert_staff(request, user=''):
     plants = []
     if plant:
         plants = plant.split(',')
-    department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
+    department_types = []
+    if department_type:
+        department_types= department_type.split(',')
+    department = request.POST.get('department', '')
+
     staff_code = request.POST.get('staff_code', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     if not (staff_name or email):
@@ -4781,6 +4792,12 @@ def insert_staff(request, user=''):
         parent_username = user.username
         warehouse_type = 'ADMIN'
         main_company_id = get_company_id(user)
+        if department_types and plants and not len(department_types) > 1 and not len(plants) > 1:
+            plant_user = User.objects.get(username=plants[0])
+            dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[plant_user.username])
+            department_user = dept_users.filter(userprofile__stockone_code=department_types[0])
+            if department_user:
+                department = department_user[0].username
         if department:
             parent_username = department
             warehouse_type = 'DEPT'
@@ -4800,13 +4817,14 @@ def insert_staff(request, user=''):
             return HttpResponse(add_user_status)
         staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
-                            position=position, department_type=department_type,
+                            position=position,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
                             staff_code=staff_code, reportingto_email_id=reportingto_email_id)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
         update_staff_plants_list(staff_obj, plants)
+        update_staff_depts_list(staff_obj, department_types)
         request_data = dict(request.POST.iterlists())
         if request_data.get('groups', []):
             selected_list = request_data['groups']
@@ -4825,12 +4843,12 @@ def update_staff_values(request, user=''):
     reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
-    department_type = request.POST.get('department_type', '')
+    #department_type = request.POST.get('department_type', '')
     position = request.POST.get('position', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
-    data.department_type = department_type
+    #data.department_type = department_type
     old_position = data.position
     sub_user = User.objects.get(username=data.email_id)
     if old_position != position:

@@ -77,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.status_data = ["Inactive", "Active"];
   var empty_data = {name: "", email_id: "", phone_number: "", status: "", margin: 0, company_id: '',
-                    plant: [], department_id: '', department_type: '', postion: '', warehouse: []};
+                    plant: [], department_id: '', department_type: [], postion: '', warehouse: []};
   vm.model_data = {};
 
   vm.base = function() {
@@ -104,6 +104,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.StaffMaster.Staff');
     $timeout(function(){$('.selectpicker-groups').selectpicker();}, 1000);
     $timeout(function(){$('.selectpicker-plants').selectpicker();}, 500);
+    $timeout(function(){$('.selectpicker-depts').selectpicker();}, 500);
   }
 
   vm.customer = function(url) {
@@ -112,6 +113,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var send = $("form").serializeArray();
     if(vm.model_data.warehouse){ send.push({name: 'plant', value: vm.model_data.warehouse.join(',')}); }
     else {send.push({name: 'plant', value: ""});}
+    if(vm.model_data.department_type_list){ send.push({name: 'department_type', value: vm.model_data.department_type_list.join(',')}); }
+    else {send.push({name: 'department_type', value: ""});}
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {
         if(data.data == 'New Staff Added' || data.data == 'Updated Successfully') {
@@ -162,6 +165,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.warehouse_list = data.data.warehouse_list;
         $('.selectpicker-plants').selectpicker('deselectAll');
         $timeout(function(){$('.selectpicker-plants').selectpicker('refresh');}, 500);
+        $('.selectpicker-depts').selectpicker('deselectAll');
+        $timeout(function(){$('.selectpicker-depts').selectpicker('refresh');}, 500);
       }
     });
   }

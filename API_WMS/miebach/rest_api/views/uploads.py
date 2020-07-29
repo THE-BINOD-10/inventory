@@ -1694,10 +1694,10 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
             elif key == 'sku_category':
-                if cell_data not in category_list:
+                if cell_data and cell_data not in category_list:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
             elif key == 'sku_class':
-                if cell_data not in class_list:
+                if cell_data and cell_data not in class_list:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Class')
             elif key == 'gl_code':
                 if cell_data:

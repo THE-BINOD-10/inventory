@@ -64,6 +64,8 @@ class netsuiteIntegration(object):
             invitem.purchaseunit = data.get('measurement_type','')
             invitem.salesDescription = data.get('sku_desc','')
             if data.get("gl_code",None):
+                invitem.cogsAccount =  ns.ListOrRecordRef(externalId="40050010")
+                invitem.incomeAccount =  ns.ListOrRecordRef(externalId="30001600")
                 invitem.assetAccount =  ns.ListOrRecordRef(externalId=data["gl_code"])
             if data.get('subsidiary', None):
                 invitem.subsidiary = ns.ListOrRecordRef(internalId=data["subsidiary"])
@@ -87,9 +89,6 @@ class netsuiteIntegration(object):
                     invitem.saleUnit = ns.RecordRef(internalId=internId)
             if data.get('ServicePurchaseItem', None):
                 invitem.isFulfillable="T"
-            # invitem.taxtype = data.product_type
-            # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
-            # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
             customFieldList = []
             if data.get('No.OfTests', None):
                 customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=data.get('No.OfTests')))
@@ -110,14 +109,6 @@ class netsuiteIntegration(object):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
                 )
-            # if data.get('sub_category', None):
-            #     customFieldList.append(
-            #       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
-            #     )
-            # if ("non_inventoryitem" not in data):
-            #     customFieldList.append(
-            #      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
-            #     )
             if data.get("service_start_date",None):
                 customFieldList.append(
                  ns.DateCustomFieldRef(scriptId='custitesm_mhl_item_startdate', value=data.get('service_start_date').isoformat())
@@ -134,19 +125,8 @@ class netsuiteIntegration(object):
                     item_skucategory = 4
                     if data.get('sku_class', None):
                         customFieldList.append(ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=data["sku_class"])))
-                # if data["product_type"]= "OtherItem":
-                #     item_skucategory = 3
-            # if data.get("product_type", None):
-            # if data["product_type"] == "SKU":
-            #     if data.get('sku_category', None):
-            #         customFieldList.append(
-            #           ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=5))
-            #         )
-            # if data["product_type"] == "Service" or "Asset" :
-            # if data.get('sku_category', None):
-            #     customFieldList.append(
-            #       ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=5))
-            #     )
+                if data["product_type"]= "OtherItem":
+                    item_skucategory = 14
             if data.get('sku_category', None):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=data["sku_category"]))
@@ -162,9 +142,9 @@ class netsuiteIntegration(object):
             customFieldList.append(
               ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1))
             )
-            customFieldList.append(
-              ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
-            )
+            # customFieldList.append(
+            #   ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
+            # )
             invitem.customFieldList = ns.CustomFieldList(customFieldList)
         except Exception as e:
             import traceback

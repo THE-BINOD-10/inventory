@@ -168,8 +168,8 @@
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label"> Company List </label>
-                    <select class="form-control customer_status" ng-model="showCase.model_data.company_id" ng-init="showCase.model_data.company_id=showCase.company_list[0].id" name="company_id">
-                      <option ng-repeat="company in showCase.company_list" value="{{company.id}}">{{company.company_name}}</option>
+                    <select class="form-control customer_status" ng-model="showCase.model_data.company_id" name="company_id" ng-readonly="showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
+                      <option ng-repeat="company in showCase.company_list" value="{{company.id}}" ng-selected="company.id==showCase.model_data.company_id">{{company.company_name}}</option>
                     </select>
                   </div>
                 </div>

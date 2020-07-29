@@ -390,6 +390,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         #if data.phone_number:
             #data.phone_number = int(float(data.phone_number))
+        payment_terms = []
+        payments = PaymentTerms.objects.filter(supplier = data.id)
+        if payments.exists():
+            for datum in payments:
+               payment_terms.append("%s:%s" %(str(datum.payment_code), datum.payment_description))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -417,6 +422,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
                                                 ('is_contracted', data.is_contracted),
+                                                ('payment_terms', payment_terms),
                                                 )))
 
 
@@ -1097,11 +1103,14 @@ def get_sku_data(request, user=''):
         if sku_attribute_obj.attribute_value:
             sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
     #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
-                    'sku_attributes': sku_attributes, 'uom_data': uom_data}, cls=DjangoJSONEncoder))
+                    'sku_attributes': sku_attributes, 'uom_data': uom_data,
+                    'category_list': category_list, 'class_list': class_list}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -1407,18 +1416,21 @@ def update_sku(request, user=''):
 
     return HttpResponse('Updated Successfully')
 
+def get_sku_category_internal_id(sku_category, type):
+    service_category_id= NetsuiteIdMapping.objects.get(type_value=sku_category,type_name=type)
+    sku_category_id=""
+    if service_category_id:
+        sku_category_id = service_category_id.internal_id
+    return sku_category_id
+
 def netsuite_sku(data, user, instanceName=''):
     # external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
-    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
-    # if netsuite_map_obj:
-    #     external_id = netsuite_map_obj[0].external_id
-    # if not external_id:
-    #     external_id = get_incremental(user, 'netsuite_external_id')
-    # from integrations.views import Integrations
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3
         try:
             plant = user.userprofile.reference_id
@@ -1439,22 +1451,17 @@ def netsuite_sku(data, user, instanceName=''):
             })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type":"Service"})
-            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type":"Asset"})
-            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
-            # sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
-            # intObj.initiateAuthentication()
             sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
-            integrateUOM(user, data.sku_code)
+        intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+        integrateUOM(user, data.sku_code)
     except Exception as e:
         pass
 
@@ -2805,7 +2812,8 @@ def get_warehouse_user_data(request, user=''):
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
             'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
-            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code,
+            'company_id': user_profile.company_id}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -3102,9 +3110,12 @@ def get_zones_list(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     attributes = get_user_attributes(user, 'sku')
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes),
+         'category_list': category_list, 'class_list': class_list}))
 
 
 @csrf_exempt
@@ -5618,6 +5629,8 @@ def get_sku_master_doa_record(request, user=''):
     results = MastersDOA.objects.filter(id=data_id)
     ord_dict,temp_data= {}, {}
     temp_data['sku_data'] = []
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     if results.exists():
         result = json.loads(results[0].json_data)
         # final_dict = result.get('wms_code', '')
@@ -5747,6 +5760,7 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['block_options'] = result.get('block_options', '')
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
+            sku_data['gl_code'] = result.get('gl_code', '')
 
             if instanceName == AssetMaster:
                 sku_data['asset_type'] = result.get('asset_type', '')
@@ -5768,7 +5782,6 @@ def get_sku_master_doa_record(request, user=''):
                     sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
                 if data.service_end_date:
                     sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-                sku_data['gl_code'] = data.gl_code
                 sku_data['service_type'] = data.service_type
             elif instanceName == AssetMaster:
                 sku_data['asset_type'] = data.asset_type
@@ -5850,6 +5863,8 @@ def get_sku_master_doa_record(request, user=''):
                 'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                 'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
                 'sku_attributes': sku_attributes, 'uom_data': uom_data, 'highlight_dict':highlight_dict}
+    result['category_list'] = category_list
+    result['class_list'] = class_list
     return HttpResponse(json.dumps({'data': result}))
 
 

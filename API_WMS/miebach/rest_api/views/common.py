@@ -984,6 +984,7 @@ def pr_request(request):
     if storedData.exists():
         prApprId = storedData[0].pr_approval_id
         email_id = storedData[0].email
+        approval_status = storedData[0].status
         prApprQs = PurchaseApprovals.objects.filter(id=prApprId)
     if not prApprQs.exists():
         return HttpResponse("Purchase Approval not found.")
@@ -1178,6 +1179,7 @@ def pr_request(request):
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
                                                 ('id', purchase_data_id),
+                                                ('approval_status', approval_status),
                                                 ('DT_RowClass', 'results'))))
     response_data.update({'aaData': temp_data})
     return HttpResponse(json.dumps(response_data), content_type='application/json')
@@ -1353,14 +1355,23 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
         pac_filter1['plant'] = admin_user.username
+    # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        pac_filter2 = copy.deepcopy(pac_filter1)
+        pac_filter2['plant'] = ''
+        #all plants that department
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+    if not purchase_config:
         pac_filter1['department_type'] = ''
+        # that plant all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        # all plants all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     if not purchase_config:
         pac_filter['sku_category'] = ''
+        # all plants all departments without sku category
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -4960,7 +4971,7 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
-                       'measurement_unit': measurement_unit,
+                       'sku_class': master_data.sku_class, 'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion,
                        'enable_serial_based': master_data.enable_serial_based,
@@ -12889,3 +12900,9 @@ def get_all_department_data(user):
             temp_dict[user_data.id] = user_data.username
             final_dict.update(temp_dict)
     return final_dict
+
+
+def get_netsuite_mapping_list(type_name_list):
+    type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
+                         values_list('type_value', flat=True).distinct())
+    return type_val_list

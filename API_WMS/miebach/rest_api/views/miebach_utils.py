@@ -3277,6 +3277,10 @@ USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Wareho
                                     ('City', 'city'), ('Pincode', 'pincode')
                         ))
 
+NETSUITE_MAPPING_UPLOAD_KEYS = OrderedDict((('Type Name', 'type_name'), ('Type Value', 'type_value'),
+                                            ('Internal ID', 'internal_id')
+                                           ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):
@@ -4733,7 +4737,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                     pr_plant = pr_plant.username
                 pr_number = pending_pr.full_pr_number
                 prApprQs = pending_pr.pending_prApprovals
-                all_approvals_data= list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
+                all_approvals_data= list(prApprQs.exclude(status__in=['', 'resubmitted']).values_list('validated_by', "creation_date"))
                 if(all_approvals_data):
                     for approvals in all_approvals_data:
                         all_approvals.append(approvals[0])
@@ -5380,7 +5384,7 @@ def get_po_filter_data(search_params, user, sub_user):
                     pr_plant = pr_plant.username
                 pr_number = pending_pr.full_pr_number
                 prApprQs = pending_pr.pending_prApprovals
-                all_approvals_data= list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))
+                all_approvals_data= list(prApprQs.exclude(status__in=['', 'resubmitted']).values_list('validated_by', "creation_date"))
                 if(all_approvals_data):
                     for approvals in all_approvals_data:
                         all_approvals.append(approvals[0])

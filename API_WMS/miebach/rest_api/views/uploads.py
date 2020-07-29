@@ -1504,6 +1504,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                           only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                           only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     for row_idx in range(1, no_of_rows):
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
@@ -1691,6 +1693,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             elif key == 'block_options':
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
+            elif key == 'sku_category':
+                if cell_data not in category_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
+            elif key == 'sku_class':
+                if cell_data not in class_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Class')
             elif key == 'gl_code':
                 if cell_data:
                     if not isinstance(cell_data, (int,float)):
@@ -2137,6 +2145,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     return 'success'
 
 def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
+    from masters import get_sku_category_internal_id
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
@@ -2151,13 +2160,30 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
             sku_master_data=intObj.gatherSkuData(sku_master_data)
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
-            sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant, "product_type":"SKU"})
+            sku_category_internal_id= get_sku_category_internal_id(sku_attr_dict["sku_category"], "service_category")
+            sku_attr_dict["sku_category"]=sku_category_internal_id
+            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+            try:
+                from masters import get_uom_details
+                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+            except Exception as e:
+                pass
+            sku_attr_dict.update({'department': department,
+                "subsidiary":subsidary,
+                "plant":plant, 
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom,
+                "product_type":"SKU"
+            })
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
         print(e)
 
 def upload_netsuite_sku(data, user, instanceName=''):
+    from masters import get_sku_category_internal_id
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
@@ -2168,19 +2194,33 @@ def upload_netsuite_sku(data, user, instanceName=''):
             subsidary= user.userprofile.company.reference_id
         except Exception as e:
             print(e)
-        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            from masters import get_uom_details
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+        except Exception as e:
+            pass
+        sku_data_dict.update({'department': department, 
+        "subsidiary":subsidary,
+        "plant":plant,
+        'unitypeexid': uom_type,
+        'stock_unit': stock_uom,
+        'purchase_unit': purchase_uom,
+        'sale_unit': sale_uom
+        })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type": "Service"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type": "Asset"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type": "OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
         else:
             sku_data_dict.update({"product_type":"SKU"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+        intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
     except Exception as e:
         print(e)
 
@@ -10016,10 +10056,11 @@ def uom_master_upload(request, user=''):
         intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
         # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
     if(OtherItemsMaster_list):
-        intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
 
 def netsuite_sku_uom_update(wms_code, user):
+    from masters import get_sku_category_internal_id
     temp=True
     instanceName = SKUMaster
     data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
@@ -10045,9 +10086,15 @@ def netsuite_sku_uom_update(wms_code, user):
         sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
         try:
             sku_data_dict=gatherSkuData_uom(data)
-            if("hsn_code" in sku_data_dict):
-                sku_data_dict["hsn_code"]=""
-            department, plant, subsidary=get_plant_subsidary_and_department(user)
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+            sku_data_dict["sku_category"]=sku_category_internal_id
+            department, plant, subsidary=[""]*3
+            try:
+                plant = user.userprofile.reference_id
+                subsidary= user.userprofile.company.reference_id
+            except Exception as e:
+                print(e)
+            # department, plant, subsidary=get_plant_subsidary_and_department(user)
             uom_type, stock_uom, purchase_uom, sale_uom="","","",""
             try:
                 from masters import get_uom_details
@@ -10066,13 +10113,15 @@ def netsuite_sku_uom_update(wms_code, user):
                 }
             )
             if instanceName == ServiceMaster:
-                sku_data_dict.update({"ServicePurchaseItem":True, "instanceName": instanceName})
+                sku_data_dict.update({"ServicePurchaseItem":True, "product_type": "Service" , "instanceName": instanceName})
             elif instanceName == AssetMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+                sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+                sku_data_dict["sku_class"]=sku_category_internal_id
+                sku_data_dict.update({"non_inventoryitem":True, "product_type": "Asset" , "instanceName": instanceName})
             elif instanceName == OtherItemsMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
+                sku_data_dict.update({"non_inventoryitem":True,"product_type": "OtherItem",  "instanceName": instanceName})
             else:
-                sku_data_dict.update({"instanceName": instanceName})
+                sku_data_dict.update({"instanceName": instanceName, "product_type": "SKU"})
                 sku_data_dict.update(sku_attr_dict)
         except Exception as e:
             pass
@@ -10472,3 +10521,90 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
         if file_path:
             f_name = file_path
         return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def netsuite_mapping_form(request, user=''):
+    excel_file = request.GET['download-netsuite-mapping-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(NETSUITE_MAPPING_UPLOAD_KEYS)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Netsuite Mapping', excel_headers)
+    return xls_to_response(wb, '%s.netsuite_mapping_form.xls' % str(user.username))
+
+@csrf_exempt
+def validate_netsuite_mapping_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(NETSUITE_MAPPING_UPLOAD_KEYS)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'type_name':
+                if cell_data:
+                    if cell_data not in ['sku_category', 'sku_class', 'service_category']:
+                        index_status.setdefault(row_idx, set()).add('Invalid Type Name')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Type Name is Mandatory')
+            elif key == 'type_value':
+                if cell_data:
+                    data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Type Value is Mandatory')
+            elif key == 'internal_id':
+                if cell_data:
+                    try:
+                        data_dict[key] = int(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Internal ID should be number')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Internal ID is Mandatory')
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def netsuite_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_netsuite_mapping_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for final_data in data_list:
+        NetsuiteIdMapping.objects.update_or_create(**final_data)
+    return HttpResponse("Success")

@@ -10311,7 +10311,7 @@ def pending_pr_form(request, user=''):
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
-    if request.user.userprofile.warehouse_type == 'ADMIN':
+    if request.user.userprofile.warehouse_type != 'DEPT':
         excel_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
     excel_headers = excel_mapping.keys()
     wb, ws = get_work_sheet('Purchase Request', excel_headers)
@@ -10388,7 +10388,7 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
     index_status = {}
     data_list = []
     inv_mapping = copy.deepcopy(PENDING_PR_MAPPING)
-    if request.user.userprofile.warehouse_type == 'ADMIN':
+    if request.user.userprofile.warehouse_type != 'DEPT':
         inv_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
         company_list = get_companies_list(user, send_parent=True)
         company_list = map(lambda d: d['id'], company_list)
@@ -10425,7 +10425,9 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                    sku_master = SKUMaster.objects.exclude(id__in=AssetMaster.objects.all()). \
+                        exclude(id__in=ServiceMaster.objects.all()). \
+                        exclude(id__in=OtherItemsMaster.objects.all()).filter(user=user.id, sku_code=cell_data)
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     else:

@@ -162,6 +162,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.sku_measurement_types = vm.service.units;
               vm.model_data.sku_data.status = vm.status_data[1];
               vm.model_data.sku_data.qc_check = vm.qc_data[0];
+              vm.model_data.category_list = vm.model_data.sku_data.category_list;
+              vm.model_data.class_list = vm.model_data.sku_data.class_list;
               $state.go('app.masters.SKUMaster.Mapping');
               vm.title ="Add SKU";
             } else if (data.data.data.sku_data.wms_code !=''){
@@ -177,6 +179,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data.sku_data.status_data = ['Inactive','Active'];
                 vm.model_data.groups = data.groups;
                 vm.model_data.sizes_list =  data.sizes_list;
+                vm.model_data.category_list =  data.category_list;
+                vm.model_data.class_list = data.class_list;
                 vm.model_data.combo_data = data.combo_data;
                 vm.model_data.product_types = data.product_types;
                 vm.model_data.sub_categories = data.sub_categories;

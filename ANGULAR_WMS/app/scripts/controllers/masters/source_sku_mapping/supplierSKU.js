@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.permissions = Session.roles.permissions;
     vm.warehouse_type = Session.user_profile.warehouse_type;
+    vm.warehouse_level = Session.user_profile.warehouse_level;
     vm.make_readonly = false;
     vm.filters = {'datatable': 'SupplierSKUMappingMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()

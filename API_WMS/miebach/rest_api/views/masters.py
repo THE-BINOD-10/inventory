@@ -428,8 +428,22 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
-    if user.userprofile.warehouse_level == 0:
+    staff_master = StaffMaster.objects.filter(email_id=request.user.username)
+    if user.userprofile.warehouse_level == 0 and request.user.is_staff:
         user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(first_name__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(Q(username__icontains=filter_params['sku__user__icontains'])
+                                           | Q(first_name__icontains=filter_params['sku__user__icontains']))
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    elif staff_master:
+        user_objs = [user.id]
+        user_objs = check_and_get_plants(request, user_objs)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(first_name__icontains=search_term)
@@ -690,7 +704,7 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type', 'position', 'email_id',
+    lis = ['staff_code', 'staff_name', 'company__company_name', 'id', 'id', 'department_type__name', 'position', 'email_id',
            'reportingto_email_id','phone_number', 'status']
 
     company_list = get_companies_list(user, send_parent=True)
@@ -751,11 +765,18 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         department = ''
         warehouse_names = ''
         group_names = []
+        department_type_list = ''
         sub_user = User.objects.get(email=data.email_id, id__in=sub_user_id_list)
         if data.plant.filter():
             plant_list = data.plant.filter().values_list('name', flat=True)
             warehouse_names = ','.join(list(User.objects.filter(username__in=plant_list).values_list('first_name', flat=True)))
             plant = ','.join(plant_list)
+        if data.department_type.filter():
+            department_type_names = data.department_type.filter().values_list('name', flat=True)
+            department_type_list = []
+            for department_type_name in department_type_names:
+                department_type_list.append(department_type_mapping.get(department_type_name, ''))
+            department_type_list = ','.join(department_type_list)
         if wh_user:
             sub_user_parent = get_sub_user_parent(sub_user)
             roles_list1 = copy.deepcopy(roles_list)
@@ -775,8 +796,8 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
-                                 ('department_type', department_type_mapping.get(data.department_type, '')),
-                                 ('department_code', data.department_type),
+                                 ('department_type', department_type_list),#department_type_mapping.get(data.department_type, '')),
+                                 ('department_code', department_type_list),
                                  ('position', data.position),
                                  ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
                                  ('phone_number', phone_number),
@@ -1039,6 +1060,7 @@ def get_sku_data(request, user=''):
     sku_data['youtube_url'] = data.youtube_url;
     sku_data['enable_serial_based'] = data.enable_serial_based;
     sku_data['block_options'] = 'No'
+    sku_data['gl_code'] = data.gl_code
     if data.block_options == 'PO':
         sku_data['block_options'] = 'Yes';
     substitutes_list = []
@@ -1052,7 +1074,6 @@ def get_sku_data(request, user=''):
             sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
         if data.service_end_date:
             sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-        sku_data['gl_code'] = data.gl_code
         sku_data['service_type'] = data.service_type
     elif instanceName == AssetMaster:
         sku_data['asset_type'] = data.asset_type
@@ -1097,11 +1118,14 @@ def get_sku_data(request, user=''):
         if sku_attribute_obj.attribute_value:
             sku_attributes[sku_attribute_obj.attribute_name].append(sku_attribute_obj.attribute_value)
     #sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
-                    'sku_attributes': sku_attributes, 'uom_data': uom_data}, cls=DjangoJSONEncoder))
+                    'sku_attributes': sku_attributes, 'uom_data': uom_data,
+                    'category_list': category_list, 'class_list': class_list}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -1266,7 +1290,7 @@ def update_sku(request, user=''):
     admin_user = get_admin(user)
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'max_norm_quantity',
-                         'hsn_code', 'shelf_life']
+                         'hsn_code', 'shelf_life', 'gl_code']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST.get('zone_id','')
@@ -1419,35 +1443,39 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
-        department, plant, subsidary=get_plant_subsidary_and_department(user)
+        department, plant, subsidary=[""]*3
+        try:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+        except Exception as e:
+            print(e)
         uom_type, stock_uom, purchase_uom, sale_uom="","","",""
         try:
             uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
         except Exception as e:
             pass
-        sku_data_dict.update(
-            {
-                'department': department,
-                "subsidiary": subsidary,
-                "plant": plant,
-                'unitypeexid': uom_type,
-                'stock_unit': stock_uom,
+        sku_data_dict.update({
+                'department' : department, "subsidiary" : subsidary, "plant" : plant,
+                'unitypeexid' : uom_type,
+                'stock_unit' : stock_uom,
                 'purchase_unit': purchase_uom,
-                'sale_unit': sale_uom
-            }
-        )
+                'sale_unit' : sale_uom
+            })
         if instanceName == ServiceMaster:
-            sku_data_dict.update({"ServicePurchaseItem":True})
-            intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            sku_data_dict.update({"product_type":"Service"})
+            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
+            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
-            # sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"product_type":"Asset"})
             # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
+            # sku_data_dict.update({"non_inventoryitem":True})
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
-            sku_data_dict.update({"non_inventoryitem":True})
+            sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
             intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
             # intObj.initiateAuthentication()
+            sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
             intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
             integrateUOM(user, data.sku_code)
@@ -3107,9 +3135,12 @@ def get_zones_list(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     attributes = get_user_attributes(user, 'sku')
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes),
+         'category_list': category_list, 'class_list': class_list}))
 
 
 @csrf_exempt
@@ -4740,8 +4771,12 @@ def insert_staff(request, user=''):
     plants = []
     if plant:
         plants = plant.split(',')
-    department = request.POST.get('department', '')
     department_type = request.POST.get('department_type', '')
+    department_types = []
+    if department_type:
+        department_types= department_type.split(',')
+    department = request.POST.get('department', '')
+
     staff_code = request.POST.get('staff_code', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     if not (staff_name or email):
@@ -4766,6 +4801,12 @@ def insert_staff(request, user=''):
         parent_username = user.username
         warehouse_type = 'ADMIN'
         main_company_id = get_company_id(user)
+        if department_types and plants and not len(department_types) > 1 and not len(plants) > 1:
+            plant_user = User.objects.get(username=plants[0])
+            dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=[plant_user.username])
+            department_user = dept_users.filter(userprofile__stockone_code=department_types[0])
+            if department_user:
+                department = department_user[0].username
         if department:
             parent_username = department
             warehouse_type = 'DEPT'
@@ -4785,13 +4826,14 @@ def insert_staff(request, user=''):
             return HttpResponse(add_user_status)
         staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name,\
                             phone_number=phone, email_id=email, status=status,
-                            position=position, department_type=department_type,
+                            position=position,
                             user_id=wh_user_obj.id, warehouse_type=warehouse_type,
                             staff_code=staff_code, reportingto_email_id=reportingto_email_id)
         status_msg = 'New Staff Added'
         sub_user = User.objects.get(username=email)
         update_user_role(user, sub_user, position, old_position='')
         update_staff_plants_list(staff_obj, plants)
+        update_staff_depts_list(staff_obj, department_types)
         request_data = dict(request.POST.iterlists())
         if request_data.get('groups', []):
             selected_list = request_data['groups']
@@ -4810,12 +4852,12 @@ def update_staff_values(request, user=''):
     reportingto_email_id = request.POST.get('reportingto_email_id', '')
     phone = request.POST.get('phone_number', '')
     company_id = request.POST.get('company_id', '')
-    department_type = request.POST.get('department_type', '')
+    #department_type = request.POST.get('department_type', '')
     position = request.POST.get('position', '')
     status = 1 if request.POST.get('status', '') == "Active" else 0
     data = get_or_none(StaffMaster, {'email_id': email, 'company_id': company_id})
     data.staff_name = staff_name
-    data.department_type = department_type
+    #data.department_type = department_type
     old_position = data.position
     sub_user = User.objects.get(username=data.email_id)
     if old_position != position:
@@ -4879,6 +4921,9 @@ def delete_user_attribute(request, user=''):
 @get_admin_user
 def get_warehouse_list(request, user=''):
     warehouses = get_related_user_objs(user.id, level=user.userprofile.warehouse_level)
+    if not request.user.is_staff:
+        wh_ids = list(warehouses.values_list('id', flat=True))
+        warehouses = check_and_get_plants(request, wh_ids)
     # warehouse_admin = get_warehouse_admin(request.user.id)
     # exclude_admin = {}
     # if warehouse_admin.id == request.user.id:
@@ -5470,14 +5515,25 @@ def send_supplier_doa(request, user=''):
 
 @csrf_exempt
 def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku__sku_code', 'supplier_code', 'costing_type', 'price',
-           'margin_percentage', 'markup_percentage', 'sku__mrp', 'preference', 'moq',
-           'lead_time', 'sku__user', 'status']
+    lis = ['requested_user_id'] * 15
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     search_users = []
-    if user.userprofile.warehouse_level == 0:
+    staff_master = StaffMaster.objects.filter(email_id=request.user.username)
+    if user.userprofile.warehouse_level == 0 and request.user.is_staff:
         user_objs = get_related_user_objs(user.id, level=0)
+        users = list(user_objs.values_list('id', flat=True))
+        if search_term:
+            search_objs = user_objs.filter(username__icontains=search_term)
+            search_users = list(search_objs.values_list('id', flat=True))
+        if filter_params.get('sku__user__icontains', ''):
+            search_objs = user_objs.filter(username__icontains=filter_params['sku__user__icontains'])
+            search_users = list(search_objs.values_list('id', flat=True))
+            del filter_params['sku__user__icontains']
+            filter_params['supplier__user__in'] = search_users
+    elif staff_master:
+        user_objs = [user.id]
+        user_objs = check_and_get_plants(request, user_objs)
         users = list(user_objs.values_list('id', flat=True))
         if search_term:
             search_objs = user_objs.filter(username__icontains=search_term)
@@ -5491,7 +5547,7 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         users = [user.id]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier", 
+    mapping_results = MastersDOA.objects.filter(requested_user__in=users, model_name="SKUSupplier",
                             doa_status="pending").order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
@@ -5508,8 +5564,8 @@ def get_supplier_mapping_doa(start_index, stop_index, temp_data, search_term, or
         if row.requested_user.is_staff:
             warehouse = row.requested_user
         else:
-            warehouse = get_admin(row.requested_user)        
-        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username, 
+            warehouse = get_admin(row.requested_user)
+        search_constraints = [skuObj.wms_code, result['supplier_id'], result['costing_type'], warehouse.username,
                         row.doa_status, result.get('request_from', 'Master'), result.get('price', ''), str(skuObj.mrp),
                         row.requested_user.first_name]
         is_searchable = False
@@ -5623,6 +5679,8 @@ def get_sku_master_doa_record(request, user=''):
     results = MastersDOA.objects.filter(id=data_id)
     ord_dict,temp_data= {}, {}
     temp_data['sku_data'] = []
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     if results.exists():
         result = json.loads(results[0].json_data)
         # final_dict = result.get('wms_code', '')
@@ -5752,6 +5810,7 @@ def get_sku_master_doa_record(request, user=''):
             sku_data['block_options'] = result.get('block_options', '')
             sku_data['substitutes'] = result.get('substitutes', '')
             sku_data['batch_based'] = result.get('batch_based', '')
+            sku_data['gl_code'] = result.get('gl_code', '')
 
             if instanceName == AssetMaster:
                 sku_data['asset_type'] = result.get('asset_type', '')
@@ -5773,7 +5832,6 @@ def get_sku_master_doa_record(request, user=''):
                     sku_data['service_start_date'] = data.service_start_date.strftime('%d-%m-%Y')
                 if data.service_end_date:
                     sku_data['service_end_date'] = data.service_end_date.strftime('%d-%m-%Y')
-                sku_data['gl_code'] = data.gl_code
                 sku_data['service_type'] = data.service_type
             elif instanceName == AssetMaster:
                 sku_data['asset_type'] = data.asset_type
@@ -5855,6 +5913,8 @@ def get_sku_master_doa_record(request, user=''):
                 'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
                 'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
                 'sku_attributes': sku_attributes, 'uom_data': uom_data, 'highlight_dict':highlight_dict}
+    result['category_list'] = category_list
+    result['class_list'] = class_list
     return HttpResponse(json.dumps({'data': result}))
 
 

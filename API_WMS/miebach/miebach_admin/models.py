@@ -129,6 +129,7 @@ class SKUMaster(models.Model):
     block_options = models.CharField(max_length=5, default='')
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.IntegerField(default=0)
+    gl_code = models.PositiveIntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -162,13 +163,14 @@ class AssetMaster(SKUMaster):
     asset_number = models.PositiveIntegerField(default=0)
     vendor = models.CharField(max_length=128, default='')
     store_id = models.CharField(max_length=64, default='')
+    #gl_code = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'ASSET_MASTER'
 
 
 class ServiceMaster(SKUMaster):
-    gl_code = models.CharField(max_length=64, default='')
+    #gl_code = models.PositiveIntegerField(default=0)
     service_type = models.CharField(max_length=64, default='')
     service_start_date = models.DateField(null=True, blank=True)
     service_end_date = models.DateField(null=True, blank=True)
@@ -179,6 +181,7 @@ class ServiceMaster(SKUMaster):
 
 class OtherItemsMaster(SKUMaster):
     item_type = models.CharField(max_length=64, default='')
+    #gl_code = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'OTHERITEMS_MASTER'
@@ -197,6 +200,10 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        permissions = [
+            ('approve_source_sku_doa', 'Approve Source SKU Doa'),
+            ('approve_sku_master_doa', 'Approve SKU Master Doa')
+        ]
 
 
 class EANNumbers(models.Model):
@@ -1331,6 +1338,7 @@ class UserProfile(models.Model):
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    place_of_supply = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -3193,7 +3201,8 @@ class StaffMaster(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     plant = models.ManyToManyField(TableLists, default=None)
     warehouse_type = models.CharField(max_length=64, default='')
-    department_type = models.CharField(max_length=64, default='')
+    #department_type = models.CharField(max_length=64, default='')
+    department_type = models.ManyToManyField(TableLists, default=None, related_name='department_type_list')
     position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
     reportingto_email_id = models.EmailField(max_length=64, default='')
@@ -3930,14 +3939,15 @@ class StockTransferSummary(models.Model):
         index_together = (('stock_transfer',))
 
 class NetsuiteIdMapping(models.Model):
-    external_id = models.CharField(max_length=64, default='')
     internal_id = models.CharField(max_length=64, default='')
     type_name = models.CharField(max_length=64, default='')
+    type_value = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'NETSUITE_ID_MAPPING'
+        unique_together = ('internal_id', 'type_name', 'type_value')
 
 @reversion.register()
 class Discrepancy(models.Model):

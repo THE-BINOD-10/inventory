@@ -501,6 +501,16 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_purchaseorder"
+                 }, {
+                   title: "Netsuite Mapping Download/ Upload",
+                   download: "Download Netsuite Mapping Form",
+                   upload: "Upload Netsuite Mapping Form",
+                   durl: "netsuite_mapping_form/",
+                   uurl: "netsuite_mapping_upload/",
+                   dparam: "download-netsuite-mapping-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0,
+                   perm: "add_netsuiteidmapping",
                  }
                 ]
 

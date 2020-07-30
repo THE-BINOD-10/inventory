@@ -157,11 +157,11 @@ def get_plant_and_department(user):
         department= user.first_name
         admin_user= get_admin(user)
         # p_user_profile= UserProfile.objects.get(user_id=admin_user.id)
-        plant= admin_user.username
+        plant= admin_user.first_name
     elif(user_profile.warehouse_type=="SUB_STORE"):
-        plant= user.username
+        plant= user.first_name
     elif(user_profile.warehouse_type=="STORE"):
-        plant= user.username
+        plant= user.first_name
     return department, plant
 
 
@@ -1355,14 +1355,23 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     if user.userprofile.warehouse_type == 'DEPT':
         pac_filter1['department_type'] = user.userprofile.stockone_code
         pac_filter1['plant'] = admin_user.username
+    # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        pac_filter2 = copy.deepcopy(pac_filter1)
+        pac_filter2['plant'] = ''
+        #all plants that department
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+    if not purchase_config:
         pac_filter1['department_type'] = ''
+        # that plant all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
+        # all plants all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     if not purchase_config:
         pac_filter['sku_category'] = ''
+        # all plants all departments without sku category
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)
     for rec in purchase_config.distinct().values_list('name', 'min_Amt', 'max_Amt').order_by('min_Amt'):
         name, min_Amt, max_Amt = rec
@@ -12562,13 +12571,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                         'position': user_role}
         if user.userprofile.warehouse_type == 'DEPT':
             del staff_check['user']
-            staff_check['department_type'] = user.userprofile.stockone_code
+            staff_check['department_type__name'] = user.userprofile.stockone_code
             staff_check['plant__name'] = get_admin(user).username
         elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
             del staff_check['user']
             staff_check['plant__name'] = user.username
         if app_config.department_type:
-            staff_check['department_type'] = app_config.department_type
+            staff_check['department_type__name'] = app_config.department_type
         if user_role == 'Reporting Manager':
             cur_staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
             if cur_staff_obj.exists():
@@ -12584,13 +12593,13 @@ def get_purchase_config_role_mailing_list(request_user, user, app_config, compan
                 if admin_user.id == prev_admin_user.id:
                     break_loop = False
                 emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__name=admin_user.username,
-                                                         department_type='', position=user_role).\
+                                                         department_type__isnull=True, position=user_role).\
                         values_list('email_id', flat=True))
                 if emails:
                     break_loop = False
         if not emails:
             emails = list(StaffMaster.objects.filter(company_id__in=company_list, plant__isnull=True,
-                                                     department_type='', position=user_role). \
+                                                     department_type__isnull=True, position=user_role). \
                           values_list('email_id', flat=True))
         mail_list = list(chain(mail_list, emails))
     log.info("Picked PR COnfig Name %s for %s and mail list is %s" % (str(app_config.name), str(user.username),
@@ -12814,6 +12823,20 @@ def update_staff_plants_list(model_obj, elements):
             model_obj.plant.remove(elem_obj[0])
 
 
+def update_staff_depts_list(model_obj, elements):
+    exist_element_list = model_obj.department_type.filter().values_list('name', flat=True)
+    exist_elements = [(str(e_elem)).lower() for e_elem in exist_element_list]
+    for elem in elements:
+        element_obj, created = TableLists.objects.get_or_create(name=elem)
+        model_obj.department_type.add(element_obj)
+        if elem.lower() in exist_elements:
+            exist_elements.remove(elem.lower())
+    for exist_elem in exist_elements:
+        elem_obj = TableLists.objects.filter(name=exist_elem)
+        if elem_obj:
+            model_obj.department_type.remove(elem_obj[0])
+
+
 def get_uom_conversion_value(sku, uom_type):
     conversion_name, conversion = '', 1
     user = User.objects.get(id=sku.user)
@@ -12846,8 +12869,11 @@ def get_staff_plants_list(request, user=''):
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
             plants_list = dict(plant_objs.values_list('username', 'first_name'))
-        if staff_obj.department_type:
-            department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+        if staff_obj.department_type.filter():
+            department_type_list = {}
+            dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
+            for dept_name in dept_list:
+                department_type_list = {dept_name: department_type_mapping[dept_name]}
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))
@@ -12881,3 +12907,19 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
     else:
         req_users = User.objects.filter(id__in=req_users)
     return req_users
+
+def get_all_department_data(user):
+    linked_whs = get_related_users_filters(user.id, send_parent=True)
+    final_dict = {}
+    temp_dict = {}
+    for user_data in linked_whs:
+        if user_data.userprofile.warehouse_type =='DEPT':
+            temp_dict[user_data.id] = user_data.username
+            final_dict.update(temp_dict)
+    return final_dict
+
+
+def get_netsuite_mapping_list(type_name_list):
+    type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
+                         values_list('type_value', flat=True).distinct())
+    return type_val_list

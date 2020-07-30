@@ -1,14 +1,20 @@
 <style type="text/css">
-  .table > tbody > tr > td{
-    padding: 5px 5px;
-  }
-  .form-control{
-    padding: 6px 6px;
-  }
+.form-control{
+    padding: 5px 4px;
+ }
+ .table > tbody > tr > td{
+    padding: 6px 4px;
+ }
+ .table > thead > tr> td{
+    padding: 6px 4px;
+ }
+ .sidebar-panel{
+    z-index: 1000;
+ }
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -96,9 +102,9 @@
             </div>
             <div class="col-md-3 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
               <div class="form-group">
-                <label class="control-label">Payment Terms</label>
+                <label class="control-label">Payment Terms *</label>
                 <select class="form-control" name="payment_term"
-                  ng-model="showCase.model_data.payment_term">
+                  ng-model="showCase.model_data.payment_term" required>
                   <option value="">Choose Supplier Payment</option>
                   <option ng-repeat="pay_term in showCase.model_data.supplier_payment_terms"
                             value="{{pay_term}}">{{pay_term}}
@@ -123,6 +129,7 @@
                   <tr>
                     <th>SKU Code*</th>
                     <th>Title</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Detail</th>
                     <th>AvailableQty</th>
                     <th>IntransitQty</th>
                     <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
@@ -134,6 +141,8 @@
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">End Date</th>
                     <!-- <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th> -->
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
@@ -160,11 +169,14 @@
                     <td>
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.sku_detail" title="{{ product.fields.sku_detail }}" type="text" class="form-control detectTab" readonly size="50">
+                    </td>
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
                     <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
                     <td ng-if="showCase.show_ean_number">
-                      <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
+                      <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="30">
                     </td>
 
                     <!-- <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
@@ -186,21 +198,27 @@
                     <!-- <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
                       <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
                     </td> -->
-                    <td>
-		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		               	<input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_stdate" title="{{ product.fields.service_stdate }}" type="text" class="form-control" readonly size="30">
+                    </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_edate" title="{{ product.fields.service_edate }}" type="text" class="form-control" readonly size="30">
                     </td>
                     <td>
-                      <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
+		               	<input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
                     </td>
                     <td>
-		           	     <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                      <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
+		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
                     </td>
                     <td>
-			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-                        <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+		           	     <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
+		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
+                    </td>
+                    <td>
+			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="6">
+                        <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="6">
                     </td>
                     <!-- <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

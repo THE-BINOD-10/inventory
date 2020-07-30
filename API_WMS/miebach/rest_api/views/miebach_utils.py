@@ -2014,7 +2014,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': '',
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': 0,
                       'company_id': 0, 'reference_id': '', 'sap_code': '', 'stockone_code': ''}
 
 PICKLIST_EXCEL = OrderedDict((
@@ -3273,6 +3273,11 @@ PENDING_PR_ADMIN_MAPPING = OrderedDict((('Plant', 'plant'), ('Department Type', 
 
 UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'),
                                   ('UOM', 'uom'), ('Conversion', 'conversion')
+                                  ))
+
+TAX_MASTER_MAPPING = OrderedDict((('HSN Code', 'hsn_code'), ('Tax Type(inter state / intra state)', 'tax_type'), ('Min Amount', 'min_amt'),
+                                  ('Max Amount', 'max_amt'), ('SGST Tax', 'sgst_tax'),('CGST Tax', 'cgst_tax'),('IGST Tax', 'igst_tax'),
+                                  ('CESS Tax', 'cess_tax'),('APMC Tax', 'apmc_tax')
                                   ))
 
 

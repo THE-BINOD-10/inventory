@@ -63,6 +63,10 @@ class netsuiteIntegration(object):
             invitem.itemtype = data.get('batch_based','')
             invitem.purchaseunit = data.get('measurement_type','')
             invitem.salesDescription = data.get('sku_desc','')
+            if data.get("gl_code",None):
+                invitem.cogsAccount =  ns.ListOrRecordRef(externalId="40050010")
+                invitem.incomeAccount =  ns.ListOrRecordRef(externalId="30001600")
+                invitem.assetAccount =  ns.ListOrRecordRef(externalId=data["gl_code"])
             if data.get('subsidiary', None):
                 invitem.subsidiary = ns.ListOrRecordRef(internalId=data["subsidiary"])
             if data.get('department', None):
@@ -85,9 +89,6 @@ class netsuiteIntegration(object):
                     invitem.saleUnit = ns.RecordRef(internalId=internId)
             if data.get('ServicePurchaseItem', None):
                 invitem.isFulfillable="T"
-            # invitem.taxtype = data.product_type
-            # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=data.sku_group))
-            # invitem.customFieldList =  ns.CustomFieldList(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_shelflife', value=data.shelf_life))
             customFieldList = []
             if data.get('No.OfTests', None):
                 customFieldList.append(ns.StringCustomFieldRef(scriptId='custitem_mhl_item_nooftest', value=data.get('No.OfTests')))
@@ -100,30 +101,13 @@ class netsuiteIntegration(object):
                     customFieldList.append(
                     ns.StringCustomFieldRef(scriptId='custitem_mhl_item_conversionfactor', value=data.get('Conversion Factor'))
                     )
-            if data.get('sku_class', None):
-                if("non_inventoryitem" not in data):
-                    customFieldList.append(
-                      ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skuclass', value=data.get('sku_class'))
-                    )
             if data.get('mrp', None):
                 customFieldList.append(
                   ns.StringCustomFieldRef(scriptId='custitem_mhl_item_mrpprice', value=data.get('mrp'))
                 )
-            if data.get('sku_category', None):
-                customFieldList.append(
-                  ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sku_category'))
-                )
             if data.get('hsn_code', None):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
-                )
-            # if data.get('sub_category', None):
-            #     customFieldList.append(
-            #       ns.StringCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=data.get('sub_category'))
-            #     )
-            if ("non_inventoryitem" not in data):
-                customFieldList.append(
-                 ns.StringCustomFieldRef(scriptId='custitem_mhl_item_assetgroup', value=data.get('sku_group',''))
                 )
             if data.get("service_start_date",None):
                 customFieldList.append(
@@ -139,8 +123,14 @@ class netsuiteIntegration(object):
                     item_skucategory = 2
                 if data["product_type"] == "Asset":
                     item_skucategory = 4
-                # if data["product_type"]= "OtherItem":
-                #     item_skucategory = 3
+                    if data.get('sku_class', None):
+                        customFieldList.append(ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skusubcategory', value=ns.ListOrRecordRef(internalId=data["sku_class"])))
+                if data["product_type"]== "OtherItem":
+                    item_skucategory = 14
+            if data.get('sku_category', None):
+                customFieldList.append(
+                  ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_servicecategory', value=ns.ListOrRecordRef(internalId=data["sku_category"]))
+                )
             if(item_skucategory):
                 customFieldList.append(
                   ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skucategory', value=ns.ListOrRecordRef(internalId=item_skucategory))
@@ -152,9 +142,9 @@ class netsuiteIntegration(object):
             customFieldList.append(
               ns.SelectCustomFieldRef(scriptId='custitem_mhl_item_skugroup', value=ns.ListOrRecordRef(internalId=1))
             )
-            customFieldList.append(
-              ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
-            )
+            # customFieldList.append(
+            #   ns.SelectCustomFieldRef(scriptId='custitem_mhl_data_type', value=ns.ListOrRecordRef(internalId=2))
+            # )
             invitem.customFieldList = ns.CustomFieldList(customFieldList)
         except Exception as e:
             import traceback
@@ -195,6 +185,8 @@ class netsuiteIntegration(object):
                     rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_grn_mfgdate', value=data["mfg_date"]))
                 if(data.get("exp_date",None)):
                     rtv_custom_field_list.append(ns.DateCustomFieldRef(scriptId='custcol_mhl_adjustinvent_expirydate', value=data["exp_date"]))
+                if data.get("return_reason", None):
+                    rtv_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_reason', value=data["return_reason"]))
                 line_item = {
                 'item': ns.RecordRef(externalId=data['sku_code']),
                 'orderLine': idx+1,
@@ -235,8 +227,12 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_vra_challannumber', value=grn_data["dc_number"]))
             if(grn_data.get("invoice_no",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_invoicenumber', value=grn_data["invoice_no"]))
+            if(grn_data.get("invoice_value",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_invoice_value', value=grn_data["invoice_value"]))
             if(grn_data.get("invoice_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_vb_vendorinvoicedate', value=grn_data["invoice_date"]))
+            if(grn_data.get("grn_date",None)):
+                custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["grn_date"]))
             if grn_data.get("vendorbill_url",None):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_upload_copy_vendorbill', value=grn_data["vendorbill_url"]))
             if(grn_data.get("dc_date",None)):
@@ -247,6 +243,8 @@ class netsuiteIntegration(object):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_creditdate', value=grn_data["credit_date"]))
             if(grn_data.get("credit_number",None)):
                 custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_grn_creditnotenumber', value=grn_data["credit_number"]))
+            if(grn_data.get("credit_note_value",None)):
+                custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_credit_note_value', value=grn_data["credit_note_value"]))
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
@@ -366,7 +364,10 @@ class netsuiteIntegration(object):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=po_data['approval3']))
             if(po_data.get('approval4',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
-            # purorder.location= ns.RecordRef(internalId=297)
+            if(po_data.get('po_url1',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_1', value=po_data['po_url1']))
+            if(po_data.get('po_url2',None)):
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_2', value=po_data['po_url2']))
             if(po_data.get("plant", None)):
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
@@ -436,6 +437,10 @@ class netsuiteIntegration(object):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=pr_data['approval3']))
             if(pr_data.get('approval4',None)):
                 custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=pr_data['approval4']))
+            if(pr_data.get('pr_url1',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_1', value=pr_data['pr_url1']))
+            if(pr_data.get('pr_url2',None)):
+                custom_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_2', value=pr_data['pr_url2']))
             if(pr_data.get('plant', None)):
                 custom_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=pr_data['plant'])))
             if(pr_data['department']):

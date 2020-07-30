@@ -2,6 +2,9 @@
 
 <div>
   <style>
+    ..table-bordered > tbody > tr > td:last-child{
+      border-right: 1px !important;
+    }
     {% include 'toggle/page1.css' %}
   </style>
   {% for page in show_data_invoice %}
@@ -104,7 +107,7 @@
       			<th style="padding:2.5px;" colspan="2"><center>SGST/UTGST</center></th>
       			<th style="padding:2.5px;" colspan="2"><center>IGST</center></th>
                   <th style="padding:2.5px;" colspan="2"><center>CESS</center></th>
-                  <th style="padding:2.5px;"><center>APMC</center></th>
+                  <!-- <th style="padding:2.5px;"><center>APMC</center></th> -->
       		</tr>
       		<tr>
       			<th>Rate</th>
@@ -116,7 +119,7 @@
             <th>Rate</th>
             <th>Amt</th>
 <!--            <th>Rate</th>-->
-            <th>Amt</th>
+            <!-- <th>Amt</th> -->
       		</tr>
     		</thead>
         <tbody>
@@ -142,7 +145,7 @@
             <td class="text-right" style="padding:2.5px;">{{ i.cess }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.cess_value }}</td>
 <!--            <td class="text-right" style="padding:2.5px;">{{ i.apmc }}</td>-->
-            <td class="text-right" style="padding:2.5px;">{{ i.apmc_value }}</td>
+            <!-- <td class="text-right" style="padding:2.5px;">{{ i.apmc_value }}</td> -->
           </tr>
           {% endfor %}
 		      <tr style="border-top: 1px solid black;">
@@ -157,7 +160,7 @@
             <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
             <td class="text-left" style="padding:2.5px;">{{ page.total_taxable_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
-                <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_cgst_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_sgst_value }}</td>
@@ -166,7 +169,7 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_cess_value }}</td>
 <!--            <td class="text-right" style="padding:2.5px;"></td>-->
-            <td class="text-right" style="padding:2.5px;">{{ page.total_apmc_value }}</td>
+            <!-- <td class="text-right" style="padding:2.5px;">{{ page.total_apmc_value }}</td> -->
 		      </tr>
 		      <tr>
             <td class="text-left" style="padding:2.5px;"></td>
@@ -184,8 +187,8 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;" colspan="4">Total Invoice Value</td>
-            <td class="text-right" style="padding:2.5px;">{{ page.total_invoice_value }}</td>
+            <td class="text-right" style="padding:2.5px;" colspan="2">Total Invoice Value</td>
+            <td class="text-right" style="padding:2.5px;" colspan="2">{{ page.total_invoice_value }}</td>
           </tr>
           {% if forloop.last %}
           <tr>

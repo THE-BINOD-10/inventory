@@ -1602,7 +1602,32 @@ def generated_pr_data(request, user=''):
                     'cgst_tax', 'sgst_tax', 'igst_tax']
     lineItems = record[0].pending_polineItems.values_list(*lineItemVals)
     for rec in lineItems:
+        sku_desc_edited, service_stdate, service_edate, temp_price, temp_tax = ['']*5
         sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
+        if record[0].product_category == 'Services':
+            tmp_json_id = []
+            pr_obj = PendingLineItems.objects.get(id=apprId).pending_po.pending_prs.filter()
+            if pr_obj.exists():
+                tmp_json_id = list(pr_obj[0].pending_prlineItems.values_list('id', flat=True))
+            updatedLineItem = TempJson.objects.filter(model_id__in=tmp_json_id, model_name="PendingLineItemMiscDetails")
+            if updatedLineItem.exists():
+                updatedJson = eval(updatedLineItem[0].model_json)
+            if updatedJson.has_key('description_edited'):
+                sku_desc_edited = updatedJson['description_edited']
+            else:
+                sku_desc_edited = ''
+            if updatedJson.has_key('service_start_date'):
+                service_stdate = updatedJson['service_start_date']
+            if updatedJson.has_key('service_end_date'):
+                service_edate = updatedJson['service_end_date']
+            if updatedJson.has_key('temp_price'):
+                temp_price = updatedJson['temp_price']
+            else:
+                temp_price = ''
+            if updatedJson.has_key('temp_tax'):
+                temp_tax = updatedJson['temp_tax']
+            else:
+                temp_tax = ''
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
@@ -1618,7 +1643,9 @@ def generated_pr_data(request, user=''):
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                     'igst_tax': igst_tax,
                                     'measurement_unit': measurement_unit,
-                                    'sku_conversion': sku_conversion
+                                    'sku_conversion': sku_conversion,
+                                    'sku_detail': sku_desc_edited, 'service_stdate': service_stdate, 'service_edate': service_edate,
+                                    'temp_price': temp_price, 'temp_tax': temp_tax
                                     }, 'pk': apprId})
     if pr_id:
         central_po_data = TempJson.objects.filter(model_id=pr_id, model_name='CENTRAL_PO') or ''

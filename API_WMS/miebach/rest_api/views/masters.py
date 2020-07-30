@@ -1830,8 +1830,11 @@ def insert_supplier(request, user=''):
 @csrf_exempt
 @get_admin_user
 def update_sku_supplier_values(request, user=''):
+    from rest_api.views.inbound import get_prs_with_sku_supplier_mapping, resubmit_prs
+    urlPath = request.META.get('HTTP_ORIGIN')
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
+    actual_price = data.price
     warehouse = request.POST.get('warehouse', '')
     if len(request.POST.get('update', [])) > 0:
         update_places = json.loads(request.POST.get('update', []))
@@ -1842,6 +1845,7 @@ def update_sku_supplier_values(request, user=''):
     sp_id_sku = request.POST.get('supplier_id', '')
     skus_code = request.POST.get('wms_code', '')
     sku_price = float(request.POST.get('price', 0))
+    pr_ids_map = {}
     if 'Master' in update_places or len(update_places) == 0:
         if warehouse:
             all_users = get_related_user_objs(user.id)
@@ -1856,6 +1860,11 @@ def update_sku_supplier_values(request, user=''):
             if key in ('moq', 'price'):
                 if not value:
                     value = 0
+                if key == 'price' and value != actual_price:
+                    prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(skus_code, sp_id_sku)
+                    for pr in prs_to_be_resubmitted:
+                        pr_ids_map[pr] = {skus_code:value}
+                    resubmit_prs(urlPath, pr_ids_map)
             elif key == 'preference':
                 sku_supplier = SKUSupplier.objects.exclude(id=data.id).filter(Q(sku_id=data.sku_id) & Q(preference=value),
                                                                               sku__user=user.id)

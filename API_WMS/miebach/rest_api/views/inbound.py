@@ -104,7 +104,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         'pending_pr__sku_category', 'pending_pr__wh_user__username']
 
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_pr__final_status='pr_converted_to_po'). \
+                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']). \
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
@@ -232,7 +232,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         'pending_pr__sub_pr_number', 'pending_pr__prefix', 'pending_pr__full_pr_number',
         'pending_pr__sku_category', 'pending_pr__wh_user__username']
     results = PendingLineItems.objects.filter(**filtersMap). \
-                exclude(pending_pr__final_status='pr_converted_to_po'). \
+                exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']). \
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
@@ -3123,7 +3123,10 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
         # memFiltersMap = {'user': user, 'master_id': apprConfObjId, 'master_type': master_type}
         # if admin_user:
         #     memFiltersMap['user'] = admin_user
-        mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
+        if isinstance(request, User):
+            mailsList = get_purchase_config_role_mailing_list(request, user, apprConfObj[0],company_id)
+        else:
+            mailsList = get_purchase_config_role_mailing_list(request.user, user, apprConfObj[0],company_id)
         #mailsList = MasterEmailMapping.objects.filter(**memFiltersMap).values_list('email_id', flat=True)
     if mailsList:
         validated_by = ", ".join(mailsList)
@@ -15529,3 +15532,63 @@ def gather_uom_master_for_sku(user, sku_code):
         }
         dataDict['uom_items'].append(uom_item)
     return dataDict
+
+
+def get_prs_with_sku_supplier_mapping(sku_code, supplier_id):
+    prs_to_be_resubmitted = []
+    prIds = PendingLineItems.objects.filter(sku__sku_code=sku_code, 
+                    pending_pr__final_status='pending').values_list('id', 'pending_pr_id')
+    for lineItemId, pr_id in prIds:
+        temp_data = TempJson.objects.filter(model_id=lineItemId,
+                                model_name='PENDING_PR_PURCHASE_APPROVER').values_list('model_json', flat=True)
+        if temp_data.exists():
+            temp_json_data = eval(temp_data[0])
+            if supplier_id == temp_json_data['supplier_id']:
+                if pr_id not in prs_to_be_resubmitted:
+                    prs_to_be_resubmitted.append(pr_id)
+    return prs_to_be_resubmitted
+
+
+def resubmit_prs(urlPath, pr_ids):
+    baseLevel = 'level0'
+    for pr_id, lineItemDetsMap in pr_ids.items():
+        pendingPRObj = PendingPR.objects.get(id=pr_id)
+        prApprQs = pendingPRObj.pending_prApprovals.filter(approval_type='ranges')
+        prApprQs.update(status='resubmitted')
+        prApprIds = prApprQs.values_list('id', flat=True)
+        PurchaseApprovalMails.objects.filter(pr_approval_id__in=prApprIds).update(status='resubmitted')
+        lineItems = pendingPRObj.pending_prlineItems.filter(sku__sku_code__in=lineItemDetsMap.keys())
+        for lineItem in lineItems:
+            new_json = {}
+            lineItem.price = lineItemDetsMap[lineItem.sku.sku_code]
+            lineItem.save()
+            temp_data = TempJson.objects.filter(model_id=lineItem.id,
+                                model_name='PENDING_PR_PURCHASE_APPROVER').values_list('model_json', flat=True)
+            if temp_data.exists():
+                temp_json_data = eval(temp_data[0])
+                new_json['price'] = float(lineItemDetsMap[lineItem.sku.sku_code])
+                new_json['amount'] = float(new_json['price']) * lineItem.quantity
+                new_json['total'] = new_json['amount'] + (new_json['amount'] * temp_json_data['tax']/100)
+                new_json['supplier_id'] = temp_json_data['supplier_id']
+                new_json['moq'] = temp_json_data['moq']
+                new_json['tax'] = temp_json_data['tax']
+                TempJson.objects.filter(model_id=lineItem.id, model_name='PENDING_PR_PURCHASE_APPROVER').update(model_json=new_json)
+        user = pendingPRObj.wh_user
+        product_category = pendingPRObj.product_category
+        sku_category = pendingPRObj.sku_category
+        request_user = pendingPRObj.requested_user
+        pendingPRObj.pending_level = baseLevel
+        master_type = 'actual_pr_approvals_conf_data'
+        totalAmt = lineItems.exclude(pending_pr__final_status__in=['pr_converted_to_po', 'resubmitted']). \
+                    aggregate(total_amt=Sum(F('quantity')*F('price')))['total_amt']
+        pendingPRObj.save()
+        reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
+                                    product_category=product_category, approval_type='ranges',
+                                    sku_category=sku_category)
+        prObj, mailsList = createPRApproval(request_user, user, reqConfigName, baseLevel, pr_id,
+                                pendingPRObj, master_type=master_type, product_category=product_category,
+                                            approval_type='ranges')
+        for eachMail in mailsList:
+            hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
+            sendMailforPendingPO(pendingPRObj.id, user, baseLevel, 'pr_approval_pending', eachMail, 
+                urlPath, hash_code, poFor=False, is_resubmitted=True)

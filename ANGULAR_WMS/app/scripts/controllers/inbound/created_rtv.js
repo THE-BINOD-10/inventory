@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.date = new Date();
-    vm.extra_width = {width:'1100px'};
+    vm.extra_width = {width:'1250px'};
 
     vm.date_format_convert = function(utc_date){
       var date = utc_date.toLocaleDateString();

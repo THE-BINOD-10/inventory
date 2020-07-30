@@ -3122,6 +3122,9 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
 @get_admin_user
 def supplier_sku_upload(request, user=''):
     fname = request.FILES['files']
+    urlPath = request.META.get('HTTP_ORIGIN')
+    from rest_api.views.inbound import get_prs_with_sku_supplier_mapping, resubmit_prs
+    pr_ids_map = {}
     if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
         try:
             open_book = open_workbook(filename=None, file_contents=fname.read())
@@ -3198,6 +3201,12 @@ def supplier_sku_upload(request, user=''):
                         cell_data = float(cell_data)
                         supplier_data['price'] = cell_data
                         if cell_data and supplier_sku_instance:
+                            if cell_data != supplier_sku_instance.price:
+                                sku_code = supplier_sku_instance.sku.sku_code
+                                sp_id_sku = supplier_sku_instance.supplier.supplier_id
+                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(sku_code, sp_id_sku)
+                                for pr in prs_to_be_resubmitted:
+                                    pr_ids_map.setdefault(pr, {}).update({sku_code:cell_data})
                             supplier_sku_instance.price = cell_data
                     elif key == 'costing_type':
                         if not cell_data :
@@ -3230,6 +3239,7 @@ def supplier_sku_upload(request, user=''):
                     supplier_sku.save()
                 elif supplier_sku_instance:
                     supplier_sku_instance.save()
+            resubmit_prs(urlPath, pr_ids_map)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

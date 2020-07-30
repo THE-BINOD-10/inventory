@@ -1608,7 +1608,7 @@ def generated_pr_data(request, user=''):
             tmp_json_id = []
             pr_obj = PendingLineItems.objects.get(id=apprId).pending_po.pending_prs.filter()
             if pr_obj.exists():
-                tmp_json_id = list(pr_obj[0].pending_prlineItems.values_list('id', flat=True))
+                tmp_json_id = list(pr_obj[0].pending_prlineItems.filter(sku__sku_code=sku_code).values_list('id', flat=True))
             updatedLineItem = TempJson.objects.filter(model_id__in=tmp_json_id, model_name="PendingLineItemMiscDetails")
             if updatedLineItem.exists():
                 updatedJson = eval(updatedLineItem[0].model_json)

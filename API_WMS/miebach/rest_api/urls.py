@@ -140,6 +140,7 @@ urlpatterns = [
     url(r'^delete_pr_config/$', delete_pr_config),
     url(r'^pending_pr_request/$', pr_request),
     url(r'^pending_po_request/$', pr_request),
+    url(r'^pendingPREnquiry/$', pr_enquiry_request),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -605,6 +606,8 @@ urlpatterns = [
     url(r'^get_st_po_filter/$', get_st_po_filter),
     url(r'^get_pr_report/$', get_pr_report),
     url(r'^get_pr_detail_report/$', get_pr_detail_report),
+    url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
+    url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -708,6 +711,10 @@ urlpatterns += [
     url(r'^user_master_upload/$', user_master_upload),
     url(r'^pending_pr_form/$', pending_pr_form),
     url(r'^pending_pr_upload/$', pending_pr_upload),
+    url(r'^grn_form/$', grn_form),
+    url(r'^grn_upload/$', grn_upload),
+    url(r'^netsuite_mapping_form/$', netsuite_mapping_form),
+    url(r'^netsuite_mapping_upload/$', netsuite_mapping_upload),
     url(r'^tax_master_download/$', tax_master_download),
     url(r'^tax_master_upload/$', tax_master_upload),
 

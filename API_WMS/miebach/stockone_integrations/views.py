@@ -386,7 +386,7 @@ class Integrations():
 
     def getData(self, rec_type, internalId=None, externalId=None):
         return self.connectionObject.get_data(rec_type, internalId=internalId, externalId=externalId)
-        
+
 
     def getRelatedJson(self, recordType, action='upsert'):
         rows = IntegrationMaster.objects.filter(
@@ -421,10 +421,14 @@ class Integrations():
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
-                stockone_reference=data.externalId
+                stockone_reference=data.externalId,
+                status=False,
             )
         status = True
         if hasattr(data, 'error'):
+            resultArr.update(
+                integration_error=data.error_msg
+                )
             status = False
         resultArr.update(
             integration_reference = data.internalId,

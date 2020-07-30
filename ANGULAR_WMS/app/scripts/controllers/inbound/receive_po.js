@@ -111,7 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     var columns = ['PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Warehouse','Supplier ID/Name', 'Order Type', 'Receive Status'];
+                   'Remarks', 'Store','Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
 
@@ -126,15 +126,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
-    if(vm.permissions.dispatch_qc_check) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }else {
-      vm.dtColumns.pop(DTColumnBuilder.newColumn('SR Number').withTitle('Main SR Number'))
-    }
-    if (vm.industry_type == 'FMCG') {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
-    }
+    // if (vm.industry_type == 'FMCG') {
+    //   vm.dtColumns.push(DTColumnBuilder.newColumn('Discrepancy Qty').withTitle('Discrepancy Qty'))
+    // }
     vm.dtColumns.push(DTColumnBuilder.newColumn('Product Category').withTitle('Product Category'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'))
+    vm.dtColumns.push(DTColumnBuilder.newColumn('send_to').withTitle('Send To'))
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -215,13 +212,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   'supplier_id': aData['DT_RowId'],
                   'warehouse': aData['Warehouse'] ,
                   'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
-                  'prefix': aData['prefix']
+                  'prefix': aData['prefix'],
+                  'po_number': aData['PO No'],
+                  'warehouse_id': aData['warehouse_id']
                 }
+                vm.form = 'grn_form';
                 vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data.warehouse_id = aData['warehouse_id'];
                     vm.get_grn_extra_fields();
                     vm.send_for_approval_check(event, vm.model_data);
                     vm.title = "Generate GRN";
@@ -381,39 +382,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.check_exp_date = function(sel_date, shelf_life_ratio, index, parent_index){
       var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
       var exp_date = new Date(sel_date);
+      // if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
+      //   Service.showNoty('Your selected date is less than manufacturer date.');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else if(!vm.model_data.data[parent_index][index].mfg_date){
 
-      if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
-        Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else if(!vm.model_data.data[parent_index][index].mfg_date){
+      //   Service.showNoty('Please choose manufacturer date first');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else {
+      //   var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+      //   if(!shelf_life || shelf_life=='') {
+      //     shelf_life = 0;
+      //   }
+      //   if (shelf_life && shelf_life_ratio) {
+      //     var res_days = (shelf_life * (shelf_life_ratio / 100));
+      //     var cur_date = new Date();
+      //     if(new Date(exp_date) > new Date()){
 
-        Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else {
-        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
-        if(!shelf_life || shelf_life=='') {
-          shelf_life = 0;
-        }
-        if (shelf_life && shelf_life_ratio) {
-          var res_days = (shelf_life * (shelf_life_ratio / 100));
-          var cur_date = new Date();
-          if(new Date(exp_date) > new Date()){
+      //       var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
+      //       var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-            var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
-            var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      //       // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
+      //       if (diffDays < res_days) {
+      //         Service.showNoty('Product has crossed acceptable shelf life ratio');
+      //         //vm.model_data.data[0][0].exp_date = '';
+      //       }
 
-            // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
-            if (diffDays < res_days) {
-              Service.showNoty('Product has crossed acceptable shelf life ratio');
-              //vm.model_data.data[0][0].exp_date = '';
-            }
-
-          } else {
-            Service.showNoty('Please choose proper date');
-            vm.model_data.data[parent_index][index].exp_date = '';
-          }
-        }
-      }
+      //     } else {
+      //       Service.showNoty('Please choose proper date');
+      //       vm.model_data.data[parent_index][index].exp_date = '';
+      //     }
+      //   }
+      // }
     }
 
     vm.filter_enable = true;
@@ -451,9 +451,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.update_data = update_data;
-    function update_data(index, data) {
+    function update_data(index, data, special_flag=true) {
       if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
-        if (index == data.length-1) {
+        if (index == data.length-1 && special_flag) {
           var new_dic = {};
           angular.copy(data[0], new_dic);
           new_dic.receive_quantity = 0;
@@ -467,17 +467,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.is_stock_transfer = "";
           data.push(new_dic);
         } else {
-          if(data[index]['temp_json_id']) {
-            var json_delete_data = {'model_name': 'PO', 'json_id': data[index]['temp_json_id']}
-            vm.service.apiCall('delete_temp_json/', 'POST', json_delete_data, true).then(function(data){
-              if(data.message) {
-                console.log("Temp Json deleted");
-              }
-            });
+          if (typeof(data[index]) != "undefined") {
+            if(data[index]['temp_json_id']) {
+              var json_delete_data = {'model_name': 'PO', 'json_id': data[index]['temp_json_id']}
+              vm.service.apiCall('delete_temp_json/', 'POST', json_delete_data, true).then(function(data){
+                if(data.message) {
+                  console.log("Temp Json deleted");
+                }
+              });
+            }
           }
           data.splice(index,1);
         }
-
       }
     }
 
@@ -663,10 +664,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (vm.model_data.other_charges.length > 0) {
         elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
       }
-      if (vm.permissions.receive_po_inv_value_qty_check) {
-        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-      }
+      // if (vm.permissions.receive_po_inv_value_qty_check) {
+      //   elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+      //   elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      // }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -755,18 +756,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.confirm_grn_api()
           } else {
             var temp_str = "Invoice "
-            if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
-              temp_str = temp_str + " - Quantity"
-            }
-            if (parseInt(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
+            //   temp_str = temp_str + " - Quantity"
+            // }
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
-            vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
-              if (msg == "true") {
-                vm.total_grn_quantity = inv_match_qty;
-                vm.confirm_grn_api()
-              }
-            })
+            if (temp_str.includes('Value')) {
+              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
+            } else {
+              vm.total_grn_quantity = inv_match_qty;
+              vm.confirm_grn_api()
+            }
           }
         }
       })
@@ -781,7 +787,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = "";
     vm.confirm_grn = function(form) {
       if (form.$valid) {
-        if(!vm.model_data.dc_level_grn && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+        if((!vm.model_data.dc_level_grn || vm.model_data.dc_number) && Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
             return
@@ -813,19 +819,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.confirm_grn_api = function(){
+    vm.confirm_grn_api = function() {
       if(check_receive()){
         var that = vm;
         var elem = angular.element($('form'));
         elem = elem[0];
-
-        var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
-        var mrp = parseInt($(elem).find('input[name="mrp"]').val());
-
-        // if(buy_price > mrp) {
-        //   pop_msg("Buy Price should be less than or equal to MRP");
-        //   return false;
-        // }
         elem = $(elem).serializeArray();
         var form_data = new FormData();
         var files = $(".grn-form").find('[name="files"]')[0].files;
@@ -841,28 +839,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (vm.permissions.receive_po_inv_value_qty_check) {
           elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
           elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-        }
-        if (vm.permissions.dispatch_qc_check) {
-          if (!$.isEmptyObject(vm.collect_imei_details)) {
-            var elem_dict = {'name':'imei_qc_details', 'value': JSON.stringify(vm.collect_imei_details)}
-            elem.push(elem_dict)
-          }
-          if (!$.isEmptyObject(vm.passed_serial_number)) {
-            var elem_dict = {'name':'passed_serial_number', 'value': JSON.stringify(vm.passed_serial_number)}
-            elem.push(elem_dict)
-          }
-          if (!$.isEmptyObject(vm.failed_serial_number)) {
-            var elem_dict = {'name':'failed_serial_number', 'value': JSON.stringify(vm.failed_serial_number)}
-            elem.push(elem_dict)
-          }
-          if (vm.main_sr_number) {
-            var elem_dict = {'name':'main_sr_number', 'value': vm.main_sr_number}
-            elem.push(elem_dict)
-          }
-          if (vm.selected_order_type == 'Stock Transfer') {
-            var elem_dict = {'name':'confirm_order_type', 'value': 'StockTransfer'}
-            elem.push(elem_dict)
-          }
         }
         if(vm.display_approval_button==true){
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
@@ -880,8 +856,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        if(vm.display_approval_button==true){
-
+        if (vm.display_approval_button==true) {
           url = "send_for_approval_confirm_grn/"
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
             if(data.message) {
@@ -893,8 +868,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             }
           });
-        }
-        else{
+        } else {
           vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
             if (data.message) {
               if (data.data.search("<div") != -1) {
@@ -903,17 +877,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.failed_serial_number = {}
                 vm.collect_imei_details = {}
                 vm.extra_width = {}
-  //              vm.html = $(data.data);
-                vm.extra_width = {}
-                //var html = $(vm.html).closest("form").clone();
-                //angular.element(".modal-body").html($(html).find(".modal-body"));
                 if (data.data.search('discrepancy_data') != -1) {
-                     vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
-                     angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+                  vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                  angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
                 } else{
-                     angular.element(".modal-body").html($(data.data));
+                  vm.html = $(data.data);
+                  angular.element(".modal-body").html($(data.data));
                 }
-
                 vm.print_enable = true;
                 vm.service.refresh(vm.dtInstance);
                 if(vm.permissions.use_imei) {
@@ -938,21 +908,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    function check_receive() {
-      var status = false;
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
-            status = true;
-          }
-        });
-      }
-
-      if(status){
-        return true;
+    vm.sku_wise_amount_check = function(datum) {
+      var status = true;
+      var sku_list = "Total GRN Qty should not more than PO Qty Following Sku's: "
+      angular.forEach(datum, function(sku_data, sku){
+        if (sku_data['po_total'] <= sku_data['grn_total'] && sku_data['po_total'] != sku_data['grn_total']) {
+          sku_list = sku_list + ' - ' + sku
+          status = false
+        }
+      })
+      if (status) {
+        return status;
       } else {
-        pop_msg("Please Update the received quantity");
-        return false;
+        colFilters.showNoty(sku_list);
+        return status;
+      }
+    }
+
+    function check_receive() {
+      var status = true;
+      var sku_list = "Buy Price should not more than Unit Price Following Sku's: "
+      var data_dict = {}
+      for(var i=0; i<vm.model_data.data.length; i++)  {
+        for (var j=0; j<vm.model_data.data[i].length; j++) {
+          if (!Object.keys(data_dict).includes(vm.model_data.data[i][j].wms_code)){
+            data_dict[vm.model_data.data[i][j].wms_code] = {
+              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity),
+              'grn_total': parseFloat(vm.model_data.data[i][j].value)
+            }
+          } else {
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value));
+          }
+          if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
+            sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']
+            status = false;
+          }
+        }
+        if (i+1 == vm.model_data.data.length) {
+          if (status) {
+            if (vm.sku_wise_amount_check(data_dict)) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            colFilters.showNoty(sku_list);
+            return false;
+          }
+        }
       }
     }
 

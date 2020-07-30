@@ -481,7 +481,7 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_skumaster",
-                 },{
+                 }, {
                    title: "Purchase Request Download/ Upload",
                    download: "Download Purchase Request Form",
                    upload: "Upload Purchase Request Form",
@@ -501,6 +501,27 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: true,
                    perm: "add_taxmaster"
+                 },
+                 {
+                   title: "GRN Download/ Upload",
+                   download: "Download GRN Form",
+                   upload: "Upload GRN Form",
+                   durl: "grn_form/",
+                   uurl: "grn_upload/",
+                   dparam: "download-grn-file",
+                   value: "",
+                   show: true,
+                   perm: "add_purchaseorder"
+                 }, {
+                   title: "Netsuite Mapping Download/ Upload",
+                   download: "Download Netsuite Mapping Form",
+                   upload: "Upload Netsuite Mapping Form",
+                   durl: "netsuite_mapping_form/",
+                   uurl: "netsuite_mapping_upload/",
+                   dparam: "download-netsuite-mapping-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0,
+                   perm: "add_netsuiteidmapping",
                  }
                 ]
 

@@ -30,10 +30,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       var data_to_send = {
         'po_number': aData['PO Number'],
-        'prefix': aData['prefix']
+        'prefix': aData['prefix'],
+        'warehouse_id': aData['warehouse_id']
       }
       vm.service.apiCall('get_grn_level_data/', 'GET', data_to_send).then(function(data){
         vm.model_data = data.data;
+        vm.model_data.warehouse_id = aData['warehouse_id'];
         if (vm.industry_type == 'FMCG') {
           vm.extra_width = {
             'width': '1200px'
@@ -123,12 +125,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var that = vm;
       var elem = angular.element($('#update_grn_form'));
       elem = elem[0];
-      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
-      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
-      if(buy_price > mrp) {
-        pop_msg("Buy Price should be less than or equal to MRP");
-        return false;
-      }
+      // var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+      // var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+      // if(buy_price > mrp) {
+      //   pop_msg("Buy Price should be less than or equal to MRP");
+      //   return false;
+      // }
       elem = $(elem).serializeArray();
       var url = "cancel_existing_grn/";
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){

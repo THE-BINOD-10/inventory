@@ -25,6 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
     vm.quantity_editable = true;
+    vm.is_resubmitted = false;
     vm.filters = {'datatable': 'RaisePendingPR', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -147,9 +148,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     angular.copy(empty_data, vm.model_data);
 
     vm.close = function () {
-      vm.base();
-      $state.go('app.inbound.RaisePr');
-      vm.display_purchase_history_table = false;
+      if (vm.is_resubmitted) {
+        vm.service.alert_msg('Your Changes Will Be Lost !').then(function(msg) {
+          if (msg == "true") {
+            vm.base();
+            $state.go('app.inbound.RaisePr');
+            vm.display_purchase_history_table = false;
+          }
+        })
+      } else {
+        vm.base();
+        $state.go('app.inbound.RaisePr');
+        vm.display_purchase_history_table = false;
+      }
     }
 
     vm.b_close = vm.close;
@@ -220,6 +231,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 data.fields.tax = data.fields.temp_tax;
               }
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
@@ -263,9 +275,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               }
             }
           });
-          vm.checkResubmit = function(sku_data){
+          vm.resubmit_sku_check = function() {
             vm.is_resubmitted = false;
-            if (sku_data.order_quantity){
+            var status = true;
+            var saved_sku_list = Object.keys(vm.resubmitCheckObj)
+            if (saved_sku_list.length != vm.model_data.data.length){
+              vm.is_resubmitted = true;
+              status = false;
+            } else {
+              angular.forEach(vm.model_data.data, function(eachField){
+                if (!saved_sku_list.includes(eachField.fields.sku.wms_code)) {
+                  vm.is_resubmitted = true;
+                  status = false;
+                }
+              })
+            }
+            return status;
+          }
+
+          vm.checkResubmit = function(sku_data){
+            if (sku_data.order_quantity && vm.resubmit_sku_check()){
               angular.forEach(vm.model_data.data, function(eachField){
                 var oldQty = vm.resubmitCheckObj[eachField.fields.sku.wms_code];
                 if (oldQty != parseInt(eachField.fields.order_quantity)){
@@ -445,30 +474,32 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
     }
     
-    vm.update_data = function (index, flag=true, plus=false, product_category='') {
+    vm.update_data = function (index, special_flag=true) {
       var emptylineItems = {}
-      if (product_category == 'Kits&Consumables'){
-        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+      emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
                           }
-      } else if (product_category == 'Assets'){
-        emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
-                            "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
-                          }
-      }
-      if (index == vm.model_data.data.length-1) {
-        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) && (vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true)) {
-          if (plus) {
-            vm.model_data.data.push({"fields": emptylineItems});
-
-          } 
+      // if (product_category == 'Kits&Consumables'){
+      //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+      //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                     }
+      // } else if (product_category == 'Assets'){
+      //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
+      //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                     }
+      // }
+      if (index == vm.model_data.data.length-1 && special_flag) {
+        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
+          vm.model_data.data.push({"fields": emptylineItems});
         } else {
           Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
         vm.model_data.data.splice(index,1);
+        vm.resubmit_sku_check();
         // vm.getTotals();
       }
     }
@@ -503,22 +534,18 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
     vm.save_raise_pr = function(data, type, is_resubmitted=false) {
       if (data.$valid) {
-        // if (data.pr_delivery_date.$viewValue && data.ship_to.$viewValue) {
-          var elem = angular.element($('form'));
-          elem = elem[1];
-          elem = $(elem).serializeArray();
-          if (is_resubmitted == 'true'){
-            elem.push({name:'is_resubmitted', value:true})
-          }
-          // if (vm.pr_number){
-          //   // elem.push({name:'pr_number', value:vm.pr_number})
-          // }
-          var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-          if (type == 'save'){
-            confirm_api ? vm.update_raise_pr() : '';
-          } else {
-            confirm_api ? vm.add_raise_pr(elem) : '';
-          }
+        var elem = angular.element($('form'));
+        elem = elem[1];
+        elem = $(elem).serializeArray();
+        if (is_resubmitted == 'true'){
+          elem.push({name:'is_resubmitted', value:true})
+        }
+        var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
+        if (type == 'save'){
+          confirm_api ? vm.update_raise_pr() : '';
+        } else {
+          confirm_api ? vm.add_raise_pr_comfirm(elem) : '';
+        }
       }
     }
 
@@ -782,12 +809,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
 
       var product_category = '';
+      var keepGoing = true
       angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'order_quantity') {
+          if (parseInt(list_obj['value']) <= 0) {
+            keepGoing = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
 
+      if (!keepGoing) {
+        vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
 
       var form_data = new FormData();
       if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0) {
@@ -811,6 +848,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
               if(data.message){
                 var response = JSON.parse(data.data);
                 if(response['status'] == 'Saved Successfully') {
+                  vm.is_resubmitted = false;
                   vm.close();
                   swal2({
                     title: 'Confirmed PR Number',
@@ -1154,7 +1192,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         });
       }
-      vm.update_available_stock(product.fields.sku)
+      vm.update_available_stock(product.fields.sku);
+      vm.checkResubmit(product.fields);
     }
     vm.update_wms_records = function(){
       var params_data = {}
@@ -1226,17 +1265,38 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         });
       }
     }
-
+    vm.add_raise_pr_comfirm = function(elem) {
+      if (vm.is_resubmitted) {
+        vm.service.alert_msg('PR Will Be Re-Submitted').then(function(msg) {
+          if (msg == "true") {
+            vm.is_resubmitted = false;
+            vm.add_raise_pr(elem);
+          }
+        })
+      } else {
+        vm.add_raise_pr(elem);
+      }
+    }
     vm.add_raise_pr = function(elem) {
       if (vm.is_actual_pr){
         elem.push({name:'is_actual_pr', value:true})
       }
       var product_category = '';
+      var keepGoing = true
       angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'order_quantity') {
+          if (parseInt(list_obj['value']) <= 0) {
+            keepGoing = false
+          }
+        }
         if (list_obj['name'] == 'product_category') {
           product_category = list_obj['value']
         }
       });
+      if (!keepGoing) {
+        vm.service.showNoty("Quantity can't be 0.")
+        return;
+      }
 
       var form_data = new FormData();
       if (product_category != "Kits&Consumables" && $(".pr_form").find('[name="files"]').length > 0){
@@ -1302,8 +1362,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
-      // vm.model_data.total_price = 0;
-      // vm.model_data.sub_total = 0;
+      vm.model_data.total_price = 0;
+      vm.model_data.sub_total = 0;
       if (data.fields.temp_price){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
             Service.showNoty('Price cant be more than Base Price'); 
@@ -1317,20 +1377,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           data.fields.tax = 0;
       }
       data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
-      // angular.forEach(vm.model_data.data, function(sku_data){
-        // var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        // sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        // vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
         // if(sku_data.taxes && !not_update_tax) {
         //     vm.get_tax_value(sku_data);
         // }
-        // if (!sku_data.fields.tax) {
-        //   sku_data.fields.tax = 0;
-        // }
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
         // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
-        // vm.model_data.total_price = vm.model_data.total_price + temp;
-        // vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
-      // })
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      })
     }
 
     vm.getCompany = function() {

@@ -114,6 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Store'),
     ];
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -154,11 +155,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var id = '';
       var order_prefix = '';
       var challan_number = '';
+      var warehouse_id = '';
       angular.forEach(vm.selected, function(value, key){
         if (value && !flag) {
           flag = true;
           id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
           order_prefix = vm.dtInstance.DataTable.context[0].aoData[key]._aData.prefix;
+          warehouse_id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.warehouse_id;
           challan_number = vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] ? vm.dtInstance.DataTable.context[0].aoData[key]._aData['Challan Number'] : '';
         } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
@@ -171,11 +174,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var data_to_send = {
           'data_id': id,
           'prefix': order_prefix,
-          'challan_number': challan_number
+          'challan_number': challan_number,
+          'warehouse_id': warehouse_id
         }
         vm.service.apiCall('get_po_putaway_summary/', 'GET', data_to_send).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
+            vm.model_data.warehouse_id = warehouse_id;
               vm.extra_width = {
                 'width': '1350px'
               };
@@ -326,6 +331,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function save(form) {
       vm.conf_disable = true;
       var elem = [];
+      elem.push({'name': 'warehouse_id', 'value': vm.model_data.warehouse_id});
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
@@ -368,6 +374,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function submit(form) {
       vm.conf_disable = true;
       var elem = [];
+      elem.push({'name': 'warehouse_id', 'value': vm.model_data.warehouse_id});
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
       elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
       elem.push({'name': 'grn_number', 'value': vm.model_data.grn_number});

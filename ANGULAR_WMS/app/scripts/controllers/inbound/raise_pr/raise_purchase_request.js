@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.extra_width = { 'width': '1450px' };
+    vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
     vm.date = new Date();
@@ -373,7 +373,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.base();
 
     vm.add = function () {
-      vm.extra_width = { 'width': '1450px' };
+      vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
       // vm.model_data.product_categories = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems'];
       vm.model_data.priority_type = 'normal';

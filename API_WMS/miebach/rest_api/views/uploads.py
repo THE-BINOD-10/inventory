@@ -9671,10 +9671,14 @@ def validate_staff_master_form(request, reader, user, no_of_rows, no_of_cols, fn
                     data_dict[key] = cell_data
             elif key == 'department_type':
                 if cell_data:
-                    if cell_data not in dept_mapping.keys():
-                        index_status.setdefault(row_idx, set()).add('Invalid Department Type')
-                    else:
-                        data_dict[key] = dept_mapping[cell_data]
+                    dept_list = cell_data.split(',')
+                    dept_name_list = []
+                    for dept_name in dept_list:
+                        if dept_name not in dept_mapping.keys():
+                            index_status.setdefault(row_idx, set()).add('Invalid Department Type %s' % dept_name)
+                        else:
+                            dept_name_list.append(dept_mapping[dept_name])
+                    data_dict[key] = ','.join(dept_name_list)
             elif key == 'email_id':
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Invalid Email ID')
@@ -9802,6 +9806,9 @@ def staff_master_upload(request, user=''):
                 main_company_id = get_company_id(user)
                 company_id = final_data['user'].userprofile.company_id
                 department_type = final_data.get('department_type', '')
+                department_types = []
+                if department_type:
+                    department_types = department_type.split(',')
                 if final_data['user'].userprofile.warehouse_type == 'DEPT':
                     department_type = final_data['user'].userprofile.stockone_code
                 wh_user_obj = User.objects.get(username=parent_username)
@@ -9810,12 +9817,13 @@ def staff_master_upload(request, user=''):
                     log.info(add_user_status)
                 staff_obj = StaffMaster.objects.create(company_id=company_id, staff_name=staff_name, \
                                            phone_number=phone, email_id=email, status=staff_status,
-                                           position=position, department_type=department_type,
+                                           position=position,
                                            user_id=wh_user_obj.id, warehouse_type=warehouse_type,
                                            staff_code=staff_code, reportingto_email_id=reportingto_email)
                 sub_user = User.objects.get(username=email)
                 update_user_role(user, sub_user, position, old_position='')
                 update_staff_plants_list(staff_obj, plants)
+                update_staff_depts_list(staff_obj, department_types)
                 if groups_list:
                     update_user_groups(request, sub_user, groups_list)
     except Exception as e:

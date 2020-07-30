@@ -3164,7 +3164,7 @@ def updatePRApproval(pr_number, user, level, validated_by, validation_type,
         apprQs.update(remarks=remarks)
         apprQs.update(validated_by=validated_by)
         #Update status in Mails Model
-        mailObj = PurchaseApprovalMails.objects.filter(pr_approval_id=apprQs[0].id, level=level, 
+        mailObj = PurchaseApprovalMails.objects.filter(pr_approval_id=apprQs[0].id, level=level,
                     email__icontains=validated_by, status='')
         if mailObj.exists():
             mailObj.update(status=validation_type)
@@ -4054,14 +4054,13 @@ def netsuite_pr(user, PRQs, full_pr_number, request):
         # external_id = str(existingPRObj.prefix) + str(pr_number)
         prApprQs = existingPRObj.pending_prApprovals
         requested_by = existingPRObj.requested_user.first_name
-        master_docs_obj = MasterDocs.objects.filter(master_id=existingPRObj.id,master_type='pending_pr')
+        master_docs_obj_pending_pr = MasterDocs.objects.filter(master_id=existingPRObj.id, master_type='pending_pr')
+        master_docs_obj_PR_PURCHASE_APPROVER = MasterDocs.objects.filter(master_id=existingPRObj.id, master_type='PENDING_PR_PURCHASE_APPROVER_FILE')
         pr_url1, pr_url2=[""]*2
-        if master_docs_obj:
-            if len(master_docs_obj)==1:
-                pr_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-            elif len(master_docs_obj)>1:
-                pr_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
-                pr_url2=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[1]
+        if(master_docs_obj_pending_pr):
+            pr_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj_pending_pr.values_list('uploaded_file', flat=True)[0]
+        if(master_docs_obj_PR_PURCHASE_APPROVER):
+            pr_url2=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj_PR_PURCHASE_APPROVER.values_list('uploaded_file', flat=True)[0]
         invoice_date = request.POST.get('inv_date', '')
         inv_receipt_date = request.POST.get('inv_receipt_date', '')
         approval1, approval2, approval3, approval4= '', '', '', ''
@@ -4528,7 +4527,7 @@ def add_pr(request, user=''):
                     lineItems = pendingPRObj.pending_prlineItems.filter()
                     # lineItems.update(price=0, sgst_tax=0, igst_tax=0, cgst_tax=0)
                     lineItemIds = lineItems.values_list('id', flat=True)
-                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds, 
+                    temp_data = TempJson.objects.filter(model_id__in=lineItemIds,
                                         model_name="PENDING_PR_PURCHASE_APPROVER").delete()
                     lineItems.delete()
                     pendingPRObj.pending_level = baseLevel
@@ -4546,7 +4545,7 @@ def add_pr(request, user=''):
                 if mailsList:
                     for eachMail in mailsList:
                         hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-                        sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, 
+                        sendMailforPendingPO(pendingPRObj.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code,
                                     poFor=False, is_resubmitted=is_resubmitted)
             return HttpResponse(json.dumps({'pr_number': full_pr_number, 'status': 'Added Successfully'}))
         else:

@@ -114,7 +114,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             zone = data.zone.zone
         ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        #ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_type'], data.sku_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
@@ -168,6 +168,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['combo_flag'], combo_flag_dict[str(data.relation_type)], file_type)
         ws = write_excel(ws, data_count, excel_mapping['block_options'], block_options[str(data.block_options)], file_type)
         ws = write_excel(ws, data_count, excel_mapping['batch_based'], data.batch_based, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
         '''for attr in attributes:
             attr_val = ''
@@ -270,10 +271,10 @@ def asset_excel_download(search_params, temp_data, headers, user, request):
             zone = data.zone.zone
         ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
         ws = write_excel(ws, data_count, excel_mapping['asset_type'], data.sku_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
+        #ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
         if excel_mapping.has_key('primary_category'):
             ws = write_excel(ws, data_count, excel_mapping['primary_category'], data.primary_category, file_type)
@@ -291,6 +292,7 @@ def asset_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['asset_number'], data.asset_number, file_type)
         ws = write_excel(ws, data_count, excel_mapping['vendor'], data.vendor, file_type)
         ws = write_excel(ws, data_count, excel_mapping['store_id'], data.store_id, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()
         if data.ean_number:
@@ -361,7 +363,6 @@ def service_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
         ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
         ws = write_excel(ws, data_count, excel_mapping['service_type'], data.sku_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
@@ -450,7 +451,6 @@ def otheritems_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
         ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
         ws = write_excel(ws, data_count, excel_mapping['asset_type'], data.sku_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
@@ -465,6 +465,7 @@ def otheritems_excel_download(search_params, temp_data, headers, user, request):
             ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
         if excel_mapping.has_key('cost_price'):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['gl_code'], data.gl_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
         ean_list = []
         ean_objs = data.eannumbers_set.filter()

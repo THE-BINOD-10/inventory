@@ -10,7 +10,7 @@
   }
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate" id="{{showCase.form}}">
   <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
     <div class="modal-content mw100">
       <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
@@ -19,6 +19,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
+          <input type="hidden" name="warehouse_id" value="{{showCase.model_data.warehouse_id}}">
           <div class="row">
             <div class="col-md-8 col-sm-8 col-xs-12">
               <h4>Details :</h4>
@@ -143,8 +144,8 @@
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false && showCase.permissions.receive_po_inv_value_qty_check">
               <div class="form-group">
-                <label for="invoice_number" class="control-label"> Invoice Quantity *</label>
-                <input class="form-control" ng-model="showCase.model_data.invoice_quantity" type="text" ng-class="service.get_decimal_perm()" name="invoice_quantity" required>
+                <label for="invoice_number" class="control-label"> Invoice Quantity</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_quantity" type="text" ng-class="service.get_decimal_perm()" name="invoice_quantity" >
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6">
@@ -467,9 +468,11 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;"  ng-show="showCase.central_po && !showCase.model_data.dc_level_grn">
+          <div class="row" style="padding-top: 35px;">
+              <!-- ng-show="!showCase.model_data.dc_level_grn" -->
               <div class="form-group col-md-3">
-                <div>File Upload *</div>
+                <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>
+                <div ng-if="showCase.model_data.dc_level_grn && !showCase.model_data.dc_number">File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 300px;">
                    <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" style="position: relative;overflow: hidden;cursor: pointer;"/>
                  </span>

@@ -1,8 +1,8 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster
-
+GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster, NetsuiteIdMapping
+from models import PurchaseOrder
 # Register your models here.
 
 
@@ -58,11 +58,19 @@ class UOMMasterAdmin(admin.ModelAdmin):
     list_display = ('company', 'name', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
     list_filter = ('company',)
 
+
+@admin.register(NetsuiteIdMapping)
+class NetsuiteIdMappingAdmin(admin.ModelAdmin):
+    search_fields = ['type_name', 'type_value']
+    list_display = ('type_name', 'type_value', 'internal_id')
+    list_filter = ('type_name',)
+
 # admin.site.register(UOMMaster)
 admin.site.register(Integrations)
 admin.site.register(UserBrand)
 admin.site.register(Brands)
 admin.site.register(UserStages)
+admin.site.register(PurchaseOrder)
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(ProductionStages)
 admin.site.register(AdminGroups)

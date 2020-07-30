@@ -43,7 +43,7 @@
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
-                   ng-keyup="showCase.getTotals(product)" size="12">
+                   ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
           <td class="text-center"> 
             <input ng-model="product.fields.temp_price" type="text" name="temp_price" 

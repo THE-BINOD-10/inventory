@@ -62,10 +62,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.message ="";
                 vm.model_data.warehouse = vm.model_data.warehouse.split(',');
                 $state.go('app.masters.StaffMaster.Staff');
-                $timeout(function(){$('.selectpicker-groups').selectpicker();}, 500);
-//                $timeout(function(){
-//                  $('.selectpicker-plants').selectpicker('');
-//                }, 500);
+
+
+                $timeout(function(){
+                  $('.selectpicker-groups').val(vm.model_data.groups);
+                  $('.selectpicker-groups').selectpicker();
+                }, 500);
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -223,6 +225,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.check_selected_val = function(check_data, group){
     var selected_val = false;
     for(var ind=0; ind<check_data.length; ind++) {
+      console.log(check_data[ind], group)
       if(check_data[ind] == group) {
         selected_val = true;
         break;

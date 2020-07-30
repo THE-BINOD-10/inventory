@@ -181,11 +181,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "send_sku_dict": data.data.central_po_data,
             "uploaded_file_dict": data.data.uploaded_file_dict,
             "pr_uploaded_file_dict": data.data.pr_uploaded_file_dict,
+            "pa_uploaded_file_dict": data.data.pa_uploaded_file_dict,
           };
           vm.model_data = {};
           angular.copy(empty_data, vm.model_data);
           if (vm.model_data.supplier_id){
             vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+            var supplier_data = {'supplier_id':vm.model_data.supplier_id}
+            if (aData['Validation Status'] == 'Saved'){
+              vm.service.apiCall('get_supplier_payment_terms/', 'POST', supplier_data).then(function(data){
+                if (data.data) {
+                  vm.model_data.supplier_payment_terms = data.data;
+                } else {
+                  vm.model_data.supplier_payment_terms = '';
+                }
+              })
+            }
           } else {
             vm.model_data['supplier_id_name'] = '';
           }
@@ -194,6 +205,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
           if(vm.model_data.pr_uploaded_file_dict && Object.keys(vm.model_data.pr_uploaded_file_dict).length > 0) {
             vm.model_data.pr_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pr_uploaded_file_dict.file_url);
+          }
+          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
+            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
           }
           // vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;

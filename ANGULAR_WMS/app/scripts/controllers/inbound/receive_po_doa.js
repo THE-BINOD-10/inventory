@@ -122,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('total_qty').withTitle("Total Qty"),
         DTColumnBuilder.newColumn('receivable_qty').withTitle("Receivable Qty"),
         DTColumnBuilder.newColumn('received_qty').withTitle("Received Qty"),
-        DTColumnBuilder.newColumn('warehouse').withTitle("Warehouse"),
+        DTColumnBuilder.newColumn('warehouse').withTitle("Store"),
         DTColumnBuilder.newColumn('supllier_id_name').withTitle('Supplier ID/Name'),
         DTColumnBuilder.newColumn('order_type').withTitle('Order Type'),
         DTColumnBuilder.newColumn('receive_status').withTitle('Receive Status'),
@@ -169,13 +169,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 'warehouse': aData['Warehouse'] ,
                 'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
                 'prefix': aData['prefix'],
-                "doa_model_id": aData["doa_id"]
+                "doa_model_id": aData["doa_id"],
+                "warehouse_id": aData["warehouse_id"]
               }
+              vm.form = 'grn_doa_form';
               vm.service.apiCall('get_supplier_data/', 'GET', dataDict).then(function(data){
                 if(data.message) {
                   vm.serial_numbers = [];
                   vm.skus_total_amount = 0;
                   angular.copy(data.data, vm.model_data);
+                  vm.model_data.warehouse_id = aData["warehouse_id"];
                   vm.get_grn_extra_fields();
                   // vm.send_for_approval_check(event, vm.model_data);
                   vm.title = "Generate GRN";
@@ -331,39 +334,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.check_exp_date = function(sel_date, shelf_life_ratio, index, parent_index){
       var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
       var exp_date = new Date(sel_date);
+      // if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
+      //   Service.showNoty('Your selected date is less than manufacturer date.');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else if(!vm.model_data.data[parent_index][index].mfg_date){
 
-      if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
-        Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else if(!vm.model_data.data[parent_index][index].mfg_date){
+      //   Service.showNoty('Please choose manufacturer date first');
+      //   vm.model_data.data[parent_index][index].exp_date = '';
+      // } else {
+      //   var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+      //   if(!shelf_life || shelf_life=='') {
+      //     shelf_life = 0;
+      //   }
+      //   if (shelf_life && shelf_life_ratio) {
+      //     var res_days = (shelf_life * (shelf_life_ratio / 100));
+      //     var cur_date = new Date();
+      //     if(new Date(exp_date) > new Date()){
 
-        Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[parent_index][index].exp_date = '';
-      } else {
-        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
-        if(!shelf_life || shelf_life=='') {
-          shelf_life = 0;
-        }
-        if (shelf_life && shelf_life_ratio) {
-          var res_days = (shelf_life * (shelf_life_ratio / 100));
-          var cur_date = new Date();
-          if(new Date(exp_date) > new Date()){
+      //       var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
+      //       var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-            var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
-            var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      //       // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
+      //       if (diffDays < res_days) {
+      //         Service.showNoty('Product has crossed acceptable shelf life ratio');
+      //         //vm.model_data.data[0][0].exp_date = '';
+      //       }
 
-            // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
-            if (diffDays < res_days) {
-              Service.showNoty('Product has crossed acceptable shelf life ratio');
-              //vm.model_data.data[0][0].exp_date = '';
-            }
-
-          } else {
-            Service.showNoty('Please choose proper date');
-            vm.model_data.data[parent_index][index].exp_date = '';
-          }
-        }
-      }
+      //     } else {
+      //       Service.showNoty('Please choose proper date');
+      //       vm.model_data.data[parent_index][index].exp_date = '';
+      //     }
+      //   }
+      // }
     }
 
     vm.filter_enable = true;
@@ -595,7 +597,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return
         }
       }
-      var elem = angular.element($('form'));
+      var elem = angular.element($("form#grn_doa_form"));
       elem = elem[0];
       elem = $(elem).serializeArray();
       elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
@@ -612,10 +614,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (vm.model_data.other_charges.length > 0) {
         elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
       }
-      if (vm.permissions.receive_po_inv_value_qty_check) {
-        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-      }
+      // if (vm.permissions.receive_po_inv_value_qty_check) {
+      //   elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+      //   elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      // }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -704,18 +706,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.confirm_grn_api()
           } else {
             var temp_str = "Invoice "
-            if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
-              temp_str = temp_str + " - Quantity"
-            }
-            if (parseInt(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
+            // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
+            //   temp_str = temp_str + " - Quantity"
+            // }
+            if (parseFloat(vm.model_data.invoice_value) != vm.model_data.round_off_total) {
               temp_str = temp_str + " - Value"
             }
-            vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
-              if (msg == "true") {
-                vm.total_grn_quantity = inv_match_qty;
-                vm.confirm_grn_api()
-              }
-            })
+            if (temp_str.includes('Value')) {
+              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
+            } else {
+              vm.total_grn_quantity = inv_match_qty;
+              vm.confirm_grn_api()
+            }
           }
         }
       })
@@ -766,8 +773,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.confirm_grn_api = function(){
       if(check_receive()){
         var that = vm;
-        var elem = angular.element($('form'));
-        elem = elem[2];
+        var elem = angular.element($("form#grn_doa_form"));
+        elem = elem[0];
 
         var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
         var mrp = parseInt($(elem).find('input[name="mrp"]').val());
@@ -818,7 +825,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
         }
         if(vm.confirm_srn){
-          elem.push({"name":"doa_id", "value":vm.doa_id})
+          elem.push({"name":"doa_id", "value":vm.doa_id});
+          elem.push({"name":"warehouse_id", "value":vm.model_data.warehouse_id});
         }
         $.each(elem, function(i, val) {
           form_data.append(val.name, val.value);
@@ -840,10 +848,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               //var html = $(vm.html).closest("form").clone();
               //angular.element(".modal-body").html($(html).find(".modal-body"));
               if (data.data.search('discrepancy_data') != -1) {
-                    vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
-                    angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+                vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
               } else{
-                    angular.element(".modal-body").html($(data.data));
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
               }
 
               vm.print_enable = true;
@@ -869,21 +878,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    function check_receive() {
-      var status = false;
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(sku.value > 0 || Number(sku.discrepency_quantity) > 0 ) {
-            status = true;
-          }
-        });
-      }
-
-      if(status){
-        return true;
+    vm.sku_wise_amount_check = function(datum) {
+      var status = true;
+      var sku_list = "Total GRN Qty should not more than PO Qty Following Sku's: "
+      angular.forEach(datum, function(sku_data, sku){
+        if (sku_data['po_total'] <= sku_data['grn_total'] && sku_data['po_total'] != sku_data['grn_total']) {
+          sku_list = sku_list + ' - ' + sku
+          status = false
+        }
+      })
+      if (status) {
+        return status;
       } else {
-        pop_msg("Please Update the received quantity");
-        return false;
+        colFilters.showNoty(sku_list);
+        return status;
+      }
+    }
+
+    function check_receive() {
+      var status = true;
+      var sku_list = "Buy Price should not more than Unit Price Following Sku's: "
+      var data_dict = {}
+      for(var i=0; i<vm.model_data.data.length; i++)  {
+        for (var j=0; j<vm.model_data.data[i].length; j++) {
+          if (!Object.keys(data_dict).includes(vm.model_data.data[i][j].wms_code)){
+            data_dict[vm.model_data.data[i][j].wms_code] = {
+              'po_total': parseFloat(vm.model_data.data[i][j].po_quantity),
+              'grn_total': parseFloat(vm.model_data.data[i][j].value)
+            }
+          } else {
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value));
+          }
+          if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
+            sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']
+            status = false;
+          }
+        }
+        if (i+1 == vm.model_data.data.length) {
+          if (status) {
+            if (vm.sku_wise_amount_check(data_dict)) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            colFilters.showNoty(sku_list);
+            return false;
+          }
+        }
       }
     }
 

@@ -567,7 +567,7 @@ class NetSuiteClient:
             else:
                 record_ref = response['baseRef']
                 record_ref.error = True
-                record_ref.error_msg = status['statusDetail'][0]
+                record_ref.error_msg = status['statusDetail'][0].message
                 record_refs.append(record_ref)
 
                 

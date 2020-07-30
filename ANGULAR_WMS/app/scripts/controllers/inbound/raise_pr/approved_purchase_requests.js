@@ -177,6 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "priority_type": data.data.priority_type,
                   "sku_category": data.data.sku_category,
                   'uploaded_file_dict': data.data.uploaded_file_dict,
+                  'pa_uploaded_file_dict': data.data.pa_uploaded_file_dict,
                   // "supplier_name": data.data.supplier_name,
                   "store": data.data.store,
                   "store_id": data.data.store_id,
@@ -197,6 +198,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
             vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
           }
+          if(vm.model_data.pa_uploaded_file_dict && Object.keys(vm.model_data.pa_uploaded_file_dict).length > 0) {
+            vm.model_data.pa_uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.pa_uploaded_file_dict.file_url);
+          }
           vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
           vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
 
@@ -210,6 +214,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
+            data.fields.sku['conversion'] = data.fields.conversion;
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
@@ -407,7 +412,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.getNoOfTests = function(order_quantity, data) {
       var ordQty = parseInt(order_quantity)
       if (ordQty > 0){
+        data.conversion = data.sku.conversion * ordQty
         data.no_of_tests = ordQty * data.sku.no_of_tests;
+      } else {
+        data.conversion = 0
       }
     }
 
@@ -645,34 +653,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.convert_pr_to_po = function(form) {
       var selectedItems = [];
       var alertMsg = "";
-      var hsn_code_err_flag = false;
-      var keepGoing = true;
       angular.forEach(vm.preview_data.data, function(eachLineItem){
-        if (keepGoing) {
-          if (eachLineItem.checkbox){
-            if (!eachLineItem.hsn_code || eachLineItem.hsn_code == '0') {
-              hsn_code_err_flag = true;
-              keepGoing = false;
-              vm.service.showNoty("HSN Code is missing");
-              return;
-            }
-            if (eachLineItem.product_category == 'Kits&Consumables' && 
-                  (Object.keys(eachLineItem.supplierDetails).length == 0)){
-              vm.service.showNoty("Supplier Should be present for Kits&Consumables");
+        if (eachLineItem.checkbox){
+          if (eachLineItem.product_category == 'Kits&Consumables' && 
+                (Object.keys(eachLineItem.supplierDetails).length == 0)){
+            vm.service.showNoty("Supplier Should be present for Kits&Consumables");
+          } else {
+            if (eachLineItem.moq > eachLineItem.quantity){
+              alertMsg = alertMsg + " " + eachLineItem.sku_code 
             } else {
-              if (eachLineItem.moq > eachLineItem.quantity){
-                alertMsg = alertMsg + " " + eachLineItem.sku_code 
-              } else {
-                selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
-                selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
-                selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
-                selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
-              };
-            }
+              selectedItems.push({name: "sku_code", value: eachLineItem.sku_code});
+              selectedItems.push({name: 'pr_id', value:eachLineItem.pr_id});
+              selectedItems.push({name: 'supplier', value: eachLineItem.supplier_id});
+              selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
+            };
           }
         }
       });
-      if (selectedItems.length == 0 && !hsn_code_err_flag){
+      if (selectedItems.length == 0){
         vm.service.showNoty("Either Items not selected or quantiy not met MOQ Quantity for selected.")
       }
       var finalAlerMsg = '';
@@ -1251,29 +1249,24 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
-      // vm.model_data.total_price = 0;
-      // vm.model_data.sub_total = 0;
+      vm.model_data.total_price = 0;
+      vm.model_data.sub_total = 0;
       data.fields.amount = 0
       data.fields.total = 0
       data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
-      // angular.forEach(vm.model_data.data, function(sku_data){
-        // var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        // sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
-        // if(sku_data.taxes && !not_update_tax) {
-        //     vm.get_tax_value(sku_data);
-        // }
-        // if (!sku_data.fields.tax) {
-        //   sku_data.fields.tax = 0;
-        // }
-        // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
-        // vm.model_data.total_price = vm.model_data.total_price + temp;
-        // vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
-      // })
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = 0;
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      })
     }
 
     vm.getCompany = function() {

@@ -1,10 +1,13 @@
 <style type="text/css">
-  .table > tbody > tr > td{
-    padding: 5px 5px;
-  }
   .form-control{
-    padding: 6px 6px;
-  }
+    padding: 5px 4px;
+ }
+ .table > tbody > tr > td{
+    padding: 6px 4px;
+ }
+ .table > thead > tr> td{
+    padding: 6px 4px;
+ }
   .table > tbody > tr > td {
     border-color: #ffffff !important;
     border-top: #fff !important;
@@ -16,7 +19,7 @@
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -228,6 +231,7 @@
                   <tr>
                     <th>SKU Code*</th>
                     <th>Title</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Detail</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user') && !showCase.model_data.is_approval">Supplier Code</th>
                     <th class="w10_">Quantity*</th>
@@ -235,6 +239,8 @@
                     <!-- <th ng-if="showCase.industry_type=='FMCG'">MRP</th> -->
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">Weight</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">End Date</th>
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
@@ -262,6 +268,9 @@
                              ng-readonly="showCase.model_data.is_approval"
                              title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.sku_detail" title="{{ product.fields.sku_detail }}" type="text" class="form-control detectTab" readonly size="50">
+                    </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
@@ -288,6 +297,12 @@
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG' && user.user_profile.user_type == 'marketplace_user'">
                       <input name="weight" ng-model="product.fields.weight" type="text" class="form-control detectTab" readonly size="12">
+                    </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_stdate" title="{{ product.fields.service_stdate }}" type="text" class="form-control" readonly size="30">
+                    </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_edate" title="{{ product.fields.service_edate }}" type="text" class="form-control" readonly size="30">
                     </td>
                     <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">

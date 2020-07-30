@@ -102,9 +102,9 @@
             </div>
             <div class="col-md-3 col-sm-4 col-xs-6" ng-if="showCase.model_data.supplier_payment_terms != ''">
               <div class="form-group">
-                <label class="control-label">Payment Terms</label>
+                <label class="control-label">Payment Terms *</label>
                 <select class="form-control" name="payment_term"
-                  ng-model="showCase.model_data.payment_term">
+                  ng-model="showCase.model_data.payment_term" required>
                   <option value="">Choose Supplier Payment</option>
                   <option ng-repeat="pay_term in showCase.model_data.supplier_payment_terms"
                             value="{{pay_term}}">{{pay_term}}

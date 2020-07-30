@@ -600,6 +600,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.model_data.ship_addr_names.length == 0 ? vm.service.showNoty('Please create Shipment Address') : (data.ship_to.$viewValue == '' ? vm.service.showNoty('Please select Ship to Address') : '');
           }
         }
+      } else {
+        vm.service.showNoty('Please fill * Fields');
       }
     }
 

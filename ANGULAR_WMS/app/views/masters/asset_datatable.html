@@ -7,7 +7,7 @@
       <div class="col-md-10 col-sm-12 col-xs-12">
         <div class="row pb10">
           <div>
-            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" ng-click="showCase.add()">New Asset</button>
+            <button type="button" ng-if="showCase.permissions.add_assetmaster" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" ng-click="showCase.add()">New Asset</button>
             <div ng-include="'views/common/excel_button.html'"></div>
           </div>
       </div>

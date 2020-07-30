@@ -25,17 +25,6 @@
                 </select>
               </div>
             </div>
-<!--            <div class="col-md-4">-->
-<!--              <div class="form-group">-->
-<!--                <label class="control-label"> Plant </label>-->
-<!--                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">-->
-<!--                <input ng-if="showCase.update" type="text" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" readonly>-->
-<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">-->
-<!--                  <option value="">All</option>-->
-<!--                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>-->
-<!--                </select>-->
-<!--              </div>-->
-<!--            </div>-->
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Plant </label>
@@ -45,27 +34,24 @@
                   <option value="">All</option>
                   <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>
                 </select>
-<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.get_warehouse_department_list()">-->
+              </div>
+            </div>
+<!--            <div class="col-md-4">-->
+<!--              <div class="form-group">-->
+<!--                <label class="control-label"> Department </label>-->
+<!--                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.department" value="{{showCase.model_data.department}}">-->
+<!--                <input ng-if="showCase.update" type="text" name="department" class="form-control" ng-model="showCase.model_data.department" readonly>-->
+<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()" ng-readonly="!showCase.department_type_readonly" ng-style="{'pointer-events': !showCase.department_type_readonly ? 'none' : 'auto' }">-->
 <!--                  <option value="">All</option>-->
-<!--                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>-->
+<!--                  <option ng-repeat="department in showCase.department_list" value="{{department.username}}">{{department.name}}</option>-->
 <!--                </select>-->
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Department </label>
-                <input ng-if="showCase.update" type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.department" value="{{showCase.model_data.department}}">
-                <input ng-if="showCase.update" type="text" name="department" class="form-control" ng-model="showCase.model_data.department" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.department" name="department" ng-change="showCase.update_department_type()" ng-readonly="!showCase.department_type_readonly" ng-style="{'pointer-events': !showCase.department_type_readonly ? 'none' : 'auto' }">
-                  <option value="">All</option>
-                  <option ng-repeat="department in showCase.department_list" value="{{department.username}}">{{department.name}}</option>
-                </select>
-              </div>
-            </div>
+<!--              </div>-->
+<!--            </div>-->
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Department Type </label>
-                <select class="form-control" ng-model="showCase.model_data.department_type" name="department_type" ng-style="{'pointer-events': showCase.department_type_readonly ? 'none' : 'auto' }" ng-readonly="showCase.department_type_readonly">
+                <input ng-if="showCase.update" type="text" class="form-control" ng-model="showCase.model_data.department_type" title={{showCase.model_data.department_type}} readonly>
+                <select class="selectpicker-depts show-menu-arrow form-control" multiple ng-model="showCase.model_data.department_type_list" name="department_type_list" ng-if="!showCase.update" ng-style="{'pointer-events': showCase.update ? 'none' : 'auto' }">
                   <option value="">All</option>
                   <option ng-repeat="(dept_code, dept_type) in showCase.department_type_list" value="{{dept_code}}" ng-selected="dept_code==showCase.model_data.department_code">{{dept_type}}</option>
                 </select>

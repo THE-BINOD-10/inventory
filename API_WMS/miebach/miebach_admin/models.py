@@ -200,6 +200,13 @@ class MastersDOA(models.Model):
 
     class Meta:
         db_table = 'MASTERS_DOA'
+        permissions = [
+            ('approve_source_sku_doa', 'Approve Source SKU Doa'),
+            ('approve_sku_master_doa', 'Approve SKU Master Doa'),
+            ('approve_asset_master_doa', 'Approve Asset Master Doa'),
+            ('approve_service_master_doa', 'Approve Service Master Doa'),
+            ('approve_otheritems_master_doa', 'Approve Otheritems Master Doa'),
+        ]
 
 
 class EANNumbers(models.Model):
@@ -3197,7 +3204,8 @@ class StaffMaster(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     plant = models.ManyToManyField(TableLists, default=None)
     warehouse_type = models.CharField(max_length=64, default='')
-    department_type = models.CharField(max_length=64, default='')
+    #department_type = models.CharField(max_length=64, default='')
+    department_type = models.ManyToManyField(TableLists, default=None, related_name='department_type_list')
     position = models.CharField(max_length=64, default='')
     email_id = models.EmailField(max_length=64, default='')
     reportingto_email_id = models.EmailField(max_length=64, default='')

@@ -335,7 +335,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.AssetMaster', {
           url: '/AssetMaster',
-          permission: 'add_assetmaster',
+          permission: 'view_assetmaster',
           templateUrl: 'views/masters/asset_master/asset_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -381,7 +381,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.ServiceMaster', {
           url: '/ServiceMaster',
-          permission: 'add_servicemaster',
+          permission: 'view_servicemaster',
           templateUrl: 'views/masters/service_master/service_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -409,7 +409,7 @@ var app = angular.module('urbanApp')
           
         .state('app.masters.OtherItemsMaster', {
           url: '/OtherItemsMaster',
-          permission: 'add_otheritemsmaster',
+          permission: 'view_otheritemsmaster',
           templateUrl: 'views/masters/otheritems_master/otheritems_master_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

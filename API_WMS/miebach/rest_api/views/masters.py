@@ -5924,8 +5924,9 @@ def delete_uom_master(request):
 
 def integrateUOM(user, sku_code):
     uom_data = gather_uom_master_for_sku(user, sku_code)
-    intObj = Integrations(user,'netsuiteIntegration')
-    intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
+    if 'name' in uom_data:
+        intObj = Integrations(user,'netsuiteIntegration')
+        intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
 
 
 def get_uom_details(user, sku_code):

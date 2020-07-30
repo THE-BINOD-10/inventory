@@ -2014,7 +2014,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': '',
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': 0,
                       'company_id': 0, 'reference_id': '', 'sap_code': '', 'stockone_code': ''}
 
 PICKLIST_EXCEL = OrderedDict((

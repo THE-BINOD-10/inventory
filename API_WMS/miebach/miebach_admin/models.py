@@ -202,7 +202,10 @@ class MastersDOA(models.Model):
         db_table = 'MASTERS_DOA'
         permissions = [
             ('approve_source_sku_doa', 'Approve Source SKU Doa'),
-            ('approve_sku_master_doa', 'Approve SKU Master Doa')
+            ('approve_sku_master_doa', 'Approve SKU Master Doa'),
+            ('approve_asset_master_doa', 'Approve Asset Master Doa'),
+            ('approve_service_master_doa', 'Approve Service Master Doa'),
+            ('approve_otheritems_master_doa', 'Approve Otheritems Master Doa'),
         ]
 
 

@@ -4468,8 +4468,10 @@ def add_or_update_tax(request, user=''):
         if taxes:
             return HttpResponse('Product Type Already Exist')
     log.info('Add or Update Tax request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    for i in tax_data['data']:
+        i['product_type'] = product_type
     try:
-        status = save_tax_master(tax_data,product_type,user)
+        status = save_tax_master(tax_data,user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

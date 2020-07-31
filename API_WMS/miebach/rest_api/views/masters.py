@@ -1438,10 +1438,14 @@ def update_sku(request, user=''):
     return HttpResponse('Updated Successfully')
 
 def get_sku_category_internal_id(sku_category, type):
-    service_category_id= NetsuiteIdMapping.objects.get(type_value=sku_category,type_name=type)
-    sku_category_id=""
-    if service_category_id:
-        sku_category_id = service_category_id.internal_id
+    try:
+        service_category_id= NetsuiteIdMapping.objects.get(type_value=sku_category,type_name=type)
+        sku_category_id=""
+        if service_category_id:
+            sku_category_id = service_category_id.internal_id
+    except Exception as e:
+        sku_category_id=""
+        pass
     return sku_category_id
 
 def netsuite_sku(data, user, instanceName=''):

@@ -114,7 +114,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             zone = data.zone.zone
         ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
-        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        #ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_type'], data.sku_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)

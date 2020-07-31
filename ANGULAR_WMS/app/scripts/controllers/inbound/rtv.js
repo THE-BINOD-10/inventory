@@ -182,7 +182,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             angular.copy(data.data, vm.model_data);
             vm.model_data.warehouse_id = warehouse_id;
               vm.extra_width = {
-                'width': '1350px'
+                'width': '1250px'
               };
               vm.title = "Create RTV";
               vm.print_enable = false;

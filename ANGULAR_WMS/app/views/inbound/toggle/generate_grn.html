@@ -1,10 +1,13 @@
 <style>
   .form-control{
-    padding: 6px 5px;
-  }
-  .table > tbody > tr > td{
-    padding: 10px 4px;
-  }
+    padding: 5px 4px;
+ }
+ .table > tbody > tr > td{
+    padding: 6px 4px;
+ }
+ .table > thead > tr> td{
+    padding: 6px 4px;
+ }
   .sidebar-panel{
     z-index: 1000;
   }
@@ -468,9 +471,11 @@
               </div>
             </div>
           </div>
-          <div class="row" style="padding-top: 35px;"  ng-show="showCase.central_po && !showCase.model_data.dc_level_grn">
+          <div class="row" style="padding-top: 35px;">
+              <!-- ng-show="!showCase.model_data.dc_level_grn" -->
               <div class="form-group col-md-3">
-                <div>File Upload *</div>
+                <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>
+                <div ng-if="showCase.model_data.dc_level_grn && !showCase.model_data.dc_number">File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 300px;">
                    <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" style="position: relative;overflow: hidden;cursor: pointer;"/>
                  </span>

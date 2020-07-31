@@ -202,7 +202,10 @@ class MastersDOA(models.Model):
         db_table = 'MASTERS_DOA'
         permissions = [
             ('approve_source_sku_doa', 'Approve Source SKU Doa'),
-            ('approve_sku_master_doa', 'Approve SKU Master Doa')
+            ('approve_sku_master_doa', 'Approve SKU Master Doa'),
+            ('approve_asset_master_doa', 'Approve Asset Master Doa'),
+            ('approve_service_master_doa', 'Approve Service Master Doa'),
+            ('approve_otheritems_master_doa', 'Approve Otheritems Master Doa'),
         ]
 
 
@@ -1338,7 +1341,7 @@ class UserProfile(models.Model):
     reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
-    place_of_supply = models.CharField(max_length=64, default='')
+    place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'

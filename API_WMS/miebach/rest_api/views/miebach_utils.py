@@ -2014,7 +2014,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': '',
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': '', 'multi_warehouse': 0,
                       'company_id': 0, 'reference_id': '', 'sap_code': '', 'stockone_code': ''}
 
 PICKLIST_EXCEL = OrderedDict((
@@ -2448,6 +2448,8 @@ PERMISSION_DICT = OrderedDict((
                        ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
                        ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'),
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
+                       ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
+                       ("Otheritems Master Edit", "add_otheritemsmaster"),
                        )),
 
     # Inbound
@@ -2466,6 +2468,9 @@ PERMISSION_DICT = OrderedDict((
                        ("Pending Invoice Mismatches", "change_pocreditnote"),
                        ("Approve Source SKU Mapping DOA", "approve_source_sku_doa"),
                        ("Approve SKU Master DOA", "approve_sku_master_doa"),
+                       ("Approve Asset Master DOA", "approve_asset_master_doa"),
+                       ("Approve Service Master DOA", "approve_service_master_doa"),
+                       ("Approve Otheritems Master DOA", "approve_otheritems_master_doa"),
                        )),
 
     # Production
@@ -2539,7 +2544,10 @@ PERMISSION_DICT = OrderedDict((
                             ('Supplier Master View', 'view_suppliermaster'),
                             ('Source SKU Mapping View', 'view_skusupplier'),
                             ('Pricing Master View', 'view_pricemaster'),
-                            ('Customer Master View', 'view_customermaster'),)),
+                            ('Customer Master View', 'view_customermaster'),
+                            ('Asset Master View', 'view_assetmaster'),
+                            ('Service Master View', 'view_servicemaster'),
+                            ('OtherItems Master View', 'view_otheritemsmaster'),)),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -3273,6 +3281,11 @@ PENDING_PR_ADMIN_MAPPING = OrderedDict((('Plant', 'plant'), ('Department Type', 
 
 UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_uom'), ('UOM Type', 'uom_type'),
                                   ('UOM', 'uom'), ('Conversion', 'conversion')
+                                  ))
+
+TAX_MASTER_MAPPING = OrderedDict((('HSN Code', 'hsn_code'), ('Tax Type(inter state / intra state)', 'tax_type'), ('Min Amount', 'min_amt'),
+                                  ('Max Amount', 'max_amt'), ('SGST Tax', 'sgst_tax'),('CGST Tax', 'cgst_tax'),('IGST Tax', 'igst_tax'),
+                                  ('CESS Tax', 'cess_tax'),('APMC Tax', 'apmc_tax')
                                   ))
 
 

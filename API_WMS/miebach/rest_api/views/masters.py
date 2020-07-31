@@ -390,6 +390,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
         #if data.phone_number:
             #data.phone_number = int(float(data.phone_number))
+        payment_terms = []
+        payments = PaymentTerms.objects.filter(supplier = data.id)
+        if payments.exists():
+            for datum in payments:
+               payment_terms.append("%s:%s" %(str(datum.payment_code), datum.payment_description))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -417,6 +422,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('secondary_email_id', secondary_email_ids),
                                                 ('currency_code', data.currency_code),
                                                 ('is_contracted', data.is_contracted),
+                                                ('payment_terms', payment_terms),
                                                 )))
 
 
@@ -1431,18 +1437,21 @@ def update_sku(request, user=''):
 
     return HttpResponse('Updated Successfully')
 
+def get_sku_category_internal_id(sku_category, type):
+    service_category_id= NetsuiteIdMapping.objects.get(type_value=sku_category,type_name=type)
+    sku_category_id=""
+    if service_category_id:
+        sku_category_id = service_category_id.internal_id
+    return sku_category_id
+
 def netsuite_sku(data, user, instanceName=''):
     # external_id = ''
     sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
-    # netsuite_map_obj = NetsuiteIdMapping.objects.filter(master_id=data.id, type_name='sku_master')
-    # if netsuite_map_obj:
-    #     external_id = netsuite_map_obj[0].external_id
-    # if not external_id:
-    #     external_id = get_incremental(user, 'netsuite_external_id')
-    # from integrations.views import Integrations
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3
         try:
             plant = user.userprofile.reference_id
@@ -1463,22 +1472,17 @@ def netsuite_sku(data, user, instanceName=''):
             })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type":"Service"})
-            #intObj.integrateServiceMaster(sku_data_dict, "sku_code", is_multiple=False)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type":"Asset"})
-            # intObj.integrateAssetMaster(sku_data_dict, "sku_code", is_multiple=False)
-            # sku_data_dict.update({"non_inventoryitem":True})
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code", is_multiple=False)
         else:
-            # intObj.initiateAuthentication()
             sku_data_dict.update({"product_type":"SKU"})
             sku_data_dict.update(sku_attr_dict)
-            intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
-            integrateUOM(user, data.sku_code)
+        intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
+        integrateUOM(user, data.sku_code)
     except Exception as e:
         pass
 
@@ -2838,7 +2842,8 @@ def get_warehouse_user_data(request, user=''):
             'customer_name': customer_username, 'customer_fullname': customer_fullname,
             'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
             'zone': user_profile.zone, 'reference_id': user_profile.reference_id,
-            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code}
+            'sap_code': user_profile.sap_code, 'stockone_code': user_profile.stockone_code,
+            'company_id': user_profile.company_id}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -4450,6 +4455,47 @@ def get_network_data(request):
         return HttpResponse(json.dumps(response))
 
 
+def save_tax_master(tax_data, user):
+    columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
+    for data in tax_data['data']:
+        product_type = data['product_type']
+        data_dict = {'user_id': user.id}
+        if data.get('id', ''):
+            data_dict = {}
+            tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
+            for key in columns:
+                try:
+                    data_key = float(data.get(key,0))
+                except:
+                    data_key = 0
+                print data_key
+                data_dict[key] = data_key
+                # setattr(tax_master, key, data_key)
+            filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
+            sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+            # tax_master.save()
+        else:
+            if not data.get('min_amt',0) :
+                data['min_amt'] = 0
+            if not data.get('max_amt',0):
+                data['max_amt'] = 0
+            for key in columns:
+                if data.get(key,0):
+                    data_dict[key] = float(data[key])
+                else:
+                    data_dict[key]=0
+            data_dict['inter_state'] = 0
+            if data['tax_type'] == 'inter_state':
+                data_dict['inter_state'] = 1
+            data_dict['product_type'] = product_type
+            filter_dict = {'product_type': product_type, 'user_id': user.id,
+                           'inter_state': data_dict['inter_state']}
+            sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
+                # tax_master = TaxMaster(**data_dict)
+                # tax_master.save()
+    return 'Success'
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -4460,60 +4506,29 @@ def add_or_update_tax(request, user=''):
     tax_data = request.POST.get('data', '')
     if not tax_data:
         return HttpResponse('Missing Required Fields')
-
+    tax_data = simplejson.loads(str(tax_data))
+    if not tax_data['product_type']:
+        return HttpResponse('Missing Required Fields')
+    product_type = tax_data['product_type']
+    if not tax_data['update']:
+        taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
+        if taxes:
+            return HttpResponse('Product Type Already Exist')
     log.info('Add or Update Tax request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    for i in tax_data['data']:
+        i['product_type'] = product_type
     try:
-        tax_data = simplejson.loads(str(tax_data))
-
-        if not tax_data['product_type']:
-            return HttpResponse('Missing Required Fields')
-
-        product_type = tax_data['product_type']
-        if not tax_data['update']:
-            taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
-            if taxes:
-                return HttpResponse('Product Type Already Exist')
-        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
-        for data in tax_data['data']:
-
-            data_dict = {'user_id': user.id}
-            if data.get('id', ''):
-                data_dict = {}
-                tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
-                for key in columns:
-                    try:
-                        data_key = float(data[key])
-                    except:
-                        data_key = 0
-                    print data_key
-                    data_dict[key] = data_key
-                    #setattr(tax_master, key, data_key)
-                filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
-                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
-                #tax_master.save()
-            else:
-                if not data['min_amt'] or not data['max_amt']:
-                    continue
-                for key in columns:
-                    if data[key]:
-                        data_dict[key] = float(data[key])
-                data_dict['inter_state'] = 0
-                if data['tax_type'] == 'inter_state':
-                    data_dict['inter_state'] = 1
-                data_dict['product_type'] = product_type
-                filter_dict = {'product_type': product_type, 'user_id': user.id,
-                                'inter_state': data_dict['inter_state']}
-                sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
-                #tax_master = TaxMaster(**data_dict)
-                #tax_master.save()
+        status = save_tax_master(tax_data,user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add or Update Tax failed for %s and params are %s and error statement is %s' % (
-        str(user.username), str(request.POST.dict()), str(e)))
+            str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Add or Update failed")
-
-    return HttpResponse("success")
+    if status:
+        return HttpResponse("success")
+    else:
+        return HttpResponse("Some thing Went Wrong")
 
 
 @get_admin_user
@@ -5964,8 +5979,9 @@ def delete_uom_master(request):
 
 def integrateUOM(user, sku_code):
     uom_data = gather_uom_master_for_sku(user, sku_code)
-    intObj = Integrations(user,'netsuiteIntegration')
-    intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
+    if 'name' in uom_data:
+        intObj = Integrations(user,'netsuiteIntegration')
+        intObj.IntegrateUOM(uom_data, 'name', is_multiple=False)
 
 
 def get_uom_details(user, sku_code):

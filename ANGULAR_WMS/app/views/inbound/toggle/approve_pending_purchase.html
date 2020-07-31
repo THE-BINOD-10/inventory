@@ -1,16 +1,28 @@
 <style type="text/css">
-  .table > tbody > tr > td {
-    border-color: #ffffff !important;
-    border-top: #fff !important;
-  }
-  .select2-container .select2-choice{
-    height: 30px !important;
-    border: 1px solid #e8e8e8 !important;
-  }
+.form-control{
+    padding: 5px 4px;
+ }
+ .table > tbody > tr > td{
+    padding: 6px 4px;
+ }
+ .table > thead > tr> td{
+    padding: 6px 4px;
+ }
+ .sidebar-panel{
+    z-index: 1000;
+ }
+.table > tbody > tr > td {
+  border-color: #ffffff !important;
+  border-top: #fff !important;
+}
+.select2-container .select2-choice{
+  height: 30px !important;
+  border: 1px solid #e8e8e8 !important;
+}
 </style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -81,10 +93,13 @@
                   <tr>
                     <th>WMS Code*</th>
                     <th>Title</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Detail</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">Start Date</th>
+                    <th ng-if="showCase.model_data.product_category == 'Services'">End Date</th>
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
@@ -103,6 +118,9 @@
                     <td>
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.sku_detail" title="{{ product.fields.sku_detail }}" type="text" class="form-control detectTab" readonly size="50">
+                    </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
@@ -118,6 +136,12 @@
                     <td>
                       <input type="text"  ng-model="product.fields.price" name="price" class="form-control detectTab" decimal-number
                              ng-readonly="true" ng-keyup="showCase.getTotals()" size="12">
+                    </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_stdate" title="{{ product.fields.service_stdate }}" type="text" class="form-control" readonly size="30">
+                    </td>
+                    <td ng-if="showCase.model_data.product_category == 'Services'">
+                      <input ng-model="product.fields.service_edate" title="{{ product.fields.service_edate }}" type="text" class="form-control" readonly size="30">
                     </td>
                     <td>
 		               	<input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">

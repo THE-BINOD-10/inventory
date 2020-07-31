@@ -2448,6 +2448,8 @@ PERMISSION_DICT = OrderedDict((
                        ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
                        ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'),
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
+                       ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
+                       ("Otheritems Master Edit", "add_otheritemsmaster"),
                        )),
 
     # Inbound
@@ -2466,6 +2468,9 @@ PERMISSION_DICT = OrderedDict((
                        ("Pending Invoice Mismatches", "change_pocreditnote"),
                        ("Approve Source SKU Mapping DOA", "approve_source_sku_doa"),
                        ("Approve SKU Master DOA", "approve_sku_master_doa"),
+                       ("Approve Asset Master DOA", "approve_asset_master_doa"),
+                       ("Approve Service Master DOA", "approve_service_master_doa"),
+                       ("Approve Otheritems Master DOA", "approve_otheritems_master_doa"),
                        )),
 
     # Production
@@ -2539,7 +2544,10 @@ PERMISSION_DICT = OrderedDict((
                             ('Supplier Master View', 'view_suppliermaster'),
                             ('Source SKU Mapping View', 'view_skusupplier'),
                             ('Pricing Master View', 'view_pricemaster'),
-                            ('Customer Master View', 'view_customermaster'),)),
+                            ('Customer Master View', 'view_customermaster'),
+                            ('Asset Master View', 'view_assetmaster'),
+                            ('Service Master View', 'view_servicemaster'),
+                            ('OtherItems Master View', 'view_otheritemsmaster'),)),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),

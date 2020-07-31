@@ -12530,13 +12530,13 @@ def get_company_roles_list(request, user=''):
 def update_user_role(user, sub_user, position, old_position=''):
     company_id = get_company_id(user)
     company_role = CompanyRoles.objects.filter(company_id=company_id, role_name=position, group__isnull=False)
-    if company_role.exists():
-        group = company_role[0].group
-        sub_user.groups.add(group)
     if old_position:
         old_role = CompanyRoles.objects.filter(company_id=company_id, role_name=old_position, group__isnull=False)
         if old_role:
             sub_user.groups.remove(old_role[0].group)
+    if company_role.exists():
+        group = company_role[0].group
+        sub_user.groups.add(group)
 
 def get_po_pr_dept_code(data):
     dept_code = ''

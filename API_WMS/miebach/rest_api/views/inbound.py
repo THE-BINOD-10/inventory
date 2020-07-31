@@ -15646,8 +15646,8 @@ def resubmit_prs(urlPath, pr_ids):
             if temp_data.exists():
                 temp_json_data = eval(temp_data[0])
                 new_json['price'] = float(lineItemDetsMap[lineItem.sku.sku_code])
-                new_json['amount'] = float(new_json['price']) * lineItem.quantity
-                new_json['total'] = new_json['amount'] + (new_json['amount'] * temp_json_data['tax']/100)
+                new_json['amount'] = float(new_json['price']) * float(lineItem.quantity)
+                new_json['total'] = new_json['amount'] + (new_json['amount'] * float(temp_json_data['tax'])/100)
                 new_json['supplier_id'] = temp_json_data['supplier_id']
                 new_json['moq'] = temp_json_data['moq']
                 new_json['tax'] = temp_json_data['tax']

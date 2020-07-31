@@ -10636,7 +10636,7 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
         if staff_obj:
             staff_obj = staff_obj[0]
             plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-            plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('first_name', flat=True)
             if not plants_list:
                 parent_company_id = get_company_id(user)
                 company_id = staff_obj.company_id
@@ -10645,8 +10645,10 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                           company_id=company_id)
                 plants_list = plant_objs.values_list('first_name', flat=True)
-            if staff_obj.department_type:
-                department_type_list = {staff_obj.department_type: department_type_mapping[staff_obj.department_type]}
+            if staff_obj.department_type.filter():
+		department_type_names = data.department_type.filter().values_list('name', flat=True)
+            	for department_type_name in department_type_names:
+                	department_type_list.append({department_type_name: department_type_mapping.get(department_type_name, '')})
             else:
                 department_type_list = department_type_mapping
 

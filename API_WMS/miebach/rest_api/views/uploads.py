@@ -3189,6 +3189,9 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
 @get_admin_user
 def supplier_sku_upload(request, user=''):
     fname = request.FILES['files']
+    urlPath = request.META.get('HTTP_ORIGIN')
+    from rest_api.views.inbound import get_prs_with_sku_supplier_mapping, resubmit_prs
+    pr_ids_map = {}
     if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
         try:
             open_book = open_workbook(filename=None, file_contents=fname.read())
@@ -3265,6 +3268,12 @@ def supplier_sku_upload(request, user=''):
                         cell_data = float(cell_data)
                         supplier_data['price'] = cell_data
                         if cell_data and supplier_sku_instance:
+                            if cell_data != supplier_sku_instance.price:
+                                sku_code = supplier_sku_instance.sku.sku_code
+                                sp_id_sku = supplier_sku_instance.supplier.supplier_id
+                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(sku_code, sp_id_sku)
+                                for pr in prs_to_be_resubmitted:
+                                    pr_ids_map.setdefault(pr, {}).update({sku_code:cell_data})
                             supplier_sku_instance.price = cell_data
                     elif key == 'costing_type':
                         if not cell_data :
@@ -3297,6 +3306,7 @@ def supplier_sku_upload(request, user=''):
                     supplier_sku.save()
                 elif supplier_sku_instance:
                     supplier_sku_instance.save()
+            resubmit_prs(urlPath, pr_ids_map)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -10538,6 +10548,8 @@ def pending_pr_form(request, user=''):
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        excel_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
     excel_headers = excel_mapping.keys()
     wb, ws = get_work_sheet('Purchase Request', excel_headers)
     return xls_to_response(wb, '%s.purchase_request_form.xls' % str(user.username))
@@ -10563,6 +10575,17 @@ def pending_pr_upload(request, user=''):
     sku_code = data_list[0]['sku_code']
     priority_type = data_list[0]['priority_type']
     pr_delivery_date = data_list[0]['delivery_date']
+
+    plant_name = data_list[0].get('plant', '')
+    department_name = data_list[0].get('department_type', '')
+    if plant_name and department_name:
+        sister_whs = get_sister_warehouse(User.objects.get(Q(username=plant_name) | Q(first_name=plant_name)))
+        sister_wh_ids = sister_whs.values_list('user_id', flat=True)
+        DEPT_NAMES_MAPPING = dict([(value, key) for key, value in DEPARTMENT_TYPES_MAPPING.items()])
+        department_type = DEPT_NAMES_MAPPING.get(department_name)
+        dept_user_obj = User.objects.filter(id__in=sister_wh_ids, userprofile__stockone_code=department_type)
+        if dept_user_obj:
+            user = dept_user_obj[0]
     pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user,
                                                                         'pr_prefix', sku_code)
     purchaseMap = {
@@ -10602,6 +10625,33 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
     index_status = {}
     data_list = []
     inv_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        inv_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        plants_list = []
+        department_type_list = []
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('first_name', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('first_name', flat=True)
+            if staff_obj.department_type.filter():
+		department_type_names = data.department_type.filter().values_list('name', flat=True)
+            	for department_type_name in department_type_names:
+                	department_type_list.append({department_type_name: department_type_mapping.get(department_type_name, '')})
+            else:
+                department_type_list = department_type_mapping
+
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -10614,7 +10664,9 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                    sku_master = SKUMaster.objects.exclude(id__in=AssetMaster.objects.all()). \
+                        exclude(id__in=ServiceMaster.objects.all()). \
+                        exclude(id__in=OtherItemsMaster.objects.all()).filter(user=user.id, sku_code=cell_data)
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     else:
@@ -10650,6 +10702,24 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         data_dict[key] = cell_data
                 else:
                     data_dict[key] = 'normal'
+            elif key == 'plant':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in plants_list:
+                        index_status.setdefault(row_idx, set()).add('Proper plant name should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant should be mentioned.')
+            elif key == 'department_type':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in department_type_list.values():
+                        index_status.setdefault(row_idx, set()).add('Proper department type should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Department type should be mentioned.')
 
         data_list.append(data_dict)
 

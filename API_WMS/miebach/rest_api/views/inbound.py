@@ -9550,9 +9550,11 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         supplier_id = _purchase_order.open_po.supplier.supplier_id
         # if(_purchase_order.open_po.supplier.tin_number):
         #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
-        state=''
+        state, place_of_supply='',''
         if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state
+        if _purchase_order.open_po.supplier.place_of_supply:
+            place_of_supply= _purchase_order.open_po.supplier.place_of_supply
         if(_purchase_order.open_po.supplier.address_id):
             address_id= _purchase_order.open_po.supplier.address_id
         if due_date:
@@ -9561,7 +9563,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             due_date = due_date.isoformat()
         po_data = { 'address_id':address_id,'supplier_gstin':supplier_gstin,'payment_code':payment_code, "state":state,
                     'department': "", "subsidiary":subsidary, "plant":plant,
-                    "po_url1":po_url1, "po_url2":po_url2,
+                    "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
                     'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
@@ -15615,7 +15617,7 @@ def gather_uom_master_for_sku(user, sku_code):
 
 def get_prs_with_sku_supplier_mapping(sku_code, supplier_id):
     prs_to_be_resubmitted = []
-    prIds = PendingLineItems.objects.filter(sku__sku_code=sku_code, 
+    prIds = PendingLineItems.objects.filter(sku__sku_code=sku_code,
                     pending_pr__final_status='pending').values_list('id', 'pending_pr_id')
     for lineItemId, pr_id in prIds:
         temp_data = TempJson.objects.filter(model_id=lineItemId,
@@ -15669,5 +15671,5 @@ def resubmit_prs(urlPath, pr_ids):
                                             approval_type='ranges')
         for eachMail in mailsList:
             hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
-            sendMailforPendingPO(pendingPRObj.id, user, baseLevel, 'pr_approval_pending', eachMail, 
+            sendMailforPendingPO(pendingPRObj.id, user, baseLevel, 'pr_approval_pending', eachMail,
                 urlPath, hash_code, poFor=False, is_resubmitted=True)

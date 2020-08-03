@@ -3,65 +3,100 @@
 <div>
   <style>
     {% include 'toggle/page1.css' %}
+    .table-bordered > tbody > tr > td:last-child {
+      border-right: 1 !important;
+    }
+    .table-bordered > tbody > tr > td:last-child {
+      border-right: 1 !important; 
+    }
   </style>
   <div class="print-invoice2 mb20">
-    {% if company_logo and iso_company_logo %}
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-bottom:15px">
-      {% if company_logo %}
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-        <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:230px;height:70px"/>
-      </div>
-      {% endif %}
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4"></div>
-      {% if iso_company_logo %}
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-        <img id="image2" alt="Image2" src="{{ iso_company_logo }}" style="width:150px;height:75px;float: right;"/>
-      </div>
-      {% endif %}
-    </div>
-    {% elif company_logo %}
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-bottom:15px">
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-      </div>
-      {% if company_logo %}
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-        <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:230px;height:70px"/>
-      </div>
-      {% endif %}
-      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-      </div>
-    </div>
-    {% endif %}
     <div class="invoice-body">
-      <table class="table table-bordered m0" style="width:1052px !important">
+      <table class="table table-bordered m0">
         <tbody>
           <tr>
             <td colspan="2">
-              <h3 class="m0" align="center"><b>Purchase Order</b></h3>
+              {% if is_draft %}
+                <h3 class="m0" align="center"><b>{{ title }}</b></h3>
+              {% else %}
+                <h3 class="m0" align="center"><b>Purchase Order</b></h3>
+              {% endif %}
             </td>
           </tr>
           <tr>
-            <td colspan="2">
-              <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
-              <p class="m0" align="center">{{ company_address|linebreaks }}</p>
+            <td style="width: 40%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="margin-left: -10px;">
+                  {% if company_logo %}
+                    <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:150px;height:50px"/>
+                {% endif %}
+                </div>
+                <div class="col-lg-7 col-md-7 col-sm-7 col-xs-7" style="padding-top: 8px;">
+                  <h5 class="m0" align="center"><b>{{ company_name }}</b></h5>
+                </div>
+              </div>
+              <div class="row m0" style="overflow: hidden; padding-top: 5px;">
+                <span><b>Address :</b></span>{{ company_details.company_address }}<br>
+                <span><b>Phone :</b></span>{{ company_details.phone }}<br>
+                <span><b>Email :</b></span>{{ company_details.email }}<br>
+                <span><b>GSTIN No. :</b>{{ company_details.gstin_number }}</span><br>
+                <span><b>CIN No. :</b>{{ company_details.cin_number }}</span><br>
+                <span><b>PAN No. :</b>{{ company_details.pan_number }}</span><br>
+                <!-- <p class="m0" align="center">{{ company_address|linebreaks }}</p> -->
+              </div>
+            </td>
+            <td style="width: 60%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 fs14 p0">
+                  <!-- <span><b>Order ID :</b>{{ order_id }}</span><br>
+                  {% if not is_draft %}
+                    <span><b>PO Reference :</b>{{ po_reference }}</span><br>
+                  {% endif %} -->
+                  {% if is_actual_pr == 'true' %}
+                    <span><b>PR Number :</b>{{ po_number }}</span><br>
+                  {% else %}
+                    <span><b>PO Number :</b>{{ po_number }}</span><br>
+                  {% endif %}
+                  <!-- <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
+                  <span><b>Pan No :</b>{{ wh_pan }}</span><br> -->
+                  <span><b>PO Date:</b>{{ order_date }}</span><br>
+                  {% if delivery_date %}
+                    <span><b>Need By Date:</b>{{ delivery_date }}</span><br>
+                  {% endif %}
+                  {% if supplier_currency %}
+                     <span><b>Currency:</b>{{ supplier_currency }}</span><br>
+                  {% endif %} 
+                  {% if supplier_payment_terms %}
+                     <span><b>PaymentTerms:</b>{{ supplier_payment_terms }}</span><br>
+                  {% endif %} 
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 fs14 p0">
+                  <label><b>Supplier Details: </b></label><br>
+                  <span><b>Name :</b></span>{{ name }}<br>
+                  <span><b>Address :</b></span>{{ address }}<br>
+                  <span><b>Telephone :</b></span>{{ tPaymentTermselephone }}<br>
+                  <span><b>GSTIN No. :</b>{{ gstin_no }}</span><br>
+                  <span><b>PAN No. :</b>{{ supplier_pan }}</span><br>
+                </div>
+              </div>
             </td>
           </tr>
           <tr>
-            <td style="width: 50%">
+            <td style="width: 40%">
               <div class="row m0" style="overflow: hidden;">
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
-                    <span><b>Order ID :</b>{{ order_id }}</span><br>
-                    <span><b>PO Number :</b>{{ po_number }}</span><br>
-                    <span><b>PO Reference :</b>{{ po_reference }}</span><br>
-                    <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
-                    <span><b>Pan No :</b>{{ wh_pan }}</span><br>
-                    <span><b>Date:</b>{{ order_date }}</span><br>
+                    <h4><b>Ship To:</b></h4>
+                    <span><b>Name :</b></span>{{ company_name }}<br>
+                    <span><b>Address :</b></span>{{ w_address }}<br>
+                    <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
+                    <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
+                    <span><b>PAN No. :</b>{{ wh_pan }}</span><br>
                   </div>
                 </div>
               </div>
             </td>
-            <td style="width: 50%">
+            <td style="width: 60%">
                 <div class="row m0" style="overflow: hidden;">
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
@@ -72,47 +107,19 @@
               </div>
             </td>
           </tr>
-          <tr>
-            <td style="width: 50%">
-        <div class="row m0" style="overflow: hidden;">
-                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
-                  <div class="col-md-12 p0">
-                    <h4>Supplier Name:</h4>
-                    <span><b>Name :</b></span>{{ name }}<br>
-                    <span><b>Address :</b></span>{{ address|linebreaks }}<br>
-                    <span><b>Telephone :</b></span>{{ telephone }}<br>
-                    <span><b>GSTIN No :</b>{{ gstin_no }}</span><br>
-                  </div>
-                </div>
-              </div>
-      </td>
-      <td style="width: 50%">
-              <div class="row m0" style="overflow: hidden;">
-                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
-                  <div class="col-md-12 p0">
-                    <h4>Ship To:</h4>
-                    <span><b>Name :</b></span>{{ company_name }}<br>
-                    <span><b>Address :</b></span>{{ w_address|linebreaks }}<br>
-                    <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
-                    <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
-                  </div>
-                </div>
-              </div>
-            </td>
-      </tr>
         </tbody>
       </table>
-      <table class="table table-bordered bl br cal-table m0" style="width:1052px !important">
-    <thead>
-    <tr align="center">
+      <table class="table table-bordered bl br cal-table m0">
+        <thead>
+          <tr align="center">
             {% for table_header in table_headers %}
-          <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
+              <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
             {% endfor %}
             {% if customization %}
-          <th style="padding:2.5px;" rowspan="2"><center><th>Customization</th></center></th>
+              <th style="padding:2.5px;" rowspan="2"><center><th>Customization</th></center></th>
             {% endif %}
-    </tr>
-    </thead>
+          </tr>
+        </thead>
         <tbody>
           {% for dat in data %}
             <tr class="fs14">
@@ -125,62 +132,65 @@
                   </td>
                 {% else %}
                   <td style="text-align: center;">{{ d }}</td>
-
-                  <!--{% if not show_cess_tax %}-->
-                    <!--{% if industry_type == 'FMCG' %}-->
-                      <!--{% if forloop.counter0 != 12 %}-->
-                        <!--<td style="text-align: center;">{{ d }}</td>-->
-                      <!--{% endif %}-->
-                    <!--{% else %}-->
-                      <!--{% if forloop.counter0 != 10 %}-->
-                        <!--<td style="text-align: center;">{{ d }}</td>-->
-                      <!--{% endif %}-->
-                    <!--{% endif %}-->
-                  <!--{% else %}-->
-                    <!--<td style="text-align: center;">{{ d }}</td>-->
-                  <!--{% endif %}-->
-
                 {% endif %}
               {% endfor %}
             </tr>
-      {% if forloop.last %}
-        <tr class="fs14 rm-border">
-          <td class="fs14" colspan="16">
-            <div class="row m0">
-              <div class="col-xs-12 text-left">
-                <span>Total Order Quantity :</span> {{ total_qty }}<br>
-                {% if round_total %}
-                  <span>RoundOff value :</span> {{ round_total }}<br>
-                {% endif %}
-                <span><b>Total PO Amt :</b></span> {{ total }} <br>
-              </div>
-            </div>
-          </td>
-          <tr>
-            <td class="fs14" colspan="16">
-              <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{total_amt_in_words}}</span></b>
-            </td>
-          </tr>
-          <td class="fs14 text-center" colspan="16">
-            <h5 class="m0">For {{ company_name }}</h5></br></br>
-            <h5 class="m0">Authorised Signatory</h5>
-          </td>
-          </tr>
-      {% endif %}
+            {% if forloop.last %}
+              <tr class="fs14 rm-border">
+                <td class="fs14" colspan="16">
+                  <div class="row m0">
+                    <div class="col-xs-12 text-right">
+                      <span>Total Order Quantity :</span> {{ total_qty }}<br>
+                      {% if round_total %}
+                        <span>RoundOff value :</span> {{ round_total }}<br>
+                      {% endif %}
+                      <span><b>Total PO Amt :</b></span> {{ total }} <br>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="fs14 rm-border" colspan="16">
+                  <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{total_amt_in_words}}</span></b>
+                </td>
+              </tr>
+            {% endif %}
           {% endfor %}
         </tbody>
       </table>
+      <p>Remarks: {{remarks}}</p>
     </div>
-    {% if terms_condition %}
-    <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-top:10px">
-        <div class="col-md-12 col-sm-12 col-xs-12">
-            <b>Terms and Condition :</b>
+    <footer>
+      <table class="table table-bordered m0" style="border-top: 0px !important;">
+        <tbody>
+          <tr>
+            <td style="width: 40%">
+              <h4>Details:</h4>
+            </td>
+            <td style="width: 60%">
+              {% if terms_condition %}
+                <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12 text-left" style="margin-top:10px">
+                  <div class="col-md-12 col-sm-12 col-xs-12">
+                    <b>TERMS AND CONDITIONS :</b>
+                  </div>
+                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <p>{{ terms_condition|safe }}</p>
+                  </div>
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 fs14 table-bordered" colspan="16" style="border-top: 0px !important;padding: 22px;">
+        <div class="col-lg-4 col-md-4 col-xs-4 col-sm-4" align="center">
+          <h5 class="m0 text-left" style="margin-top: 35px !important;"><b>VERIFIED BY</b></h5>
         </div>
-        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <p>{{ terms_condition|safe }}</p>
+        <div class="col-lg-8 col-md-8 col-xs-8 col-sm-8">
+          <h5 class="m0 text-right">For {{ company_name }}</h5></br>
+          <h5 class="m0 text-right"><b>AUTHORISED SIGNATORY</b></h5>
         </div>
-    </div>
-    {% endif %}
-
+      </div>
+    </footer>
   </div>
 </div>

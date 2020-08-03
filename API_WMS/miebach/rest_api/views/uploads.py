@@ -1504,6 +1504,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                           only('ean_number', 'sku_code').values_list('ean_number', 'sku_code'))
     exist_ean_list = dict(EANNumbers.objects.filter(sku__user=user.id, sku__status=1).\
                           only('ean_number', 'sku__sku_code').values_list('ean_number', 'sku__sku_code'))
+    category_list = get_netsuite_mapping_list(['sku_category', 'service_category'])
+    class_list = get_netsuite_mapping_list(['sku_class'])
     for row_idx in range(1, no_of_rows):
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
@@ -1691,6 +1693,12 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             elif key == 'block_options':
                 if not cell_data in ['Yes', 'No', '']:
                     index_status.setdefault(row_idx, set()).add('Block For PO should be Yes/No')
+            elif key == 'sku_category':
+                if cell_data and cell_data not in category_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Category')
+            elif key == 'sku_class':
+                if cell_data and cell_data not in class_list:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Class')
             elif key == 'gl_code':
                 if cell_data:
                     if not isinstance(cell_data, (int,float)):
@@ -2137,6 +2145,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
     return 'success'
 
 def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
+    from masters import get_sku_category_internal_id
     try:
         sku_list_dict=[]
         intObj = Integrations(user,'netsuiteIntegration')
@@ -2151,13 +2160,30 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
             sku_master_data=intObj.gatherSkuData(sku_master_data)
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
-            sku_attr_dict.update({'department': department, "subsidiary":subsidary, "plant":plant, "product_type":"SKU"})
+            sku_category_internal_id= get_sku_category_internal_id(sku_attr_dict["sku_category"], "service_category")
+            sku_attr_dict["sku_category"]=sku_category_internal_id
+            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+            try:
+                from masters import get_uom_details
+                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+            except Exception as e:
+                pass
+            sku_attr_dict.update({'department': department,
+                "subsidiary":subsidary,
+                "plant":plant,
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom,
+                "product_type":"SKU"
+            })
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:
         print(e)
 
 def upload_netsuite_sku(data, user, instanceName=''):
+    from masters import get_sku_category_internal_id
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
@@ -2168,19 +2194,33 @@ def upload_netsuite_sku(data, user, instanceName=''):
             subsidary= user.userprofile.company.reference_id
         except Exception as e:
             print(e)
-        sku_data_dict.update({'department': department, "subsidiary":subsidary, "plant":plant})
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            from masters import get_uom_details
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
+        except Exception as e:
+            pass
+        sku_data_dict.update({'department': department,
+        "subsidiary":subsidary,
+        "plant":plant,
+        'unitypeexid': uom_type,
+        'stock_unit': stock_uom,
+        'purchase_unit': purchase_uom,
+        'sale_unit': sale_uom
+        })
         if instanceName == ServiceMaster:
             sku_data_dict.update({"product_type": "Service"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == AssetMaster:
+            sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+            sku_data_dict["sku_class"]=sku_category_internal_id
             sku_data_dict.update({"product_type": "Asset"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
         elif instanceName == OtherItemsMaster:
             sku_data_dict.update({"non_inventoryitem":True , "product_type": "OtherItem"})
-            intObj.integrateOtherItemsMaster(sku_data_dict, "sku_code" , is_multiple=False)
         else:
             sku_data_dict.update({"product_type":"SKU"})
-            intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
+        intObj.integrateSkuMaster(sku_data_dict, "sku_code" , is_multiple=False)
     except Exception as e:
         print(e)
 
@@ -3094,9 +3134,10 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                         if not cell_data_price :
                             index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
                         else:
-                            if isinstance(cell_data_price, (int, float)) :
-                                if cell_data_price > wms_check [0].mrp :
-                                    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
+                            if isinstance(cell_data_price, (int, float)):
+                                pass
+                                #if wms_check and cell_data_price > wms_check[0].mrp :
+                                #    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
                             else:
                                 index_status.setdefault(row_idx, set()).add('Price Should be Number')
                     elif cell_data == 'Margin Based' :
@@ -3149,6 +3190,9 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
 @get_admin_user
 def supplier_sku_upload(request, user=''):
     fname = request.FILES['files']
+    urlPath = request.META.get('HTTP_ORIGIN')
+    from rest_api.views.inbound import get_prs_with_sku_supplier_mapping, resubmit_prs
+    pr_ids_map = {}
     if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
         try:
             open_book = open_workbook(filename=None, file_contents=fname.read())
@@ -3225,6 +3269,12 @@ def supplier_sku_upload(request, user=''):
                         cell_data = float(cell_data)
                         supplier_data['price'] = cell_data
                         if cell_data and supplier_sku_instance:
+                            if cell_data != supplier_sku_instance.price:
+                                sku_code = supplier_sku_instance.sku.sku_code
+                                sp_id_sku = supplier_sku_instance.supplier.supplier_id
+                                prs_to_be_resubmitted = get_prs_with_sku_supplier_mapping(sku_code, sp_id_sku)
+                                for pr in prs_to_be_resubmitted:
+                                    pr_ids_map.setdefault(pr, {}).update({sku_code:cell_data})
                             supplier_sku_instance.price = cell_data
                     elif key == 'costing_type':
                         if not cell_data :
@@ -3257,6 +3307,7 @@ def supplier_sku_upload(request, user=''):
                     supplier_sku.save()
                 elif supplier_sku_instance:
                     supplier_sku_instance.save()
+            resubmit_prs(urlPath, pr_ids_map)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -9805,6 +9856,159 @@ def user_master_form(request, user=''):
     wb, ws = get_work_sheet('UOM Master', excel_headers)
     return xls_to_response(wb, '%s.user_master_form.xls' % str(user.username))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def tax_master_download(request, user=''):
+    excel_file = request.GET['download-tax-request-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(TAX_MASTER_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Tax Master', excel_headers)
+    return xls_to_response(wb, '%s.tax_master_form.xls' % str(user.username))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def tax_master_upload(request, user=''):
+    from rest_api.views.masters import save_tax_master
+    log.info('Tax Master Upload Started for %s and params are %s ' % (str(user.username),str(request.POST.dict())))
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status , tax_data = validate_tax_master_form(request , reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        upload_status = save_tax_master(tax_data ,user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Tax Master Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Tax Master Upload Failed")
+    if not upload_status == 'Success':
+        return HttpResponse(upload_status)
+    return HttpResponse('Success')
+
+@csrf_exempt
+def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+        index_status = {}
+        data_list = []
+        tax_data = {'data': []}
+        tax_mapping = copy.deepcopy(TAX_MASTER_MAPPING)
+        excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 tax_mapping)
+        if not set(['hsn_code']).issubset(excel_mapping.keys()):
+            return 'Invalid File', []
+        for row_idx in range(1, no_of_rows):
+            tax_obj=''
+            data_dict = {}
+            for key, value in excel_mapping.iteritems():
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if key == 'hsn_code':
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            cell_data = str(int(cell_data))
+                        data_dict['product_type'] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('HSN Code is Mandatory')
+                elif key == 'tax_type':
+                    if cell_data:
+                        if cell_data.lower() not in ['inter state','intra state']:
+                            index_status.setdefault(row_idx, set()).add('Invalid Tax Type')
+                        else:
+                            if cell_data.lower() == 'inter state':
+                                data_dict['inter_state'] = 1
+                                data_dict[key] = 'inter_state'
+                            else:
+                                data_dict['inter_state'] = 0
+                                data_dict[key] = 'intra_state'
+                            tax_obj = TaxMaster.objects.filter(user=user.id,
+                                                               product_type=data_dict.get('product_type', ''),
+                                                               inter_state=data_dict.get('inter_state', ''))
+                            if tax_obj.exists():
+                                tax_obj = tax_obj[0]
+                                data_dict['id'] = tax_obj.id
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Tax Type is Mandatory')
+
+                elif key == 'min_amt':
+                    if cell_data or cell_data == 0:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Min Amount must be Decimal Value')
+                        else:
+                            data_dict[key] = cell_data
+                            if tax_obj:
+                                if tax_obj.min_amt <= float(cell_data) < tax_obj.max_amt:
+                                    index_status.setdefault(row_idx, set()).add('Range Already Exists')
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Enter Minimum Amount')
+                elif key == 'max_amt':
+                    if cell_data or cell_data == 0:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Max Amount must be Decimal Value')
+                        else:
+                            data_dict[key] = cell_data
+                            if int(data_dict[key]) < int(data_dict['min_amt']):
+                                index_status.setdefault(row_idx, set()).add('Max Amount Should be Greater Than  Minimum amount')
+                            if tax_obj:
+                                if tax_obj.min_amt < float(cell_data) <= tax_obj.max_amt:
+                                    index_status.setdefault(row_idx, set()).add('Range Already Exists')
+                                else:
+                                    if tax_obj.max_amt <= float(data_dict['min_amt']) or float(data_dict['max_amt'])<= tax_obj.min_amt:
+                                        if 'id' in data_dict.keys():
+                                            del data_dict['id']
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Enter Minimum Amount')
+                elif key in ['igst_tax',]:
+                    if data_dict.get('tax_type','').lower() == 'intra_state':
+                        data_dict[key] = 0
+                        continue
+                    if not cell_data and cell_data != 0 and data_dict.get('tax_type','').lower() == 'inter_state':
+                            index_status.setdefault(row_idx, set()).add('Fill the IGST Column for the inter state')
+                    elif not isinstance(cell_data , float) and data_dict.get('tax_type','').lower() == 'inter_state' :
+                        index_status.setdefault(row_idx, set()).add('IGST Column must be in Decimals')
+                    else:
+                        data_dict[key] = cell_data
+                elif key in ['sgst_tax', 'cgst_tax',]:
+                    if data_dict.get('tax_type','').lower() == 'inter_state':
+                        data_dict[key] = 0
+                        continue
+                    if not cell_data and cell_data != 0 and data_dict.get('tax_type','').lower() == 'intra_state':
+                            index_status.setdefault(row_idx, set()).add('Fill the CGST  and SGST Column for the intra state')
+                    elif not isinstance(cell_data , float) and data_dict.get('tax_type','').lower() == 'intra_state':
+                        index_status.setdefault(row_idx, set()).add('CGST  and SGST Column must be in Decimals')
+                    else:
+                        data_dict[key] = cell_data
+                elif key in ['apmc_tax','cess_tax']:
+                    if cell_data:
+                        if not isinstance(cell_data, float):
+                            index_status.setdefault(row_idx, set()).add('Tax Values must be in Decimals')
+                        else:
+                            data_dict[key] = cell_data
+
+            data_dict['user_id']=user.id
+            tax_data['data'].append(data_dict)
+        if not index_status:
+            return 'Success', tax_data
+
+        if index_status and file_type == 'csv':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_csv_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
+
+        elif index_status and file_type == 'xls':
+            f_name = fname.name.replace(' ', '_')
+            file_path = rewrite_excel_file(f_name, index_status, reader)
+            if file_path:
+                f_name = file_path
+            return f_name, data_list
 
 @csrf_exempt
 @login_required
@@ -9990,7 +10194,7 @@ def uom_master_upload(request, user=''):
     company_id = get_company_id(user)
     uom_data_list=[]
     sku_dict={}
-    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list =[],[],[],[]
+    sku_list_data=[]
     for final_data in data_list:
         name = '%s-%s' % (final_data['uom'], str(int(final_data['conversion'])))
         final_data['name'] = name
@@ -9999,92 +10203,88 @@ def uom_master_upload(request, user=''):
         if not uom_obj:
             UOMMaster.objects.create(**final_data)
         sku_dict[final_data["sku_code"]]=True
+        sku_list_data.append(final_data["sku_code"])
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list=[],[],[],[]
+    intObj = Integrations(user,'netsuiteIntegration')
     for sku_code in sku_dict.keys():
         uom_data = gather_uom_master_for_sku(user, sku_code)
         uom_data_list.append(uom_data)
-        data= netsuite_sku_uom_update(sku_code, user)
-        if(data):
-            if data["instanceName"]==SKUMaster:
-                SKUMaster_list.append(data)
-            elif data["instanceName"]==ServiceMaster:
-                ServiceMaster_list.append(data)
-            elif data["instanceName"]==AssetMaster:
-                AssetMaster_list.append(data)
-            elif data["instanceName"]==OtherItemsMaster:
-                OtherItemsMaster_list.append(data)
-    intObj = Integrations(user,'netsuiteIntegration')
-    # # netsuite_integrateUOM(user, uom_data_list, intObj)
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list= netsuite_sku_uom_update(sku_list_data, user, intObj)
     intObj.IntegrateUOM(uom_data_list, 'name', is_multiple=True)
     if(SKUMaster_list):
         intObj.integrateSkuMaster(SKUMaster_list,"sku_code", is_multiple=True)
     if(ServiceMaster_list):
         intObj.integrateSkuMaster(ServiceMaster_list,"sku_code", is_multiple=True)
-        #intObj.integrateServiceMaster(ServiceMaster_list,"sku_code", is_multiple=True)
     if(AssetMaster_list):
         intObj.integrateSkuMaster(AssetMaster_list,"sku_code", is_multiple=True)
-        # intObj.integrateAssetMaster(AssetMaster_list,"sku_code", is_multiple=True)
     if(OtherItemsMaster_list):
-        intObj.integrateOtherItemsMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
+        intObj.integrateSkuMaster(OtherItemsMaster_list,"sku_code", is_multiple=True)
     return HttpResponse('Success')
 
-def netsuite_sku_uom_update(wms_code, user):
-    temp=True
-    instanceName = SKUMaster
-    data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
-    if(data):
-        temp=False
-    if(temp):
-        instanceName = ServiceMaster
-        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
-        if(data):
-            temp=False
-    if(temp):
-        instanceName = AssetMaster
-        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
-        if(data):
-            temp=False
-    if(temp):
-        instanceName = OtherItemsMaster
-        data=get_or_none(instanceName, {'wms_code': wms_code , 'user': user.id})
-        if(data):
-            temp=False
-    sku_data_dict={}
-    if(data):
-        sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=data.id).values_list('attribute_name','attribute_value'))
+def netsuite_sku_uom_update(sku_list_data, user,intObj):
+    from masters import get_sku_category_internal_id
+    all_skus= SKUMaster.objects.filter(user=user.id, sku_code__in=sku_list_data)
+    SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list =[],[],[],[]
+    for sku in all_skus:
+        sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=sku.id).values_list('attribute_name','attribute_value'))
+        sku_data_dict= intObj.gatherSkuData(sku)
+        sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
+        sku_data_dict["sku_category"]=sku_category_internal_id
+        department, plant, subsidary=[""]*3
         try:
-            sku_data_dict=gatherSkuData_uom(data)
-            if("hsn_code" in sku_data_dict):
-                sku_data_dict["hsn_code"]=""
-            department, plant, subsidary=get_plant_subsidary_and_department(user)
-            uom_type, stock_uom, purchase_uom, sale_uom="","","",""
-            try:
-                from masters import get_uom_details
-                uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
-            except Exception as e:
-                pass
-            sku_data_dict.update(
-                {
-                    'department': department,
-                    "subsidiary": subsidary,
-                    "plant": plant,
-                    'unitypeexid': uom_type,
-                    'stock_unit': stock_uom,
-                    'purchase_unit': purchase_uom,
-                    'sale_unit': sale_uom
-                }
-            )
-            if instanceName == ServiceMaster:
-                sku_data_dict.update({"ServicePurchaseItem":True, "instanceName": instanceName})
-            elif instanceName == AssetMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
-            elif instanceName == OtherItemsMaster:
-                sku_data_dict.update({"non_inventoryitem":True, "instanceName": instanceName})
-            else:
-                sku_data_dict.update({"instanceName": instanceName})
-                sku_data_dict.update(sku_attr_dict)
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
+        except Exception as e:
+            print(e)
+        uom_type, stock_uom, purchase_uom, sale_uom="","","",""
+        try:
+            from masters import get_uom_details
+            uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, sku.sku_code)
         except Exception as e:
             pass
-    return sku_data_dict
+        sku_data_dict.update(
+            {
+                'department': department,
+                "subsidiary": subsidary,
+                "plant": plant,
+                'unitypeexid': uom_type,
+                'stock_unit': stock_uom,
+                'purchase_unit': purchase_uom,
+                'sale_unit': sale_uom
+            }
+        )
+        instanceName = SKUMaster
+        try:
+            if sku.assetmaster:
+                sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_class"], "sku_class")
+                sku_data_dict["sku_class"]=sku_category_internal_id
+                sku_data_dict.update({"non_inventoryitem":True, "product_type": "Asset" , "instanceName": instanceName})
+                instanceName = AssetMaster
+                ServiceMaster_list.append(sku_data_dict)
+                continue
+        except:
+            pass
+        try:
+            if sku.servicemaster:
+                sku_data_dict.update({"ServicePurchaseItem":True, "product_type": "Service" , "instanceName": instanceName})
+                instanceName = ServiceMaster
+                AssetMaster_list.append(sku_data_dict)
+                continue
+        except:
+            pass
+        try:
+            if sku.otheritemsmaster:
+                instanceName = OtherItemsMaster
+                sku_data_dict.update({"non_inventoryitem":True,"product_type": "OtherItem",  "instanceName": instanceName})
+                OtherItemsMaster_list.append(sku_data_dict)
+                continue
+        except:
+            pass
+        if instanceName==SKUMaster :
+            sku_data_dict.update({"instanceName": instanceName, "product_type": "SKU"})
+            sku_data_dict.update(sku_attr_dict)
+            SKUMaster_list.append(sku_data_dict)
+    return SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list
 
 @csrf_exempt
 def validate_uom_master_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
@@ -10349,6 +10549,8 @@ def pending_pr_form(request, user=''):
     if excel_file:
         return error_file_download(excel_file)
     excel_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        excel_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
     excel_headers = excel_mapping.keys()
     wb, ws = get_work_sheet('Purchase Request', excel_headers)
     return xls_to_response(wb, '%s.purchase_request_form.xls' % str(user.username))
@@ -10374,6 +10576,17 @@ def pending_pr_upload(request, user=''):
     sku_code = data_list[0]['sku_code']
     priority_type = data_list[0]['priority_type']
     pr_delivery_date = data_list[0]['delivery_date']
+
+    plant_name = data_list[0].get('plant', '')
+    department_name = data_list[0].get('department_type', '')
+    if plant_name and department_name:
+        sister_whs = get_sister_warehouse(User.objects.get(Q(username=plant_name) | Q(first_name=plant_name)))
+        sister_wh_ids = sister_whs.values_list('user_id', flat=True)
+        DEPT_NAMES_MAPPING = dict([(value, key) for key, value in DEPARTMENT_TYPES_MAPPING.items()])
+        department_type = DEPT_NAMES_MAPPING.get(department_name)
+        dept_user_obj = User.objects.filter(id__in=sister_wh_ids, userprofile__stockone_code=department_type)
+        if dept_user_obj:
+            user = dept_user_obj[0]
     pr_number, prefix, full_pr_number, check_prefix, inc_status = get_user_prefix_incremental(user,
                                                                         'pr_prefix', sku_code)
     purchaseMap = {
@@ -10413,6 +10626,33 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
     index_status = {}
     data_list = []
     inv_mapping = copy.deepcopy(PENDING_PR_MAPPING)
+    if request.user.userprofile.warehouse_type != 'DEPT':
+        inv_mapping = copy.deepcopy(PENDING_PR_ADMIN_MAPPING)
+        company_list = get_companies_list(user, send_parent=True)
+        company_list = map(lambda d: d['id'], company_list)
+        department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+        staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
+        plants_list = []
+        department_type_list = []
+        if staff_obj:
+            staff_obj = staff_obj[0]
+            plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
+            plants_list = User.objects.filter(username__in=plants_list).values_list('first_name', flat=True)
+            if not plants_list:
+                parent_company_id = get_company_id(user)
+                company_id = staff_obj.company_id
+                if parent_company_id == staff_obj.company_id:
+                    company_id = ''
+                plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                          company_id=company_id)
+                plants_list = plant_objs.values_list('first_name', flat=True)
+            if staff_obj.department_type.filter():
+		department_type_names = data.department_type.filter().values_list('name', flat=True)
+            	for department_type_name in department_type_names:
+                	department_type_list.append({department_type_name: department_type_mapping.get(department_type_name, '')})
+            else:
+                department_type_list = department_type_mapping
+
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
@@ -10425,7 +10665,9 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=cell_data)
+                    sku_master = SKUMaster.objects.exclude(id__in=AssetMaster.objects.all()). \
+                        exclude(id__in=ServiceMaster.objects.all()). \
+                        exclude(id__in=OtherItemsMaster.objects.all()).filter(user=user.id, sku_code=cell_data)
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     else:
@@ -10461,6 +10703,24 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         data_dict[key] = cell_data
                 else:
                     data_dict[key] = 'normal'
+            elif key == 'plant':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in plants_list:
+                        index_status.setdefault(row_idx, set()).add('Proper plant name should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Plant should be mentioned.')
+            elif key == 'department_type':
+                if cell_data:
+                    cell_data = str(cell_data)
+                    if cell_data not in department_type_list.values():
+                        index_status.setdefault(row_idx, set()).add('Proper department type should be mentioned')
+                    else:
+                        data_dict[key] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Department type should be mentioned.')
 
         data_list.append(data_dict)
 

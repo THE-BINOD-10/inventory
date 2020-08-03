@@ -715,6 +715,8 @@ urlpatterns += [
     url(r'^grn_upload/$', grn_upload),
     url(r'^netsuite_mapping_form/$', netsuite_mapping_form),
     url(r'^netsuite_mapping_upload/$', netsuite_mapping_upload),
+    url(r'^tax_master_download/$', tax_master_download),
+    url(r'^tax_master_upload/$', tax_master_upload),
 
 
     # configurations

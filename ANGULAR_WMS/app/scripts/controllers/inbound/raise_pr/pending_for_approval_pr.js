@@ -185,11 +185,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data = {};
           vm.resubmitCheckObj = {};
           vm.is_resubmitted = false;
+          vm.resubmitting_user = data.data.resubmitting_user;
           vm.is_pa_resubmitted = false;
           if (!vm.resubmitting_user) {
               vm.is_pa_resubmitted = true;
           }
-          vm.resubmitting_user = data.data.resubmitting_user;
           angular.copy(empty_data, vm.model_data);
 
           if (vm.model_data.supplier_id){
@@ -275,7 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
               angular.forEach(vm.model_data.data, function(eachField){
-                if (sku_data.preferred_supplier != eachField.fields.supplier_id_name){
+                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
                   vm.is_pa_resubmitted = true;
                 }
               })
@@ -313,7 +313,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
       vm.current_pr = $rootScope.$current_pr
-      vm.dynamic_route(vm.current_pr);
+      if (vm.current_pr['approval_status'] == ''){
+        vm.dynamic_route(vm.current_pr); 
+      } else {
+        Service.showNoty("PR doesn't need to be processed..Either resubmitted or approved.");
+      }
+      // vm.dynamic_route(vm.current_pr);
       $rootScope.$current_pr = '';
     }
     vm.base = function() {
@@ -500,20 +505,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var sku_list = '';
       if (validation_type == "approved" && vm.permissions.change_pendinglineitems) {
         for (var i = 0; i < data.length; i++) {
-          if (vm.model_data.data[i].fields.supplierDetails != {}) {
-            var compare_gstin = vm.model_data.data[i].fields.supplierDetails[vm.model_data.data[i].fields.supplier_id_name].gstin
-            if ((compare_gstin != '' || compare_gstin != 0) && vm.model_data.data[i].fields['order_quantity'] > 0) {
-              if (!vm.model_data.data[i].fields.hsn_code || vm.model_data.data[i].fields.hsn_code == 0) {
-                status = false;
-                sku_list = sku_list + ', ' + vm.model_data.data[i].fields.sku.wms_code;
+          if (Object.keys(vm.model_data.data[i].fields.supplierDetails).length > 0 && vm.model_data.data[i].fields.supplier_id_name != '') {
+            if (typeof(vm.model_data.data[i].fields.supplierDetails[vm.model_data.data[i].fields.supplier_id_name]) != "undefined") {
+              var compare_gstin = vm.model_data.data[i].fields.supplierDetails[vm.model_data.data[i].fields.supplier_id_name].gstin
+              if ((compare_gstin != '' || compare_gstin != 0) && vm.model_data.data[i].fields['order_quantity'] > 0) {
+                if (!vm.model_data.data[i].fields.hsn_code || vm.model_data.data[i].fields.hsn_code == 0) {
+                  status = false;
+                  sku_list = sku_list + ', ' + vm.model_data.data[i].fields.sku.wms_code;
+                }
               }
+            } 
+          }
+          if (i+1 == data.length) {
+            if (!status) {
+              Service.showNoty('HSN Code Mandate for These Sku : ' + sku_list);
             }
-            if (i+1 == data.length) {
-              if (!status) {
-                Service.showNoty('HSN Code Mandate for These Sku : ' + sku_list);
-              }
-              return status;
-            }
+            return status;
           }
         }
       } else {
@@ -544,6 +551,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 keepGoing = false;
                 Service.showNoty('Price Should be provided by Purchase');
                 return;
+              }
+            } else if (key.name == 'order_quantity') {
+              if (key.value == '' || parseInt(key.value) <= 0) {
+                keepGoing = false;
+                Service.showNoty('Order Quantity cant be 0');
+                return; 
               }
             }
           });

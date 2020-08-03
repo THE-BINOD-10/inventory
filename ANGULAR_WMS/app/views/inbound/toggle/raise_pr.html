@@ -119,11 +119,23 @@
     border-radius: 50%;
     background: white;
   }
+  .form-control{
+    padding: 5px 4px;
+   }
+   .table > tbody > tr > td{
+      padding: 6px 4px;
+   }
+   .table > thead > tr> td{
+      padding: 6px 4px;
+   }
+   .sidebar-panel{
+      z-index: 1000;
+   }
 </style>
 
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
-    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
+    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width" style="font-size: xx-small;">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">

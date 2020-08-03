@@ -3134,9 +3134,10 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                         if not cell_data_price :
                             index_status.setdefault(row_idx, set()).add('Price is Mandatory For Price Based')
                         else:
-                            if isinstance(cell_data_price, (int, float)) :
-                                if cell_data_price > wms_check [0].mrp :
-                                    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
+                            if isinstance(cell_data_price, (int, float)):
+                                pass
+                                #if wms_check and cell_data_price > wms_check[0].mrp :
+                                #    index_status.setdefault(row_idx, set()).add('Price Should be Less than or Equal to MRP')
                             else:
                                 index_status.setdefault(row_idx, set()).add('Price Should be Number')
                     elif cell_data == 'Margin Based' :

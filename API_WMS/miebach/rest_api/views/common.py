@@ -1359,13 +1359,27 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
         pac_filter2 = copy.deepcopy(pac_filter1)
+        pac_filter2['sku_category'] = ''
+        # that plant that department without sku category
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+    if not purchase_config:
+        pac_filter2 = copy.deepcopy(pac_filter1)
         pac_filter2['plant'] = ''
         #all plants that department
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+        if not purchase_config:
+            pac_filter2['sku_category'] = ''
+            #all plants that department without sku category
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
     if not purchase_config:
         pac_filter1['department_type'] = ''
         # that plant all departments
-        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
+        pac_filter2 = copy.deepcopy(pac_filter1)
+        purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
+        if not purchase_config:
+            pac_filter2['sku_category'] = ''
+            #that plant all departments without sku category
+            purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
     if not purchase_config:
         # all plants all departments
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter)

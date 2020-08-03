@@ -389,15 +389,14 @@ class Integrations():
 
 
     def getRelatedJson(self, recordType, action='upsert'):
-        date_from = datetime.datetime.now() - datetime.timedelta(days=1)
         rows = IntegrationMaster.objects.filter(
             user=self.userObject,
             integration_type=self.integration_type,
             module_type=recordType,
             action_type=action,
             status=False,
-            creation_date__gte=date_from
-        ).exclude(integration_errors__contains='Please enter value',integration_errors__contains='Nonexistent externalId')
+            integration_error__in=["null","","-"]
+        )
         data = []
         try:
             for row in rows:

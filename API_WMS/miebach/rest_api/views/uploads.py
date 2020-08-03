@@ -2170,7 +2170,7 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
                 pass
             sku_attr_dict.update({'department': department,
                 "subsidiary":subsidary,
-                "plant":plant, 
+                "plant":plant,
                 'unitypeexid': uom_type,
                 'stock_unit': stock_uom,
                 'purchase_unit': purchase_uom,
@@ -2202,7 +2202,7 @@ def upload_netsuite_sku(data, user, instanceName=''):
             uom_type, stock_uom, purchase_uom, sale_uom = get_uom_details(user, data.sku_code)
         except Exception as e:
             pass
-        sku_data_dict.update({'department': department, 
+        sku_data_dict.update({'department': department,
         "subsidiary":subsidary,
         "plant":plant,
         'unitypeexid': uom_type,
@@ -10259,21 +10259,21 @@ def netsuite_sku_uom_update(sku_list_data, user,intObj):
                 sku_data_dict["sku_class"]=sku_category_internal_id
                 sku_data_dict.update({"non_inventoryitem":True, "product_type": "Asset" , "instanceName": instanceName})
                 instanceName = AssetMaster
-                ServiceMaster_list.appen(sku_data_dict)
+                ServiceMaster_list.append(sku_data_dict)
                 continue
         except:
             pass
         try:
             if sku.servicemaster:
                 sku_data_dict.update({"ServicePurchaseItem":True, "product_type": "Service" , "instanceName": instanceName})
-                instanceName = AssetMaster
+                instanceName = ServiceMaster
                 AssetMaster_list.append(sku_data_dict)
                 continue
         except:
             pass
         try:
             if sku.otheritemsmaster:
-                instanceName = AssetMaster
+                instanceName = OtherItemsMaster
                 sku_data_dict.update({"non_inventoryitem":True,"product_type": "OtherItem",  "instanceName": instanceName})
                 OtherItemsMaster_list.append(sku_data_dict)
                 continue

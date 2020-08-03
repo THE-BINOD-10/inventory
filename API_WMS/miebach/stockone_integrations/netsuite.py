@@ -162,7 +162,8 @@ class netsuiteIntegration(object):
             rtvitem.entity = str(rtv_data["supplier_name"])
             rtvitem.tranId = rtv_data['rtv_number']
             rtvitem.orderStatus = ns.RecordRef(internalId='B')
-            rtvitem.location = ns.RecordRef(internalId=297)
+            # rtvitem.location = ns.RecordRef(internalId=297) #UAT Location Internal id
+            rtvitem.location = ns.RecordRef(internalId=327) # Prod Internal Id
             # rtvitem.tranId = rtv_data["invoice_num"] if rtv_data["invoice_num"] else None
             rtvitem.date = rtv_data["date_of_issue_of_original_invoice"] if rtv_data["date_of_issue_of_original_invoice"] else None
             rtvitem.createdFrom = ns.RecordRef(externalId=rtv_data["po_number"])
@@ -192,7 +193,8 @@ class netsuiteIntegration(object):
                 'orderLine': idx+1,
                 'rate': data['price'],
                 'quantity': data['order_qty'],
-                'location': ns.RecordRef(internalId=297),
+                # 'location': ns.RecordRef(internalId=297),  #UAT Location Internal ID
+                'location': ns.RecordRef(internalId=327),  #Prod Internal ID
                 # 'itemReceive': True
                 'description': data['sku_desc'],
                 "customFieldList": ns.CustomFieldList(rtv_custom_field_list)
@@ -356,8 +358,8 @@ class netsuiteIntegration(object):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_shiptoaddress', value=po_data['ship_to_address']))
             if(product_list_id):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id))
-            po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=27)))
-
+            if po_data.get("place_of_supply",None):
+                po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply'])))
             if(po_data.get('approval2',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver2', value=po_data['approval2']))
             if(po_data.get('approval3',None)):

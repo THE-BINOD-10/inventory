@@ -3242,7 +3242,7 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
      ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
-     ('HEADW', 'Head Office - Worli')])
+     ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1')])
 
 STAFF_MASTER_MAPPING = OrderedDict(
     (('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),

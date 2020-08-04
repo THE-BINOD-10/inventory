@@ -20,7 +20,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+        <tr ng-repeat="(index, product) in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
@@ -67,9 +67,11 @@
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
           <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
           <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
-          <td>
+          <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+            <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(index, false)"></i>
+            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>
+          </td>
         </tr>
       </tbody>
     </table>

@@ -1496,7 +1496,10 @@ vm.checkWHSupplierExist  = function (sup_id) {
   function get_staff_plants_list() {
     vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
       if(data.message) {
-        vm.plants_list = data.data.plants_list;
+        // vm.plants_list = data.data.plants_list;
+        angular.forEach(Object.keys(data.data.plants_list).sort(), function(dat){
+          vm.plants_list[dat] = data.data.plants_list[dat];
+        })
         vm.department_type_list = data.data.department_type_list;
         vm.department_type_mapping = data.data.department_type_list;
       }

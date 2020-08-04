@@ -157,7 +157,7 @@
               <label class="control-label">Plant *</label>
               <select class="form-control" name="plant"
               ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()" required>
-                <option ng-repeat="(plant_code, plant_name) in showCase.plants_list"
+                <option ng-repeat="(plant_name, plant_code) in showCase.plants_list"
                         value="{{plant_code}}">{{plant_name}}
                 </option>
               </select>

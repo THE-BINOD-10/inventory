@@ -12874,7 +12874,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -12882,7 +12882,7 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('username', 'first_name'))
+            plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)

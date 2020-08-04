@@ -41,7 +41,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
         DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
                         return vm.service.status(full.status);
-                        }).withOption('width', '80px')
+                        }).withOption('width', '80px'),
+        DTColumnBuilder.newColumn('group_keys').withTitle('Groups'),
     ];
 
     vm.dtInstance = {};

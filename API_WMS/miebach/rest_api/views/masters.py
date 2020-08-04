@@ -799,6 +799,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
             elif wh_user.userprofile.warehouse_type in ['DEPT']:
                 #plant = get_admin(wh_user).username
                 department = wh_user.username
+        group_keys = ','.join(group_names)
         data_dict = OrderedDict((('staff_code', data.staff_code), ('name', data.staff_name),
                                  ('company', data.company.company_name),
                                  ('warehouse', plant), ('department', department),
@@ -808,7 +809,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
                                  ('email_id', data.email_id), ('reportingto_email_id', data.reportingto_email_id),
                                  ('phone_number', phone_number),
                                  ('status', status), ('company_id', data.company.id),
-                                 ('groups', group_names), ('warehouse_names', warehouse_names),
+                                 ('groups', group_names), ('warehouse_names', warehouse_names), ('group_keys', group_keys),
                          ('DT_RowId', data.id), ('DT_RowClass', 'results'),
                          ))
         temp_data['aaData'].append(data_dict)

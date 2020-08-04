@@ -9,6 +9,7 @@
           <!-- <th>Brand</th> -->
           <th>Type</th>
           <th class="w10_">Quantity*</th>
+          <th>UOM</th>
           <th>Base Price excluding GST</th>
           <th>Tax</th>
           <th class="plus"></th>
@@ -43,15 +44,18 @@
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
-          <td class="text-center"> 
-            <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          </td>
+          <td class="text-center">
+            <input ng-model="product.fields.temp_price" type="text" name="temp_price"
               class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" 
+              ng-class="service.get_decimal_perm()"
               size="12">
           </td>
-          <td class="text-center"> 
+          <td class="text-center">
             <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-            </span> --> 
+            </span> -->
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
               ng-class="service.get_decimal_perm()" size="12">
           </td>

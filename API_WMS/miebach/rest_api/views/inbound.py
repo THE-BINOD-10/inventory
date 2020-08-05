@@ -619,7 +619,7 @@ def get_pending_enquiry(request, user=''):
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
             search_params = {'sku__user': user.id}
             master_data = SKUMaster.objects.get(id=sku_id)
-            sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+            sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
                 skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                         search_params, includeStoreStock=True)
@@ -1630,7 +1630,7 @@ def generated_pr_data(request, user=''):
                 temp_tax = ''
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
-        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+        sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
@@ -1758,7 +1758,7 @@ def generated_actual_pr_data(request, user=''):
             service_edate = service_edate.strftime('%d-%m-%Y')
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
-        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+        sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
             model_id=lineItemId)
         if updatedLineItem.exists():

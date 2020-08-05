@@ -27,7 +27,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Item Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN'">
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.user_profile.warehouse_type !='ADMIN' || showCase.update">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

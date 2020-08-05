@@ -37,7 +37,7 @@ def upload_po_data(file_location):
     df = pd.read_excel(file_location, header=1)
     data= df.groupby('PO No').apply(lambda x: x.to_dict(orient='r')).to_dict()
     for key, value in data.iteritems():
-        sku_code = value[0]['StockOne SKU Code
+        sku_code = value[0]['StockOne SKU Code']
         user=''
         try:
             user=UserProfile.objects.get(stockone_code=value[0]['StockOne Plant ID']).user

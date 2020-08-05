@@ -729,8 +729,9 @@ PR_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PR Submitted Date', 'PR raised By ( User Name)', 'PR raised By ( User Plant name)',
                    'PR raised By ( User department name)', 'Product Category', 'Category', 'Quantity', 'UOM',
-                   'Priority Type', 'Total Amount','PR Status', 'Approver 1 Status', 'Approver 2 Status',
-                   'Approver 3 Status', 'Approver 4 Status','Approver 5 Status', 'Last Updated By', 'Last Updated Date',
+                   'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Status', 'Approver 2',
+                   'Approver 2 Status','Approver 3','Approver 3 Status', 'Approver 4', 'Approver 4 Status',
+                   'Approver 5','Approver 5 Status', 'Last Updated By', 'Last Updated Date',
                    'Remarks'],
 
     'dt_url': 'get_pr_report', 'excel_name': 'get_pr_report',
@@ -755,9 +756,9 @@ PR_DETAIL_REPORT_DICT = {
     'dt_headers': ['PR Number', 'PR Submitted Date', 'PR raised By ( User Name)', 'PR raised By ( User plant name)',
                    'PR raised By ( User department name)','Product Category', 'Category', 'Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category','SKU Sub-Category','SKU Group', 'SKU Class',
-                   'Quantity', 'UOM', 'Priority Type', 'Total Amount','PR Status', 'Approver 1 Status','Approver 2 Status',
-                   'Approver 3 Status', 'Approver 4 Status','Approver 5 Status', 'Last Updated By','Last Updated Date',
-                   'Remarks'],
+                   'Quantity', 'UOM', 'Priority Type', 'Total Amount','PR Status','Approver 1', 'Approver 1 Status',
+                   'Approver 2','Approver 2 Status', 'Approver 3','Approver 3 Status', 'Approver 4','Approver 4 Status',
+                   'Approver 5', 'Approver 5 Status', 'Last Updated By','Last Updated Date','Remarks'],
 
     'dt_url': 'get_pr_detail_report', 'excel_name': 'get_pr_detail_report',
     'print_url': 'get_pr_detail_report',
@@ -13134,6 +13135,7 @@ def get_pr_report_data(search_params, user, sub_user):
         results = pending_data
     count = 0
     for result in results:
+        approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']
@@ -13181,6 +13183,7 @@ def get_pr_report_data(search_params, user, sub_user):
                 if approver_1.get('status') == 'approved':
                     approver1_status = 'Yes'
                     last_updated_by = approver_1.get('validated_by')
+                    approver_1_details = approver_1.get('validated_by')
                     last_remarks = approver_1.get('remarks','')
                     final_updated_time = approver_1.get('updation_date')
                     if final_updated_time:
@@ -13189,6 +13192,7 @@ def get_pr_report_data(search_params, user, sub_user):
                 else:
                     approver1_status = 'No'
                     last_updated_by = approver_1.get('validated_by')
+                    approver_1_details = approver_1.get('validated_by')
                     last_remarks = approver_1.get('remarks', '')
                     final_updated_time = approver_1.get('updation_date')
                     if final_updated_time:
@@ -13197,8 +13201,10 @@ def get_pr_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver2'):
                 approver_2 = all_approver_details.get('level_approver2')
+                approver_2_details = ''
                 if approver_2.get('status') == 'approved':
                     approver2_status = 'Yes'
+                    approver_2_details = approver_2.get('validated_by')
                     last_updated_by = approver_2.get('validated_by')
                     last_remarks = approver_2.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13207,6 +13213,7 @@ def get_pr_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver2_status = 'No'
+                    approver_2_details = approver_2.get('validated_by')
                     last_updated_by = approver_2.get('validated_by')
                     last_remarks = approver_2.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13216,8 +13223,10 @@ def get_pr_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver3'):
                 approver_3 = all_approver_details.get('level_approver3')
+                approver_3_details = ''
                 if approver_3.get('status') == 'approved':
                     approver3_status = 'Yes'
+                    approver_3_details = approver_3.get('validated_by')
                     last_updated_by = approver_3.get('validated_by')
                     last_remarks = approver_3.get('remarks', '')
                     final_updated_time = approver_3.get('updation_date')
@@ -13227,6 +13236,7 @@ def get_pr_report_data(search_params, user, sub_user):
                 else:
                     approver3_status = 'No'
                     last_updated_by = approver_3.get('validated_by')
+                    approver_3_details = approver_3.get('validated_by')
                     last_remarks = approver_3.get('remarks', '')
                     final_updated_time = approver_3.get('updation_date')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13235,8 +13245,10 @@ def get_pr_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver4'):
                 approver_4 = all_approver_details.get('level_approver4')
+                approver_4_details = ''
                 if approver_4.get('status') == 'approved':
                     approver4_status = 'Yes'
+                    approver_4_details = approver_4.get('validated_by')
                     last_updated_by = approver_4.get('validated_by')
                     last_remarks = approver_4.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13245,6 +13257,7 @@ def get_pr_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver4_status = 'No'
+                    approver_4_details = approver_4.get('validated_by')
                     last_updated_by = approver_4.get('validated_by')
                     last_remarks = approver_4.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13254,8 +13267,10 @@ def get_pr_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
+                approver_5_details = ''
                 if approver_5.get('status') == 'approved':
                     approver5_status = 'Yes'
+                    approver_5_details = approver_5.get('validated_by')
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13264,6 +13279,7 @@ def get_pr_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver5_status = 'No'
+                    approver_5_details = approver_5.get('validated_by')
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_1.get('pending_pr__final_status')
@@ -13284,6 +13300,11 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Total Amount',round(result['total_amt'],4)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
+            ('Approver 1', approver_1_details),
+            ('Approver 2', approver_2_details),
+            ('Approver 3', approver_3_details),
+            ('Approver 4', approver_4_details),
+            ('Approver 5', approver_5_details),
             ('Approver 1 Status', approver1_status),
             ('Approver 2 Status', approver2_status),
             ('Approver 3 Status', approver3_status),
@@ -13398,6 +13419,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         results = pending_data
     count = 0
     for result in results:
+        approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         final_status = 'Pending'
@@ -13441,9 +13463,11 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver1'):
                 approver_1 = all_approver_details.get('level_approver1')
+                approver_1_details = ''
                 if approver_1.get('status') == 'approved':
                     approver1_status = 'Yes'
                     last_updated_by = approver_1.get('validated_by')
+                    approver_1_details = approver_1.get('validated_by')
                     last_remarks = approver_1.get('remarks','')
                     final_updated_time = approver_1.get('updation_date')
                     if final_updated_time:
@@ -13452,6 +13476,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 else:
                     approver1_status = 'No'
                     last_updated_by = approver_1.get('validated_by')
+                    approver_1_details = approver_1.get('validated_by')
                     last_remarks = approver_1.get('remarks', '')
                     final_updated_time = approver_1.get('updation_date')
                     if final_updated_time:
@@ -13460,9 +13485,11 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver2'):
                 approver_2 = all_approver_details.get('level_approver2')
+                approver_2_details = ''
                 if approver_2.get('status') == 'approved':
                     approver2_status = 'Yes'
                     last_updated_by = approver_2.get('validated_by')
+                    approver_2_details = approver_2.get('validated_by')
                     last_remarks = approver_2.get('remarks', '')
                     final_status = approver_2.get('pending_pr__final_status')
                     final_updated_time = approver_2.get('updation_date')
@@ -13471,6 +13498,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                 else:
                     approver2_status = 'No'
                     last_updated_by = approver_2.get('validated_by')
+                    approver_2_details = approver_2.get('validated_by')
                     last_remarks = approver_2.get('remarks', '')
                     final_status = approver_2.get('pending_pr__final_status')
                     final_updated_time = approver_2.get('updation_date')
@@ -13479,8 +13507,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver3'):
                 approver_3 = all_approver_details.get('level_approver3')
+                approver_3_details = ''
                 if approver_3.get('status') == 'approved':
                     approver3_status = 'Yes'
+                    approver_3_details = approver_3.get('validated_by')
                     last_updated_by = approver_3.get('validated_by')
                     last_remarks = approver_3.get('remarks', '')
                     final_updated_time = approver_3.get('updation_date')
@@ -13489,6 +13519,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver3_status = 'No'
+                    approver_3_details = approver_3.get('validated_by')
                     last_updated_by = approver_3.get('validated_by')
                     last_remarks = approver_3.get('remarks', '')
                     final_status = approver_3.get('pending_pr__final_status')
@@ -13497,8 +13528,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
             if all_approver_details.get('level_approver4'):
                 approver_4 = all_approver_details.get('level_approver4')
+                approver_4_details = ''
                 if approver_4.get('status') == 'approved':
                     approver4_status = 'Yes'
+                    approver_4_details = approver_4.get('validated_by')
                     last_updated_by = approver_4.get('validated_by')
                     last_remarks = approver_4.get('remarks', '')
                     final_status = approver_4.get('pending_pr__final_status')
@@ -13507,6 +13540,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver4_status = 'No'
+                    approver_4_details = approver_4.get('validated_by')
                     last_updated_by = approver_4.get('validated_by')
                     last_remarks = approver_4.get('remarks', '')
                     final_status = approver_4.get('pending_pr__final_status')
@@ -13516,8 +13550,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
 
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
+                approver_5_details = ''
                 if approver_5.get('status') == 'approved' or 'pr_':
                     approver5_status = 'Yes'
+                    approver_5_details = approver_5.get('validated_by')
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_5.get('pending_pr__final_status')
@@ -13526,6 +13562,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 else:
                     approver5_status = 'No'
+                    approver_5_details = approver_5.get('validated_by')
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_5.get('pending_pr__final_status')
@@ -13553,6 +13590,11 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             ('Total Amount', round(result['total_amt'], 3)),
             ('Priority Type', result['pending_pr__priority_type']),
             ('PR Status', final_status.title()),
+            ('Approver 1', approver_1_details),
+            ('Approver 2', approver_2_details),
+            ('Approver 3', approver_3_details),
+            ('Approver 4', approver_4_details),
+            ('Approver 5', approver_5_details),
             ('Approver 1 Status', approver1_status),
             ('Approver 2 Status', approver2_status),
             ('Approver 3 Status', approver3_status),

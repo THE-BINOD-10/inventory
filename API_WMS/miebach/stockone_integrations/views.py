@@ -394,7 +394,8 @@ class Integrations():
             integration_type=self.integration_type,
             module_type=recordType,
             action_type=action,
-            status=False
+            status=False,
+            integration_error__in=["null","","-"]
         )
         data = []
         try:

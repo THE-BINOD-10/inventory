@@ -12887,7 +12887,7 @@ def get_staff_plants_list(request, user=''):
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
             for dept_name in dept_list:
-                department_type_list = {dept_name: department_type_mapping[dept_name]}
+                department_type_list[dept_name] = department_type_mapping[dept_name]
         else:
             department_type_list = department_type_mapping
     return HttpResponse(json.dumps({'plants_list': plants_list, 'department_type_list': department_type_list}))

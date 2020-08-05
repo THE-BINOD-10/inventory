@@ -142,7 +142,9 @@ def upload_po_data(file_location):
                 order.updation_date= po_date_time
                 order.po_date= po_date_time
                 order.save()
-            data_dict={'terms_condition': '',"delivery_date":'', 'ship_to_address':""}
+            po_date_time =datetime.strptime(value[0]["PO date"], '%d.%m.%Y')
+            delivery_date= po_date_time.strftime('%d-%m-%Y')
+            data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
             try:
                 netsuite_po(int(po_id), user, "open_po", data_dict, str(key), product_category, None, "")
             except Exception as e:

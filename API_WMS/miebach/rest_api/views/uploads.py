@@ -37,14 +37,26 @@ def upload_po_data(file_location):
     df = pd.read_excel(file_location, header=1)
     data= df.groupby('PO No').apply(lambda x: x.to_dict(orient='r')).to_dict()
     for key, value in data.iteritems():
-        sku_code = value[0]['StockOne SKU Code']
+        sku_code = value[0]['StockOne SKU Code
+        user=''
         try:
             user=UserProfile.objects.get(stockone_code=value[0]['StockOne Plant ID']).user
         except  Exception as e:
+            print(e, "\nplant_id:", value[0]['StockOne Plant ID'], "po_number", key, "sku_code", sku_code)
+            # log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+            pass
+        if not user:
+            try:
+                user=UserProfile.objects.get(stockone_code="0"+str(value[0]['StockOne Plant ID'])).user
+            except  Exception as e:
+                log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                continue
+        try:
+            po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+            if inc_status:
+                continue
+        except Exception as e:
             log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-            continue
-        po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
-        if inc_status:
             continue
         flag=True
         for row in value:
@@ -65,7 +77,7 @@ def upload_po_data(file_location):
                 break
                 flag= False
         po_data = {'open_po_id': '', 'status': '', 'received_quantity': 0}
-        product_category=None
+        product_category="Kits&Consumables"
         if flag==True:
             log.info("PO upload started for PO_number =%s and data = " % str(key),str(value))
             for row in value:

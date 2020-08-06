@@ -33,6 +33,7 @@ log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
 receive_po_qc_log = init_logger('logs/receive_po_qc.log')
 inbound_payment_log = init_logger('logs/inbound_payment.log')
+pr_doa_log = init_logger('logs/pr_doa.log')
 
 
 NOW = datetime.datetime.now()
@@ -4545,6 +4546,7 @@ def add_pr(request, user=''):
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
+            pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4604,6 +4606,7 @@ def add_pr(request, user=''):
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
+                pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:

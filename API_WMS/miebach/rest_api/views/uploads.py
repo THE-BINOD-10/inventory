@@ -1480,7 +1480,7 @@ def validate_substitutes_form(request, reader, user, no_of_rows, no_of_cols, fna
 
 @csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={},
-                        is_asset=False, is_service=False, is_test=False):
+                        is_asset=False, is_service=False, is_test=False, is_item=False):
     sku_data = []
     wms_data = []
     index_status = {}
@@ -1493,6 +1493,9 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
         sku_file_mapping = get_service_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     if is_test:
         sku_file_mapping = get_test_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if is_item:
+        instanceName = OtherItemsMaster
+        sku_file_mapping = get_otheritem_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
 
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     zones_dict = dict(ZoneMaster.objects.filter(user=user.id).values_list('zone', 'id'))
@@ -2377,7 +2380,7 @@ def otheritems_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type)
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_item=True)
         if status != 'Success':
             return HttpResponse(status)
         sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type, is_item=True)

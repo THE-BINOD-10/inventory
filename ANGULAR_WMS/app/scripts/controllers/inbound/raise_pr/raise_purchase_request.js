@@ -1148,6 +1148,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       product.fields.apmc_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.fields.temp_tax= item.temp_tax;
       product.fields.openpr_qty = item.openpr_qty;
       product.fields.available_qty = item.available_qty;
       product.fields.openpo_qty = item.openpo_qty;

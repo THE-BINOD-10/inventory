@@ -64,18 +64,18 @@ def upload_po_data(file_location):
                 sku_id = SKUMaster.objects.filter(wms_code=row['StockOne SKU Code'].upper(), user=user.id)
                 if not row['Pending Qty'] or not sku_id:
                     log.info('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
-                    break
                     flag= False
+                    break
                 try:
                     supplier = SupplierMaster.objects.get(user=user.id, supplier_id__contains=row['Vendor Code'])
                 except Exception as e:
                     log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-                    break
                     flag= False
+                    break
             else:
                 log.info('PO Upload failed for %s and params are %s and PO error is StockOne SKU Code or StockOne Plant ID is empty' % (str(key), str(value)))
-                break
                 flag= False
+                break
         po_data = {'open_po_id': '', 'status': '', 'received_quantity': 0}
         product_category="Kits&Consumables"
         if flag==True:

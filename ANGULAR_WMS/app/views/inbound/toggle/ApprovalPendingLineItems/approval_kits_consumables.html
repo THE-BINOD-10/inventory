@@ -8,8 +8,9 @@
         <th>Title</th>
         <th>HSN Code</th>
         <th class="w10_">Quantity*</th>
-        <th>No.Of Tests</th>
-        <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+        <th>UOM</th>
+        <th>No.Of Base Units</th>
+        <th>Base UOM</th>
         <th>MOQ</th>
         <th>Unit Rate(INR)</th>
         <th>Amount(INR)</th>
@@ -69,14 +70,17 @@
                  size="12">
         </td>
         <td>
+          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+        </td>
+        <td>
           <input ng-model="product.fields.conversion" type="text" name="no_of_tests"
                  class="form-control detectTab"
                  ng-class="service.get_decimal_perm()" ng-readonly="true"
                  size="12">
         </td>
-        <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
-        </td>
+        <td>
+            <input ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
+          </td>
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span> 
           <input type="text" name="moq" ng-model="product.fields.moq" class="hide">

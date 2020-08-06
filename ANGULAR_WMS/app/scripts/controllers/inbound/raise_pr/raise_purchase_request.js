@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
                     "Total Quantity", "PR Created Date", "Store", "Department",
-                    "PR Raise By",  "Validation Status", "Pending Level", 
+                    "PR Raise By",  "Validation Status", "Pending Level",
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -308,7 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.checkResubmitPurchaseApprover = function(sku_data) {
             if (!vm.resubmitting_user) {
               vm.is_pa_resubmitted = true;
-              return;    
+              return;
             }
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
@@ -473,22 +473,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }
-    
+
     vm.update_data = function (index, special_flag=true) {
       var emptylineItems = {}
       emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
                           }
       // if (product_category == 'Kits&Consumables'){
       //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
       //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
       //                     }
       // } else if (product_category == 'Assets'){
       //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
       //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
       //                     }
       // }
       if (index == vm.model_data.data.length-1 && special_flag) {
@@ -627,7 +627,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.customSelectAll = function(allSelected){
       angular.forEach(vm.preview_data.data, function(cbox) {
         allSelected?cbox.checkbox=true:cbox.checkbox=false;
-      })      
+      })
     }
 
     vm.getColor = function(data){
@@ -712,7 +712,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
           // };
         }
-      });   
+      });
       vm.service.alert_msg("Sending Selected SKUS to Parent Store").then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
@@ -724,7 +724,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.service.pop_msg(data.data);
               }
             }
-          });          
+          });
         }
       });
     }
@@ -747,7 +747,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     //   });
     //   modalInstance.result.then(function (selectedItem) {
     //     if (selectedItem){
-    //       lineItem.is_doa_sent = true;          
+    //       lineItem.is_doa_sent = true;
     //     }
     //     vm.display_vision = {'display': 'block'};
     //     console.log(selectedItem);
@@ -831,7 +831,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
-        });  
+        });
       }
       // var files = $(".pr_form").find('[name="files"]')[0].files;
       // $.each(files, function(i, file) {
@@ -1367,7 +1367,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.sub_total = 0;
       if (data.fields.temp_price){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
-            Service.showNoty('Price cant be more than Base Price'); 
+            Service.showNoty('Price cant be more than Base Price');
             data.fields.price = 0
         }
       }

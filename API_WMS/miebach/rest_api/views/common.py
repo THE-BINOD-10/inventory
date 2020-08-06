@@ -4949,7 +4949,7 @@ def get_uom_data(user, master_data, uom_type):
     if sku_uom.exists():
         measurement_unit = sku_uom[0].uom
         sku_conversion = float(sku_uom[0].conversion)
-        base_uom = sku_uom[0].name
+        base_uom = sku_uom[0].base_uom
     else:
         measurement_unit = master_data.measurement_type
         sku_conversion = 0
@@ -5236,7 +5236,7 @@ def build_search_data(user, to_data, from_data, limit):
             if sku_uom.exists():
                 measurement_unit = sku_uom[0].uom
                 sku_conversion = float(sku_uom[0].conversion)
-                base_uom = sku_uom[0].name
+                base_uom = sku_uom[0].base_uom
             else:
                 measurement_unit = data.measurement_type
                 sku_conversion = 0

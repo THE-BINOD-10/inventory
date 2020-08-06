@@ -1910,6 +1910,7 @@ def generated_actual_pr_data(request, user=''):
                                     'price': price,
                                     'measurement_unit': measurement_unit,
                                     'conversion': sku_conversion,
+                                    'base_uom': base_uom,
                                     'gl_code': gl_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,

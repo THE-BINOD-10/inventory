@@ -13908,21 +13908,34 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('po_tax_amount', 0), pr_amount_details.get('po_total_amount', 0)
 
         quantity_data = SellerPOSummary.objects.filter(purchase_order__open_po=result['pending_po__open_po'])
-        grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
-        if quantity_data.exists():
-            grn_number = quantity_data[0].grn_number
-        po_user_data = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
-                                                        purchase_type='PO').last()
-        if po_user_data:
-            version_obj = Version.objects.get_for_object(po_user_data)
-            if version_obj.exists():
-                updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
-        if result['pending_po__open_po__vendor__vendor_id']:
-            vendor_code = result['pending_po__open_po__vendor__vendor_id']
-        if result['pending_po__open_po__vendor__name']:
-            vendor_name = result['pending_po__open_po__vendor__name']
+        # grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
+        # if quantity_data.exists():
+        #     grn_number = quantity_data[0].grn_number
+        # po_user_data = PurchaseApprovals.objects.filter(pending_po__full_po_number=result['pending_po__full_po_number'],
+        #                                                 purchase_type='PO').last()
+        # if po_user_data:
+        #     version_obj = Version.objects.get_for_object(po_user_data)
+        #     if version_obj.exists():
+        #         updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
+        # if result['pending_po__open_po__vendor__vendor_id']:
+        #     vendor_code = result['pending_po__open_po__vendor__vendor_id']
+        # if result['pending_po__open_po__vendor__name']:
+        #     vendor_name = result['pending_po__open_po__vendor__name']
+        # if result['pending_po__delivery_date']:
+        #     delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
+        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
+        grn_numbers, updated_user_name, delivery_date = [], '', ''
+        if grn_data.exists():
+            for g_data in grn_data:
+                grn_numbers.append(g_data.grn_number)
+            grn_numbers = set(grn_numbers)
+        updated_user_name = result['pending_po__requested_user__email']
+        last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
+        if last_updated_by.exists():
+            updated_user_name = last_updated_by[0].validated_by
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
+
 
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
@@ -13954,7 +13967,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('HSN Code', result['sku__hsn_code']),
             ('UOM', result['measurement_unit']),
             ('Order Quantity', po_quantity),
-            ('GRN Numbers', grn_number),
+            ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
             ('PO Amount with Tax', (round(po_amount,4))),
@@ -13962,8 +13975,6 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
             ('Expected delivery date', delivery_date),
-            ('Vendor code', vendor_code),
-            ('Vendor Name', vendor_name)
         ))
         temp_data['aaData'].append(ord_dict)
 

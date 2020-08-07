@@ -3290,7 +3290,8 @@ TAX_MASTER_MAPPING = OrderedDict((('HSN Code', 'hsn_code'), ('Tax Type(inter sta
 
 
 USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'),
-                                    ('Stockone Code', 'stockone_code'), ('SAP Code', 'sap_code'), ('Netsuite Id', 'reference_id'),
+                                    ('Stockone Code', 'stockone_code'), ('Place Of Supply', 'place_of_supply'), ('SAP Code', 'sap_code'), 
+                                    ('Netsuite Id', 'reference_id'),
                                     ('Username', 'username'), ('First Name', 'first_name'), ('Last Name', 'last_name'),
                                     ('Phone Number', 'phone_number'), ('Email', 'email'), ('Password', 'password'),
                                     ('Country', 'country'), ('State', 'state'), ('Address', 'address'),

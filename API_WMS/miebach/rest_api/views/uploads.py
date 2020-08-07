@@ -20,7 +20,7 @@ import csv
 # from sync_sku import *
 from outbound import get_syncedusers_mapped_sku
 from rest_api.views.excel_operations import write_excel_col, get_excel_variables
-from rest_api.views.common import create_user_wh
+from rest_api.views.common import create_user_wh, update_user_wh
 from inbound_common_operations import *
 from stockone_integrations.views import Integrations
 from rest_api.views.inbound import confirm_grn
@@ -10165,12 +10165,21 @@ def user_master_upload(request, user=''):
                 user_dict[key] = value
             if key in user_profile_dict.keys():
                 user_profile_dict[key] = value
-        newuser = create_user_wh(
-            final_data.get('parent_wh_username'),
-            user_dict,
-            user_profile_dict,
-            exist_user_profile
-        )
+        if 'user_id' in final_data:
+            user_dict['id'] = final_data['user_id']
+            newuser = update_user_wh(
+                final_data.get('parent_wh_username'),
+                user_dict,
+                user_profile_dict,
+                exist_user_profile
+            )
+        else:       
+            newuser = create_user_wh(
+                final_data.get('parent_wh_username'),
+                user_dict,
+                user_profile_dict,
+                exist_user_profile
+            )
         addConfigs(final_data.get('parent_wh_username'), newuser)
         syncOtherData.apply_async(args=[newuser.id])
 
@@ -10202,7 +10211,7 @@ def addConfigs(existingUser, newUser):
                 user=newUser.id,
                 misc_type=config
             )
-            misc_detail.misc_value = True
+            misc_detail.misc_value = 'true'
             misc_detail.creation_date = datetime.datetime.now()
             misc_detail.updation_date = datetime.datetime.now()
             misc_detail.save()
@@ -10248,9 +10257,8 @@ def validate_user_master_form(request, reader, user, no_of_rows, no_of_cols, fna
                 if cell_data:
                     _user = User.objects.filter(username=cell_data)
                     if _user:
-                        index_status.setdefault(row_idx, set()).add('User Exists')
-                    else:
-                        data_dict[key] = cell_data
+                        data_dict['user_id'] = _user[0].id
+                    data_dict[key] = cell_data
                 else:
                     index_status.setdefault(row_idx, set()).add('Username Required')
             elif key in ['warehouse_type', 'username']:

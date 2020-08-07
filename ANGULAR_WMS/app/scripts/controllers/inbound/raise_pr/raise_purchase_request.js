@@ -546,6 +546,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         } else {
           confirm_api ? vm.add_raise_pr_comfirm(elem) : '';
         }
+      } else {
+        vm.service.showNoty('please Fill * Fields (or) Remove Empty lines !!');
       }
     }
 

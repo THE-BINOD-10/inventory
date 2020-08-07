@@ -13107,7 +13107,7 @@ def get_pr_report_data(search_params, user, sub_user):
             search_parameters['pending_pr__wh_user__first_name'] = search_params['sister_warehouse']
         else:
             sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
-            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
+            user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type__in=["DEPT", "STORE"]).values_list(
                         'user__id', flat=True))
             search_parameters['pending_pr__wh_user__in'] = user_ids
     start_index = search_params.get('start', 0)
@@ -13977,12 +13977,11 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
     po_tax_amount,  po_total_amount= 0, 0
     po_sku_ids = []
-
     if po_data.exists():
         for row in po_data:
             if row.open_po:
-                po_total_qty += row.received_quantity
-                po_tmp_price = row.open_po.price * row.received_quantity
+                po_total_qty += row.order_quantity
+                po_tmp_price = row.open_po.price * row.order_quantity
                 po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
                 po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
                 po_total_amount += po_tmp_price + po_tax_amount
@@ -13992,7 +13991,11 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     po_amount_details['po_tax_amount'] = po_tax_amount
     po_amount_details['po_total_amount'] = po_total_amount
 
-    pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, sku__sku_code__in=po_sku_ids)
+    if po_sku_ids:
+      pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, sku__sku_code__in=po_sku_ids)
+    else:
+      pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
+      
     pr_total_qty, pr_tmp_price, pr_tmp_tax, = 0, 0, 0
     pr_tax_amount, pr_total_amount = 0, 0
     if pr_data.exists():

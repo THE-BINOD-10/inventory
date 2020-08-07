@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     var columns = [ "PR Number", "Product Category", "Priority Type", "Category",
                     "Total Quantity", "PR Created Date", "Store", "Department",
-                    "PR Raise By",  "Validation Status", "Pending Level", 
+                    "PR Raise By",  "Validation Status", "Pending Level",
                     "To Be Approved By", "Last Updated By", "Last Updated At", "Remarks"];
     vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -308,7 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.checkResubmitPurchaseApprover = function(sku_data) {
             if (!vm.resubmitting_user) {
               vm.is_pa_resubmitted = true;
-              return;    
+              return;
             }
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
@@ -473,22 +473,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data.data.push({"fields": emptylineItems});
       }
     }
-    
+
     vm.update_data = function (index, special_flag=true) {
       var emptylineItems = {}
       emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
                           }
       // if (product_category == 'Kits&Consumables'){
       //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
       //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
       //                     }
       // } else if (product_category == 'Assets'){
       //   emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
       //                       "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+      //                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": ""
       //                     }
       // }
       if (index == vm.model_data.data.length-1 && special_flag) {
@@ -627,7 +627,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.customSelectAll = function(allSelected){
       angular.forEach(vm.preview_data.data, function(cbox) {
         allSelected?cbox.checkbox=true:cbox.checkbox=false;
-      })      
+      })
     }
 
     vm.getColor = function(data){
@@ -712,7 +712,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             selectedItems.push({name: 'quantity', value: eachLineItem.quantity});
           // };
         }
-      });   
+      });
       vm.service.alert_msg("Sending Selected SKUS to Parent Store").then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall('send_pr_to_parent_store/', 'POST', selectedItems, true).then(function(data){
@@ -724,7 +724,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 vm.service.pop_msg(data.data);
               }
             }
-          });          
+          });
         }
       });
     }
@@ -747,7 +747,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     //   });
     //   modalInstance.result.then(function (selectedItem) {
     //     if (selectedItem){
-    //       lineItem.is_doa_sent = true;          
+    //       lineItem.is_doa_sent = true;
     //     }
     //     vm.display_vision = {'display': 'block'};
     //     console.log(selectedItem);
@@ -831,7 +831,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         var files = $(".pr_form").find('[name="files"]')[0].files;
         $.each(files, function(i, file) {
           form_data.append('files-' + i, file);
-        });  
+        });
       }
       // var files = $(".pr_form").find('[name="files"]')[0].files;
       // $.each(files, function(i, file) {
@@ -1099,101 +1099,119 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
       });
     }
-
+    vm.check_wms_code = function(item, data, index) {
+      var status = true;
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].fields.sku.wms_code == item.wms_code) {
+          data[index].fields.sku.wms_code = '';
+          status = false;
+          return status;
+          break;
+        }
+        if (i+1 == data.length) {
+          return status;
+        }
+      }
+    }
     vm.get_sku_details = function(product, item, index) {
-      console.log(item);
-      vm.clear_raise_po_data(product);
-      vm.purchase_history_wms_code = item.wms_code;
-      vm.blur_focus_flag = false;
-      // if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
-      //   product.fields.sku.wms_code = ''
-      //   vm.service.showNoty('Fill Supplier ID');
-      //   return false;
-      // }
-      // if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
-      //   product.fields.sku.wms_code = ''
-      //   vm.service.showNoty('Fill Delivery Date');
-      //   return false;
-      // }
-      if(vm.permissions.show_purchase_history) {
-	    $timeout( function() {
-	        vm.populate_last_transaction('')
-        }, 2000 );
-      }
-      product.fields.sku.no_of_tests = item.noOfTests;
-      product.fields.sku.wms_code = item.wms_code;
-      product.fields.measurement_unit = item.measurement_unit;
-      product.fields.description = item.sku_desc;
-      product.fields.description_edited = item.sku_desc;
-      product.fields.hsn_code = item.hsn_code;
-      product.fields.sku_brand = item.sku_brand;
-      product.fields.sku_class = item.sku_class;
-      product.fields.type = item.type;
-      product.fields.gl_code = item.gl_code;
-      product.fields.service_start_date = item.service_start_date;
-      product.fields.service_end_date = item.service_end_date;
-      product.fields.order_quantity = 1;
-      product.fields.sku.conversion = item.conversion;
-      product.fields.conversion = item.conversion * product.fields.order_quantity;
-      product.fields.no_of_tests = item.noOfTests;
-      product.fields.ean_number = item.ean_number;
-      product.fields.price = "";
-      product.fields.mrp = item.mrp;
-      product.fields.description = item.sku_desc;
-      product.fields.blocked_sku = "";
-      product.fields.sgst_tax = "";
-      product.fields.cgst_tax = "";
-      product.fields.igst_tax = "";
-      product.fields.cess_tax = "";
-      product.fields.apmc_tax = "";
-      product.fields.utgst_tax = "";
-      product.fields.tax = "";
-      product.fields.openpr_qty = item.openpr_qty;
-      product.fields.available_qty = item.available_qty;
-      product.fields.openpo_qty = item.openpo_qty;
-      product.fields.edit_tax = false;
-      product.taxes = [];
-      // vm.getTotals();
-      if(vm.model_data.receipt_type == 'Hosted Warehouse') {
-        vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
-      }
-      if (vm.model_data.supplier_id) {
-      vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
-            sku_data = sku_data[0];
-            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
-            //sku_data["price"] = product.fields.price;
-            //vm.model_data.supplier_sku_prices = sku_data;
-            product["taxes"] = sku_data.taxes;
-            product["fields"]["edit_tax"] = sku_data.edit_tax;
-            vm.get_tax_value(product);
-        })
-        var supplier = vm.model_data.supplier_id;
-        $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          if (data.hasOwnProperty('error_msg')) {
-            vm.clear_raise_po_data(product);
-            vm.service.showNoty(data['error_msg']);
-          } else {
-            if(Object.values(data).length) {
-              if(data.supplier_mapping)
-              {
-                vm.clear_raise_po_data(product);
-                vm.service.showNoty('Please Create Sku Supplier Mapping');
-              }
-              else
-              {
-                product.fields.blocked_sku = data.sku_block
-                product.fields.price = data.price;
-                product.fields.supplier_code = data.supplier_code;
-                product.fields.weight = data.weight;
-                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-                // vm.getTotals();
+      if (vm.check_wms_code(item, vm.model_data.data, index)) {
+        vm.clear_raise_po_data(product);
+        vm.purchase_history_wms_code = item.wms_code;
+        vm.blur_focus_flag = false;
+        // if (!vm.model_data.supplier_id && Session.user_profile.user_type != 'marketplace_user' && Session.user_profile.industry_type != 'FMCG') {
+        //   product.fields.sku.wms_code = ''
+        //   vm.service.showNoty('Fill Supplier ID');
+        //   return false;
+        // }
+        // if (vm.wh_purchase_order && (!vm.model_data.po_delivery_date || typeof(vm.model_data.po_delivery_date) == 'undefined')) {
+        //   product.fields.sku.wms_code = ''
+        //   vm.service.showNoty('Fill Delivery Date');
+        //   return false;
+        // }
+        if(vm.permissions.show_purchase_history) {
+        $timeout( function() {
+            vm.populate_last_transaction('')
+          }, 2000 );
+        }
+        product.fields.sku.no_of_tests = item.noOfTests;
+        product.fields.sku.wms_code = item.wms_code;
+        product.fields.measurement_unit = item.measurement_unit;
+        product.fields.base_uom = item.base_uom;
+        product.fields.description = item.sku_desc;
+        product.fields.description_edited = item.sku_desc;
+        product.fields.hsn_code = item.hsn_code;
+        product.fields.sku_brand = item.sku_brand;
+        product.fields.sku_class = item.sku_class;
+        product.fields.type = item.type;
+        product.fields.gl_code = item.gl_code;
+        product.fields.service_start_date = item.service_start_date;
+        product.fields.service_end_date = item.service_end_date;
+        product.fields.order_quantity = 1;
+        product.fields.sku.conversion = item.conversion;
+        product.fields.conversion = item.conversion * product.fields.order_quantity;
+        product.fields.no_of_tests = item.noOfTests;
+        product.fields.ean_number = item.ean_number;
+        product.fields.price = "";
+        product.fields.mrp = item.mrp;
+        product.fields.description = item.sku_desc;
+        product.fields.blocked_sku = "";
+        product.fields.sgst_tax = "";
+        product.fields.cgst_tax = "";
+        product.fields.igst_tax = "";
+        product.fields.cess_tax = "";
+        product.fields.apmc_tax = "";
+        product.fields.utgst_tax = "";
+        product.fields.tax = "";
+        product.fields.temp_tax= item.temp_tax;
+        product.fields.openpr_qty = item.openpr_qty;
+        product.fields.available_qty = item.available_qty;
+        product.fields.openpo_qty = item.openpo_qty;
+        product.fields.edit_tax = false;
+        product.taxes = [];
+        // vm.getTotals();
+        if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+          vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
+        }
+        if (vm.model_data.supplier_id) {
+        vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
+              sku_data = sku_data[0];
+              vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+              //sku_data["price"] = product.fields.price;
+              //vm.model_data.supplier_sku_prices = sku_data;
+              product["taxes"] = sku_data.taxes;
+              product["fields"]["edit_tax"] = sku_data.edit_tax;
+              vm.get_tax_value(product);
+          })
+          var supplier = vm.model_data.supplier_id;
+          $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
+            if (data.hasOwnProperty('error_msg')) {
+              vm.clear_raise_po_data(product);
+              vm.service.showNoty(data['error_msg']);
+            } else {
+              if(Object.values(data).length) {
+                if(data.supplier_mapping)
+                {
+                  vm.clear_raise_po_data(product);
+                  vm.service.showNoty('Please Create Sku Supplier Mapping');
+                }
+                else
+                {
+                  product.fields.blocked_sku = data.sku_block
+                  product.fields.price = data.price;
+                  product.fields.supplier_code = data.supplier_code;
+                  product.fields.weight = data.weight;
+                  vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+                  // vm.getTotals();
+                }
               }
             }
-          }
-        });
+          });
+        }
+        vm.update_available_stock(product.fields.sku);
+        vm.checkResubmit(product.fields);
+      } else {
+        vm.service.showNoty('Duplicate SKU Code !!');
       }
-      vm.update_available_stock(product.fields.sku);
-      vm.checkResubmit(product.fields);
     }
     vm.update_wms_records = function(){
       var params_data = {}
@@ -1366,7 +1384,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.sub_total = 0;
       if (data.fields.temp_price){
           if (Number(data.fields.price) > Number(data.fields.temp_price)){
-            Service.showNoty('Price cant be more than Base Price'); 
+            Service.showNoty('Price cant be more than Base Price');
             data.fields.price = 0
         }
       }
@@ -1496,7 +1514,10 @@ vm.checkWHSupplierExist  = function (sup_id) {
   function get_staff_plants_list() {
     vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
       if(data.message) {
-        vm.plants_list = data.data.plants_list;
+        // vm.plants_list = data.data.plants_list;
+        angular.forEach(Object.keys(data.data.plants_list).sort(), function(dat){
+          vm.plants_list[dat] = data.data.plants_list[dat];
+        })
         vm.department_type_list = data.data.department_type_list;
         vm.department_type_mapping = data.data.department_type_list;
       }

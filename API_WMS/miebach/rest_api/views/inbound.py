@@ -76,6 +76,22 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
         #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+    elif request.user.is_staff:
+        user_excl_list = ['approved', 'rejected']
+        user_filt_check = {}
+        if status:
+            user_excl_list = ['rejected']
+            user_filt_check['status'] = 'approved'
+        if request.user.userprofile.warehouse_type == 'DEPT':
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user=request.user.id, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+        elif request.user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            plant_dept_users = get_related_users_filters(request.user.id, warehouse_types=['DEPT'], warehouse=[request.user.username])
+            plant_dept_user_ids = list(plant_dept_users.values_list('id', flat=True))
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user_id__in=plant_dept_user_ids, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
@@ -620,7 +636,7 @@ def get_pending_enquiry(request, user=''):
             sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
             search_params = {'sku__user': user.id}
             master_data = SKUMaster.objects.get(id=sku_id)
-            sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+            sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
             stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
                 skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                         search_params, includeStoreStock=True)
@@ -1631,7 +1647,7 @@ def generated_pr_data(request, user=''):
                 temp_tax = ''
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
-        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+        sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
                                                     search_params, includeStoreStock=True)
@@ -1759,7 +1775,7 @@ def generated_actual_pr_data(request, user=''):
             service_edate = service_edate.strftime('%d-%m-%Y')
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
-        sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
+        sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
         updatedLineItem = TempJson.objects.filter(model_name='PendingLineItemMiscDetails',
             model_id=lineItemId)
         if updatedLineItem.exists():
@@ -1911,6 +1927,7 @@ def generated_actual_pr_data(request, user=''):
                                     'price': price,
                                     'measurement_unit': measurement_unit,
                                     'conversion': sku_conversion,
+                                    'base_uom': base_uom,
                                     'gl_code': gl_code,
                                     'service_start_date': service_stdate,
                                     'service_end_date': service_edate,

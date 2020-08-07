@@ -19,7 +19,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+        <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
@@ -30,21 +30,21 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" 
+            <input ng-model="product.fields.description" title="{{ product.fields.description }}"
             type="text" name="description" class="form-control detectTab" readonly size="50">
           </td>
           <td>
-            <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
+            <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}"
             type="text" name="description_edited" class="form-control detectTab" ng-readonly="showCase.default_status" size="50">
           </td>
           <td>
             <input ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
           </td>
-          <!-- 
+          <!--
           <td>
-            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}" 
+            <input ng-model="product.fields.sku_brand" title="{{ product.fields.sku_brand }}"
             type="text" name="sku_brand" class="form-control detectTab" readonly size="50">
-          </td>  
+          </td>
           -->
           <td>
             <input ng-model="product.fields.gl_code" title="{{ product.fields.gl_code }}" type="text" class="form-control detectTab" readonly size="50">
@@ -61,24 +61,25 @@
                    ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
                    ng-keyup="showCase.getTotals()" size="12" required>
           </td>
-          <td class="text-center"> 
-            <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+          <td class="text-center">
+            <input ng-model="product.fields.temp_price" type="text" name="temp_price"
               class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" 
+              ng-class="service.get_decimal_perm()"
               size="12">
           </td>
-          <td class="text-center"> 
+          <td class="text-center">
             <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-            </span> --> 
+            </span> -->
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" size="12">
+              ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
-          <td>
+          <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>
+            <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
+            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>\
           </td>
         </tr>
       </tbody>

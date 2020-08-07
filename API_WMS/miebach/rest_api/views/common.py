@@ -1100,7 +1100,7 @@ def pr_request(request):
     temp_data['recordsFiltered'] = results.count()
     for result in results:
         warehouse = user.first_name
-        
+
         product_category = result[fieldsMap['product_category']]
         sku_category = result[fieldsMap['sku_category']]
         sku_category_val = sku_category
@@ -1163,7 +1163,7 @@ def pr_request(request):
                                                 ('Store', store),
                                                 ('Department Type', warehouse_type),
                                                 ('PR Created Date', po_date),
-                                                ('PR Delivery Date', po_delivery_date),                                                
+                                                ('PR Delivery Date', po_delivery_date),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
@@ -4953,17 +4953,19 @@ def get_file_content(request, user=''):
 
 
 def get_uom_data(user, master_data, uom_type):
+    base_uom = ''
     company_id = get_company_id(user)
-    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, 
+    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code,
                     uom_type=uom_type, company_id=company_id)
     sku_conversion = 0
     if sku_uom.exists():
         measurement_unit = sku_uom[0].uom
         sku_conversion = float(sku_uom[0].conversion)
+        base_uom = sku_uom[0].base_uom
     else:
         measurement_unit = master_data.measurement_type
         sku_conversion = 0
-    return sku_conversion, measurement_unit
+    return sku_conversion, measurement_unit, base_uom
 
 @get_admin_user
 def search_wms_data(request, user=''):
@@ -4971,7 +4973,7 @@ def search_wms_data(request, user=''):
     product_type = request.GET.get('type')
     sku_catg = request.GET.get('sku_catg', '')
     sku_brand = request.GET.get('sku_brand', '')
-
+    base_uom = ''
     if product_type == 'Assets':
         instanceName = AssetMaster
     elif product_type == 'Services':
@@ -4998,13 +5000,12 @@ def search_wms_data(request, user=''):
         sku_conversion, measurement_unit = get_uom_data(user, master_data, 'Purchase')
         tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
         temp_tax=0
-        print(tax_values)
         if tax_values.exists():
             temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'sku_class': master_data.sku_class, 'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
-                       'mrp': master_data.mrp, 'conversion': sku_conversion,
+                       'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
         if instanceName == ServiceMaster:
@@ -5247,9 +5248,11 @@ def build_search_data(user, to_data, from_data, limit):
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
             sku_conversion = 0
+            base_uom = ''
             if sku_uom.exists():
                 measurement_unit = sku_uom[0].uom
                 sku_conversion = float(sku_uom[0].conversion)
+                base_uom = sku_uom[0].base_uom
             else:
                 measurement_unit = data.measurement_type
                 sku_conversion = 0
@@ -5260,7 +5263,7 @@ def build_search_data(user, to_data, from_data, limit):
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
-                        'style_name': data.style_name, 'conversion': sku_conversion,
+                        'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
             if isinstance(data, ServiceMaster):
@@ -10650,7 +10653,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
@@ -12897,7 +12900,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('username', 'first_name'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -12905,7 +12908,7 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('username', 'first_name'))
+            plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)

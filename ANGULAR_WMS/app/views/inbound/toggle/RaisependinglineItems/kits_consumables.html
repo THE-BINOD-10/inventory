@@ -8,8 +8,9 @@
           <th>HSN Code</th>
           <th>Brand</th>
           <th class="w10_">Quantity*</th>
-          <th>No.Of Tests</th>
-          <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">UOM</th>
+          <th>UOM</th>
+          <th>No.Of Base Units</th>
+          <th>Base UOM</th>
           <th>OpenPR Qty</th>
           <!-- <th>Last 3M Avg Consumption</th> -->
           <th>Available Stock</th>
@@ -20,7 +21,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+        <tr ng-repeat="(index, product) in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
@@ -53,13 +54,16 @@
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
           <td>
+            <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          </td>
+          <td>
             <input ng-model="product.fields.conversion" type="text" name="no_of_tests" 
                    class="form-control detectTab"
                    ng-class="service.get_decimal_perm()" ng-readonly="true"
                    size="12">
           </td>
-          <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-            <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          <td>
+            <input name="base_uom" ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
           </td>
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
           <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
@@ -67,9 +71,11 @@
           <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
           <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
           <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
-          <td>
+          <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+            <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(index, false)"></i>
+            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>
+          </td>
         </tr>
       </tbody>
     </table>

@@ -16,7 +16,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="product in showCase.model_data.data" id="tab_count">
+        <tr ng-repeat="(index, product) in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
           <td>
             <input type="text" autocomplete="off" name="wms_code"
                    class="form-control detectTab" placeholder="Search WMS Code/Description"
@@ -45,22 +45,24 @@
                    ng-change="showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                    ng-keyup="showCase.getTotals(product)" size="12" required>
           </td>
-          <td class="text-center"> 
-            <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+          <td class="text-center">
+            <input ng-model="product.fields.temp_price" type="text" name="temp_price"
               class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" 
+              ng-class="service.get_decimal_perm()"
               size="12">
           </td>
-          <td class="text-center"> 
+          <td class="text-center">
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" size="12">
+              ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
             <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
           </td>
-          <td>
+          <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+            <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(index, false)"></i>
+            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>\
+          </td>
         </tr>
       </tbody>
     </table>

@@ -2772,6 +2772,7 @@ class TaxMaster(models.Model):
     apmc_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
+    reference_id = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

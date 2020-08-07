@@ -1235,7 +1235,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'display_name': data['name'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
-                'plant': data.get('plant', ''),
+                #'plant': data.get('plant', ''),
                 'department_type': data.get('department_type', ''),
                 'min_Amt': final_dat.get('min_Amt', 0),
                 'max_Amt': final_dat.get('max_Amt', 0),
@@ -1245,6 +1245,10 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
             }
             if not pr_approvals.exists():
                 eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
+                if data.get('plant', ''):
+                    plant_list = filter(lambda item: item, data['plant'])
+                    if plant_list:
+                        update_staff_plants_list(eachConfig, plant_list)
                 eachConfigId = eachConfig.id
             else:
                 eachLevel = pr_approvals.filter(level=level)
@@ -1346,15 +1350,21 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
-                  'plant': ''}
+                  'plant__isnull': True}
     if sku_category:
         pac_filter['sku_category'] = sku_category
     if approval_type:
         pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
         pac_filter1['department_type'] = user.userprofile.stockone_code
-        pac_filter1['plant'] = admin_user.username
+        pac_filter1['plant__name'] = admin_user.username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
+        pac_filter1['plant__name'] = user.username
     # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
@@ -1364,7 +1374,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
     if not purchase_config:
         pac_filter2 = copy.deepcopy(pac_filter1)
-        pac_filter2['plant'] = ''
+        if 'plant__name' in pac_filter2:
+            del pac_filter2['plant__name']
+        pac_filter2['plant__isnull'] = True
         #all plants that department
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
         if not purchase_config:
@@ -12652,8 +12664,10 @@ def get_purchase_config_data(request, user=''):
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
+        plants = list(purchase_config.plant.filter().values_list('name', flat=True))
+        plant_names = ','.join(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
         config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
-                       'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
+                       'plant': plant_names, 'department_type': purchase_config.department_type,
                        'default_level_data': [], 'sku_category': purchase_config.sku_category,
                        'ranges_level_data': [], 'approved_level_data': []}
         ranges_dict = OrderedDict()

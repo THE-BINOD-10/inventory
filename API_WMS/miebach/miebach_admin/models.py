@@ -744,6 +744,16 @@ class PurchaseApprovals(models.Model):  #PRApprovals
         db_table = 'PURCHASE_APPROVALS'
 
 
+class TableLists(models.Model):
+    name = models.CharField(max_length=64, default='')
+
+    class Meta:
+        db_table = 'TABLE_LISTS'
+
+    def __unicode__(self):
+        return self.name
+
+
 @reversion.register()
 class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     id = BigAutoField(primary_key=True)
@@ -758,7 +768,7 @@ class PurchaseApprovalConfig(models.Model):  #PRApprovalConfig
     purchase_type = models.CharField(max_length=32, default='PO')
     product_category = models.CharField(max_length=64, default='')
     sku_category = models.CharField(max_length=64, default='')
-    plant = models.CharField(max_length=64, default='')
+    plant = models.ManyToManyField(TableLists, default=None)
     department_type = models.CharField(max_length=64, default='')
     user_role = models.ManyToManyField(CompanyRoles, default=None)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1342,6 +1352,7 @@ class UserProfile(models.Model):
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
+    location_code = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -2761,6 +2772,7 @@ class TaxMaster(models.Model):
     apmc_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
+    reference_id = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3184,16 +3196,6 @@ class IntransitOrders(models.Model):
     class Meta:
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
-
-
-class TableLists(models.Model):
-    name = models.CharField(max_length=64, default='')
-
-    class Meta:
-        db_table = 'TABLE_LISTS'
-
-    def __unicode__(self):
-        return self.name
 
 
 class StaffMaster(models.Model):

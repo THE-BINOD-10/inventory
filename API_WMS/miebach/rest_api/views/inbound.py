@@ -33,6 +33,7 @@ log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
 receive_po_qc_log = init_logger('logs/receive_po_qc.log')
 inbound_payment_log = init_logger('logs/inbound_payment.log')
+pr_doa_log = init_logger('logs/pr_doa.log')
 
 
 NOW = datetime.datetime.now()
@@ -75,6 +76,22 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
         #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+    elif request.user.is_staff:
+        user_excl_list = ['approved', 'rejected']
+        user_filt_check = {}
+        if status:
+            user_excl_list = ['rejected']
+            user_filt_check['status'] = 'approved'
+        if request.user.userprofile.warehouse_type == 'DEPT':
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user=request.user.id, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+        elif request.user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            plant_dept_users = get_related_users_filters(request.user.id, warehouse_types=['DEPT'], warehouse=[request.user.username])
+            plant_dept_user_ids = list(plant_dept_users.values_list('id', flat=True))
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user_id__in=plant_dept_user_ids, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
@@ -4546,6 +4563,7 @@ def add_pr(request, user=''):
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
+            pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4605,6 +4623,7 @@ def add_pr(request, user=''):
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
+                pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:

@@ -5244,7 +5244,7 @@ def build_search_data(user, to_data, from_data, limit):
             else:
                 measurement_unit = data.measurement_type
                 sku_conversion = 0
-            tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
+            tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
             temp_tax=0
             if tax_values.exists():
                 temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']

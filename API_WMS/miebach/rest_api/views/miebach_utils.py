@@ -14016,8 +14016,8 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     if po_data.exists():
         for row in po_data:
             if row.open_po:
-                po_total_qty += row.order_quantity
-                po_tmp_price = row.open_po.price * row.order_quantity
+                po_total_qty += row.open_po.order_quantity
+                po_tmp_price = row.open_po.price * row.open_po.order_quantity
                 po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
                 po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
                 po_total_amount += po_tmp_price + po_tax_amount

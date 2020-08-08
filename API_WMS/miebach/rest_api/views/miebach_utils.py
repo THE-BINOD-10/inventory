@@ -13726,7 +13726,6 @@ def get_metro_po_report_data(search_params, user, sub_user):
         results = pending_data[start_index:stop_index]
     else:
         results = pending_data
-
     for result in results:
         pr_date, delivery_date, vendor_code, vendor_name = '', '', '', ''
         pr_creation_date = result['pending_po__pending_prs__creation_date']
@@ -13761,7 +13760,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
         if grn_data.exists():
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
-            grn_numbers = set(grn_numbers)
+            grn_numbers = list(set(grn_numbers))
         updated_user_name = result['pending_po__requested_user__email']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
@@ -13952,7 +13951,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if grn_data.exists():
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
-            grn_numbers = set(grn_numbers)
+            grn_numbers = list(set(grn_numbers))
         updated_user_name = result['pending_po__requested_user__email']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():

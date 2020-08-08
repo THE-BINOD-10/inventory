@@ -13713,7 +13713,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
-                   'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id', 'pending_po__requested_user__email']
+                   'pending_po__pending_prs__id', 'pending_po__product_category', 'pending_po__sku_category', 'pending_po__id']
 
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price'))).order_by(order_data)
@@ -13761,7 +13761,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
-        updated_user_name = result['pending_po__requested_user__email']
+        # updated_user_name = result['pending_po__requested_user__email']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by
@@ -13952,7 +13952,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
-        updated_user_name = result['pending_po__requested_user__email']
+        # updated_user_name = result['pending_po__requested_user__email']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by

@@ -13709,7 +13709,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
 
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
-                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','sgst_tax', 'cgst_tax', 'igst_tax',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
@@ -13755,7 +13755,9 @@ def get_metro_po_report_data(search_params, user, sub_user):
                                                                            result['pending_po__pending_prs__full_pr_number'])
         po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get('po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('pr_tax_amount', 0), pr_amount_details.get('pr_total_amount', 0)
-
+        po_quantity = result['total_qty']
+        po_amount = result['total_amt']
+        po_tax_amount = po_amount*((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax'])/100)
         grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
@@ -13783,7 +13785,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('PO Quantity', result['total_qty']),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', result['total_amt']),
+            ('Total Amount', pr_amount),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
@@ -13792,7 +13794,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_amount,4))),
+            ('PO Amount with Tax', (round(result['total_amt'],4))),
             ('PO Created by', result['pending_po__requested_user__first_name']),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
@@ -13819,7 +13821,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
            'pending_po__sku_category', 'pending_po__supplier__id', 'pending_po__supplier__name', 'total_qty',
            'pending_po__final_status', 'pending_po__po_number',
            'total_amt', 'total_amt', 'total_amt', 'creation_date', 'pending_po__requested_user__username',
-           'pending_po__po_number', 'pending_po__po_number',
+           'pending_po__po_number', 'pending_po__po_number','sgst_tax', 'cgst_tax', 'igst_tax',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
@@ -13930,7 +13932,9 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         po_amount_details, pr_amount_details = get_po_price_and_tax_amount(result['pending_po__full_po_number'], result['pending_po__pending_prs__full_pr_number'])
         po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty',0), po_amount_details.get('po_tax_amount',0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('po_tax_amount', 0), pr_amount_details.get('po_total_amount', 0)
-
+        po_quantity = result['total_qty']
+        po_amount = result['total_amt']
+        po_tax_amount = po_amount * ((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax']) / 100)
         quantity_data = SellerPOSummary.objects.filter(purchase_order__open_po=result['pending_po__open_po'])
         # grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
         # if quantity_data.exists():
@@ -13972,10 +13976,10 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('Category', result['pending_po__sku_category']),
             # ('PR Approved Date', release_date),
             ('PO Number', result['pending_po__full_po_number']),
-            ('PO Quantity', result['total_qty']),
+            ('PO Quantity', po_quantity),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', result['total_amt']),
+            ('Total Amount', pr_amount),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
@@ -13992,9 +13996,9 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('UOM', result['measurement_unit']),
             ('Order Quantity', po_quantity),
             ('GRN Numbers', grn_numbers),
-            ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
+            ('PO Amount Pre Tax', round(po_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_amount,4))),
+            ('PO Amount with Tax', (round(po_tax_amount+po_amount,4))),
             ('PO Created by', result['pending_po__requested_user__first_name']),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),

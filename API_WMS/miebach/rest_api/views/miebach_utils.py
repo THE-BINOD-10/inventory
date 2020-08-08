@@ -13709,7 +13709,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
 
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
-                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','sgst_tax', 'cgst_tax', 'igst_tax',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',

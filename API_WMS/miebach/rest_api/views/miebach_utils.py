@@ -13755,6 +13755,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
                                                                            result['pending_po__pending_prs__full_pr_number'])
         po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get('po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('pr_tax_amount', 0), pr_amount_details.get('pr_total_amount', 0)
+
         grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
@@ -13779,10 +13780,10 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('Category', result['pending_po__sku_category']),
             # ('PR Approved Date', release_date),
             ('PO Number', result['pending_po__full_po_number']),
-            ('PO Quantity', po_quantity),
+            ('PO Quantity', total_qty),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', pr_amount),
+            ('Total Amount', total_amt),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
@@ -13971,10 +13972,10 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('Category', result['pending_po__sku_category']),
             # ('PR Approved Date', release_date),
             ('PO Number', result['pending_po__full_po_number']),
-            ('PO Quantity', po_quantity),
+            ('PO Quantity', total_qty),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', pr_amount),
+            ('Total Amount', total_amt),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),

@@ -13167,7 +13167,7 @@ def get_pr_report_data(search_params, user, sub_user):
         req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         all_approver_details = {}
-        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],product_category=product_category).exclude(status='').values('level',
+        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number']).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         final_status = "Pending"
@@ -13462,7 +13462,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         req_user = User.objects.filter(id = result['pending_pr__wh_user'])[0]
         department, plant = get_plant_and_department(req_user)
         all_approver_details = {}
-        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],product_category=product_category).exclude(status='').values('level',
+        approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number']).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
 

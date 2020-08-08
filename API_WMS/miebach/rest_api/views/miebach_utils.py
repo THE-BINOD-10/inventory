@@ -13755,9 +13755,9 @@ def get_metro_po_report_data(search_params, user, sub_user):
                                                                            result['pending_po__pending_prs__full_pr_number'])
         po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get('po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('pr_tax_amount', 0), pr_amount_details.get('pr_total_amount', 0)
-        po_quantity = result['total_qty']
-        po_amount = result['total_amt']
-        po_tax_amount = po_amount*((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax'])/100)
+        # po_quantity = result['total_qty']
+        # po_amount = result['total_amt']
+        # po_tax_amount = po_amount*((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax'])/100)
         grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=result['pending_po__full_po_number'])
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
@@ -13821,7 +13821,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
            'pending_po__sku_category', 'pending_po__supplier__id', 'pending_po__supplier__name', 'total_qty',
            'pending_po__final_status', 'pending_po__po_number',
            'total_amt', 'total_amt', 'total_amt', 'creation_date', 'pending_po__requested_user__username',
-           'pending_po__po_number', 'pending_po__po_number','sgst_tax', 'cgst_tax', 'igst_tax',
+           'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
            'pending_po__requested_user__username', 'pending_po__po_number', 'pending_po__po_number',
@@ -13932,9 +13932,9 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         po_amount_details, pr_amount_details = get_po_price_and_tax_amount(result['pending_po__full_po_number'], result['pending_po__pending_prs__full_pr_number'])
         po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty',0), po_amount_details.get('po_tax_amount',0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('po_tax_amount', 0), pr_amount_details.get('po_total_amount', 0)
-        po_quantity = result['total_qty']
-        po_amount = result['total_amt']
-        po_tax_amount = po_amount * ((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax']) / 100)
+        # po_quantity = result['total_qty']
+        # po_amount = result['total_amt']
+        # po_tax_amount = po_amount * ((result['cgst_tax'] + result['sgst_tax'] + result['igst_tax']) / 100)
         quantity_data = SellerPOSummary.objects.filter(purchase_order__open_po=result['pending_po__open_po'])
         # grn_number, vendor_code, vendor_name, updated_user_name, delivery_date = '', '', '','', ''
         # if quantity_data.exists():
@@ -14013,19 +14013,18 @@ def get_po_price_and_tax_amount(po_number, pr_number):
     po_amount_details, pr_amount_details = {}, {}
     po_number = po_number
     pr_number = pr_number
-    po_data = PurchaseOrder.objects.filter(po_number = po_number)
+    po_data = PendingLineItems.objects.filter(pending_po__full_po_number = po_number)
     po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
     po_tax_amount,  po_total_amount= 0, 0
     po_sku_ids = []
     if po_data.exists():
         for row in po_data:
-            if row.open_po:
-                po_total_qty += row.open_po.order_quantity
-                po_tmp_price = row.open_po.price * row.open_po.order_quantity
-                po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
-                po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
-                po_total_amount += po_tmp_price + po_tax_amount
-                po_sku_ids.append(row.open_po.sku.sku_code)
+            po_total_qty += row.quantity
+            po_tmp_price = row.price * row.quantity
+            po_tmp_tax = row.sgst_tax + row.cgst_tax + row.igst_tax
+            po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
+            po_total_amount += po_tmp_price + po_tax_amount
+            po_sku_ids.append(row.sku.sku_code)
 
     po_amount_details['po_total_qty'] = po_total_qty
     po_amount_details['po_tax_amount'] = po_tax_amount

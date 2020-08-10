@@ -189,7 +189,7 @@ ORDER_SUMMARY_REPORT_STATUS = ['Open', 'Picklist generated', 'Partial Picklist g
 
 ENQUIRY_REPORT_STATUS = ['pending', 'approval', 'rejected']
 
-PR_REPORT_PR_STATUS = ['Pending', 'Approved', 'Rejected', 'Pr_Converted_To_Po', 'Sent to Parent Store']
+PR_REPORT_PR_STATUS = ['Pending', 'Approved', 'Rejected', 'Pr_Converted_To_Po', 'Sent to Parent Store', 'Cancelled']
 
 PR_REPORT_PRIORITY_STATUS = ['normal', 'urgent']
 
@@ -13105,11 +13105,13 @@ def get_pr_report_data(search_params, user, sub_user):
     elif user.userprofile.warehouse_type != 'ADMIN':
         if 'sister_warehouse' in search_params:
             search_parameters['pending_pr__wh_user__first_name'] = search_params['sister_warehouse']
-        else:
+        elif user.userprofile.warehouse_type in ['DEPT', 'STORE']:
             sister_wh = UserGroups.objects.filter((Q(admin_user=user) | Q(user=user))).values_list('user_id', flat=True)
             user_ids = list(UserProfile.objects.filter(user_id__in=sister_wh, warehouse_type="DEPT").values_list(
                         'user__id', flat=True))
             search_parameters['pending_pr__wh_user__in'] = user_ids
+        else:
+            search_parameters['pending_pr__requested_user'] = user.id
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     values_list = ['pending_pr__requested_user', 'pending_pr__requested_user__first_name', 'pending_po__po_number',
@@ -13258,6 +13260,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     if final_status == 'pr_converted_to_po':
                         approver_4_details = ''
                         approver4_status = ''
+
                 else:
                     approver4_status = 'No'
                     approver_4_details = approver_4.get('validated_by')
@@ -13764,7 +13767,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             for g_data in grn_data:
                 grn_numbers.append(g_data.grn_number)
             grn_numbers = list(set(grn_numbers))
-        # updated_user_name = result['pending_po__requested_user__email']
+        updated_user_name = result['pending_po__requested_user']
         last_updated_by = PurchaseApprovals.objects.filter(pending_po__full_po_number = result['pending_po__full_po_number'])
         if last_updated_by.exists():
             updated_user_name = last_updated_by[0].validated_by

@@ -1459,6 +1459,8 @@ def netsuite_sku(data, user, instanceName=''):
             hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
             if hsn_code_object.exists():
                 sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
+            else:
+                sku_data_dict['hsn_code']=''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
         sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3

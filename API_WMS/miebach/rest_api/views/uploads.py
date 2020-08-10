@@ -2161,6 +2161,12 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
         for sku_code, sku_id in sku_key_map.items():
             sku_master_data=new_skus[sku_code].get('sku_obj', {})
             sku_master_data=intObj.gatherSkuData(sku_master_data)
+            if sku_master_data.get("hsn_code", None):
+                hsn_code_object = TaxMaster.objects.filter(product_type=sku_master_data["hsn_code"], user=user.id).values()
+                if hsn_code_object.exists():
+                    sku_master_data["hsn_code"]= hsn_code_object[0]['reference_id']
+                else:
+                    sku_master_data["hsn_code"]=''
             sku_attr_dict=new_skus[sku_code].get('attr_dict', {})
             sku_attr_dict.update(sku_master_data)
             sku_category_internal_id= get_sku_category_internal_id(sku_attr_dict["sku_category"], "service_category")
@@ -2190,6 +2196,12 @@ def upload_netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        if sku_data_dict.get("hsn_code", None):
+            hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
+            if hsn_code_object.exists():
+                sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
+            else:
+                sku_data_dict["hsn_code"]=''
         # department, plant, subsidary=get_plant_subsidary_and_department(user)
         department, plant, subsidary=[""]*3
         try:
@@ -10231,6 +10243,12 @@ def netsuite_sku_uom_update(sku_list_data, user,intObj):
     for sku in all_skus:
         sku_attr_dict = dict(SKUAttributes.objects.filter(sku_id=sku.id).values_list('attribute_name','attribute_value'))
         sku_data_dict= intObj.gatherSkuData(sku)
+        if sku_data_dict.get("hsn_code", None):
+            hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
+            if hsn_code_object.exists():
+                sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
+            else:
+                sku_data_dict["hsn_code"]= ''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
         sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3

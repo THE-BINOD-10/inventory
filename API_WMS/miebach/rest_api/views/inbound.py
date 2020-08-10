@@ -9490,6 +9490,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     payment_code=''
     address_id=''
     supplier_gstin=''
+    po_url1, po_url2=[""]*2
+    department, plant, subsidary=[""]*3
     try:
         # department, plant, subsidary=get_plant_subsidary_and_department(user)
         if prQs:
@@ -9543,6 +9545,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     approval1 = user.email
                 else:
                     approval1 = user.first_name
+        if not plant or not subsidary:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
         company_id = get_company_id(user)
         purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, po_number=po_number)
         _purchase_order = purchase_objs[0]
@@ -9568,7 +9573,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                    'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
+                    'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number}

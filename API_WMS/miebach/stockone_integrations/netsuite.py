@@ -107,7 +107,7 @@ class netsuiteIntegration(object):
                 )
             if data.get('hsn_code', None):
                 customFieldList.append(
-                  ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(externalId=data.get('hsn_code')))
+                  ns.SelectCustomFieldRef(scriptId='custitem_in_hsn_code', value=ns.ListOrRecordRef(internalId= data.get('hsn_code')))
                 )
             if data.get("service_start_date",None):
                 customFieldList.append(

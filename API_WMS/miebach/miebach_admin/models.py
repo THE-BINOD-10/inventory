@@ -1342,6 +1342,7 @@ class UserProfile(models.Model):
     stockone_code = models.CharField(max_length=64, default='', null=True, blank=True)
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
+    location_code = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -2761,6 +2762,7 @@ class TaxMaster(models.Model):
     apmc_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
+    reference_id = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

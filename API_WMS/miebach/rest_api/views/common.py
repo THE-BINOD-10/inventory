@@ -12802,20 +12802,23 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
 
 def update_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name=None):
     # user_dict['last_login'] = datetime.datetime.now()
-    new_user = User.objects.get(user_dict.get('id'))
+    new_user = User.objects.get(id=user_dict.get('id'))
     # new_user.is_staff = True
     # new_user.save()
-    user_profile_dict['user_id'] = new_user.id
-    user_profile_dict['location'] = user_profile_dict['state']
-    user_profile_dict['prefix'] = new_user.username[:3]
-    if not user_profile_dict.get('pin_code', 0):
+    uprof = UserProfile.objects.get(user_id=new_user.id)
+    uprof.location = user_profile_dict['state']
+    uprof.prefix = new_user.username[:3]
+    if user_profile_dict.get('pin_code', 0) in [0, '']:
         user_profile_dict['pin_code'] = 0
-    if not user_profile_dict.get('phone_number', 0):
+    if user_profile_dict.get('phone_number', 0) in [0, '']:
         user_profile_dict['phone_number'] = 0
     user_profile_dict['user_type'] = exist_user_profile.user_type
     user_profile_dict['industry_type'] = exist_user_profile.industry_type
-    user_profile = UserProfile(**user_profile_dict)
-    user_profile.save()
+    for key, value in user_profile_dict.iteritems():
+        setattr(uprof, key, value)
+    
+    
+    uprof.save()
 
     return new_user
 

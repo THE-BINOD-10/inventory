@@ -31,15 +31,17 @@ log = init_logger('logs/scripts.log')
 def upload_po_data(file_location):
     import datetime
     import pandas as pd
-    from common import get_user_prefix_incremental, get_sku_ean_list
+    from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
     from rest_api.views.inbound import netsuite_po
     # file_location = "Upload in STOCKONE_Materials PO_01.04.2020 to 31.07.2020.xlsx"
     df = pd.read_excel(file_location, header=1)
-    data= df.groupby('PO No').apply(lambda x: x.to_dict(orient='r')).to_dict()
+    df = df.fillna('')
+    data= df.groupby('PO No.').apply(lambda x: x.to_dict(orient='r')).to_dict()
     for key, value in data.iteritems():
-        sku_code = value[0]['StockOne SKU Code']
+        sku_code = value[0]['Material code.1']
+        print(sku_code)
         user=''
-        user_profile_obj=UserProfile.objects.filter(stockone_code=value[0]['StockOne Plant ID'])
+        user_profile_obj=UserProfile.objects.filter(stockone_code=value[0]['STOCKONE Plant code'])
         if user_profile_obj:
             user=user_profile_obj[0].user
         else:
@@ -58,9 +60,9 @@ def upload_po_data(file_location):
             continue
         flag=True
         for row in value:
-            if row['StockOne SKU Code']:
-                sku_id = SKUMaster.objects.filter(wms_code=row['StockOne SKU Code'].upper(), user=user.id)
-                if not row['Pending Qty'] or not sku_id:
+            if row['Material code.1']:
+                sku_id = SKUMaster.objects.filter(wms_code=row['Material code.1'].upper(), user=user.id)
+                if not row['Pending PO Qty'] or not sku_id:
                     log.info('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
                     flag= False
                     break
@@ -81,18 +83,18 @@ def upload_po_data(file_location):
             for row in value:
                 po_suggestions={'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'order_type': 'SR', 'price': 0,
                            'status': 1}
-                sku_id = SKUMaster.objects.filter(wms_code=row['StockOne SKU Code'].upper(), user=user.id)
+                sku_id = SKUMaster.objects.filter(wms_code=row['Material code.1'].upper(), user=user.id)
                 ean_number = ''
                 if sku_id:
                     sku= sku_id[0]
                     try:
                         if sku.assetmaster:
-                            product_category="Services"
+                            product_category="Assets"
                     except:
                         pass
                     try:
                         if sku.servicemaster:
-                            product_category="Assets"
+                            product_category="Services"
                     except:
                         pass
                     try:
@@ -104,12 +106,14 @@ def upload_po_data(file_location):
                     if eans:
                         ean_number = eans[0]
                 supplier = SupplierMaster.objects.get(user=user.id, supplier_id__contains=row['Vendor Code'])
-                price = row['Unit Price']
-                if not price:
-                    price = 0
+                if row.get("Basic Amt",0):
+                    if not row.get("Basic Amt",0)=="nan":
+                        price = row['Basic Amt']
+                # else:
+                #     price = 0
                 po_suggestions['sku_id'] = sku_id[0].id
                 po_suggestions['supplier_id'] = supplier.id
-                po_suggestions['order_quantity'] = row['Pending Qty']
+                po_suggestions['order_quantity'] = row['Pending PO Qty']
                 # po_suggestions['po_name'] = value['po_name']
                 # po_suggestions['supplier_code'] = value['supplier_code']
                 po_suggestions['price'] = float(price)
@@ -117,11 +121,17 @@ def upload_po_data(file_location):
                 # po_suggestions['remarks'] = value['remarks']
                 po_suggestions['measurement_unit'] = "UNITS"
                 # po_suggestions['mrp'] = float(mrp)
-                po_suggestions['sgst_tax'] = row['SGST']*100
-                po_suggestions['cgst_tax'] = row['CGST']*100
-                po_suggestions['igst_tax'] = row['IGST']*100
+                if row.get("SGST",0):
+                    if not row.get("SGST",0)=="nan":
+                        po_suggestions['sgst_tax'] = row['SGST']
+                if row.get("CGST",0):
+                    if not row.get("CGST",0)=="nan":
+                        po_suggestions['cgst_tax'] = row['CGST']
+                if row.get("IGST",0):
+                    if not row.get("IGST",0)=="nan":
+                        po_suggestions['igst_tax'] = row['IGST']
                 utc_tz=timezone("UTC")
-                po_date_time =utc_tz.localize(datetime.datetime.strptime(row["PO date"], '%d.%m.%Y'))
+                po_date_time =utc_tz.localize(datetime.datetime.strptime(row["PO Date"], '%d.%m.%Y'))
                 data1 = OpenPO(**po_suggestions)
                 data1.save()
                 data1.creation_date= po_date_time
@@ -140,7 +150,7 @@ def upload_po_data(file_location):
                 order.updation_date= po_date_time
                 order.po_date= po_date_time
                 order.save()
-            po_date_time =datetime.strptime(value[0]["PO date"], '%d.%m.%Y')
+            po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
             delivery_date= po_date_time.strftime('%d-%m-%Y')
             data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
             try:
@@ -148,8 +158,8 @@ def upload_po_data(file_location):
             except Exception as e:
                 log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
                 pass
+
 def zone_location_script():
-    from miebach_admin.models import *
     from rest_api.views.common import get_related_users_filters
     main_user = User.objects.get(username='mhl_admin')
     dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
@@ -204,7 +214,6 @@ def zone_location_script():
 def hsn_code_internal_id_script(file_location):
     import datetime
     import pandas as pd
-    from miebach_admin.models import *
     if file_location:
     # file_location="IndiaTaxHSNandSACcodesforGSTList521.csv"
         df = pd.read_csv(file_location, header=0)

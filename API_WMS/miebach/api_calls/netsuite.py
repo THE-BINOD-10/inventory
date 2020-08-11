@@ -594,7 +594,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
                          'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
 		                }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
+        number_field = {'credit_period':0, 'lead_time':0, 'account_number':"0", 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
@@ -620,6 +620,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     if status.lower() != 'active':
                         value = 0
                 if key == 'subsidiary':
+                    value = str(value)
+                if key == 'account_number':
                     value = str(value)
                 if key == 'address':
                     value = address.get('address', '')

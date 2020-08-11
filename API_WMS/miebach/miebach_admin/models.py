@@ -310,7 +310,7 @@ class SupplierMaster(models.Model):
     bank_name = models.CharField(max_length=256, default='')
     ifsc_code = models.CharField(max_length=64, default='')
     branch_name = models.CharField(max_length=256, default='')
-    account_number = models.BigIntegerField(default=0)
+    account_number = models.CharField(max_length=256, default='')
     account_holder_name = models.CharField(max_length=256, default='')
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)

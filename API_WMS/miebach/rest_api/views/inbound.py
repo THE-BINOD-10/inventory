@@ -9590,7 +9590,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             if _open.sku.hsn_code:
                 hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
                 if hsn_code_object.exists():
-                    if hsn_code_object.exists():
+                    hsn_code=hsn_code_object[0]["reference_id"]
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'hsn_code': hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,

@@ -82,7 +82,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             prQs = prQs.filter(pending_pr__final_status=status)
         else:
-            prQs = prQs.exclude(pending_pr__final_status='approved')
+            prQs = prQs.exclude(pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
 
         filtersMap['pending_pr_id__in'] = []
@@ -1076,6 +1076,26 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 receive_status = 'Pending from PR Requester'
                 send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
+        if productType == '' and supplier.open_po.sku.sku_code:
+            productType = 'Kits&Consumables'
+            sku_id = SKUMaster.objects.filter(wms_code=supplier.open_po.sku.sku_code, user=user.id)
+            if sku_id:
+                sku= sku_id[0]
+                try:
+                    if sku.assetmaster:
+                        product_category="Assets"
+                except:
+                    pass
+                try:
+                    if sku.servicemaster:
+                        product_category="Services"
+                except:
+                    pass
+                try:
+                    if sku.otheritemsmaster:
+                        product_category="OtherItems"
+                except:
+                    pass
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
@@ -1895,7 +1915,6 @@ def generated_actual_pr_data(request, user=''):
                         is_doa_sent_flag = True
                 # supplierDetailsMap = {}
                 # preferred_supplier = ''
-
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,

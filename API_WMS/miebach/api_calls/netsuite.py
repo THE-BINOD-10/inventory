@@ -619,6 +619,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     value = 1
                     if status.lower() != 'active':
                         value = 0
+                if key == 'subsidiary':
+                    value = str(value)
                 if key == 'address':
                     value = address.get('address', '')
                 if key == 'address_id':

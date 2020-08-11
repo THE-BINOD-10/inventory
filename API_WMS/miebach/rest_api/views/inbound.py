@@ -51,14 +51,14 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
-    status =  request.POST.get('special-key', '')
+    status =  request.POST.get('special-key', 'pending')
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -82,7 +82,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             prQs = prQs.filter(pending_pr__final_status=status)
         else:
-            prQs = prQs.exclude(pending_pr__final_status='approved')
+            prQs = prQs.exclude(pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
 
         filtersMap['pending_pr_id__in'] = []

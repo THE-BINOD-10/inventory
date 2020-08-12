@@ -2001,12 +2001,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                data_dict[key] = cell_data
-                data_dict['product_type']= cell_data
-                if sku_data:
-                    setattr(sku_data, key, cell_data)
-                    setattr(sku_data, 'product_type', cell_data)
-                data_dict[key] = cell_data
+                    data_dict[key] = cell_data
+                    data_dict['product_type']= cell_data
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
+                        setattr(sku_data, 'product_type', cell_data)
             # elif key == 'asset_number':
             #     if isinstance(cell_data, float):
             #         if sku_data:

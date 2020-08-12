@@ -12381,8 +12381,8 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
-        if user.id != user_id:
-            if user_filter_dict.get('tin_number', ''):
+        if company_admin_id != user_id:
+            if user_data_dict.get('tin_number', ''):
                 if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
                     user_data_dict['tax_type'] = 'intra_state'
                 else:

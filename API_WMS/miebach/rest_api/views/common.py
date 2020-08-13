@@ -34,6 +34,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count, Max, Min
 from requests import post
 import math
+import ast
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
@@ -45,6 +46,7 @@ from django.template import loader, Context
 from barcodes import *
 import ConfigParser
 from miebach.settings import INTEGRATIONS_CFG_FILE
+from miebach.celery import app
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -12347,7 +12349,10 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
     master_id = master_id
     master_type = master_type
     if not master_file:
-        master_file = request.FILES.get('master_file', '')
+        try:
+            master_file = request.FILES.get('master_file', '')
+        except Exception as e:
+            return 'No Files'
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
@@ -12358,10 +12363,23 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
         master_doc.save()
     return 'Uploaded Successfully'
 
+@app.task
+def sync_supplier_async(id, user_id):
+    supplier = SupplierMaster.objects.get(id=id)
+    user = User.objects.get(id=user_id)
+    filter_dict = {'supplier_id': supplier.supplier_id }
+    data_dict = removeUnnecessaryData(supplier.__dict__)
+    data_dict.pop('id')
+    data_dict.pop('user')
+    payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
+    net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
+    master_objs = sync_supplier_master({}, user, data_dict, filter_dict)
+    createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
+    print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False):
     supplier_sync = get_misc_value('supplier_sync', user.id)
-    if supplier_sync == 'true' and not current_user:
+    if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
@@ -12376,7 +12394,15 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
             user_ids.insert(0, company_admin_id)
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)
-        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) != str(admin_supplier.subsidiary)):
+        admin_subsidiaries = []
+        if admin_supplier:
+            try:
+                admin_subsidiaries = ast.literal_eval(admin_supplier.subsidiary)
+                admin_subsidiaries = [str(x) for x in admin_subsidiaries]
+            except Exception as e:
+                continue
+
+        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
             continue
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)

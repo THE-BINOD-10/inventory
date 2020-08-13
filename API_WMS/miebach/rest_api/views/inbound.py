@@ -9574,8 +9574,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_date = po_date.isoformat()
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
-        # if(_purchase_order.open_po.supplier.tin_number):
-        #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        if _purchase_order.open_po.supplier.tin_number:
+            supplier_gstin= _purchase_order.open_po.supplier.tin_number
         state, place_of_supply='',''
         if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state

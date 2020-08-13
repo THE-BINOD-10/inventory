@@ -345,7 +345,7 @@ class netsuiteIntegration(object):
             if (po_data.get("payment_code", None)):
                 purorder.terms = po_data.get("payment_code")
             if (po_data.get("address_id", None)):
-                purorder.billAddress = ns.RecordRef(internalId=po_data.get("address_id"))
+                purorder.billAddressList = ns.ListOrRecordRef(internalId=po_data.get("address_id"))
 
             po_custom_field_list =  []
             if(po_data.get('supplier_id',None)):
@@ -374,7 +374,7 @@ class netsuiteIntegration(object):
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_po_billtoplantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
                  po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_mhl_pr_plantid', value=ns.ListOrRecordRef(internalId=po_data['plant'])))
             if (po_data.get("supplier_gstin", None)):
-                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_in_vendor_gstin', value=po_data["supplier_gstin"]))
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_stockone_vendor_gstin', value=po_data["supplier_gstin"]))
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
             for data in po_data['items']:
                 item_custom_list=[]

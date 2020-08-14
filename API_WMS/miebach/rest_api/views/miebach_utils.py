@@ -13289,6 +13289,8 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if approver_5_details == approver_2_details:
+                        approver_5_details, approver5_status = '', ''
                 else:
                     approver5_status = 'No'
                     approver_5_details = approver_5.get('validated_by')
@@ -13301,6 +13303,8 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if approver_5_details == approver_2_details:
+                        approver_5_details, approver5_status = '', ''
 
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
@@ -13710,7 +13714,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
+    values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username','pending_po__requested_user',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
                    'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
@@ -13889,7 +13893,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
                    'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
-                   'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand',
+                   'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_class', 'sku__sku_brand','pending_po__requested_user',
                    'sku__sku_group', 'sku__style_name','sku__sub_category','measurement_unit','sku__hsn_code',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',

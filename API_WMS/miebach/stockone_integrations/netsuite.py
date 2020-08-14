@@ -331,6 +331,8 @@ class netsuiteIntegration(object):
                     product_list_id = 2
                 elif po_data['product_category'] == 'Assets':
                     product_list_id = 1
+                elif po_data['product_category'] == 'OtherItems':
+                    product_list_id = 4
                 else:
                     product_list_id = 3
 
@@ -359,7 +361,7 @@ class netsuiteIntegration(object):
             if(product_list_id):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_purchaseordertype', value=product_list_id))
             if po_data.get("place_of_supply",None):
-                po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=po_data['place_of_supply'])))
+                po_custom_field_list.append(ns.SelectCustomFieldRef(scriptId='custbody_in_gst_pos', value=ns.ListOrRecordRef(internalId=str(po_data['place_of_supply']).lstrip("0"))))
             if(po_data.get('approval2',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver2', value=po_data['approval2']))
             if(po_data.get('approval3',None)):

@@ -3249,7 +3249,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
                             central_po_data=None, currentLevelMailList=[], is_resubmitted=False):
     from mail_server import send_mail
     subject = ''
-    urlPath = request.META.get('HTTP_ORIGIN')
+    urlPath = 'http://mi.stockone.in'
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     filtersMap = {}#{'wh_user': user.id}

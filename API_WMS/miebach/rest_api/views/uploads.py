@@ -2001,12 +2001,11 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                data_dict[key] = cell_data
-                data_dict['product_type']= cell_data
-                if sku_data:
-                    setattr(sku_data, key, cell_data)
-                    setattr(sku_data, 'product_type', cell_data)
-                data_dict[key] = cell_data
+                    data_dict[key] = cell_data
+                    data_dict['product_type']= cell_data
+                    if sku_data:
+                        setattr(sku_data, key, cell_data)
+                        setattr(sku_data, 'product_type', cell_data)
             # elif key == 'asset_number':
             #     if isinstance(cell_data, float):
             #         if sku_data:
@@ -3102,7 +3101,7 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                     all_users = get_related_user_objs(user.id)
                     user_obj = all_users.filter(username=warehouse)
                     if not user_obj:
-                        index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                        index_status.setdefault(row_idx + 1, set()).add('Invalid Warehouse')
                     else:
                         user = user_obj[0]
                         #supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
@@ -3241,7 +3240,7 @@ def supplier_sku_upload(request, user=''):
                             all_users = get_related_user_objs(user.id)
                             user_obj = all_users.filter(username=warehouse)
                             if not user_obj:
-                                index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                                index_status.setdefault(row_idx + 1, set()).add('Invalid Warehouse')
                             else:
                                 user = user_obj[0]
                     elif key == 'supplier_id':

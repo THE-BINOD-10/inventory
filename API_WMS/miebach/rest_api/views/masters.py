@@ -1460,6 +1460,8 @@ def netsuite_sku(data, user, instanceName=''):
             if hsn_code_object.exists():
                 if hsn_code_object[0]['reference_id']:
                     sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
+                else:
+                    sku_data_dict['hsn_code']=''
             else:
                 sku_data_dict['hsn_code']=''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")

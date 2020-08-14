@@ -672,7 +672,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                   sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
                 except Exception as e:
                   print(e)
-                
+
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()

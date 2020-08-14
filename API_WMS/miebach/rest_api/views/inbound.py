@@ -33,6 +33,7 @@ log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
 receive_po_qc_log = init_logger('logs/receive_po_qc.log')
 inbound_payment_log = init_logger('logs/inbound_payment.log')
+pr_doa_log = init_logger('logs/pr_doa.log')
 
 
 NOW = datetime.datetime.now()
@@ -51,14 +52,14 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
-    status =  request.POST.get('special-key', '')
+    status =  request.POST.get('special-key', 'pending')
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -75,6 +76,22 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
         #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+    elif request.user.is_staff:
+        user_excl_list = ['approved', 'rejected']
+        user_filt_check = {}
+        if status:
+            user_excl_list = ['rejected']
+            user_filt_check['status'] = 'approved'
+        if request.user.userprofile.warehouse_type == 'DEPT':
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user=request.user.id, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+        elif request.user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            plant_dept_users = get_related_users_filters(request.user.id, warehouse_types=['DEPT'], warehouse=[request.user.username])
+            plant_dept_user_ids = list(plant_dept_users.values_list('id', flat=True))
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user_id__in=plant_dept_user_ids, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
@@ -82,7 +99,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             prQs = prQs.filter(pending_pr__final_status=status)
         else:
-            prQs = prQs.exclude(pending_pr__final_status='approved')
+            prQs = prQs.exclude(pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
 
         filtersMap['pending_pr_id__in'] = []
@@ -1076,6 +1093,26 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 receive_status = 'Pending from PR Requester'
                 send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
+        if productType == '' and supplier.open_po.sku.sku_code:
+            productType = 'Kits&Consumables'
+            sku_id = SKUMaster.objects.filter(wms_code=supplier.open_po.sku.sku_code, user=user.id)
+            if sku_id:
+                sku= sku_id[0]
+                try:
+                    if sku.assetmaster:
+                        product_category="Assets"
+                except:
+                    pass
+                try:
+                    if sku.servicemaster:
+                        product_category="Services"
+                except:
+                    pass
+                try:
+                    if sku.otheritemsmaster:
+                        product_category="OtherItems"
+                except:
+                    pass
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
@@ -1895,7 +1932,6 @@ def generated_actual_pr_data(request, user=''):
                         is_doa_sent_flag = True
                 # supplierDetailsMap = {}
                 # preferred_supplier = ''
-
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -3230,7 +3266,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
                             central_po_data=None, currentLevelMailList=[], is_resubmitted=False):
     from mail_server import send_mail
     subject = ''
-    urlPath = request.META.get('HTTP_ORIGIN')
+    urlPath = 'http://mi.stockone.in'
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     filtersMap = {}#{'wh_user': user.id}
@@ -4547,6 +4583,7 @@ def add_pr(request, user=''):
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
+            pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4606,6 +4643,7 @@ def add_pr(request, user=''):
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
+                pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
@@ -9490,6 +9528,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
     payment_code=''
     address_id=''
     supplier_gstin=''
+    po_url1, po_url2=[""]*2
+    department, plant, subsidary=[""]*3
     try:
         # department, plant, subsidary=get_plant_subsidary_and_department(user)
         if prQs:
@@ -9497,7 +9537,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             plant = plant_obj.userprofile.reference_id
             subsidary= plant_obj.userprofile.company.reference_id
             master_docs_obj = MasterDocs.objects.filter(master_id=prQs[0].id,master_type='pending_po')
-            po_url1, po_url2=[""]*2
             if master_docs_obj:
                 if len(master_docs_obj)==1:
                     po_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
@@ -9543,6 +9582,9 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     approval1 = user.email
                 else:
                     approval1 = user.first_name
+        if not plant or not subsidary:
+            plant = user.userprofile.reference_id
+            subsidary= user.userprofile.company.reference_id
         company_id = get_company_id(user)
         purchase_objs = PurchaseOrder.objects.filter(order_id=order_id, po_number=po_number)
         _purchase_order = purchase_objs[0]
@@ -9550,8 +9592,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_date = po_date.isoformat()
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
-        # if(_purchase_order.open_po.supplier.tin_number):
-        #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        if _purchase_order.open_po.supplier.tin_number:
+            supplier_gstin= _purchase_order.open_po.supplier.tin_number
         state, place_of_supply='',''
         if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state
@@ -9568,7 +9610,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     "po_url1":po_url1, "po_url2":po_url2, "place_of_supply": place_of_supply,
                     'order_id':order_id, 'po_number':po_number, 'po_date':po_date,
                     'due_date':due_date, 'ship_to_address':data_dict.get('ship_to_address', ''),
-                    'terms_condition':data_dict.get('terms_condition'), 'company_id':company_id, 'user_id':user.id,
+                    'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
                     'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number}
@@ -9581,8 +9623,13 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
+            hsn_code=""
+            if _open.sku.hsn_code:
+                hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
+                if hsn_code_object.exists():
+                    hsn_code=hsn_code_object[0]["reference_id"]
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                    'hsn_code':_open.sku.hsn_code,
+                    'hsn_code': hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
                     'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,

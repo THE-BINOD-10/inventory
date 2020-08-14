@@ -1455,6 +1455,15 @@ def netsuite_sku(data, user, instanceName=''):
     try:
         intObj = Integrations(user,'netsuiteIntegration')
         sku_data_dict=intObj.gatherSkuData(data)
+        if sku_data_dict.get("hsn_code", None):
+            hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
+            if hsn_code_object.exists():
+                if hsn_code_object[0]['reference_id']:
+                    sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
+                else:
+                    sku_data_dict['hsn_code']=''
+            else:
+                sku_data_dict['hsn_code']=''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
         sku_data_dict["sku_category"]=sku_category_internal_id
         department, plant, subsidary=[""]*3
@@ -5085,6 +5094,11 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
+        payment_terms = []
+        payments = PaymentTerms.objects.filter(supplier = data.id)
+        if payments.exists():
+            for datum in payments:
+               payment_terms.append("%s:%s," %(str(datum.payment_code), datum.payment_description))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -5108,7 +5122,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
                                                 ('secondary_email_id', secondary_email_ids),
-                                                ('currency_code', data.currency_code)
+                                                ('currency_code', data.currency_code),
+                                                ('payment_terms', payment_terms)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -5126,7 +5141,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
     'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID',
-    'Currency Code']
+    'Currency Code', 'Payment Terms']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:
@@ -5939,7 +5954,7 @@ def get_sku_master_doa_record(request, user=''):
 
 
 def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
-    lis = ['display_name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
+    lis = ['display_name', 'product_category', 'plant__name', 'department_type', 'min_Amt', 'max_Amt']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     company_list = get_companies_list(user, send_parent=True)
@@ -5948,26 +5963,31 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
     purchase_type =  request.POST.get('special_key', '')
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    purchase_approval_configs = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params)
     if search_term:
-        mapping_results = PurchaseApprovalConfig.objects.filter(Q(display_name__icontains=search_term) |
+        mapping_results = purchase_approval_configs.filter(Q(display_name__icontains=search_term) |
                                                                 Q(product_category__icontains=search_term) |
-                                                                Q(plant__icontains=search_term) |
-                                                                Q(department_type__icontains=search_term),
-                                                                company_id__in=company_list, purchase_type=purchase_type,
-                                                                **filter_params).\
-                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
+                                                                Q(plant__name__icontains=search_term) |
+                                                                Q(department_type__icontains=search_term)).\
+                                        values('display_name', 'product_category', 'department_type').distinct().\
                                         order_by(order_data)
 
     else:
-        mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
-                                                                **filter_params).\
-                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
+        mapping_results = purchase_approval_configs.\
+                                        values('display_name', 'product_category', 'department_type').distinct().\
                                         order_by(order_data)
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
+        pac_objs = purchase_approval_configs.filter(**result)
+        plants = []
+        if pac_objs:
+            plants = list(pac_objs[0].plant.filter().values_list('name', flat=True))
+            plants = list(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
+        plant_names = ','.join(plants)
         temp_data['aaData'].append(OrderedDict((('name', result['display_name']), ('product_category', result['product_category']),
-                                                ('plant', result['plant']),
+                                                ('plant', plant_names),
                                                 ('department_type', department_mapping.get(result['department_type'], '')),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result['display_name']))))

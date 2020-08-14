@@ -18,10 +18,14 @@
               <div class="form-group">
                 <label class="control-label"> Plant </label>
                 <input ng-if="showCase.update" type="text" name="plant" class="form-control" ng-model="showCase.model_data.plant" readonly>
-                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.plant" name="warehouse" ng-change="showCase.getProdMaxValue(showCase.model_data)">
+                <select class="selectpicker-plants show-menu-arrow form-control" multiple name="perms" ng-model="showCase.model_data.plant" ng-hide="showCase.update">
                   <option value="">All</option>
                   <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>
-                </select>
+                  </select>
+<!--                <select class="form-control" ng-if="!showCase.update" ng-model="showCase.model_data.plant" name="warehouse" ng-change="showCase.getProdMaxValue(showCase.model_data)">-->
+<!--                  <option value="">All</option>-->
+<!--                  <option ng-repeat="warehouse in showCase.warehouse_list" value="{{warehouse.username}}">{{warehouse.name}}</option>-->
+<!--                </select>-->
               </div>
             </div>
             <div class="col-md-4">

@@ -2047,6 +2047,15 @@ def print_purchase_order_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
+    supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
+    if purchase_orders.exists():
+        pm_order = purchase_orders[0]
+        if pm_order.open_po.pendingpos.filter().exists():
+            pending_po_data = pm_order.open_po.pendingpos.filter()[0]
+            supplier_payment_terms = pending_po_data.supplier_payment.payment_description
+            delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
+        if pm_order.open_po.supplier.currency_code:
+            supplier_currency = pm_order.open_po.supplier.currency_code
     po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
     ean_flag = False
     ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
@@ -2058,13 +2067,13 @@ def print_purchase_order_form(request, user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
-        table_headers = ['SKU Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
@@ -2081,12 +2090,15 @@ def print_purchase_order_form(request, user=''):
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
                          + open_po.utgst_tax + open_po.apmc_tax) * (amount / 100)
+        total_sgst = open_po.sgst_tax * (amount/100)
+        total_cgst = open_po.cgst_tax * (amount/100)
+        total_igst = open_po.igst_tax * (amount/100)
+        total_tax_amt = float("%.2f" % total_tax_amt)
         total_sku_amt = total_tax_amt + amount
         if user.userprofile.industry_type == 'FMCG':
-            po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
+            po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc,
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
-                            open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
-                            open_po.utgst_tax, total_sku_amt]
+                            open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
             if user.username in MILKBASKET_USERS:
                 weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
                     only('attribute_value')
@@ -2170,6 +2182,19 @@ def print_purchase_order_form(request, user=''):
     company_name = profile.company.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
+    company_details = {}
+    company_logo=""
+    if profile.company.logo:
+        company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+    if profile.company:
+        company_details['company_address'] = ''
+        if profile.company.address:
+            company_details['company_address'] = profile.company.address.encode('ascii', 'ignore')
+        company_details['phone'] = profile.company.phone_number
+        company_details['email'] = profile.company.email_id
+        company_details['gstin_number'] = profile.company.gstin_number
+        company_details['cin_number'] = profile.company.cin_number
+        company_details['pan_number'] = profile.company.pan_number
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
     tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
     if tc_master.exists():
@@ -2216,6 +2241,11 @@ def print_purchase_order_form(request, user=''):
         'po_number': po_number,
         'industry_type': profile.industry_type,
         'left_side_logo': left_side_logo,
+        'company_details': company_details,
+        'company_logo': company_logo,
+        'supplier_currency': supplier_currency,
+        'delivery_date': delivery_date,
+        'supplier_payment_terms': supplier_payment_terms,
         'company_address': company_address
     }
     if round_value:

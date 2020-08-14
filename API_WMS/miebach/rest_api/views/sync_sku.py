@@ -173,8 +173,6 @@ def create_update_sku(all_skus, all_users):
                 for attr_key, attr_val in attr_dict.iteritems():
                     create_sku_attrs, sku_attr_mapping, remove_attr_ids = update_sku_attributes_data(sku_obj, attr_key, attr_val, is_bulk_create=True,
                                                create_sku_attrs=create_sku_attrs, sku_attr_mapping=sku_attr_mapping)
-                
-                print(sku_obj.__dict__)
                 sku_obj.save()
                 if size_type:
                     check_update_size_type(sku_obj, size_type)

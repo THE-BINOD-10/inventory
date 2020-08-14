@@ -57,7 +57,7 @@
             <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
             </span> -->
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
-              ng-class="service.get_decimal_perm()" size="12">
+              ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

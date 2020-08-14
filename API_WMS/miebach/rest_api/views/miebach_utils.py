@@ -5376,6 +5376,7 @@ def get_po_filter_data(search_params, user, sub_user):
         po_data =  PendingPO.objects.filter(full_po_number=result.po_number)
         pr_plant,last_approvals_date,pr_Total_Amt,pr_price, pr_tax_amount="","",0,0,0
         all_approvals=[]
+        pr_date_time, pr_department = '', ''
         if po_data.exists():
             po_data=po_data[0]
             pending_pr= po_data.pending_prs.all()

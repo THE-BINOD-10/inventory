@@ -52,14 +52,14 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
-    status =  request.POST.get('special-key', '')
+    status =  request.POST.get('special-key', 'pending')
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
+        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -99,7 +99,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             prQs = prQs.filter(pending_pr__final_status=status)
         else:
-            prQs = prQs.exclude(pending_pr__final_status='approved')
+            prQs = prQs.exclude(pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         pr_numbers = list(prQs.values_list('pending_pr_id', flat=True))
 
         filtersMap['pending_pr_id__in'] = []
@@ -1093,6 +1093,26 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 receive_status = 'Pending from PR Requester'
                 send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
+        if productType == '' and supplier.open_po.sku.sku_code:
+            productType = 'Kits&Consumables'
+            sku_id = SKUMaster.objects.filter(wms_code=supplier.open_po.sku.sku_code, user=user.id)
+            if sku_id:
+                sku= sku_id[0]
+                try:
+                    if sku.assetmaster:
+                        product_category="Assets"
+                except:
+                    pass
+                try:
+                    if sku.servicemaster:
+                        product_category="Services"
+                except:
+                    pass
+                try:
+                    if sku.otheritemsmaster:
+                        product_category="OtherItems"
+                except:
+                    pass
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
@@ -1912,7 +1932,6 @@ def generated_actual_pr_data(request, user=''):
                         is_doa_sent_flag = True
                 # supplierDetailsMap = {}
                 # preferred_supplier = ''
-
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -3247,7 +3266,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
                             central_po_data=None, currentLevelMailList=[], is_resubmitted=False):
     from mail_server import send_mail
     subject = ''
-    urlPath = request.META.get('HTTP_ORIGIN')
+    urlPath = 'http://mi.stockone.in'
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     filtersMap = {}#{'wh_user': user.id}
@@ -9573,8 +9592,8 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
         po_date = po_date.isoformat()
         due_date =data_dict.get('delivery_date', '')
         supplier_id = _purchase_order.open_po.supplier.supplier_id
-        # if(_purchase_order.open_po.supplier.tin_number):
-        #     supplier_gstin= _purchase_order.open_po.supplier.tin_number
+        if _purchase_order.open_po.supplier.tin_number:
+            supplier_gstin= _purchase_order.open_po.supplier.tin_number
         state, place_of_supply='',''
         if _purchase_order.open_po.supplier.state:
             state= _purchase_order.open_po.supplier.state
@@ -9604,8 +9623,13 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
+            hsn_code=""
+            if _open.sku.hsn_code:
+                hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
+                if hsn_code_object.exists():
+                    hsn_code=hsn_code_object[0]["reference_id"]
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
-                    'hsn_code':_open.sku.hsn_code,
+                    'hsn_code': hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
                     'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,

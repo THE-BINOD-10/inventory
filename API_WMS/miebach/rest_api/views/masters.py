@@ -5091,6 +5091,11 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         master_email = master_email_map.filter(master_id=data.id)
         if master_email:
             secondary_email_ids = ','.join(list(master_email.values_list('email_id', flat=True)))
+        payment_terms = []
+        payments = PaymentTerms.objects.filter(supplier = data.id)
+        if payments.exists():
+            for datum in payments:
+               payment_terms.append("%s:%s," %(str(datum.payment_code), datum.payment_description))
         temp_data['aaData'].append(OrderedDict((('id', data.supplier_id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
@@ -5114,7 +5119,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                                                 ('ep_supplier', data.ep_supplier),
                                                 # ('markdown_percentage', data.markdown_percentage)
                                                 ('secondary_email_id', secondary_email_ids),
-                                                ('currency_code', data.currency_code)
+                                                ('currency_code', data.currency_code),
+                                                ('payment_terms', payment_terms)
                                             )))
     excel_headers = ''
     if temp_data['aaData']:
@@ -5132,7 +5138,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
     'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name', 'Extra Purchase', 'Secondary Email ID',
-    'Currency Code']
+    'Currency Code', 'Payment Terms']
     try:
         wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
     except:

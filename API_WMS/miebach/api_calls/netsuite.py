@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -594,7 +594,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
                          'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
 		                }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':0, 'po_exp_duration':0}
+        number_field = {'credit_period':0, 'lead_time':0, 'account_number':"0", 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
@@ -610,15 +610,21 @@ def netsuite_validate_supplier(request, supplier, user=''):
                         value = float(value)
                     except:
                         error_message = '%s is Number field' % val
+                        log_err.info(str(error_message)+" Required Parameter Missing In for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                         update_error_message(failed_status, 5024, error_message, supplier_id, 'supplierid')
                 if key == 'email_id' and value:
                     if validate_supplier_email(value):
+                        log_err.info("Enter valid Email ID for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                         update_error_message(failed_status, 5024, 'Enter valid Email ID', supplier_id, 'supplierid')
                 if key == 'status':
                     status = supplier.get(val, 'active')
                     value = 1
                     if status.lower() != 'active':
                         value = 0
+                if key == 'subsidiary':
+                    value = str(value)
+                if key == 'account_number':
+                    value = str(value)
                 if key == 'address':
                     value = address.get('address', '')
                 if key == 'address_id':
@@ -637,12 +643,14 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     payment_term_arr = value
                     for row in payment_term_arr:
                         if not (row.has_key('reference_id') and row.has_key('description')):
+                            log_err.info("Required Parameter Missing In Payment Terms for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                             update_error_message(failed_status, 5024, 'Required Parameter Missing In Payment Terms', supplier_id, 'supplierid')
                 else:
                     if key == 'netterms':
                         net_term_arr = value
                         for row in net_term_arr:
                             if not (row.has_key('reference_id') and row.has_key('description')):
+                                log_err.info("Required Parameter Missing In Net Terms for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                                 update_error_message(failed_status, 5024, 'Required Parameter Missing In Net Terms', supplier_id, 'supplierid')
                     else:
                         data_dict[key] = value
@@ -655,10 +663,16 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 secondary_email_id = secondary_email_id.split(',')
                 for mail in secondary_email_id:
                     if validate_supplier_email(mail):
+                        log_err.info("Enter valid secondary Email ID for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
                         update_error_message(failed_status, 5024, 'Enter valid secondary Email ID', supplier_id, 'supplierid')
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
+                try:
+                  sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
+                except Exception as e:
+                  print(e)
+                
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()

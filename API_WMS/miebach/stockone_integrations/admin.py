@@ -12,7 +12,7 @@ from stockone_integrations.automate import executeTaskForRow
 
 @admin.register(IntegrationMaster)
 class IntegrationMasterAdmin(admin.ModelAdmin):
-    search_fields = ['user', 'integration_type', 'stockone_reference', 'integration_reference', 'integration_error']
+    search_fields = ['user__username', 'integration_type', 'stockone_reference', 'integration_reference', 'integration_error']
     list_display = ['user', 'integration_type', 'stockone_reference', 'integration_reference', 'action_type','module_type', 'status', 'integration_error', 'creation_date', 'updation_date']
     list_filter = ('integration_type', 'status', 'user', 'module_type')
 

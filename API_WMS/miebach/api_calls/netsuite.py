@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -668,6 +668,11 @@ def netsuite_validate_supplier(request, supplier, user=''):
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
+                try:
+                  sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
+                except Exception as e:
+                  print(e)
+                
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()

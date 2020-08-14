@@ -44,7 +44,7 @@
           <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="60">
         </td>
         <td>
-          <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}" 
+          <input ng-model="product.fields.description_edited" title="{{ product.fields.description_edited }}"
           type="text" name="description_edited" class="form-control detectTab" ng-readonly="true" size="60">
         </td>
         <td>
@@ -71,48 +71,48 @@
         <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
           <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="35">
         </td>
-      <td class="text-center"> 
-        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span> 
+      <td class="text-center">
+        <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span>
         <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
       </td>
 
-      <td class="text-center"> 
+      <td class="text-center">
         <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.unit_price}}
-        </span> --> 
-        <input id="price1" ng-model="product.fields.price" type="text" name="price" 
+        </span> -->
+        <input id="price1" ng-model="product.fields.price" type="text" name="price"
           class="form-control detectTab"
           ng-keyup="showCase.getTotals(product)" size="12"
           ng-readonly="!showCase.permissions.change_pendinglineitems">
       </td>
-      <td class="text-center"> 
-          <input ng-model="product.fields.temp_price" type="text" name="temp_price" 
+      <td class="text-center">
+          <input ng-model="product.fields.temp_price" type="text" name="temp_price"
             class="form-control detectTab"
             ng-class="service.get_decimal_perm()"
             ng-readonly="true"
             size="12">
         </td>
-      <td class="text-center"> 
+      <td class="text-center">
         <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
-        </span> 
+        </span>
         <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
       </td>
-      <td class="text-center"> 
+      <td class="text-center">
         <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
-        </span> 
+        </span>
         <input type="text" name="tax" ng-model="product.fields.tax" class="hide"> -->
         <input type="text" name="tax" ng-model="product.fields.tax" 
-        class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" 
-        ng-readonly="!showCase.permissions.change_pendinglineitems" size="50">
+        class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="50">
+        <!-- ng-readonly="!showCase.permissions.change_pendinglineitems" size="50"> -->
       </td>
-      <td class="text-center"> 
+      <td class="text-center">
         <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
-        </span> 
+        </span>
         <input type="text" name="total" ng-model="product.fields.total" class="hide">
       </td>
       <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
         <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
         <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
-      </td>   
+      </td>
       </tr>
     </tbody>
   </table>

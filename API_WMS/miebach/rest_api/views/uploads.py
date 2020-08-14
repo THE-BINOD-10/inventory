@@ -3101,7 +3101,7 @@ def validate_supplier_sku_form(open_sheet, user, headers, file_mapping):
                     all_users = get_related_user_objs(user.id)
                     user_obj = all_users.filter(username=warehouse)
                     if not user_obj:
-                        index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                        index_status.setdefault(row_idx + 1, set()).add('Invalid Warehouse')
                     else:
                         user = user_obj[0]
                         #supplier_list = SupplierMaster.objects.filter(user=user.id).values_list('supplier_id',
@@ -3240,7 +3240,7 @@ def supplier_sku_upload(request, user=''):
                             all_users = get_related_user_objs(user.id)
                             user_obj = all_users.filter(username=warehouse)
                             if not user_obj:
-                                index_status.setdefault(index + 1, set()).add('Invalid Warehouse')
+                                index_status.setdefault(row_idx + 1, set()).add('Invalid Warehouse')
                             else:
                                 user = user_obj[0]
                     elif key == 'supplier_id':

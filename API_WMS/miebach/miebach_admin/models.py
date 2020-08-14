@@ -315,7 +315,7 @@ class SupplierMaster(models.Model):
     markdown_percentage = models.FloatField(default=0)
     ep_supplier = models.IntegerField(default=0)
     reference_id = models.CharField(max_length=64, default='')
-    subsidiary = models.CharField(max_length=64, default='')
+    subsidiary = models.CharField(max_length=512, default='')
     place_of_supply = models.CharField(max_length=64, default='')
     currency_code = models.CharField(max_length=16, default='')
     is_contracted = models.BooleanField(default=False)

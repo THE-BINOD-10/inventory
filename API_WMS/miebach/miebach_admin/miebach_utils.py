@@ -453,7 +453,7 @@ WAREHOUSE_HEADERS = ['Username', 'Name', 'Email', 'City']
 ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': '', 'email': ''}
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '', 'address': '',
-                      'phone_number': '', 'prefix': '', 'location': ''}
+                      'phone_number': '', 'prefix': '', 'location': '', 'place_of_supply': ''}
 
 
 ADD_DISCOUNT_FIELDS = ( (('SKU Code *','sku_code'),('SKU Discount *','sku_discount')),

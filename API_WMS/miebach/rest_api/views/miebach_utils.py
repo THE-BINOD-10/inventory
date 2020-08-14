@@ -13259,9 +13259,6 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if final_status == 'pr_converted_to_po':
-                        approver_4_details = ''
-                        approver4_status = ''
 
                 else:
                     approver4_status = 'No'
@@ -13269,9 +13266,6 @@ def get_pr_report_data(search_params, user, sub_user):
                     last_updated_by = approver_4.get('validated_by')
                     last_remarks = approver_4.get('remarks', '')
                     final_status = approver_4.get('pending_pr__final_status')
-                    if final_status == 'pr_converted_to_po':
-                        approver_4_details = ''
-                        approver4_status = ''
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -13285,9 +13279,6 @@ def get_pr_report_data(search_params, user, sub_user):
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_5.get('pending_pr__final_status')
-                    if final_status == 'pr_converted_to_po':
-                        approver_5_details = ''
-                        approver5_status = ''
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -13299,9 +13290,6 @@ def get_pr_report_data(search_params, user, sub_user):
                     last_updated_by = approver_5.get('validated_by')
                     last_remarks = approver_5.get('remarks', '')
                     final_status = approver_5.get('pending_pr__final_status')
-                    if final_status == 'pr_converted_to_po':
-                        approver_5_details = ''
-                        approver5_status = ''
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
@@ -13560,9 +13548,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if final_status == 'pr_converted_to_po':
-                        approver_4_details = ''
-                        approver4_status = ''
+
                 else:
                     approver4_status = 'No'
                     approver_4_details = approver_4.get('validated_by')
@@ -13572,13 +13558,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if final_status == 'pr_converted_to_po':
-                        approver_4_details = ''
-                        approver4_status = ''
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
                 approver_5_details = ''
-                if approver_5.get('status') == 'approved' or 'pr_':
+                if approver_5.get('status') == 'approved':
                     approver5_status = 'Yes'
                     approver_5_details = approver_5.get('validated_by')
                     last_updated_by = approver_5.get('validated_by')
@@ -13587,9 +13570,8 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if final_status == 'pr_converted_to_po':
-                        approver_5_details = ''
-                        approver5_status = ''
+                    if approver_5_details == approver_2_details:
+                        approver_5_details, approver5_status = '', ''
                 else:
                     approver5_status = 'No'
                     approver_5_details = approver_5.get('validated_by')
@@ -13599,10 +13581,12 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if final_status == 'pr_converted_to_po':
-                        approver_5_details = ''
-                        approver5_status = ''
+                    if approver_5_details == approver_2_details:
+                        approver_5_details, approver5_status = '', ''
 
+            if approver_1_status == "NO":
+                approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
+                approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),
@@ -14033,16 +14017,14 @@ def get_po_price_and_tax_amount(po_number, pr_number):
             po_tmp_tax = row.sgst_tax + row.cgst_tax + row.igst_tax
             po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
             po_total_amount += po_tmp_price + po_tax_amount
-            po_sku_ids.append(row.sku.sku_code)
+            # po_sku_ids.append(row.sku.sku_code)
 
     po_amount_details['po_total_qty'] = po_total_qty
     po_amount_details['po_tax_amount'] = po_tax_amount
     po_amount_details['po_total_amount'] = po_total_amount
 
-    if po_sku_ids:
-      pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number, sku__sku_code__in=po_sku_ids)
-    else:
-      pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
+
+    pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
       
     pr_total_qty, pr_tmp_price, pr_tmp_tax, = 0, 0, 0
     pr_tax_amount, pr_total_amount = 0, 0

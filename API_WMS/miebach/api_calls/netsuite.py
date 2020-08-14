@@ -11,7 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from django.db.models import Sum, Count
-from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping
+from rest_api.views.common import get_local_date, folder_check, payment_supplier_mapping, net_terms_supplier_mapping, sync_supplier_async
 from rest_api.views.integrations import *
 import json
 import datetime
@@ -29,7 +29,7 @@ log = init_logger('logs/netsuite_integrations_' + today + '.log')
 log_err = init_logger('logs/netsuite_integration_errors.log')
 
 # NS_ACCOUNT='4120343_SB1'
-# NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb3 3945c096deb1353c64ea'
+# NS_CONSUMER_KEY='c1c9d3560fea16bc87e9a7f1428064346be5f1f28fb33945c096deb1353c64ea'
 # NS_CONSUMER_SECRET='a28d1fc077c8e9f0f27c74c0720c7519c84a433f1f8c93bfbbfa8fea1f0b4f35'
 # NS_TOKEN_KEY='e18e37a825e966c6e7e39b604058ce0d31d6903bfda3012f092ef845f64a1b7f'
 # NS_TOKEN_SECRET='7e4d43cd21d35667105e7ea885221170d871f5ace95733701226a4d5fbdf999c'
@@ -668,6 +668,11 @@ def netsuite_validate_supplier(request, supplier, user=''):
             if not failed_status:
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
+                try:
+                  sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
+                except Exception as e:
+                  print(e)
+
                 supplier_count += 1
                 log.info("supplier created for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
         return failed_status.values()

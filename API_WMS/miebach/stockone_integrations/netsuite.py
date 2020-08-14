@@ -367,7 +367,7 @@ class netsuiteIntegration(object):
             if(po_data.get('approval3',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver3', value=po_data['approval3']))
             if(po_data.get('approval4',None)):
-                po_custom_field_list.append(ns.StringCustomFieldRshief(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
+                po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_approver4', value=po_data['approval4']))
             if(po_data.get('po_url1',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_pr_attachment_1', value=po_data['po_url1']))
             if(po_data.get('po_url2',None)):

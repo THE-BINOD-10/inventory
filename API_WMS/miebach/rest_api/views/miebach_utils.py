@@ -193,6 +193,8 @@ PR_REPORT_PR_STATUS = ['Pending', 'Approved', 'Rejected', 'Pr_Converted_To_Po', 
 
 PR_REPORT_PRIORITY_STATUS = ['normal', 'urgent']
 
+PO_REPORT_PO_STATUS = ['Pending', 'Approved']
+
 ZONE_CODES = ['NORTH', 'EAST', 'WEST', 'SOUTH']
 
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
@@ -870,12 +872,13 @@ METRO_PO_REPORT_DICT = {
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
 
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
-                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers',
+                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','PO Amount Pre Tax', 'Tax Amount',
                    'PO Amount with Tax','GRN Numbers','Last Updated by', 'Last Updated Date', 'Expected delivery date',
                    'Supplier ID', 'Supplier Name'],
@@ -889,6 +892,7 @@ METRO_PO_DETAIL_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+        {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -898,7 +902,7 @@ METRO_PO_DETAIL_REPORT_DICT = {
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
-                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers',
+                   'Product Category','Category', 'PR Quantity','Total Amount','Approved by all Approvers', 'PO Status',
                    'Final Approver date','PO Number', 'PO Quantity', 'PO Raised Date','Material Code',
                    'Material Description', 'SKU Brand', 'SKU Category', 'SKU Sub-Category',
                    'SKU Group', 'SKU Class', 'UOM', 'HSN Code', 'PO Amount Pre Tax', 'Tax Amount',
@@ -13674,8 +13678,8 @@ def get_metro_po_report_data(search_params, user, sub_user):
         search_parameters['pending_po__full_po_number'] = po_number
     if 'product_category' in search_params:
         search_parameters['pending_po__product_category'] = search_params['product_category']
-    if 'final_status' in search_params:
-        search_parameters['pending_po__final_status'] = search_params['final_status']
+    if 'po_status' in search_params:
+        search_parameters['pending_po__final_status'] = search_params['po_status']
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -13706,7 +13710,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
 
     values_list = ['pending_po__full_po_number', 'pending_po__creation_date', 'pending_po__requested_user__username','pending_po__requested_user',
                    'pending_po__pending_prs__full_pr_number', 'pending_po__open_po', 'pending_po__pending_prs__full_pr_number',
-                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date',
+                   'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__final_status',
                    'pending_po__supplier__supplier_id', 'pending_po__supplier__name','pending_po__delivery_date', 'pending_po__final_status',
                    'pending_po__requested_user__first_name', 'pending_po__open_po__vendor__vendor_id', 'pending_po__open_po__vendor__name',
                    'pending_po__updation_date', 'pending_po__pending_prs__requested_user__id','pending_po__pending_prs__wh_user__id',
@@ -13767,7 +13771,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             updated_user_name = last_updated_by[0].validated_by
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
-
+        final_status = result['pending_po__final_status']
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', result['pending_po__pending_prs__full_pr_number']),
@@ -13784,6 +13788,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('PR Quantity', pr_quantity),
             ('Total Amount', pr_amount),
             ('Approved by all Approvers', all_approvals[0:-1]),
+            ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
             ('Supplier Name', result['pending_po__supplier__name']),
@@ -13791,7 +13796,7 @@ def get_metro_po_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount-po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(result['total_amt'],4))),
+            ('PO Amount with Tax', (round(result['total_amt']+po_tax_amount, 4))),
             ('PO Created by', result['pending_po__requested_user__first_name']),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
@@ -13852,6 +13857,8 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         search_parameters['sku__sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
         search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    if 'po_status' in search_params:
+        search_parameters['pending_po__final_status'] = search_params['po_status']
     if user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
@@ -13961,7 +13968,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
         if result['pending_po__delivery_date']:
             delivery_date = result['pending_po__delivery_date'].strftime("%d-%b-%y")
 
-
+        final_status = result['pending_po__final_status']
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', result['pending_po__pending_prs__full_pr_number']),
@@ -13978,6 +13985,7 @@ def get_metro_po_detail_report_data(search_params, user, sub_user):
             ('PR Quantity', pr_quantity),
             ('Total Amount', pr_amount),
             ('Approved by all Approvers', all_approvals[0:-1]),
+            ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),
             ('Supplier ID', result['pending_po__supplier__supplier_id']),
             ('Supplier Name', result['pending_po__supplier__name']),

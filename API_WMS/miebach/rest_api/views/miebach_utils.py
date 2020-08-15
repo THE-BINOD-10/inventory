@@ -13174,7 +13174,7 @@ def get_pr_report_data(search_params, user, sub_user):
         approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number']).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
-        final_status = "Pending"
+        final_status =  result['pending_pr__final_status']
         if approver_data.exists():
             approver_len = len(approver_data)
 
@@ -13269,7 +13269,6 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
                 approver_5_details = ''
@@ -13282,8 +13281,9 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if approver_5_details == approver_2_details:
+                    if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
                         approver_5_details, approver5_status = '', ''
+                        last_updated_by = approver_4_details
                 else:
                     approver5_status = 'No'
                     approver_5_details = approver_5.get('validated_by')
@@ -13293,9 +13293,12 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if approver_5_details == approver_2_details:
+                    if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
                         approver_5_details, approver5_status = '', ''
-
+                        last_updated_by = approver_4_details
+        if approver1_status == "No":
+            approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
+            approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),
@@ -13431,7 +13434,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
         approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
         pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
-        final_status = 'Pending'
+        final_status =  result['pending_pr__final_status']
         requested_user = result['pending_pr__requested_user']
         product_category = result['pending_pr__product_category']
         if requested_user:
@@ -13570,8 +13573,9 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if approver_5_details == approver_2_details:
+                    if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
                         approver_5_details, approver5_status = '', ''
+                        last_updated_by = approver_4_details
                 else:
                     approver5_status = 'No'
                     approver_5_details = approver_5.get('validated_by')
@@ -13581,10 +13585,10 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-                    if approver_5_details == approver_2_details:
+                    if (approver_2_details in approver_5_details) or (approver_2_details == approver_5_details):
                         approver_5_details, approver5_status = '', ''
-
-            if approver_1_status == "NO":
+                        last_updated_by = approver_4_details
+            if approver1_status == "NO":
                 approver_1_details, approver_2_details, approver_3_details, approver_4_details, approver_5_details = '', '', '', '', ''
                 approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
         ord_dict = OrderedDict((

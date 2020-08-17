@@ -664,10 +664,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (vm.model_data.other_charges.length > 0) {
         elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
       }
-      // if (vm.permissions.receive_po_inv_value_qty_check) {
-      //   elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-      //   elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-      // }
+      if (vm.permissions.receive_po_inv_value_qty_check) {
+        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      }
       $.each(elem, function(i, val) {
         form_data.append(val.name, val.value);
       });
@@ -748,10 +748,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.total_grn_quantity = 0;
       angular.forEach(vm.model_data.data, function(record, index){
         if (record[0].value){
-          inv_match_qty += parseInt(record[0].value);
+          inv_match_qty += parseFloat(record[0].value);
         }
         if (index+1 == vm.model_data.data.length) {
-          if (inv_match_qty == parseInt(vm.model_data.invoice_quantity) && (parseInt(vm.model_data.invoice_value) == vm.model_data.round_off_total)) {
+          if (parseInt(vm.model_data.invoice_value) == vm.model_data.round_off_total) {
             vm.total_grn_quantity = inv_match_qty;
             vm.confirm_grn_api()
           } else {
@@ -937,7 +937,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               'grn_total': parseFloat(vm.model_data.data[i][j].value)
             }
           } else {
-            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(parseInt(vm.model_data.data[i][j].value));
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(vm.model_data.data[i][j].value);
           }
           if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
             sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']

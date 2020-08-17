@@ -119,6 +119,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $timeout(function(){$('.selectpicker-ranges').selectpicker();}, 1000);
     $timeout(function(){$('.selectpicker-default').selectpicker();}, 1000);
     $timeout(function(){$('.selectpicker-approved').selectpicker();}, 1000);
+    $timeout(function(){$('.selectpicker-plants').selectpicker();}, 1000);
   }
 
   vm.submit = function(data) {

@@ -1196,6 +1196,7 @@ def department_warehouse(request, user=''):
 def print_po_reports(request, user=''):
     receipt_type = ''
     po_id = request.GET.get('po_id', '')
+    user = User.objects.get(id=request.GET['warehouse_id'])
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')

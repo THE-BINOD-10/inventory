@@ -51,14 +51,18 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
-    status =  request.POST.get('special-key', 'pending')
+    status =  request.POST.get('special-key', '')
+    # import pdb; pdb.set_trace()
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
+        if status:
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
+        else:
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -1754,7 +1758,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class'
+        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -1771,7 +1775,7 @@ def generated_actual_pr_data(request, user=''):
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
-                gl_code, service_stdate, service_edate, hsn_code, sku_class = rec
+                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1833,8 +1837,8 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
         elif is_purchase_approver:
+            resubmitting_user = True
             if pr_supplier_data.exists():
-                resubmitting_user = True
                 json_data = eval(pr_supplier_data[0].model_json)
                 supplierId = json_data['supplier_id']
                 supplier_gst_num = ''
@@ -1915,6 +1919,7 @@ def generated_actual_pr_data(request, user=''):
                         is_doa_sent_flag = True
                 # supplierDetailsMap = {}
                 # preferred_supplier = ''
+        final_price = price - price * (discount/100)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -1927,6 +1932,7 @@ def generated_actual_pr_data(request, user=''):
                                     'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
+                                    'final_price': round(final_price, 2),
                                     'measurement_unit': measurement_unit,
                                     'conversion': sku_conversion,
                                     'base_uom': base_uom,
@@ -1935,6 +1941,7 @@ def generated_actual_pr_data(request, user=''):
                                     'service_end_date': service_edate,
                                     'temp_price': temp_price,
                                     'temp_tax': temp_tax,
+                                    'discount': discount,
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
@@ -3249,7 +3256,6 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
                             central_po_data=None, currentLevelMailList=[], is_resubmitted=False):
     from mail_server import send_mail
     subject = ''
-    urlPath = request.META.get('HTTP_ORIGIN')
     desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
         Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
     filtersMap = {}#{'wh_user': user.id}

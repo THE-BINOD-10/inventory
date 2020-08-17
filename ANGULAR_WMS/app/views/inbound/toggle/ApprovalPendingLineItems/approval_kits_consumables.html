@@ -13,6 +13,8 @@
         <th>Base UOM</th>
         <th>MOQ</th>
         <th>Unit Rate(INR)</th>
+        <th>Discount</th>
+        <th>Final Unit Price</th>
         <th>Amount(INR)</th>
         <th>Tax %</th>
         <th>Total(INR)</th>
@@ -88,9 +90,20 @@
 
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.price | number:2}}
-          </span> 
-          <input type="text" name="price" ng-model="product.fields.price" class="hide">
+          </span>
         </td>
+
+
+        <td><input type="text" ng-model="product.fields.discount" size="18" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change')" ng-disabled="!showCase.resubmitting_user"></td>
+
+        <td class="text-center"> 
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.final_price | number:2}}
+          </span>
+        </td>
+
+
+
+
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
           </span> 

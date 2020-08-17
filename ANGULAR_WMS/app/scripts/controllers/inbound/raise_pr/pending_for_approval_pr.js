@@ -1308,10 +1308,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.getTotals(vm.model_data, true);
     }
 
-    vm.getTotals = function(data) {
+    vm.getTotals = function(data, type='') {
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
+      if (data.fields.discount > 100) {
+        Service.showNoty('Discount Percentage Between 0 - 100 ONLY');
+        data.fields.discount = 0
+      } else if (type == 'change'){
+        debugger
+        data.fields.final_price = parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100))
+      }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
       if (data.fields.temp_price){

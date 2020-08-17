@@ -12949,8 +12949,8 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
         users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
         if not users:
             parent_company_id = get_company_id(user)
-            company_id = staff_obj.company_id
-            if parent_company_id == staff_obj.company_id:
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
             users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                               company_id=company_id)

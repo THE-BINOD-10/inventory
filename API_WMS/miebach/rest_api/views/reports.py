@@ -2053,7 +2053,8 @@ def print_purchase_order_form(request, user=''):
         pm_order = purchase_orders[0]
         if pm_order.open_po.pendingpos.filter().exists():
             pending_po_data = pm_order.open_po.pendingpos.filter()[0]
-            supplier_payment_terms = pending_po_data.supplier_payment.payment_description
+            if pending_po_data.supplier_payment:
+                supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
         if pm_order.open_po.supplier.currency_code:
             supplier_currency = pm_order.open_po.supplier.currency_code

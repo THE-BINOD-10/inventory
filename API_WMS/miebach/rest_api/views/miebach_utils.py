@@ -5366,7 +5366,8 @@ def get_po_filter_data(search_params, user, sub_user):
                 GRN_total_qty, GRN_total_price, GRN_total_tax= get_po_grn_price_and_taxes(sellerposummary_data,"GRN")
                 grn_date = get_local_date(user, sellerposummary_data[0].creation_date).split(' ')
                 grn_date = ' '.join(grn_date[0:3])
-                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=sellerposummary_data[0].id))
+                version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=sellerposummary_data[0].id)).\
+                                                    filter(revision__comment='generate_grn')
                 if version_obj.exists():
                     updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
                     last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
@@ -5453,7 +5454,8 @@ def get_po_filter_data(search_params, user, sub_user):
         vendor_code, vendor_name,vendor_dispatch_date="","",""
         Expected_delivery_date=""
         grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
-        grn_genrated_user=grn_genrated_user.username
+        if not pr_plant:
+            pr_plant = grn_genrated_user.first_name
         if(data["purchase_order__expected_date"]):
             Expected_delivery_date = data['purchase_order__expected_date'].strftime("%d %b, %Y")
             # Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
@@ -5514,7 +5516,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 ("Credit Note applicable", credit_note_status),
                                                 ("Credit Note Number", data["credit__credit_number"]),
                                                 ("PR raised By(department name)",pr_department),
-                                                ("GRN Done by User Name", grn_genrated_user),
+                                                ("GRN Done by User Name", updated_user_name),
                                                 ("Approved by all Approvers", all_approvals),
                                                 ('MHL generated Delivery Challan No', data['challan_number']),
                                                 ('MHL generated Delivery Challan Date', challan_date),

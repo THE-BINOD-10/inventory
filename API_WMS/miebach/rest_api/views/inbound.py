@@ -811,7 +811,8 @@ def get_receive_po_datatable_filters(user, filters, request):
     search_params1 = {}
     search_params2 = {}
     if filters['search_0']:
-        cols = re.findall('\d+', filters['search_0'])
+        col_val = filters['search_0']
+        '''cols = re.findall('\d+', filters['search_0'])
         string = re.findall('\D+', filters['search_0'])
         if string:
             if len(cols) == 1:
@@ -832,27 +833,27 @@ def get_receive_po_datatable_filters(user, filters, request):
             if string:
                 search_params['prefix__icontains'] = string[0]
         else:
-            col_val = re.findall('\d+', filters['search_0'])[0]
-            po_ids = PurchaseOrder.objects.filter(Q(order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                                                  open_po__sku__user=user.id,
-                                                  received_quantity__lt=F('open_po__order_quantity')). \
-                exclude(status__in=['location-assigned', 'confirmed-putaway']). \
-                values_list('id', flat=True)
-            stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(
-                po__status__in=['location-assigned',
-                                'confirmed-putaway', 'stock-transfer']). \
-                filter(Q(po__order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                       open_st__sku__user=user.id,
-                       po__received_quantity__lt=F('open_st__order_quantity')). \
-                values_list('po_id', flat=True).distinct()
-            rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True). \
-                exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']). \
-                filter(Q(purchase_order__order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                       rwo__vendor__user=user.id,
-                       purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
-                values_list('purchase_order_id', flat=True).distinct()
-            search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
-            search_params1['po_id__in'] = search_params['id__in']
+            col_val = re.findall('\d+', filters['search_0'])[0]'''
+        po_ids = PurchaseOrder.objects.filter(po_number__icontains=col_val,
+                                              open_po__sku__user__in=user,
+                                              received_quantity__lt=F('open_po__order_quantity')). \
+            exclude(status__in=['location-assigned', 'confirmed-putaway']). \
+            values_list('id', flat=True)
+        stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(
+            po__status__in=['location-assigned',
+                            'confirmed-putaway', 'stock-transfer']). \
+            filter(po__po_number__icontains=col_val,
+                   open_st__sku__user__in=user,
+                   po__received_quantity__lt=F('open_st__order_quantity')). \
+            values_list('po_id', flat=True).distinct()
+        rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True). \
+            exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']). \
+            filter(purchase_order__po_number__icontains=col_val,
+                   rwo__vendor__user__in=user,
+                   purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
+            values_list('purchase_order_id', flat=True).distinct()
+        search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
+        search_params1['po_id__in'] = search_params['id__in']
     if filters['search_1']:
         search_params['open_po__po_name__icontains'] = filters['search_1']
         search_params1['po__open_po__po_name__icontains'] = filters['search_1']
@@ -899,15 +900,16 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True, all_prod_catgs=all_prod_catgs)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
-                           'order_id','order_id']
+                           'order_id','order_id', 'po_number']
     st_purchase_list = ['po__order_id', 'po__order_id', 'open_st__warehouse__username', 'po__order_id',
                         'po__creation_date', 'po__order_id', 'po__order_id', 'po__order_id', 'po__order_id',
-                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id']
+                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id', 'po__po_number']
     rw_purchase_list = ['purchase_order__order_id', 'purchase_order__order_id', 'rwo__vendor__name',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'rwo__vendor__name', 'purchase_order__order_id',
-                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id']
+                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+                        'purchase_order__po_number']
     st_purchase_list_sort = []
     order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = {}, {}, {}, {}
     for st_purchase_lis in st_purchase_list:

@@ -13383,7 +13383,7 @@ def get_po_putaway_summary(request, user=''):
         if assigned_location.exists():
             suggested_location = assigned_location[0].location.location
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'sku_desc': sku.sku_desc, 'quantity': round(quantity, 2), 'price': order_data['price'],
                      'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
         data_dict['location'] = suggested_location
         if seller_summary.batch_detail:

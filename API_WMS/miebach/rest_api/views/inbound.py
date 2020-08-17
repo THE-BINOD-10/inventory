@@ -13399,7 +13399,7 @@ def get_po_putaway_summary(request, user=''):
                 data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
             data_dict['tax_percent'] = batch_detail.tax_percent
         data_dict['amount'] = data_dict['quantity'] * data_dict['price']
-        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
+        data_dict['tax_value'] = round((data_dict['amount']/100) * data_dict['tax_percent'], 2)
         data_dict['grn_number'] = seller_summary.grn_number
         orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''

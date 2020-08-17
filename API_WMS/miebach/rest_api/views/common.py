@@ -34,6 +34,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count, Max, Min
 from requests import post
 import math
+import ast
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
@@ -45,6 +46,7 @@ from django.template import loader, Context
 from barcodes import *
 import ConfigParser
 from miebach.settings import INTEGRATIONS_CFG_FILE
+from miebach.celery import app
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -1100,7 +1102,7 @@ def pr_request(request):
     temp_data['recordsFiltered'] = results.count()
     for result in results:
         warehouse = user.first_name
-        
+
         product_category = result[fieldsMap['product_category']]
         sku_category = result[fieldsMap['sku_category']]
         sku_category_val = sku_category
@@ -1163,7 +1165,7 @@ def pr_request(request):
                                                 ('Store', store),
                                                 ('Department Type', warehouse_type),
                                                 ('PR Created Date', po_date),
-                                                ('PR Delivery Date', po_delivery_date),                                                
+                                                ('PR Delivery Date', po_delivery_date),
                                                 ('Total Quantity', result['total_qty']),
                                                 ('Total Amount', result['total_amt']),
                                                 ('PO Created Date', po_date),
@@ -1235,7 +1237,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'display_name': data['name'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
-                'plant': data.get('plant', ''),
+                #'plant': data.get('plant', ''),
                 'department_type': data.get('department_type', ''),
                 'min_Amt': final_dat.get('min_Amt', 0),
                 'max_Amt': final_dat.get('max_Amt', 0),
@@ -1245,6 +1247,10 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
             }
             if not pr_approvals.exists():
                 eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
+                if data.get('plant', ''):
+                    plant_list = filter(lambda item: item, data['plant'])
+                    if plant_list:
+                        update_staff_plants_list(eachConfig, plant_list)
                 eachConfigId = eachConfig.id
             else:
                 eachLevel = pr_approvals.filter(level=level)
@@ -1346,15 +1352,21 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
-                  'plant': ''}
+                  'plant__isnull': True}
     if sku_category:
         pac_filter['sku_category'] = sku_category
     if approval_type:
         pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
         pac_filter1['department_type'] = user.userprofile.stockone_code
-        pac_filter1['plant'] = admin_user.username
+        pac_filter1['plant__name'] = admin_user.username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
+        pac_filter1['plant__name'] = user.username
     # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
@@ -1364,7 +1376,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
     if not purchase_config:
         pac_filter2 = copy.deepcopy(pac_filter1)
-        pac_filter2['plant'] = ''
+        if 'plant__name' in pac_filter2:
+            del pac_filter2['plant__name']
+        pac_filter2['plant__isnull'] = True
         #all plants that department
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
         if not purchase_config:
@@ -4943,7 +4957,7 @@ def get_file_content(request, user=''):
 def get_uom_data(user, master_data, uom_type):
     base_uom = ''
     company_id = get_company_id(user)
-    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code, 
+    sku_uom = UOMMaster.objects.filter(sku_code=master_data.sku_code,
                     uom_type=uom_type, company_id=company_id)
     sku_conversion = 0
     if sku_uom.exists():
@@ -4986,12 +5000,16 @@ def search_wms_data(request, user=''):
     if master_data:
         master_data = master_data[0]
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
+        tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
+        temp_tax=0
+        if tax_values.exists():
+            temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'sku_class': master_data.sku_class, 'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5240,12 +5258,16 @@ def build_search_data(user, to_data, from_data, limit):
             else:
                 measurement_unit = data.measurement_type
                 sku_conversion = 0
+            tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
+            temp_tax=0
+            if tax_values.exists():
+                temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -10633,7 +10655,7 @@ def update_sku_substitutes_mapping(user, substitutes, data, remove_existing=Fals
     return subs_status
 
 
-def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False): 
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''
     exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
@@ -12339,7 +12361,10 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
     master_id = master_id
     master_type = master_type
     if not master_file:
-        master_file = request.FILES.get('master_file', '')
+        try:
+            master_file = request.FILES.get('master_file', '')
+        except Exception as e:
+            return 'No Files'
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
@@ -12350,10 +12375,23 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
         master_doc.save()
     return 'Uploaded Successfully'
 
+@app.task
+def sync_supplier_async(id, user_id):
+    supplier = SupplierMaster.objects.get(id=id)
+    user = User.objects.get(id=user_id)
+    filter_dict = {'supplier_id': supplier.supplier_id }
+    data_dict = removeUnnecessaryData(supplier.__dict__)
+    data_dict.pop('id')
+    data_dict.pop('user')
+    payment_term_arr = [row.__dict__ for row in supplier.paymentterms_set.filter()]
+    net_term_arr = [row.__dict__ for row in supplier.netterms_set.filter()]
+    master_objs = sync_supplier_master({}, user, data_dict, filter_dict)
+    createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
+    print("Sync Completed For %s" % supplier.supplier_id)
 
-def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False):
+def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id='', current_user=False, force=False):
     supplier_sync = get_misc_value('supplier_sync', user.id)
-    if supplier_sync == 'true' and not current_user:
+    if (supplier_sync == 'true' or force) and not current_user :
         user_ids = get_related_users(user.id)
     else:
         user_ids = [user.id]
@@ -12368,13 +12406,21 @@ def sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_
             user_ids.insert(0, company_admin_id)
     for user_id in user_ids:
         user_obj = User.objects.get(id=user_id)
-        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) != str(admin_supplier.subsidiary)):
+        admin_subsidiaries = []
+        if admin_supplier:
+            try:
+                admin_subsidiaries = ast.literal_eval(admin_supplier.subsidiary)
+                admin_subsidiaries = [str(x) for x in admin_subsidiaries]
+            except Exception as e:
+                continue
+
+        if not current_user and (admin_supplier and str(user_obj.userprofile.company.reference_id) not in admin_subsidiaries):
             continue
         user_filter_dict = copy.deepcopy(filter_dict)
         user_data_dict = copy.deepcopy(data_dict)
         user_filter_dict['user'] = user_id
-        if user.id != user_id:
-            if user_filter_dict.get('tin_number', ''):
+        if company_admin_id != user_id:
+            if user_data_dict.get('tin_number', ''):
                 if user_obj.userprofile.state.lower() == user_data_dict['state'].lower():
                     user_data_dict['tax_type'] = 'intra_state'
                 else:
@@ -12644,8 +12690,10 @@ def get_purchase_config_data(request, user=''):
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
+        plants = list(purchase_config.plant.filter().values_list('name', flat=True))
+        plant_names = ','.join(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
         config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
-                       'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
+                       'plant': plant_names, 'department_type': purchase_config.department_type,
                        'default_level_data': [], 'sku_category': purchase_config.sku_category,
                        'ranges_level_data': [], 'approved_level_data': []}
         ranges_dict = OrderedDict()
@@ -12777,6 +12825,29 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
         WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
 
     return new_user
+
+def update_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name=None):
+    # user_dict['last_login'] = datetime.datetime.now()
+    new_user = User.objects.get(id=user_dict.get('id'))
+    # new_user.is_staff = True
+    # new_user.save()
+    uprof = UserProfile.objects.get(user_id=new_user.id)
+    uprof.location = user_profile_dict['state']
+    uprof.prefix = new_user.username[:3]
+    if user_profile_dict.get('pin_code', 0) in [0, '']:
+        user_profile_dict['pin_code'] = 0
+    if user_profile_dict.get('phone_number', 0) in [0, '']:
+        user_profile_dict['phone_number'] = 0
+    user_profile_dict['user_type'] = exist_user_profile.user_type
+    user_profile_dict['industry_type'] = exist_user_profile.industry_type
+    for key, value in user_profile_dict.iteritems():
+        setattr(uprof, key, value)
+    
+    
+    uprof.save()
+
+    return new_user
+
 
 def get_user_groups_names(user):
     exclude_list = ['Pull to locate', 'Admin', 'WMS']
@@ -12915,8 +12986,8 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
         users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
         if not users:
             parent_company_id = get_company_id(user)
-            company_id = staff_obj.company_id
-            if parent_company_id == staff_obj.company_id:
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
             users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                               company_id=company_id)

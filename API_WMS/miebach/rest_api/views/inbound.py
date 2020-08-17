@@ -1119,7 +1119,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
-                                      ('Receivable Qty', total_receivable_qty),
+                                      ('Receivable Qty', round(total_receivable_qty, 2)),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Store', warehouse.first_name),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
@@ -13349,7 +13349,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('GRN Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
-                                                ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
+                                                ('Total Quantity', round(rem_quantity, 2)), ('Total Amount', round(total_amt, 2)),
                                                 ('id', count), ('warehouse_id', warehouse.id), ('Warehouse', warehouse.first_name),
                                                 ('DT_RowClass', 'results'))))
         count += 1
@@ -13403,7 +13403,7 @@ def get_po_putaway_summary(request, user=''):
         if assigned_location.exists():
             suggested_location = assigned_location[0].location.location
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'sku_desc': sku.sku_desc, 'quantity': round(quantity, 2), 'price': order_data['price'],
                      'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
         data_dict['location'] = suggested_location
         if seller_summary.batch_detail:
@@ -13419,7 +13419,7 @@ def get_po_putaway_summary(request, user=''):
                 data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
             data_dict['tax_percent'] = batch_detail.tax_percent
         data_dict['amount'] = data_dict['quantity'] * data_dict['price']
-        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
+        data_dict['tax_value'] = round((data_dict['amount']/100) * data_dict['tax_percent'], 2)
         data_dict['grn_number'] = seller_summary.grn_number
         orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''

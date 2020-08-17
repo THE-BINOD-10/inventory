@@ -13171,7 +13171,6 @@ def get_pr_report_data(search_params, user, sub_user):
         final_status = "Pending"
         if approver_data.exists():
             approver_len = len(approver_data)
-
             for req_data , dat in zip(approver_data,range(1,approver_len+1)):
                 key = 'level_approver' + str(dat)
                 all_approver_details[key] = req_data
@@ -13270,7 +13269,8 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_5.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
-
+        if result.get('pending_pr__final_status', ''):
+            final_status = result.get('pending_pr__final_status', '')
         ord_dict = OrderedDict((
             ('PR Number', full_pr_number),
             ('PR Submitted Date', pr_sub_date),

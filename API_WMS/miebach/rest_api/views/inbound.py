@@ -6228,7 +6228,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         _expected_date = expected_date
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-    inv_qty = int(request.POST.get('invoice_quantity', 0))
+    inv_qty = float(request.POST.get('invoice_quantity', 0))
     inv_value = float(request.POST.get('invoice_value', 0))
     if request.POST.get('grn_quantity', 0) == 'undefined':
         total_grn_qty = 0

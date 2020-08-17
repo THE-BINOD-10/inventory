@@ -56,11 +56,11 @@ class Integrations():
     def gatherSkuData(self, skuObject):
         skuDict = skuObject.__dict__
         skuDict = self.removeUnnecessaryData(skuDict)
-        skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
-        skuAttributes = {}
-        for row in skuAttributesList:
-            skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
-        skuDict.update(skuAttributes)
+        #skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
+        #skuAttributes = {}
+        #for row in skuAttributesList:
+        #    skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
+        #skuDict.update(skuAttributes)
         return skuDict
 
 
@@ -422,16 +422,16 @@ class Integrations():
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
-                stockone_reference=data.externalId,
-                status=False,
+                stockone_reference=data.externalId
             )
         status = True
         if hasattr(data, 'error'):
             resultArr.update(
-                integration_error=data.error_msg
+                integration_error=data.error_msg,
+                status = False
                 )
-            status = False
-        resultArr.update(
-            integration_reference = data.internalId,
-            status = status
-        )
+        else:
+            resultArr.update(
+                integration_reference = data.internalId,
+                status = status
+            )

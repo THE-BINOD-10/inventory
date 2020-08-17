@@ -1494,6 +1494,8 @@ def netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
         else:
             sku_data_dict.update({"product_type":"SKU"})
+            if "hsn_code" in sku_attr_dict:
+                del sku_attr_dict["hsn_code"]
             sku_data_dict.update(sku_attr_dict)
         intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         integrateUOM(user, data.sku_code)

@@ -4431,9 +4431,16 @@ def sku_wise_purchase_data(search_params, user, sub_user):
 def get_sku_wise_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from masters import gather_uom_master_for_sku
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float
-    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float,\
+        check_and_get_plants_wo_request, get_related_users_filters
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     is_market_user = False
     if user_profile.user_type == 'marketplace_user':
         is_market_user = True
@@ -4470,7 +4477,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
                          'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
                          'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
-                         'user': 'purchase_order__open_po__sku__user',
+                         'user': 'purchase_order__open_po__sku__user__in',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix',
                          'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
@@ -4495,7 +4502,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
                          'overall_discount',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp', 'remarks',
-                         'purchase_order__open_po__supplier__tin_number', 'purchase_order__id', 'price']
+                         'purchase_order__open_po__supplier__tin_number', 'purchase_order__id', 'price',
+                         'purchase_order__po_number']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 29: 'Post-Tax Received Value',
                          30: 'Invoiced Unit Rate',
@@ -4526,7 +4534,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
                          'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
                          'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
-                         'user': 'purchase_order__open_po__sku__user',
+                         'user': 'purchase_order__open_po__sku__user__in',
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix',
                          'supplier_id': 'purchase_order__open_po__supplier__supplier_id',
@@ -4554,7 +4562,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__id', 'price', 'invoice_number', 'challan_number', 'grn_number',
                          "purchase_order__open_po__sku__user", "purchase_order__expected_date",
                          "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
-                         "purchase_order__open_po__vendor__creation_date","status", "credit_status","credit__credit_number"
+                         "purchase_order__open_po__vendor__creation_date","status", "credit_status","credit__credit_number",
+                         "purchase_order__po_number",
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -4597,8 +4606,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         search_parameters[field_mapping['supplier_id']] = \
             search_params['supplier'].split(':')[0]
-    search_parameters[field_mapping['user']] = user.id
-    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters[field_mapping['user']] = user_ids
+    #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                        total_received=Sum(rec_quan),
@@ -4617,7 +4626,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in model_data:
         manufacturer, searchable, bundle = '', '', ''
@@ -4632,7 +4641,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                         searchable = attribute.attribute_value
                     if attribute.attribute_name == 'Bundle':
                         bundle = attribute.attribute_value
-        result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
+        result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids)[0]
         receipt_no = data['receipt_number']
         if not receipt_no:
             receipt_no = ''
@@ -4730,6 +4739,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         po_data =  PendingPO.objects.filter(full_po_number=data['purchase_order__po_number'])
         pr_plant,last_approvals_date,pr_Total_Amt,pr_price,pr_tax_amount="","",0,0,0
         all_approvals=[]
+        pr_date_time, pr_department = '', ''
         if po_data.exists():
             po_data=po_data[0]
             pending_pr= po_data.pending_prs.all()
@@ -4802,8 +4812,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         else:
             grn_status="Completed"
             credit_note_status= "No"
-        po_result = purchase_orders.filter(order_id=data["purchase_order__order_id"], open_po__sku__user=user.id,
-                                           prefix=data['purchase_order__prefix'])
+        po_result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user=user.id)
         po_total_qty, po_total_price, po_total_tax= [0]*3
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
 
@@ -5217,6 +5226,7 @@ def get_po_grn_price_and_taxes(data, type=""):
     if type=="GRN":
         for row in data:
             total_qty += row.quantity
+            tmp_price = 0
             if row.price > 0:
                 tmp_price = row.price * row.quantity
             elif row.batch_detail:
@@ -5235,8 +5245,16 @@ def get_po_grn_price_and_taxes(data, type=""):
 
 def get_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
-    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
-    sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request,\
+        get_related_users_filters
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
     lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
@@ -5250,7 +5268,7 @@ def get_po_filter_data(search_params, user, sub_user):
     unsorted_dict = {}
     model_name = SellerPOSummary
     field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date', 'order_id': 'purchase_order__order_id',
-                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact', 'user': 'purchase_order__open_po__sku__user',
+                     'wms_code': 'purchase_order__open_po__sku__wms_code__iexact', 'user': 'purchase_order__open_po__sku__user__in',
                      'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id', 'supplier_name': 'purchase_order__open_po__supplier__name'}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
@@ -5297,8 +5315,8 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'supplier' in search_params and ':' in search_params['supplier']:
         search_parameters['purchase_order__open_po__supplier__supplier_id__iexact'] = \
             search_params['supplier'].split(':')[0]
-    search_parameters[field_mapping['user']] = user.id
-    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters[field_mapping['user']] = user_ids
+    #search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['purchase_order__received_quantity__gt'] = 0
     query_data = model_name.objects.prefetch_related('purchase_order__open_po__sku', 'purchase_order__open_po__supplier').select_related('purchase_order__open_po',
                                                                                                          'purchase_order__open_po__sku',
@@ -5324,11 +5342,11 @@ def get_po_filter_data(search_params, user, sub_user):
         custom_search = True
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id,
-                                           prefix=data['purchase_order__prefix'])
+        po_result = purchase_orders.filter(po_number=data['purchase_order__po_number'], open_po__sku__user__in=user_ids)
         result = po_result[0]
+        warehouse = User.objects.get(id=result.open_po.sku.user)
         po_total_qty, po_total_price, po_total_tax,GRN_total_qty, GRN_total_price, GRN_total_tax = [0]*6
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
         po_reference_name = result.open_po.po_name
@@ -5510,7 +5528,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'),
-                                                ('receipt_no', receipt_no),
+                                                ('receipt_no', receipt_no), ('warehouse_id', warehouse.id),
                                                 )))
     if stop_index and custom_search:
         if temp_data['aaData']:
@@ -10110,7 +10128,10 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    users = [user.id]
+    users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
     unsorted_dict = {17: 'Total Amount'}
     lis = ['rtv_number', 'creation_date', 'seller_po_summary__purchase_order__order_id',
            'seller_po_summary__purchase_order__open_po__supplier_id',
@@ -10150,7 +10171,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         search_parameters['seller_po_summary__invoice_number'] = search_params['invoice_number']
     if 'rtv_number' in search_params:
         search_parameters['rtv_number'] = search_params['rtv_number']
-    if user.userprofile.warehouse_type == 'ADMIN':
+    if user.id == sub_user.id and user.userprofile.warehouse_type == 'ADMIN':
         if 'sister_warehouse' in search_params:
             sister_warehouse_name = search_params['sister_warehouse']
             user = User.objects.get(username=sister_warehouse_name)
@@ -10161,9 +10182,12 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
             warehouse_users = warehouses
 
         search_parameters['seller_po_summary__purchase_order__open_po__sku__user__in'] = warehouse_users.keys()
-
     else:
-        search_parameters['seller_po_summary__purchase_order__open_po__sku__user'] = user.id
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user_ids = list(users.filter(username=sister_warehouse_name).values_list('id', flat=True))
+        search_parameters['seller_po_summary__purchase_order__open_po__sku__user__in'] = user_ids
+    print user_ids
     model_data = model_name.objects.filter(**search_parameters)
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
@@ -10351,7 +10375,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
                      'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix',
                      'supplier_id': 'open_po__supplier__supplier_id', 'supplier_name': 'open_po__supplier__name'}
     result_values = ['order_id', 'open_po__supplier__supplier_id', 'open_po__supplier__name', 'prefix',
-                     'sellerposummary__receipt_number', 'sellerposummary__grn_number']
+                     'sellerposummary__receipt_number', 'sellerposummary__grn_number', 'po_number']
     excl_status = {'status': ''}
     ord_quan = 'open_po__order_quantity'
     rec_quan = 'received_quantity'
@@ -10400,8 +10424,7 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=user_ids)
     for data in model_data:
-        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user__in=user_ids,
-                                           prefix=data['prefix'])
+        po_result = purchase_orders.filter(po_number=data['po_number'], open_po__sku__user__in=user_ids)
         result = po_result[0]
         warehouse = User.objects.get(id=result.open_po.sku.user)
         total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']

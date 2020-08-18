@@ -300,11 +300,14 @@ def create_update_sku(all_skus, all_users):
         except:
             pass
 
-        instanceName.objects.filter(user__in=all_users, sku_code=sku.sku_code).update(**update_sku_dict)
-
-        for user in all_users:
+        all_sku_objs = instanceName.objects.filter(user__in=all_users, sku_code=sku.sku_code)
+        all_sku_objs.update(**update_sku_dict)
+        exist_users = list(all_sku_objs.values_list('user', flat=True))
+        create_in_users = list(set(all_users) - set(exist_users))
+        for user in create_in_users:
             if sku.user == user:
                 continue
+            print user
             size_type = ''
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
@@ -348,13 +351,13 @@ def create_update_sku(all_skus, all_users):
         if new_sku_objs:
             bulk_create_in_batches(SKUMaster, new_sku_objs)
         for new_sku_code, new_sku_value in new_sku_eans.items():
-            for user in all_users:
+            for user in create_in_users:
                 sku_obj = SKUMaster.objects.get(user=user, sku_code=new_sku_code)
                 #code_obj_dict[new_sku_code] = sku_obj
                 sku_obj, new_ean_objs, update_sku_obj = prepare_ean_bulk_data(sku_obj, new_sku_value, exist_ean_list,
                                                                               exist_sku_eans, new_ean_objs=new_ean_objs)
         for new_sku_code, new_sku_attr in new_sku_attrs.items():
-            for user in all_users:
+            for user in create_in_users:
                 # if new_sku_code in code_obj_dict.keys():
                 #     sku_obj = code_obj_dict[new_sku_code]
                 # else:
@@ -374,7 +377,8 @@ def create_update_sku(all_skus, all_users):
     if create_sku_attrs:
         bulk_create_in_batches(SKUAttributes, create_sku_attrs) #SKUAttributes.objects.bulk_create(create_sku_attrs)
 
-    #insert_update_brands(User.objects.get(id=user))
+    for user in create_in_users:
+        insert_update_brands(User.objects.get(id=user))
     if dump_sku_codes and all_skus:
         dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 

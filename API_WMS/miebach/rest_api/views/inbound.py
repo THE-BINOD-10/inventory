@@ -33,6 +33,7 @@ log = init_logger('logs/inbound.log')
 log_mail_info = init_logger('logs/inbound_mail_info.log')
 receive_po_qc_log = init_logger('logs/receive_po_qc.log')
 inbound_payment_log = init_logger('logs/inbound_payment.log')
+pr_doa_log = init_logger('logs/pr_doa.log')
 
 
 NOW = datetime.datetime.now()
@@ -75,6 +76,22 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         #     filtersMap.setdefault('pending_pr_id__in', [])
         #     pr_numbers = list(PendingPR.objects.filter(requested_user=request.user.id).values_list('id', flat=True))
         #     filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+    elif request.user.is_staff:
+        user_excl_list = ['approved', 'rejected']
+        user_filt_check = {}
+        if status:
+            user_excl_list = ['rejected']
+            user_filt_check['status'] = 'approved'
+        if request.user.userprofile.warehouse_type == 'DEPT':
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user=request.user.id, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
+        elif request.user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+            plant_dept_users = get_related_users_filters(request.user.id, warehouse_types=['DEPT'], warehouse=[request.user.username])
+            plant_dept_user_ids = list(plant_dept_users.values_list('id', flat=True))
+            pr_numbers = list(PurchaseApprovals.objects.filter(pending_pr__wh_user_id__in=plant_dept_user_ids, **user_filt_check).\
+                                                    exclude(status__in=['approved', 'rejected']).values_list('pending_pr_id'))
+            filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     is_purchase_approver = find_purchase_approver_permission(request.user)
     if is_purchase_approver:
         pa_email = request.user.email
@@ -794,7 +811,8 @@ def get_receive_po_datatable_filters(user, filters, request):
     search_params1 = {}
     search_params2 = {}
     if filters['search_0']:
-        cols = re.findall('\d+', filters['search_0'])
+        col_val = filters['search_0']
+        '''cols = re.findall('\d+', filters['search_0'])
         string = re.findall('\D+', filters['search_0'])
         if string:
             if len(cols) == 1:
@@ -815,27 +833,27 @@ def get_receive_po_datatable_filters(user, filters, request):
             if string:
                 search_params['prefix__icontains'] = string[0]
         else:
-            col_val = re.findall('\d+', filters['search_0'])[0]
-            po_ids = PurchaseOrder.objects.filter(Q(order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                                                  open_po__sku__user=user.id,
-                                                  received_quantity__lt=F('open_po__order_quantity')). \
-                exclude(status__in=['location-assigned', 'confirmed-putaway']). \
-                values_list('id', flat=True)
-            stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(
-                po__status__in=['location-assigned',
-                                'confirmed-putaway', 'stock-transfer']). \
-                filter(Q(po__order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                       open_st__sku__user=user.id,
-                       po__received_quantity__lt=F('open_st__order_quantity')). \
-                values_list('po_id', flat=True).distinct()
-            rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True). \
-                exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']). \
-                filter(Q(purchase_order__order_id__icontains=col_val) | Q(creation_date__regex=col_val),
-                       rwo__vendor__user=user.id,
-                       purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
-                values_list('purchase_order_id', flat=True).distinct()
-            search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
-            search_params1['po_id__in'] = search_params['id__in']
+            col_val = re.findall('\d+', filters['search_0'])[0]'''
+        po_ids = PurchaseOrder.objects.filter(po_number__icontains=col_val,
+                                              open_po__sku__user__in=user,
+                                              received_quantity__lt=F('open_po__order_quantity')). \
+            exclude(status__in=['location-assigned', 'confirmed-putaway']). \
+            values_list('id', flat=True)
+        stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(
+            po__status__in=['location-assigned',
+                            'confirmed-putaway', 'stock-transfer']). \
+            filter(po__po_number__icontains=col_val,
+                   open_st__sku__user__in=user,
+                   po__received_quantity__lt=F('open_st__order_quantity')). \
+            values_list('po_id', flat=True).distinct()
+        rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True). \
+            exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']). \
+            filter(purchase_order__po_number__icontains=col_val,
+                   rwo__vendor__user__in=user,
+                   purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
+            values_list('purchase_order_id', flat=True).distinct()
+        search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
+        search_params1['po_id__in'] = search_params['id__in']
     if filters['search_1']:
         search_params['open_po__po_name__icontains'] = filters['search_1']
         search_params1['po__open_po__po_name__icontains'] = filters['search_1']
@@ -882,15 +900,16 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters, col_num
     sku_master, sku_master_ids = get_sku_master(user, request.user, is_list = True, all_prod_catgs=all_prod_catgs)
     purchase_order_list = ['order_id', 'order_id', 'open_po__po_name', 'open_po__supplier__name', 'order_id', 'order_id',
                            'order_id', 'order_id', 'order_id', 'order_id', 'open_po__supplier__name', 'order_id',
-                           'order_id','order_id']
+                           'order_id','order_id', 'po_number']
     st_purchase_list = ['po__order_id', 'po__order_id', 'open_st__warehouse__username', 'po__order_id',
                         'po__creation_date', 'po__order_id', 'po__order_id', 'po__order_id', 'po__order_id',
-                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id']
+                        'po__order_id', 'open_st__warehouse__username', 'po__order_id', 'po__order_id', 'po__order_id', 'po__po_number']
     rw_purchase_list = ['purchase_order__order_id', 'purchase_order__order_id', 'rwo__vendor__name',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
                         'purchase_order__order_id', 'rwo__vendor__name', 'purchase_order__order_id',
-                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id']
+                        'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
+                        'purchase_order__po_number']
     st_purchase_list_sort = []
     order_qtys_dict, receive_qtys_dict, st_order_qtys_dict, st_receive_qtys_dict = {}, {}, {}, {}
     for st_purchase_lis in st_purchase_list:
@@ -1100,7 +1119,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
-                                      ('Receivable Qty', total_receivable_qty),
+                                      ('Receivable Qty', round(total_receivable_qty, 2)),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Store', warehouse.first_name),('Order Type', order_type),
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
@@ -4566,6 +4585,7 @@ def add_pr(request, user=''):
             reqConfigName = findReqConfigName(user, totalAmt, purchase_type='PR',
                                                 product_category=product_category, approval_type='default',
                                               sku_category=sku_category)
+            pr_doa_log.info("Approval Config for PR Number %s is %s" % (full_pr_number, reqConfigName))
             if not reqConfigName or is_contract_supplier:
                 pendingPRObj.final_status = 'approved'
                 pendingPRObj.save()
@@ -4625,6 +4645,7 @@ def add_pr(request, user=''):
             else:
                 reqConfigName = findReqConfigName(pendingPRObj.wh_user, totalAmt, purchase_type='PO',
                                     product_category=product_category, sku_category=sku_category)
+                pr_doa_log.info("Approval Config for PO Number %s is %s" % (full_pr_number, reqConfigName))
                 if not reqConfigName or is_contract_supplier:
                     pendingPRObj.final_status = 'approved'
                 else:
@@ -6228,12 +6249,12 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         _expected_date = expected_date
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-    inv_qty = int(request.POST.get('invoice_quantity', 0))
+    inv_qty = float(request.POST.get('invoice_quantity', 0))
     inv_value = float(request.POST.get('invoice_value', 0))
     if request.POST.get('grn_quantity', 0) == 'undefined':
         total_grn_qty = 0
     else:
-        total_grn_qty = int(request.POST.get('grn_quantity', 0))
+        total_grn_qty = float(request.POST.get('grn_quantity', 0))
     if request.POST.get('grn_total_amount', 0) == 'undefined':
         total_grn_value = 0
     else:
@@ -9518,7 +9539,6 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             plant = plant_obj.userprofile.reference_id
             subsidary= plant_obj.userprofile.company.reference_id
             master_docs_obj = MasterDocs.objects.filter(master_id=prQs[0].id,master_type='pending_po')
-            po_url1, po_url2=[""]*2
             if master_docs_obj:
                 if len(master_docs_obj)==1:
                     po_url1=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
@@ -13329,7 +13349,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('GRN Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Challan Number', challan_number),
                                                 ('Invoice Date', invoice_date), ('Challan Date', challan_date),
-                                                ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
+                                                ('Total Quantity', round(rem_quantity, 2)), ('Total Amount', round(total_amt, 2)),
                                                 ('id', count), ('warehouse_id', warehouse.id), ('Warehouse', warehouse.first_name),
                                                 ('DT_RowClass', 'results'))))
         count += 1
@@ -13383,7 +13403,7 @@ def get_po_putaway_summary(request, user=''):
         if assigned_location.exists():
             suggested_location = assigned_location[0].location.location
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'sku_desc': sku.sku_desc, 'quantity': round(quantity, 2), 'price': order_data['price'],
                      'tax_percent': open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax}
         data_dict['location'] = suggested_location
         if seller_summary.batch_detail:
@@ -13399,7 +13419,7 @@ def get_po_putaway_summary(request, user=''):
                 data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
             data_dict['tax_percent'] = batch_detail.tax_percent
         data_dict['amount'] = data_dict['quantity'] * data_dict['price']
-        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
+        data_dict['tax_value'] = round((data_dict['amount']/100) * data_dict['tax_percent'], 2)
         data_dict['grn_number'] = seller_summary.grn_number
         orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''

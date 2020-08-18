@@ -5953,7 +5953,7 @@ def get_sku_master_doa_record(request, user=''):
 
 
 def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_filter={}):
-    lis = ['display_name', 'product_category', 'plant', 'department_type', 'min_Amt', 'max_Amt']
+    lis = ['display_name', 'product_category', 'plant__name', 'department_type', 'min_Amt', 'max_Amt']
     order_data = lis[col_num]
     filter_params = get_filtered_params(filters, lis)
     company_list = get_companies_list(user, send_parent=True)
@@ -5962,26 +5962,31 @@ def get_pr_approval_config_data(start_index, stop_index, temp_data, search_term,
     purchase_type =  request.POST.get('special_key', '')
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    purchase_approval_configs = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
+                                                                **filter_params)
     if search_term:
-        mapping_results = PurchaseApprovalConfig.objects.filter(Q(display_name__icontains=search_term) |
+        mapping_results = purchase_approval_configs.filter(Q(display_name__icontains=search_term) |
                                                                 Q(product_category__icontains=search_term) |
-                                                                Q(plant__icontains=search_term) |
-                                                                Q(department_type__icontains=search_term),
-                                                                company_id__in=company_list, purchase_type=purchase_type,
-                                                                **filter_params).\
-                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
+                                                                Q(plant__name__icontains=search_term) |
+                                                                Q(department_type__icontains=search_term)).\
+                                        values('display_name', 'product_category', 'department_type').distinct().\
                                         order_by(order_data)
 
     else:
-        mapping_results = PurchaseApprovalConfig.objects.filter(company_id__in=company_list, purchase_type=purchase_type,
-                                                                **filter_params).\
-                                        values('display_name', 'product_category', 'plant', 'department_type').distinct().\
+        mapping_results = purchase_approval_configs.\
+                                        values('display_name', 'product_category', 'department_type').distinct().\
                                         order_by(order_data)
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for result in mapping_results[start_index: stop_index]:
+        pac_objs = purchase_approval_configs.filter(**result)
+        plants = []
+        if pac_objs:
+            plants = list(pac_objs[0].plant.filter().values_list('name', flat=True))
+            plants = list(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
+        plant_names = ','.join(plants)
         temp_data['aaData'].append(OrderedDict((('name', result['display_name']), ('product_category', result['product_category']),
-                                                ('plant', result['plant']),
+                                                ('plant', plant_names),
                                                 ('department_type', department_mapping.get(result['department_type'], '')),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowId', result['display_name']))))

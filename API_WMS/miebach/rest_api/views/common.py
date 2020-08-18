@@ -1237,7 +1237,7 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
                 'display_name': data['name'],
                 'product_category': data['product_category'],
                 'sku_category': data.get('sku_category', ''),
-                'plant': data.get('plant', ''),
+                #'plant': data.get('plant', ''),
                 'department_type': data.get('department_type', ''),
                 'min_Amt': final_dat.get('min_Amt', 0),
                 'max_Amt': final_dat.get('max_Amt', 0),
@@ -1247,6 +1247,10 @@ def update_purchase_approval_config_data(company_id, purchase_type, data, user, 
             }
             if not pr_approvals.exists():
                 eachConfig = PurchaseApprovalConfig.objects.create(**PRApprovalMap)
+                if data.get('plant', ''):
+                    plant_list = filter(lambda item: item, data['plant'])
+                    if plant_list:
+                        update_staff_plants_list(eachConfig, plant_list)
                 eachConfigId = eachConfig.id
             else:
                 eachLevel = pr_approvals.filter(level=level)
@@ -1348,15 +1352,21 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
     admin_user = get_admin(user)
     pac_filter = {'company_id': company_id, 'purchase_type': purchase_type,
                     'product_category': product_category, 'department_type': '',
-                  'plant': ''}
+                  'plant__isnull': True}
     if sku_category:
         pac_filter['sku_category'] = sku_category
     if approval_type:
         pac_filter['approval_type'] = approval_type
     pac_filter1 = copy.deepcopy(pac_filter)
     if user.userprofile.warehouse_type == 'DEPT':
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
         pac_filter1['department_type'] = user.userprofile.stockone_code
-        pac_filter1['plant'] = admin_user.username
+        pac_filter1['plant__name'] = admin_user.username
+    elif user.userprofile.warehouse_type in ['STORE', 'SUB_STORE']:
+        if 'plant__isnull' in pac_filter1:
+            del pac_filter1['plant__isnull']
+        pac_filter1['plant__name'] = user.username
     # that plant that department
     purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter1)
     if not purchase_config:
@@ -1366,7 +1376,9 @@ def fetchConfigNameRangesMap(user, purchase_type='PR', product_category='', appr
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
     if not purchase_config:
         pac_filter2 = copy.deepcopy(pac_filter1)
-        pac_filter2['plant'] = ''
+        if 'plant__name' in pac_filter2:
+            del pac_filter2['plant__name']
+        pac_filter2['plant__isnull'] = True
         #all plants that department
         purchase_config = PurchaseApprovalConfig.objects.filter(**pac_filter2)
         if not purchase_config:
@@ -5255,7 +5267,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code,"temp_tax": temp_tax}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -12678,8 +12690,10 @@ def get_purchase_config_data(request, user=''):
     config_dict = {}
     if purchase_config_data:
         purchase_config = purchase_config_data[0]
+        plants = list(purchase_config.plant.filter().values_list('name', flat=True))
+        plant_names = ','.join(User.objects.filter(username__in=plants).values_list('first_name', flat=True))
         config_dict = {'name': purchase_config.display_name, 'product_category': purchase_config.product_category,
-                       'plant': purchase_config.plant, 'department_type': purchase_config.department_type,
+                       'plant': plant_names, 'department_type': purchase_config.department_type,
                        'default_level_data': [], 'sku_category': purchase_config.sku_category,
                        'ranges_level_data': [], 'approved_level_data': []}
         ranges_dict = OrderedDict()
@@ -12811,6 +12825,29 @@ def create_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
         WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
 
     return new_user
+
+def update_user_wh(user, user_dict, user_profile_dict, exist_user_profile, customer_name=None):
+    # user_dict['last_login'] = datetime.datetime.now()
+    new_user = User.objects.get(id=user_dict.get('id'))
+    # new_user.is_staff = True
+    # new_user.save()
+    uprof = UserProfile.objects.get(user_id=new_user.id)
+    uprof.location = user_profile_dict['state']
+    uprof.prefix = new_user.username[:3]
+    if user_profile_dict.get('pin_code', 0) in [0, '']:
+        user_profile_dict['pin_code'] = 0
+    if user_profile_dict.get('phone_number', 0) in [0, '']:
+        user_profile_dict['phone_number'] = 0
+    user_profile_dict['user_type'] = exist_user_profile.user_type
+    user_profile_dict['industry_type'] = exist_user_profile.industry_type
+    for key, value in user_profile_dict.iteritems():
+        setattr(uprof, key, value)
+    
+    
+    uprof.save()
+
+    return new_user
+
 
 def get_user_groups_names(user):
     exclude_list = ['Pull to locate', 'Admin', 'WMS']
@@ -12949,8 +12986,8 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
         users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
         if not users:
             parent_company_id = get_company_id(user)
-            company_id = staff_obj.company_id
-            if parent_company_id == staff_obj.company_id:
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
             users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                               company_id=company_id)

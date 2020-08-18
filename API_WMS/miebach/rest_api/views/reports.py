@@ -1196,6 +1196,7 @@ def department_warehouse(request, user=''):
 def print_po_reports(request, user=''):
     receipt_type = ''
     po_id = request.GET.get('po_id', '')
+    user = User.objects.get(id=request.GET['warehouse_id'])
     po_summary_id = request.GET.get('po_summary_id', '')
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
@@ -2052,7 +2053,8 @@ def print_purchase_order_form(request, user=''):
         pm_order = purchase_orders[0]
         if pm_order.open_po.pendingpos.filter().exists():
             pending_po_data = pm_order.open_po.pendingpos.filter()[0]
-            supplier_payment_terms = pending_po_data.supplier_payment.payment_description
+            if pending_po_data.supplier_payment:
+                supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
         if pm_order.open_po.supplier.currency_code:
             supplier_currency = pm_order.open_po.supplier.currency_code

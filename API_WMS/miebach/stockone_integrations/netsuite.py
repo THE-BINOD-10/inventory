@@ -308,6 +308,7 @@ class netsuiteIntegration(object):
             purorder = ns.PurchaseOrder()
             if(po_data.get('reference_id',None)):
                 purorder.entity = ns.RecordRef(internalId=po_data['reference_id'], type="vendor")
+                purorder.approvalstatus = ns.RecordRef(internalId=2)
             if(po_data.get('po_date',None)):
                 purorder.tranDate = po_data['po_date']
             if(po_data.get('due_date',None)):
@@ -337,7 +338,6 @@ class netsuiteIntegration(object):
                     product_list_id = 3
 
             # purorder.location = warehouse_id
-            purorder.approvalstatus = ns.RecordRef(internalId=2)
             # purorder.subsidiary = '1'
             if(po_data.get('subsidiary',None)):
                 purorder.subsidiary = ns.ListOrRecordRef(internalId=po_data['subsidiary'])
@@ -378,34 +378,35 @@ class netsuiteIntegration(object):
             if (po_data.get("supplier_gstin", None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_stockone_vendor_gstin', value=po_data["supplier_gstin"]))
             purorder.customFieldList = ns.CustomFieldList(po_custom_field_list)
-            for data in po_data['items']:
-                item_custom_list=[]
-                if(data.get('mrp',None)):
-                    item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
-                if(po_data.get('full_pr_number',None)):
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
-                if(data.get('hsn_code',None)):
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
-                    item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
-                line_item = {
-                 'item': ns.RecordRef(externalId=data['sku_code']),
-                 # 'item': ns.RecordRef(internalId=17346),
-                 # 'location':ns.RecordRef(internalId=297),
-                }
-                if(item_custom_list):
-                    line_item.update({'customFieldList':  ns.CustomFieldList(item_custom_list)})
-                if(data.get('sku_desc',None)):
-                    line_item.update({'description': data['sku_desc']})
-                if(data.get('unit_price',None)):
-                    line_item.update({'rate': data['unit_price']})
-                if(data.get('quantity',None)):
-                    line_item.update({'quantity':data['quantity']})
-                if data.get('uom_name', None) and data.get('unitypeexid', None):
-                    internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
-                    if internId:
-                        line_item.update({'units': ns.RecordRef(internalId=internId)})
-                item.append(line_item)
-            purorder.itemList = { 'item': item }
+            if(po_data.get("items",None)):
+                for data in po_data['items']:
+                    item_custom_list=[]
+                    if(data.get('mrp',None)):
+                        item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
+                    if(po_data.get('full_pr_number',None)):
+                        item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
+                    if(data.get('hsn_code',None)):
+                        item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                        item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
+                    line_item = {
+                     'item': ns.RecordRef(externalId=data['sku_code']),
+                     # 'item': ns.RecordRef(internalId=17346),
+                     # 'location':ns.RecordRef(internalId=297),
+                    }
+                    if(item_custom_list):
+                        line_item.update({'customFieldList':  ns.CustomFieldList(item_custom_list)})
+                    if(data.get('sku_desc',None)):
+                        line_item.update({'description': data['sku_desc']})
+                    if(data.get('unit_price',None)):
+                        line_item.update({'rate': data['unit_price']})
+                    if(data.get('quantity',None)):
+                        line_item.update({'quantity':data['quantity']})
+                    if data.get('uom_name', None) and data.get('unitypeexid', None):
+                        internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
+                        if internId:
+                            line_item.update({'units': ns.RecordRef(internalId=internId)})
+                    item.append(line_item)
+                purorder.itemList = { 'item': item }
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())

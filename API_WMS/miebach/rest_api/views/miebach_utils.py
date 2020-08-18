@@ -5336,7 +5336,8 @@ def get_po_filter_data(search_params, user, sub_user):
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = "-%s" % order_data
-        model_data = model_data.order_by(order_data)
+        if order_data:
+            model_data = model_data.order_by(order_data)
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     custom_search = False

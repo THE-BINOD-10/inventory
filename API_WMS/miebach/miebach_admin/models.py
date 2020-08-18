@@ -574,6 +574,7 @@ class OpenPO(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     terms = models.TextField(default='', max_length=256)
+    reference_id = models.CharField(max_length=64, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'OPEN_PO'

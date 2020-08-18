@@ -10302,6 +10302,8 @@ def netsuite_sku_uom_update(sku_list_data, user,intObj):
             pass
         if instanceName==SKUMaster :
             sku_data_dict.update({"instanceName": instanceName, "product_type": "SKU"})
+            if "hsn_code" in sku_attr_dict:
+                del sku_attr_dict["hsn_code"]
             sku_data_dict.update(sku_attr_dict)
             SKUMaster_list.append(sku_data_dict)
     return SKUMaster_list,ServiceMaster_list,AssetMaster_list,OtherItemsMaster_list

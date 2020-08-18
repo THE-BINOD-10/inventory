@@ -46,6 +46,7 @@ def upload_po_data(file_location):
     count=1
     failed=0
     already_complted=0
+    success_count=0
     for key, value in data.iteritems():
         sku_code = value[0]['Material code.1'].strip()
         print(sku_code)
@@ -54,12 +55,12 @@ def upload_po_data(file_location):
         if user_profile_obj:
             user=user_profile_obj[0].user
         else:
-            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['StockOne Plant ID']))
+            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['STOCKONE Plant code']))
             if user_profile_obj:
                 user=user_profile_obj[0].user
             else:
-                print('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-                log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
+                log.info('PO Upload failed for %s and params are %s and plant code is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
                 continue
         print("\n plant_user",user)
         try:
@@ -79,7 +80,7 @@ def upload_po_data(file_location):
             po_id=po_obj[0].order_id
             flag= True
             check_po= True
-            po_obj.update(creation_date=po_date_time,updation_date=po_date_time, po_date= po_date)
+            po_obj.update(creation_date=po_date_time,updation_date=po_date_time, po_date= po_date_time)
             already_complted=already_complted+1
         f1_sku_product="Kits&Consumables"
         product_category_test=True
@@ -90,6 +91,10 @@ def upload_po_data(file_location):
                     sku_id = SKUMaster.objects.filter(wms_code=row['Material code.1'].upper().strip(), user=user.id)
                     if sku_id:
                         sku= sku_id[0]
+                        if not sku.hsn_code:
+                            log.info('PO Upload failed hsn code is not present for %s and params are %s and PO is %s' % (str(row[    'Material code.1']), str(value), str(key)))
+                            flag= False
+                            break
                         try:
                             if sku.assetmaster:
                                 if index==0:
@@ -124,10 +129,12 @@ def upload_po_data(file_location):
                         log.info('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
                         flag= False
                         break
+                    if index >1:
+                        continue
                     supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
                     if not supplier_obj:
-                        log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(e)))
-                        print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(e)))
+                        log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
+                        print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
                         ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip())
                         if ori_sup_obj:
                             log.info("need to create vendor\n\n")
@@ -145,8 +152,8 @@ def upload_po_data(file_location):
                                 payment_obj=PaymentTerms(**temp_dict)
                                 payment_obj.save()
                         else:
-                            print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-                            log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                            print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
+                            log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
                             flag= False
                             break
                 else:
@@ -225,8 +232,12 @@ def upload_po_data(file_location):
                 else:
                     break
                     log.info("PO already present in stockone PO Number= %s" % (str(key)))
+            success_count= success_count+1
         else:
             failed=failed+1
+        #print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
+        #count=count+1
+        #continue
         po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
         delivery_date= po_date_time.strftime('%d-%m-%Y')
         data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
@@ -235,14 +246,14 @@ def upload_po_data(file_location):
         except Exception as e:
             log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
             pass
-        print("total_count",len(data), "completed= ", count, "failed=",failed, "already_complted=", already_complted)
+        print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
         count=count+1
 
 def zone_location_script():
     from rest_api.views.common import get_related_users_filters
     main_user = User.objects.get(username='mhl_admin')
-    # dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
-    dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
+    dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
+    # dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
     zones_list_obj= ZoneMaster.objects.filter(user=main_user.id)
     for user in dept_users:
         for zone_row in zones_list_obj:

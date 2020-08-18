@@ -4713,7 +4713,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
         updated_user_name = user.username
-        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=data['id']))
+        version_obj = Version.objects.using('reversion').get_for_object(SellerPOSummary.objects.get(id=data['id'])).\
+                                                        filter(revision__comment='generate_grn')
         if version_obj.exists():
             updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
             last_updated_date = get_local_date(user,version_obj.order_by('-revision__date_created')[0].revision.date_created)
@@ -4791,7 +4792,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         vendor_code, vendor_name,vendor_dispatch_date="","",""
         Expected_delivery_date=""
         grn_genrated_user= User.objects.get(id=data["purchase_order__open_po__sku__user"])
-        grn_genrated_user=grn_genrated_user.username
+        if not pr_plant:
+            pr_plant = grn_genrated_user.first_name
         if(data["purchase_order__expected_date"]):
             Expected_delivery_date = data['purchase_order__expected_date'].strftime("%d %b, %Y")
         if data['purchase_order__open_po__vendor__vendor_id']:
@@ -4848,7 +4850,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                 ('PO Date', get_local_date(user, result.creation_date)),
                                 ('GRN Number', grn_number),
                                 ("Type of GRN", Type_of_GRN),
-                                ("GRN Done by User Name", grn_genrated_user),
+                                ("GRN Done by User Name", updated_user_name),
                                 ('PO Reference Number', data['purchase_order__open_po__po_name']),
                                 ('Supplier ID', data[field_mapping['supplier_id']]),
                                 ('Supplier Name', data[field_mapping['supplier_name']]),

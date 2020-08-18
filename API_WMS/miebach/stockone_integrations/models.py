@@ -24,7 +24,7 @@ class IntegrationMaster(models.Model):
         default='upsert',
     )
     integration_reference = models.CharField(max_length=64, default=None, null=True)
-    status = models.BooleanField(default=False)
+    status = models.NullBooleanField(default=None, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
         

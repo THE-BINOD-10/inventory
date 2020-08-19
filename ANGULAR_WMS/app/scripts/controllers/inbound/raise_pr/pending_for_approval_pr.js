@@ -275,7 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
               angular.forEach(vm.model_data.data, function(eachField){
-                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
+                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name || eachField.fields.discount != eachField.fields.resubmit_discount){
                   vm.is_pa_resubmitted = true;
                 }
               })

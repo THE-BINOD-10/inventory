@@ -1960,6 +1960,7 @@ def generated_actual_pr_data(request, user=''):
                                     'temp_price': temp_price,
                                     'temp_tax': temp_tax,
                                     'discount': discount,
+                                    'resubmit_discount': discount,
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,

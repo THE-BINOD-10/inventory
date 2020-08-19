@@ -7796,7 +7796,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                 final_po_date = po_date_1.strftime('%d-%m-%Y')
                 dc_date = rtv.seller_po_summary.challan_date
                 po_number = rtv.seller_po_summary.purchase_order.po_number
-            pr_plant, pr_department = '', ''
+            pr_plant, pr_department, pr_request_user = '', '', ''
             product_category, warehouse, warehouse_type, dc_number, category, pr_number, pr_date, pr_raised_user, vendor_dispatch_date = '', '', '', '', '', '', '', '', ''
             if po_number:
                 pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number).values(
@@ -7816,20 +7816,22 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                         plant = warehouse[0]['first_name']
                         warehouse_type = pr_user.userprofile.warehouse_type
 
-                pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-                user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-                if (user_profile.warehouse_type == "DEPT"):
-                    if (user_profile.stockone_code):
-                        pr_department = user_profile.stockone_code
+                pr_department, pr_plant = '', ''
+                if pr_data:
+                    pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
+                    user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+                    if (user_profile.warehouse_type == "DEPT"):
+                        if (user_profile.stockone_code):
+                            pr_department = user_profile.stockone_code
+                        else:
+                            pr_department = pr_dept.username
                     else:
-                        pr_department = pr_dept.username
-                else:
-                    pr_department = pr_request_user
-                pr_plant = get_admin(pr_dept)
-                if pr_plant.first_name:
-                    pr_plant = pr_plant.first_name
-                else:
-                    pr_plant = pr_plant.username
+                        pr_department = pr_request_user
+                    pr_plant = get_admin(pr_dept)
+                    if pr_plant.first_name:
+                        pr_plant = pr_plant.first_name
+                    else:
+                        pr_plant = pr_plant.username
                 if open_po.vendor:
                     vendor_dispatch_date = get_local_date(user, open_po.vendor.creation_date)
             temp_data['aaData'].append(OrderedDict((
@@ -10132,7 +10134,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
-        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin
+        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin, check_and_get_plants_wo_request
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     users = [user.id]
     users = check_and_get_plants_wo_request(sub_user, user, users)
@@ -10297,21 +10299,22 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         # if data['seller_po_summary__purchase_order__open_po__vendor__creation_date']:
         #     vendor_dispatch_date = get_local_date(user, data['seller_po_summary__purchase_order__open_po__vendor__creation_date'])
 
-        pr_plant, pr_department = '', ''
-        pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-        if (user_profile.warehouse_type == "DEPT"):
-            if (user_profile.stockone_code):
-                pr_department = user_profile.stockone_code
+        pr_plant, pr_department, pr_request_user = '', '', ''
+        if pr_data:
+            pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
+            user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+            if (user_profile.warehouse_type == "DEPT"):
+                if (user_profile.stockone_code):
+                    pr_department = user_profile.stockone_code
+                else:
+                    pr_department = pr_dept.username
             else:
-                pr_department = pr_dept.username
-        else:
-            pr_department = pr_request_user
-        pr_plant = get_admin(pr_dept)
-        if pr_plant.first_name:
-            pr_plant = pr_plant.first_name
-        else:
-            pr_plant = pr_plant.username
+                pr_department = pr_request_user
+            pr_plant = get_admin(pr_dept)
+            if pr_plant.first_name:
+                pr_plant = pr_plant.first_name
+            else:
+                pr_plant = pr_plant.username
 
         temp_data['aaData'].append(
             OrderedDict((('PR Number', pr_number), ('PR date', pr_date), ('PR raised By ( User Name)', pr_raised_user),

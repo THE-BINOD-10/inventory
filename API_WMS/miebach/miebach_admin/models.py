@@ -921,7 +921,7 @@ class BatchDetail(models.Model):
     ean_number = models.CharField(max_length=64, default='')
     puom = models.CharField(max_length=64, default='')
     pquantity = models.FloatField(default=0)
-    pcf = models.FloatField(default=0)
+    pcf = models.FloatField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     batch_ref = models.CharField(max_length=100, default='')

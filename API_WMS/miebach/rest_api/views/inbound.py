@@ -3234,7 +3234,7 @@ def updatePRApproval(pr_number, user, level, validated_by, validation_type,
                                             pr_user=user,
                                             level=level,
                                             validated_by__icontains=validated_by,
-                                            purchase_type=purchase_type)
+                                            purchase_type=purchase_type).exclude(status='resubmitted')
     if apprQs:
         apprQs.update(status=validation_type)
         apprQs.update(remarks=remarks)

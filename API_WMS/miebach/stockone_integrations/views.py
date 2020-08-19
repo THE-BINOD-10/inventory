@@ -56,11 +56,11 @@ class Integrations():
     def gatherSkuData(self, skuObject):
         skuDict = skuObject.__dict__
         skuDict = self.removeUnnecessaryData(skuDict)
-        #skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
-        #skuAttributes = {}
-        #for row in skuAttributesList:
-        #    skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
-        #skuDict.update(skuAttributes)
+        # skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
+        # skuAttributes = {}
+        # for row in skuAttributesList:
+        #     skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
+        # skuDict.update(skuAttributes)
         return skuDict
 
 

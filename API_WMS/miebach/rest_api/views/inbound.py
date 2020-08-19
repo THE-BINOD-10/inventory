@@ -6824,6 +6824,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_comment("generate_grn")
     data_dict = ''
     owner_email = ''
+    grn_po_number = ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
@@ -6939,9 +6940,9 @@ def confirm_grn(request, confirm_returns='', user=''):
             gstin_number = purchase_data['gstin_number']
             remarks = purchase_data['remarks']
             order_id = data.order_id
-            order_date = get_local_date(request.user, data.creation_date)
+            grn_po_number = data.po_number
+            order_date = get_local_date(request.user, datetime.datetime.now())
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
-
             profile = UserProfile.objects.get(user=user.id)
             po_reference = data.po_number
             table_headers = (
@@ -6992,7 +6993,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': int(total_tax),
-                                'tax_value': tax_value, 'receipt_number':seller_receipt_id,
+                                'tax_value': tax_value, 'receipt_number':seller_receipt_id, 'grn_po_number': grn_po_number,
                                 'overall_discount':overall_discount, 'other_charges': float(extra_charges_amt),
                                 'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,

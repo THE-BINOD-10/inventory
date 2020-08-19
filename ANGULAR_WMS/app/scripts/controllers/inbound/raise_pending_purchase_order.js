@@ -841,7 +841,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                vm.extra_width = {'width': '990px'};
+                vm.extra_width = {'width': '1150px'};
                 vm.html = $(data.data);
                 angular.element(".modal-body").html($(data.data));
                 vm.print_enable = true;
@@ -881,7 +881,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
                 }
                 vm.html = $(data.data)[0];
-                vm.extra_width = {'width': '990px'};
+                vm.extra_width = {'width': '1150px'};
                 $timeout(function() {
                   $("#page-pop .modal-body.show").html(vm.html)
                   vm.confirm_print = false;

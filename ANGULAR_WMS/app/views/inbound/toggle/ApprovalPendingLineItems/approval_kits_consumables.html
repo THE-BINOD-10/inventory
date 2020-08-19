@@ -93,7 +93,7 @@
           </span>
           <input type="text" name="price" ng-model="product.fields.price" class="hide">
         </td>
-        <td><input type="text" ng-model="product.fields.discount" size="18" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
+        <td><input type="text" ng-model="product.fields.discount" size="10" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
 
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.final_price | number:2}}

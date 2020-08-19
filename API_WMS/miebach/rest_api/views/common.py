@@ -13012,3 +13012,18 @@ def get_netsuite_mapping_list(type_name_list):
     type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
                          values_list('type_value', flat=True).distinct())
     return type_val_list
+
+
+def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
+    base_uom = ''
+    uom_dict = {'measurement_unit': '', 'sku_conversion': 0}
+    company_id = get_company_id(user)
+    filt_dict = {'sku_code': sku_code, 'company_id': company_id, 'uom_type': uom_type}
+    if uom:
+        filt_dict['uom'] = uom
+    sku_uom = UOMMaster.objects.filter(**filt_dict)
+    if sku_uom.exists():
+        uom_dict['measurement_unit'] = sku_uom[0].uom
+        uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
+        uom_dict['base_uom'] = sku_uom[0].base_uom
+    return uom_dict

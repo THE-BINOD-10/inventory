@@ -6410,6 +6410,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         data.saved_quantity = 0
         batch_dict = {}
         if 'batch_no' in myDict.keys():
+            uom = ''
+            if 'unit' in myDict.keys():
+                uom = myDict['unit'][i]
+            uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase', uom=uom)
             batch_dict = {
                 'transact_type': 'po_loc',
                 'batch_no': myDict['batch_no'][i],
@@ -6419,7 +6423,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'mrp': myDict['mrp'][i],
                 'buy_price': myDict['buy_price'][i],
                 'weight': myDict['weight'][i],
-                'batch_ref': myDict['batch_ref'][i]
+                'batch_ref': myDict['batch_ref'][i],
+                'puom': uom_dict.get('measurement_unit', ''),
+                'pquantity': value,
+                'pcf': uom_dict.get('sku_conversion', 0)
             }
 
         seller_received_list = []
@@ -8401,9 +8408,11 @@ def putaway_data(request, user=''):
                                       'unit_price': grn_price, 'receipt_type': order_data['order_type']}
                 if full_grn_number:
                     stock_check_params['grn_number'] = full_grn_number
+                conv_value = 1
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
+                    conv_value = batch_obj[0].pcf
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
                 if pallet_mapping:
                     stock_check_params['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
@@ -8415,7 +8424,7 @@ def putaway_data(request, user=''):
                 if loc1.pallet_filled > loc1.pallet_capacity:
                     setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
                 loc1.save()
-                conv_name, conv_value = get_uom_conversion_value(order_data['sku'], 'purchase')
+                #conv_name, conv_value = get_uom_conversion_value(order_data['sku'], 'purchase')
                 value = conv_value * value
                 if stock_data:
                     stock_data = stock_data[0]

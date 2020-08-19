@@ -344,6 +344,9 @@ class Integrations():
             if not is_multiple:
                 recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
+                if action  == 'upsert':
+                    po_initialize= self.connectionObject.complete_transaction([record], True, "initialize")
+                    record= self.match_itemlist_data([record], po_initialize, is_multiple, action)
                 result = self.connectionObject.complete_transaction(record, is_multiple, action)
             else:
                 records = []
@@ -351,7 +354,9 @@ class Integrations():
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
-
+                if action  =='upsert':
+                    po_initialize= self.connectionObject.complete_transaction(records, True, "initialize")
+                    records= self.match_itemlist_data(records, po_initialize, is_multiple, action)
                 result = self.connectionObject.complete_transaction(records, is_multiple, action)
             if len(result):
                 for row in result:
@@ -435,3 +440,14 @@ class Integrations():
             integration_reference = data.internalId,
             status = status
         )
+
+    def match_itemlist_data(self, GRN_data, po_initialize,  is_multiple):
+        final_GRN_data=[]
+        for row in GRN_data:
+            if str(row.createdFrom.externalId) in po_initialize:
+                for grn_line_item in row.itemList['item']:
+                    for line_item in po_initialize[str(row.createdFrom.externalId)]:
+                        if grn_line_item["item"]["externalId"]== line_item["itemName"]:
+                            grn_line_item.update({'orderLine': line_item['orderLine']})
+            final_GRN_data.append(row)
+        return final_GRN_data

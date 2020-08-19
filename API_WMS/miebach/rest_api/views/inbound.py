@@ -53,7 +53,6 @@ def get_filtered_params(filters, data_list):
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
     status =  request.POST.get('special-key', '')
-    # import pdb; pdb.set_trace()
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
@@ -1856,8 +1855,8 @@ def generated_actual_pr_data(request, user=''):
                                                     }
 
         elif is_purchase_approver:
-            resubmitting_user = True
             if pr_supplier_data.exists():
+                resubmitting_user = True
                 json_data = eval(pr_supplier_data[0].model_json)
                 supplierId = json_data['supplier_id']
                 supplier_gst_num = ''
@@ -3563,13 +3562,16 @@ def approve_pr(request, user=''):
 
         lineItems = pendingPRObj.pending_prlineItems
         for i in range(0, len(myDict['wms_code'])):
+            if myDict.has_key('discount_percentage'):
+                discount_percentage = float(myDict['discount_percentage'][i])
+                lineItems.filter(sku__sku_code=myDict['wms_code'][i]).update(discount_percent=discount_percentage)
             eachSku = myDict['wms_code'][i]
-            amount = myDict['amount'][i]
+            amount = float(myDict['amount'][i])
             if myDict['tax'][i]:
                 tax = float(myDict['tax'][i])
             else:
                 tax = 0
-            total = myDict['total'][i]
+            total = float(myDict['total'][i])
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
                 moq = myDict['moq'][i]
@@ -3581,10 +3583,10 @@ def approve_pr(request, user=''):
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,
-                'amount': amount,
+                'amount': round(amount, 3),
                 'price': unit_price,
                 'moq': moq,
-                'total': total
+                'total': round(total, 3)
             }
             pr_user = pendingPRObj.wh_user
             store_user = get_admin(pr_user)
@@ -4095,7 +4097,6 @@ def convert_pr_to_po(request, user=''):
                         price = skuTaxVal.get('sku_supplier_price', '')
                     else:
                         price = skuTaxVal['mrp']
-
                 pendingLineItems = {
                     'pending_po': pendingPoObj,
                     'purchase_type': 'PO',
@@ -4106,7 +4107,11 @@ def convert_pr_to_po(request, user=''):
                 except:
                     pendingLineItems['quantity'] = 0
                 try:
-                    pendingLineItems['price'] = price
+                    if lineItems.exists():
+                        lineItem = lineItems[0]
+                        pendingLineItems['price'] = price - price * (lineItem.discount_percent/100)
+                    else:
+                        pendingLineItems['price'] = price
                 except:
                     pendingLineItems['price'] = 0
                 pendingLineItems['measurement_unit'] = lineItem.measurement_unit
@@ -4321,7 +4326,7 @@ def get_pr_preview_data(request, user=''):
     preview_data = {'data': []}
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
     lineItems = lineItemsQs.values_list('sku__sku_code',
-        'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity')
+        'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity', 'discount_percent')
     skuPrNumsMap = {}
     skuPrIdsMap = {}
     skulineItemIds = {}
@@ -4352,7 +4357,7 @@ def get_pr_preview_data(request, user=''):
                 skuQtyMap[uniq_key] = lineItem.quantity
             else:
                 skuQtyMap[uniq_key] += lineItem.quantity
-            skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category)
+            skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category, lineItem.discount_percent)
             pr_user = lineItem.pending_pr.wh_user
             #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
             #                        supplier__supplier_id=supplierId)
@@ -4374,7 +4379,7 @@ def get_pr_preview_data(request, user=''):
             skuSupplierMap[uniq_key] = supplierDetailsMap
     for uniq_key, quantity in skuQtyMap.items():
         sku_code, supplierId = uniq_key.split('#<>#')
-        sku_desc, prod_catg = skuDetailsMap.get(sku_code)
+        sku_desc, prod_catg, discount = skuDetailsMap.get(sku_code)
         supplierDetailsMap = skuSupplierMap[uniq_key]
 
 
@@ -4383,6 +4388,7 @@ def get_pr_preview_data(request, user=''):
                       'pr_id': ', '.join(skuPrIdsMap[uniq_key]),
                       'pr_number': ','.join(skuPrNumsMap[uniq_key]),
                       'product_category': prod_catg,
+                      'discount': discount,
                       'supplierDetails': supplierDetailsMap,
                       'preferred_supplier': supplierDetailsMap.keys()[0],
                       'hsn_code': hsn_code}
@@ -6256,8 +6262,14 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
         _expected_date = expected_date
         expected_date = expected_date.split('/')
         expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-    inv_qty = float(request.POST.get('invoice_quantity', 0))
-    inv_value = float(request.POST.get('invoice_value', 0))
+    if request.POST.get('invoice_quantity', 0):
+        inv_qty = float(request.POST.get('invoice_quantity', 0))
+    else:
+        inv_qty = 0
+    if request.POST.get('invoice_value', 0):
+        inv_value = float(request.POST.get('invoice_value', 0))
+    else:
+        inv_value = 0
     if request.POST.get('grn_quantity', 0) == 'undefined':
         total_grn_qty = 0
     else:

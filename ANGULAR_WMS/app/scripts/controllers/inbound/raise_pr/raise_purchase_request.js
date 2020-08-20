@@ -1392,14 +1392,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       data.fields.amount = 0
       data.fields.total = 0
-      data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
+      data.fields.amount = data.fields.order_quantity * Number(parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100)));
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
       data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
         // vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
         // if(sku_data.taxes && !not_update_tax) {
         //     vm.get_tax_value(sku_data);

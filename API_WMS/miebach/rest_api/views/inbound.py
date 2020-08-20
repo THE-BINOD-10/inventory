@@ -6941,7 +6941,11 @@ def confirm_grn(request, confirm_returns='', user=''):
             remarks = purchase_data['remarks']
             order_id = data.order_id
             grn_po_number = data.po_number
-            order_date = get_local_date(request.user, datetime.datetime.now())
+            if data.sellerposummary_set.filter().exists():
+                seller_po_summary_date = data.sellerposummary_set.filter()[0].creation_date
+                order_date = get_local_date(request.user, seller_po_summary_date)
+            else:
+                order_date = get_local_date(request.user, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
             profile = UserProfile.objects.get(user=user.id)
             po_reference = data.po_number

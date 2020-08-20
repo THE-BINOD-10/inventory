@@ -4929,14 +4929,30 @@ def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_st
     from datetime import datetime
     from pytz import timezone
     ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    location_int_id = user.userprofile.location_code
+    department= ""
     if(sku_stock_quantity):
         quantity=float(quantity)-float(sku_stock_quantity)
+    unitdata = gather_uom_master_for_sku(user, wmscode)
+    unitexid = unitdata.get('name', None)
+    purchaseUOMname = None
+    for row in unitdata.get('uom_items', None):
+        if row.get('unit_type', '') == 'Purchase':
+            purchaseUOMname = row.get('unit_name', None)
     inventory_data = {'ia_number': "inventory_adjustment_"+str(cycle_id),
         'department': department,
         "subsidiary": subsidary,
+        "account": location_int_id,
         "plant": plant,
-        'items':[{"sku_code":wmscode, "adjust_qty_by": quantity,"price": price, 'batch_no':batch_no }],
+        'items':[{"sku_code": wmscode,
+            "adjust_qty_by": quantity,
+            "price": price,
+            'batch_no':batch_no,
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname,
+         }],
         "ia_date": ia_date,
         "remarks": reason
     }
@@ -7126,7 +7142,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         grn_data['items'].append(item)
         received_sku_list.append(data['wms_code'])
         data_order_idx.append(data["order_idx"])
-    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
+    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__order_quantity=received_quantity, open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
     if(partial_grn_skus_po_obj):
         po_line_items_length=len(partial_grn_skus_po_obj)+ len(data_order_idx)
         temp_list=[]

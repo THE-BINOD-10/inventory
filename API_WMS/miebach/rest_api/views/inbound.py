@@ -13780,7 +13780,6 @@ def create_rtv(request, user=''):
             if get_misc_value('rtv_mail', user.id) == 'true':
                 send_rtv_mail = True
             for final_dict in data_list:
-                import pdb;pdb.set_trace()
                 if float(final_dict['needed_stock_quantity']) > 0:
                     update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
                                         final_dict['rtv_id'])

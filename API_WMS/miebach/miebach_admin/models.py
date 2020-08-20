@@ -712,6 +712,7 @@ class PendingLineItems(models.Model):
     sku = models.ForeignKey(SKUMaster, related_name='pendingLineItems', db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
+    discount_percent = models.FloatField(default=0)
     measurement_unit = models.CharField(max_length=32, default='')
     sgst_tax = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)

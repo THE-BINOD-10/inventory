@@ -6409,21 +6409,45 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             data.intransit_quantity = 0
         data.saved_quantity = 0
         batch_dict = {}
-        if 'batch_no' in myDict.keys():
+        if 'batch_no' in myDict.keys() or 'buy_price' in myDict.keys():
             uom = ''
             if 'unit' in myDict.keys():
                 uom = myDict['unit'][i]
+            batch_no = ''
+            if 'batch_no' in myDict.keys():
+                batch_no = myDict['batch_no'][i]
+            expiry_date = ''
+            if 'expiry_date' in myDict.keys():
+                expiry_date = myDict['exp_date'][i]
+            manufactured_date = ''
+            if 'manufactured_date' in myDict.keys():
+                manufactured_date = myDict['mfg_date'][i]
+            tax_percent = 0
+            if 'tax_percent' in myDict.keys():
+                tax_percent = myDict['tax_percent'][i]
+            mrp = 0
+            if 'mrp' in myDict.keys():
+                mrp = myDict['mrp'][i]
+            weight = ''
+            if 'weight' in myDict.keys():
+                weight = myDict['weight'][i]
+            batch_ref = ''
+            if 'batch_ref' in myDict.keys():
+                batch_ref = myDict['batch_ref'][i]
+            buy_price = 0
+            if 'buy_price' in myDict.keys():
+                buy_price = myDict['buy_price'][i]
             uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase', uom=uom)
             batch_dict = {
                 'transact_type': 'po_loc',
-                'batch_no': myDict['batch_no'][i],
-                'expiry_date': myDict['exp_date'][i],
-                'manufactured_date': myDict['mfg_date'][i],
-                'tax_percent': myDict['tax_percent'][i],
-                'mrp': myDict['mrp'][i],
-                'buy_price': myDict['buy_price'][i],
-                'weight': myDict['weight'][i],
-                'batch_ref': myDict['batch_ref'][i],
+                'batch_no': batch_no,
+                'expiry_date': expiry_date,
+                'manufactured_date': manufactured_date,
+                'tax_percent': tax_percent,
+                'mrp': mrp,
+                'buy_price': buy_price,
+                'weight': weight,
+                'batch_ref': batch_ref,
                 'puom': uom_dict.get('measurement_unit', ''),
                 'pquantity': value,
                 'pcf': uom_dict.get('sku_conversion', 0)

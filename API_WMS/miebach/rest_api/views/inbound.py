@@ -13673,7 +13673,11 @@ def prepare_rtv_json_data(request_data, user):
             if not stocks:
                 return data_list, 'No Stocks Found'
             data_dict['stocks'] = stocks
-            stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            pcf = 1
+            if stocks.filter(batch_detail__isnull=False):
+                pcf = stocks.filter(batch_detail__isnull=False)[0].batch_detail.pcf
+            data_dict['needed_stock_quantity'] = quantity * pcf
+            stock_count = stocks.aggregate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))['total_qty']
             reserved_quantity = \
                 PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
                     'reserved__sum']
@@ -13776,8 +13780,10 @@ def create_rtv(request, user=''):
             if get_misc_value('rtv_mail', user.id) == 'true':
                 send_rtv_mail = True
             for final_dict in data_list:
-                if float(final_dict['quantity']) > 0:
-                    update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user, final_dict['rtv_id'])
+                import pdb;pdb.set_trace()
+                if float(final_dict['needed_stock_quantity']) > 0:
+                    update_stock_detail(final_dict['stocks'], float(final_dict['needed_stock_quantity']), user,
+                                        final_dict['rtv_id'])
                 #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_reason = final_dict.get('rtv_reasons', '')
@@ -13845,6 +13851,8 @@ def create_rtv(request, user=''):
         log.info("Exception raised while creating RTV for user %s and request data is %s and error is %s" %
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
+    return HttpResponse("Missing required data")
+
 
 def write_html_to_pdf(f_name, html_data):
     from random import randint

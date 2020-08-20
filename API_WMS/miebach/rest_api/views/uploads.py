@@ -2185,6 +2185,8 @@ def upload_bulk_insert_sku(model_obj,  sku_key_map, new_skus, user):
                 'sale_unit': sale_uom,
                 "product_type":"SKU"
             })
+            if "hsn_code" in sku_attr_dict:
+                del sku_attr_dict["hsn_code"]
             sku_list_dict.append(sku_attr_dict)
         intObj.integrateSkuMaster(sku_list_dict,"sku_code", is_multiple= True)
     except Exception as e:

@@ -570,8 +570,7 @@ class NetSuiteClient:
                 status = response.status
                 if status.isSuccess:
                     record_ref = response['record']
-                    if record_ref.get("itemList",None):
-                        record_refs.update({record_ref'createdFrom']['name'].split("#")[-1] : record_ref['itemList']['item'])
+                    record_refs.update({record_ref['createdFrom']['name'].split("#")[-1] : record_ref['itemList']['item']})
         else:
             responses = response.body.writeResponseList.writeResponse
             for response in responses:

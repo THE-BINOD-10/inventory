@@ -346,7 +346,7 @@ class Integrations():
                 record = self.connectionObject.netsuite_create_grn(recordDict)
                 if action  == 'upsert':
                     po_initialize= self.connectionObject.complete_transaction([record], True, "initialize")
-                    record= self.match_itemlist_data([record], po_initialize, is_multiple, action)
+                    record= self.match_itemlist_data([record], po_initialize, is_multiple)
                 result = self.connectionObject.complete_transaction(record, is_multiple, action)
             else:
                 records = []
@@ -356,7 +356,7 @@ class Integrations():
                     records.append(record)
                 if action  =='upsert':
                     po_initialize= self.connectionObject.complete_transaction(records, True, "initialize")
-                    records= self.match_itemlist_data(records, po_initialize, is_multiple, action)
+                    records= self.match_itemlist_data(records, po_initialize, is_multiple)
                 result = self.connectionObject.complete_transaction(records, is_multiple, action)
             if len(result):
                 for row in result:
@@ -427,13 +427,13 @@ class Integrations():
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
-                stockone_reference=data.externalId,
-                status=False,
+                stockone_reference=data.externalId
             )
         status = True
         if hasattr(data, 'error'):
             resultArr.update(
-                integration_error=data.error_msg
+                integration_error=data.error_msg,
+                status = False
                 )
             status = False
         resultArr.update(
@@ -445,9 +445,16 @@ class Integrations():
         final_GRN_data=[]
         for row in GRN_data:
             if str(row.createdFrom.externalId) in po_initialize:
-                for grn_line_item in row.itemList['item']:
+                indx_list=[]
+                for indx, grn_line_item in enumerate(row.itemList['item']):
+                    check_sku_code=False
                     for line_item in po_initialize[str(row.createdFrom.externalId)]:
                         if grn_line_item["item"]["externalId"]== line_item["itemName"]:
                             grn_line_item.update({'orderLine': line_item['orderLine']})
+                            check_sku_code=True
+                    if not check_sku_code:
+                        indx_list.append(grn_line_item)
+                for indx in indx_list:
+                    row.itemList['item'].remove(indx)
             final_GRN_data.append(row)
         return final_GRN_data

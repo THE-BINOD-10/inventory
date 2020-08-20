@@ -52,14 +52,17 @@ def get_filtered_params(filters, data_list):
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
-    status =  request.POST.get('special-key', 'pending')
+    status =  request.POST.get('special-key', '')
     if request.user.id != user.id:
         currentUserLevel = ''
         currentUserEmailId = request.user.email
         status_in = ['']
         if status:
             status_in = ['on_approved']
-        pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
+        if status:
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
+        else:
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -1773,7 +1776,7 @@ def generated_actual_pr_data(request, user=''):
         levelWiseRemarks.append({"level": level, "validated_by": validated_by, "remarks": remarks})
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand', 'quantity', 'price', 'measurement_unit',
         'id', 'sku__servicemaster__gl_code', 'sku__servicemaster__service_start_date',
-        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class'
+        'sku__servicemaster__service_end_date', 'sku__hsn_code', 'sku__sku_class', 'discount_percent'
     ]
     currentPOenquiries = GenericEnquiry.objects.filter(master_id=record[0].id, master_type='pendingPR')
     if currentPOenquiries.exists():
@@ -1790,7 +1793,7 @@ def generated_actual_pr_data(request, user=''):
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
-                gl_code, service_stdate, service_edate, hsn_code, sku_class = rec
+                gl_code, service_stdate, service_edate, hsn_code, sku_class, discount = rec
         if service_stdate:
             service_stdate = service_stdate.strftime('%d-%m-%Y')
         if service_edate:
@@ -1934,6 +1937,7 @@ def generated_actual_pr_data(request, user=''):
                         is_doa_sent_flag = True
                 # supplierDetailsMap = {}
                 # preferred_supplier = ''
+        final_price = price - price * (discount/100)
         ser_data.append({'fields': {'sku': {'wms_code': sku_code,
                                             'openpr_qty': openpr_qty,
                                             'capacity': st_avail_qty + avail_qty,
@@ -1946,6 +1950,7 @@ def generated_actual_pr_data(request, user=''):
                                     'hsn_code': hsn_code,
                                     'order_quantity': qty,
                                     'price': price,
+                                    'final_price': round(final_price, 2),
                                     'measurement_unit': measurement_unit,
                                     'conversion': sku_conversion,
                                     'base_uom': base_uom,
@@ -1954,6 +1959,8 @@ def generated_actual_pr_data(request, user=''):
                                     'service_end_date': service_edate,
                                     'temp_price': temp_price,
                                     'temp_tax': temp_tax,
+                                    'discount': discount,
+                                    'resubmit_discount': discount,
                                     'supplierDetails': supplierDetailsMap,
                                     'is_doa_sent': is_doa_sent_flag,
                                     'preferred_supplier': preferred_supplier,
@@ -3227,7 +3234,7 @@ def updatePRApproval(pr_number, user, level, validated_by, validation_type,
                                             pr_user=user,
                                             level=level,
                                             validated_by__icontains=validated_by,
-                                            purchase_type=purchase_type)
+                                            purchase_type=purchase_type).exclude(status='resubmitted')
     if apprQs:
         apprQs.update(status=validation_type)
         apprQs.update(remarks=remarks)
@@ -3556,13 +3563,16 @@ def approve_pr(request, user=''):
 
         lineItems = pendingPRObj.pending_prlineItems
         for i in range(0, len(myDict['wms_code'])):
+            if myDict.has_key('discount_percentage'):
+                discount_percentage = float(myDict['discount_percentage'][i])
+                lineItems.filter(sku__sku_code=myDict['wms_code'][i]).update(discount_percent=discount_percentage)
             eachSku = myDict['wms_code'][i]
-            amount = myDict['amount'][i]
+            amount = float(myDict['amount'][i])
             if myDict['tax'][i]:
                 tax = float(myDict['tax'][i])
             else:
                 tax = 0
-            total = myDict['total'][i]
+            total = float(myDict['total'][i])
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
                 moq = myDict['moq'][i]
@@ -3574,10 +3584,10 @@ def approve_pr(request, user=''):
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,
-                'amount': amount,
+                'amount': round(amount, 3),
                 'price': unit_price,
                 'moq': moq,
-                'total': total
+                'total': round(total, 3)
             }
             pr_user = pendingPRObj.wh_user
             store_user = get_admin(pr_user)
@@ -4088,7 +4098,6 @@ def convert_pr_to_po(request, user=''):
                         price = skuTaxVal.get('sku_supplier_price', '')
                     else:
                         price = skuTaxVal['mrp']
-
                 pendingLineItems = {
                     'pending_po': pendingPoObj,
                     'purchase_type': 'PO',
@@ -4099,7 +4108,11 @@ def convert_pr_to_po(request, user=''):
                 except:
                     pendingLineItems['quantity'] = 0
                 try:
-                    pendingLineItems['price'] = price
+                    if lineItems.exists():
+                        lineItem = lineItems[0]
+                        pendingLineItems['price'] = price - price * (lineItem.discount_percent/100)
+                    else:
+                        pendingLineItems['price'] = price
                 except:
                     pendingLineItems['price'] = 0
                 pendingLineItems['measurement_unit'] = lineItem.measurement_unit
@@ -4314,7 +4327,7 @@ def get_pr_preview_data(request, user=''):
     preview_data = {'data': []}
     lineItemsQs = PendingLineItems.objects.filter(pending_pr_id__in=prIds)
     lineItems = lineItemsQs.values_list('sku__sku_code',
-        'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity')
+        'sku__sku_desc', 'pending_pr__product_category', 'id', 'quantity', 'discount_percent')
     skuPrNumsMap = {}
     skuPrIdsMap = {}
     skulineItemIds = {}
@@ -4345,7 +4358,7 @@ def get_pr_preview_data(request, user=''):
                 skuQtyMap[uniq_key] = lineItem.quantity
             else:
                 skuQtyMap[uniq_key] += lineItem.quantity
-            skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category)
+            skuDetailsMap[sku_code] = (lineItem.sku.sku_desc, lineItem.pending_pr.product_category, lineItem.discount_percent)
             pr_user = lineItem.pending_pr.wh_user
             #supplierMappings = SKUSupplier.objects.filter(sku__sku_code=sku_code,
             #                        supplier__supplier_id=supplierId)
@@ -4367,7 +4380,7 @@ def get_pr_preview_data(request, user=''):
             skuSupplierMap[uniq_key] = supplierDetailsMap
     for uniq_key, quantity in skuQtyMap.items():
         sku_code, supplierId = uniq_key.split('#<>#')
-        sku_desc, prod_catg = skuDetailsMap.get(sku_code)
+        sku_desc, prod_catg, discount = skuDetailsMap.get(sku_code)
         supplierDetailsMap = skuSupplierMap[uniq_key]
 
 
@@ -4376,6 +4389,7 @@ def get_pr_preview_data(request, user=''):
                       'pr_id': ', '.join(skuPrIdsMap[uniq_key]),
                       'pr_number': ','.join(skuPrNumsMap[uniq_key]),
                       'product_category': prod_catg,
+                      'discount': discount,
                       'supplierDetails': supplierDetailsMap,
                       'preferred_supplier': supplierDetailsMap.keys()[0],
                       'hsn_code': hsn_code}
@@ -6943,7 +6957,11 @@ def confirm_grn(request, confirm_returns='', user=''):
             remarks = purchase_data['remarks']
             order_id = data.order_id
             grn_po_number = data.po_number
-            order_date = get_local_date(request.user, datetime.datetime.now())
+            if data.sellerposummary_set.filter().exists():
+                seller_po_summary_date = data.sellerposummary_set.filter()[0].creation_date
+                order_date = get_local_date(request.user, seller_po_summary_date)
+            else:
+                order_date = get_local_date(request.user, data.creation_date)
             order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
             profile = UserProfile.objects.get(user=user.id)
             po_reference = data.po_number

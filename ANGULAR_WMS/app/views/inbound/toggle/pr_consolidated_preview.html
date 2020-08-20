@@ -19,7 +19,7 @@
                             ng-change="showCase.customSelectAll(showCase.allSelected)">
                   </th>
                   <!-- <th>Checkbox</th> -->
-                  <th>Supplier Id/Name</th>
+                  <th>Supplier Id/Names</th>
                   <!-- <th></th> -->
                   <th>PR Number</th>
                   <th>Product Category</th>
@@ -40,9 +40,9 @@
                 <td> <input type="checkbox" ng-model="data.checkbox"> </td>
                 <td>
                   <select ui-select class="form-control" name="supplier" style="width:140px;"
-                  ng-init="data.supplier_id_name=showCase.getFirstSupplier(data);"
+                  ng-init="data.supplier_id_name=showCase.getFirstSupplier_preview(data);"
                   ng-model="data.supplier_id_name" 
-                  ng-change="showCase.getsupBasedPriceDetails(data.supplier_id_name, data)">
+                  ng-change="showCase.getsupBasedPriceDetails_preview(data.supplier_id_name, data)">
                     <option ng-repeat="(supplier_id_name, details) in data.supplierDetails"
                     value="{{supplier_id_name}}">{{supplier_id_name}}
                     </option>

@@ -2822,8 +2822,8 @@ def search_supplier(request, user=''):
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
                                         Q(name__icontains=data_id), user=user.id)
     suppliers = []
-    if data:
-        for supplier in data:
+    if data.exists():
+        for supplier in data[:15]:
             if isinstance(supplier.supplier_id, int):
                 suppliers.append(str(supplier.supplier_id) + ":" + supplier.name)
             else:

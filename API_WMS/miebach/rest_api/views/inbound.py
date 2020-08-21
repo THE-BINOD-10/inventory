@@ -8462,6 +8462,12 @@ def putaway_data(request, user=''):
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
                     conv_value = batch_obj[0].pcf
+                    if not conv_value:
+                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase', uom='')
+                        conv_value = uom_dict.get('sku_conversion', 1)
+                        batch_obj[0].pcf = conv_value
+                        batch_obj[0].puom = uom_dict['measurement_unit']
+                        batch_obj[0].save()
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
                 if pallet_mapping:
                     stock_check_params['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id

@@ -6379,6 +6379,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
+        pcf = 1
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -6387,6 +6388,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             buy_price = batch_detail.buy_price
+            pcf = stock.batch_detail.pcf
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
@@ -6394,7 +6396,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price})
-        zones_data[cond]['total_quantity'] += stock.quantity
+        zones_data[cond]['total_quantity'] += stock.quantity/pcf
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
         availabe_quantity[location] += (stock.quantity - res_qty)

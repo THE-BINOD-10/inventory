@@ -658,7 +658,7 @@ class PendingPR(models.Model):
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
     sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
-    full_pr_number = models.CharField(max_length=32, default='')
+    full_pr_number = models.CharField(max_length=32, default='', db_index=True)
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     product_category = models.CharField(max_length=64, default='')
@@ -674,7 +674,7 @@ class PendingPR(models.Model):
 
     class Meta:
         db_table = 'PENDING_PR'
-
+        #index_together = (('full_pr_number',))
 
 @reversion.register()
 class PendingPO(models.Model):

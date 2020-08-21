@@ -15749,3 +15749,48 @@ def resubmit_prs(urlPath, pr_ids):
             hash_code = generateHashCodeForMail(prObj, eachMail, baseLevel)
             sendMailforPendingPO(pendingPRObj.id, user, baseLevel, 'pr_approval_pending', eachMail,
                 urlPath, hash_code, poFor=False, is_resubmitted=True)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_po_delivery_schedule(request, user=''):
+    queryId = request.POST.get('id', '')
+    data = request.POST.get('data', '')
+    if not queryId or not data:
+        return HttpResponse("Inputs are Missing !")
+    enqQs = PendingLineItems.objects.filter(id=queryId, purchase_type='PO')
+    if enqQs.exists():
+        PurchaseDeliverySchedule.objects.filter(po_line_item=enqQs[0]).update(status=0)
+        all_data = eval(data)
+        for datum in all_data:
+            if datum['delivery_date']:
+                delivery_date = datetime.datetime.strptime(datum['delivery_date'], "%m/%d/%Y").date()
+            else:
+                delivery_date = None
+            delivery_datum = {
+                    'delivery_date': delivery_date,
+                    'quantity': float(datum['quantity']),
+                    'po_line_item': enqQs[0]
+                }
+            PurchaseDeliverySchedule.objects.create(**delivery_datum)
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_delivery_schedule(request, user=''):
+    queryId = request.POST.get('id', '')
+    respoanse_data = []
+    enqQs = PendingLineItems.objects.filter(id=queryId, purchase_type='PO')
+    if enqQs.exists():
+        # import pdb; pdb.set_trace()
+        all_data=PurchaseDeliverySchedule.objects.filter(po_line_item=enqQs[0], status=1).values('delivery_date', 'quantity')
+        if all_data.exists():
+            for datum in all_data:
+                temp = {
+                    'delivery_date': datetime.datetime.strftime(datum['delivery_date'], '%d-%m-%Y'),
+                    'quantity': float(datum['quantity'])
+                }
+                respoanse_data.append(temp)
+    return HttpResponse(json.dumps(respoanse_data))

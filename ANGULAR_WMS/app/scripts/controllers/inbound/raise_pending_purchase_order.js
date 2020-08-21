@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePendingPurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('RaisePendingPurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -273,6 +273,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
           vm.pending_level = aData['LevelToBeApproved']
+          vm.pop_up_status = aData['Validation Status']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
           } else if (aData['Validation Status'] == 'Saved'){
@@ -1374,7 +1375,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     });
   }
 
-vm.checkWHSupplierExist  = function (sup_id) {
+  vm.checkWHSupplierExist  = function (sup_id) {
     console.log(sup_id);
     $http.get(Session.url + 'search_wh_supplier?', {
       params: {
@@ -1387,4 +1388,127 @@ vm.checkWHSupplierExist  = function (sup_id) {
       };
     });
   }
+  vm.sku_delivery_date = function(datam) {
+    datam['status'] = vm.pop_up_status;
+    var data = datam;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/inbound/toggle/ApprovalPendingLineItems/po_sku_delivery_date_popup.html',
+      controller: 'SkuDeliveryCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return data;
+        }
+      }
+    });
+    modalInstance.result.then(function (selectedItem) {
+      if (selectedItem['status'] == 'success') {
+        selectedItem['datum']['price_request'] = true;
+      }
+    });
+  }
 }
+
+angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.lineData = items.fields;
+  vm.line_id = items.pk;
+  vm.status = items.status
+  vm.model_data = {}
+  vm.service = Service;
+  vm.base = function () {
+    if (vm.status == 'Saved') {
+      vm.status = true;
+    } else {
+      vm.status = false;
+    }
+    vm.model_data['sku_code'] = vm.lineData.sku.wms_code;
+    vm.model_data['sku_desc'] = vm.lineData['description'];
+    vm.model_data['price'] = vm.lineData['price'];
+    vm.model_data['order_quantity'] = vm.lineData['order_quantity'];
+    vm.model_data['details'] = [];
+    var data_to_send = {
+      'id': vm.line_id
+    }
+    vm.service.apiCall('get_po_delivery_schedule/', 'POST', data_to_send, true).then(function(data){
+      if(data.message) {
+        if (data.data.length > 0) {
+          vm.model_data['details'] = data.data;
+        } else {
+          vm.model_data['details'].push({'delivery_date': '', 'quantity': 0});
+        }
+      }
+    });
+  }
+  vm.base();
+  vm.send_delivery_data = function() {
+    if (vm.validation_checks()) {
+      var data_to_send = {
+        'id': vm.line_id,
+        'data': JSON.stringify(vm.model_data['details'])
+      }
+      vm.service.apiCall('save_po_delivery_schedule/', 'POST', data_to_send, true).then(function(data){
+        if(data.message) {
+          vm.service.showNoty(data.data);
+          vm.cancel('');
+          // if(data.data == "Success") {
+          //   vm.service.showNoty(data.data);
+          //   var temp_dict = {
+          //     'status': 'success',
+          //     'datum': vm.grnData['record']
+          //   }
+          //   vm.cancel('');
+          // } else {
+          //   vm.service.pop_msg(data.data);
+          // }
+        }
+      });
+    }
+  }
+  vm.validation_checks = function() {
+    var status = false;
+    var temp_delivery_date = [];
+    var total_count = 0;
+    for (var i = 0; i < vm.model_data['details'].length; i++) {
+      if (vm.model_data['details'][i]['delivery_date']) {
+        if (temp_delivery_date.includes(vm.model_data['details'][i]['delivery_date'])) {
+          vm.service.showNoty('Delivery Date Should Not be Same !');
+          return false;
+          break;
+        } else {
+          temp_delivery_date.push(vm.model_data['details'][i]['delivery_date']);
+          total_count = vm.model_data['details'][i]['quantity'] ? parseFloat(total_count) + parseFloat(vm.model_data['details'][i]['quantity']) : parseFloat(total_count);
+        }
+      } else {
+        vm.service.showNoty('Delivery Date Should Not be Empty !');
+        return false;
+        break;
+      }
+      if (i+1 == vm.model_data['details'].length) {
+        if (parseFloat(vm.model_data['order_quantity']) == parseFloat(total_count)) {
+          return true;
+        }else {
+          vm.service.showNoty('Quantity Mismatch !');
+          return false;
+          break;
+        }
+      }
+    }
+  }
+  vm.cancel = function (data) {
+    var temp_dict = '';
+    if (data) {
+      temp_dict = data;
+    } else {
+      temp_dict = {
+            'status': 'cancel'
+          }
+    }
+    $modalInstance.close(temp_dict);
+  };
+
+});

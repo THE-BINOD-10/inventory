@@ -1027,7 +1027,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     }
     vm.price_request_button = function(price, buyprice){
-      if (parseInt(buyprice) > parseInt(price)){
+      if (parseFloat(buyprice) > parseFloat(price)){
         return false;
       } else {
         return true;

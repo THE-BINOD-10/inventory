@@ -168,6 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "validateFlag": data.data.validateFlag,
                   "total_price": 0,
                   "tax": "",
+                  "cess_tax": 0,
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
@@ -211,9 +212,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.enquiryRemarks = data.data.enquiryRemarks;
           vm.model_data.validated_users = data.data.validated_users;
           angular.forEach(vm.model_data.data, function(data){
-            if (!data.fields.cess_tax) {
-              data.fields.cess_tax = 0;
-            }
+//            if (!data.fields.cess_tax) {
+//              if (data.fields.temp_cess_tax){
+//                data.fields.cess_tax = data.fields.temp_cess_tax;
+//              }
+//            }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
@@ -429,6 +432,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       var emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
                             "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "cess_tax": "",
                             "sku": {"wms_code": "", "price":""}
                           }
       vm.model_data.sku_categories = vm.model_data.prodcatg_map[product_category];
@@ -448,12 +452,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (product_category == 'Kits&Consumables'){
         emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "cess_tax": 0
                           }
       } else if (product_category == 'Assets'){
         emptylineItems = {"wms_code":"", "ean_number": "", "order_quantity":"", "price":0,
                             "measurement_unit": "", "row_price": 0, "tax": "", "is_new":true,
-                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "" 
+                            "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "",
+                            "cess_tax": 0
                           }
       }
       if (index == vm.model_data.data.length-1) {
@@ -695,6 +701,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (supDetails) {
         sup_data.moq = supDetails.moq;
         sup_data.tax = supDetails.tax;
+        sup_data.cess_tax = supDetails.cess_tax;
         sup_data.amount = supDetails.amount;
         sup_data.price = supDetails.price;
         sup_data.total = supDetails.total;
@@ -1326,7 +1333,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
         sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
@@ -1334,7 +1341,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           sku_data.fields.tax = 0;
         }
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +  temp;
       })
     }
 
@@ -1433,6 +1440,58 @@ vm.checkWHSupplierExist  = function (sup_id) {
       };
     });
   }
+
+  vm.update_tax_details = function(product) {
+    var data = {sku_codes: product.fields.sku.wms_code, suppli_id: product.fields.supplier_id_name, warehouse_id: vm.model_data.store_id}
+    vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+      if(data.message && data.data.length > 0) {
+        data = data.data[0]
+        var taxes = data.taxes;
+        product.fields.tax = 0;
+        product.fields.cess_tax = 0;
+        if(taxes.length > 0){
+          product.fields.tax = taxes[0].cgst_tax + taxes[0].sgst_tax + taxes[0].igst_tax;
+          product.fields.cess_tax = taxes[0].cess_tax;
+        }
+      }
+    });
+//    if (vm.model_data.supplier_id) {
+//    vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
+//            sku_data = sku_data[0];
+//            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+//            // sku_data["price"] = product.fields.price;
+//            // vm.model_data.supplier_sku_prices = sku_data;
+//            product["taxes"] = sku_data.taxes;
+//            product["fields"]["edit_tax"] = sku_data.edit_tax;
+//            vm.get_tax_value(product);
+//        })
+//        var supplier = vm.model_data.supplier_id;
+//        $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
+//          if (data.hasOwnProperty('error_msg')) {
+//            vm.clear_raise_po_data(product);
+//            vm.service.showNoty(data['error_msg']);
+//          } else {
+//            if(Object.values(data).length) {
+//              if(data.supplier_mapping)
+//              {
+//                vm.clear_raise_po_data(product);
+//                vm.service.showNoty('Please Create Sku Supplier Mapping');
+//              }
+//              else
+//              {
+//                product.fields.blocked_sku = data.sku_block
+//                product.fields.price = data.price;
+//                product.fields.supplier_code = data.supplier_code;
+//                product.fields.weight = data.weight;
+//                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+//                // vm.getTotals();
+//              }
+//            }
+//          }
+//        });
+//      }
+//      vm.update_available_stock(product.fields.sku)
+    }
 }
 
 angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
@@ -1487,4 +1546,5 @@ angular.module('urbanApp').controller('skuSupplierCtrl', function ($scope, $http
   vm.close = function (value) {
     $modalInstance.close(value);
   };
+
 });

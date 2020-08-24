@@ -5009,7 +5009,8 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
+                        "temp_cess_tax": tax_values[0]['cess_tax']}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5085,6 +5086,9 @@ def get_company_admin_user(user):
 def get_supplier_sku_prices(request, user=""):
     suppli_id = request.POST.get('suppli_id', '')
     sku_codes = request.POST.get('sku_codes', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
@@ -5260,14 +5264,17 @@ def build_search_data(user, to_data, from_data, limit):
                 sku_conversion = 0
             tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
             temp_tax=0
+            temp_cess_tax = 0
             if tax_values.exists():
                 temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
+                temp_cess_tax = tax_values[0]['cess_tax']
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
+                         "temp_cess_tax": temp_cess_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:

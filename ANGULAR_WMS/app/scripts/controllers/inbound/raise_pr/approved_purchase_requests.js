@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "validateFlag": data.data.validateFlag,
                   "total_price": 0,
                   "tax": "",
+                  "cess_tax": 0,
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
@@ -590,6 +591,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (supDetails) {
         sup_data.moq = supDetails.moq;
         sup_data.tax = supDetails.tax;
+        sup_data.cess_tax = supDetails.cess_tax;
         sup_data.amount = supDetails.amount;
         sup_data.price = supDetails.price;
         sup_data.total = supDetails.total;
@@ -1241,7 +1243,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.taxChange = function(data) {
 
-      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
+      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
     }
 
@@ -1257,7 +1259,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
         sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
@@ -1265,7 +1267,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           sku_data.fields.tax = 0;
         }
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        var cess_tax_amt = ((temp / 100) * sku_data.fields.cess_tax);
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp + cess_tax_amt;
       })
     }
 

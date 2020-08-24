@@ -12,7 +12,7 @@
     z-index: 1000;
  }
 </style>
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="pr_form">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
@@ -223,6 +223,9 @@
                     <!-- <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
+                    <td>
+                      <button class="btn btn-success" ng-click="showCase.sku_delivery_date(product)">Add Delivery schedule(+)</button>
+                    </td>
                   </tr>
                 </tbody>
               </table>

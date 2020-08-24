@@ -938,11 +938,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               'grn_total': parseFloat(vm.model_data.data[i][j].value)
             }
           } else {
-            if (Object.keys(vm.model_data.data[i][j]).includes('check')) {
-              data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(vm.model_data.data[i][j].value);
-            } else {
+            if (!Object.keys(vm.model_data.data[i][j]).includes('check')) {
               data_dict[vm.model_data.data[i][j].wms_code]['po_total'] = data_dict[vm.model_data.data[i][j].wms_code]['po_total'] + parseFloat(vm.model_data.data[i][j].po_quantity);
             }
+            data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] = data_dict[vm.model_data.data[i][j].wms_code]['grn_total'] + parseFloat(vm.model_data.data[i][j].value);
           }
           if (parseFloat(vm.model_data.data[i][j]['price']) < parseFloat(vm.model_data.data[i][j]['buy_price'])) {
             sku_list = sku_list.includes(vm.model_data.data[i][j]['wms_code']) ? sku_list : sku_list + ' - ' + vm.model_data.data[i][j]['wms_code']

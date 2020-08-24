@@ -10697,7 +10697,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
                                                    invoice_number=invoice_num,
-                                                   purchase_order__open_po__supplier__supplier_id=supplier_id)
+                                                   purchase_order__open_po__supplier__supplier_id=supplier_id).exclude(status=1)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s/%s' % (exist_inv_obj[0].purchase_order.po_number,
                                                              str(exist_inv_obj[0].receipt_number))

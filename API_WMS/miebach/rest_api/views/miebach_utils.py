@@ -13293,6 +13293,9 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if (approver_2_details in approver_4_details) or (approver_2_details == approver_4_details):
+                        approver_4_details, approver4_status = '', ''
+                        last_updated_by = approver_3_details
 
                 else:
                     approver4_status = 'No'
@@ -13303,6 +13306,9 @@ def get_pr_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if (approver_2_details in approver_4_details) or (approver_2_details == approver_4_details):
+                        approver_4_details, approver4_status = '', ''
+                        last_updated_by = approver_3_details
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
                 approver_5_details = ''
@@ -13587,6 +13593,9 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if (approver_2_details in approver_4_details) or (approver_2_details == approver_4_details):
+                        approver_4_details, approver4_status = '', ''
+                        last_updated_by = approver_3_details
 
                 else:
                     approver4_status = 'No'
@@ -13597,6 +13606,9 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                     final_updated_time = approver_4.get('updation_date')
                     if final_updated_time:
                         last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
+                    if (approver_2_details in approver_4_details) or (approver_2_details == approver_4_details):
+                        approver_4_details, approver4_status = '', ''
+                        last_updated_by = approver_3_details
             if all_approver_details.get('level_approver5'):
                 approver_5 = all_approver_details.get('level_approver5')
                 approver_5_details = ''

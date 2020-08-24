@@ -866,9 +866,13 @@ def get_receive_po_datatable_filters(user, filters, request):
     if request.POST.get('style_view', '') == 'true':
         supplier_search = 'search_10'
     else:
-        supplier_search = 'search_9'
+        supplier_search = 'search_10'
+    if filters['search_10']:
+        supplier_search = 'search_10'
     if filters['search_9']:
-        supplier_search = 'search_9'
+        plant_filter_ids = list(User.objects.filter(first_name__icontains=filters['search_9']).values_list('id', flat=True))
+        if plant_filter_ids:
+            search_params['open_po__sku__user__in'] = plant_filter_ids
     if filters[supplier_search]:
         search_params['open_po__supplier__supplier_id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
@@ -887,7 +891,6 @@ def get_receive_po_datatable_filters(user, filters, request):
                                                         'confirmed-putaway', 'stock-transfer']).\
                                                 filter(po__received_quantity__lt=F('open_st__order_quantity'), **search_params1).values_list('po__order_id', flat=True).distinct()
         results = list(chain(results, stock_results))'''
-
     return search_params, search_params1, search_params2
 
 def generate_po_qty_dict(purchase_ord_qty):
@@ -1322,7 +1325,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     rw_purchase_query = build_search_term_query(rw_lis, search_term)
     users = check_and_get_plants(request, users)
     po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
-                                    .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
+                                    .values('order_id', 'prefix', 'po_number').distinct().order_by(po_col, st_col, rw_col)
     po_ids = po_dict.values_list('order_id',flat = True)
 
 
@@ -1338,7 +1341,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
 
     for result in results[start_index:stop_index]:
         if po_dict.filter(order_id=result['order_id'], open_po__sku__user__in=user_ids, prefix=result['prefix']).exists():
-            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user__in=user_ids, prefix=result['prefix'])[0]
+            supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], open_po__sku__user__in=user_ids, prefix=result['prefix'], po_number=result['po_number'])[0]
             order_type = 'Purchase Order'
         if rwo_dict.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix']).exists(): #supplier.rwpurchase_set.filter():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], rwpurchase__rwo__vendor__user__in=user_ids, prefix=result['prefix'])[0]
@@ -2822,8 +2825,8 @@ def search_supplier(request, user=''):
     data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
                                         Q(name__icontains=data_id), user=user.id)
     suppliers = []
-    if data:
-        for supplier in data:
+    if data.exists():
+        for supplier in data[:15]:
             if isinstance(supplier.supplier_id, int):
                 suppliers.append(str(supplier.supplier_id) + ":" + supplier.name)
             else:

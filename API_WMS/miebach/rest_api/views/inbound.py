@@ -9256,12 +9256,12 @@ def confirm_add_po(request, sales_data='', user=''):
                 return HttpResponse(ean_data[0].wms_code + " SKU Code Blocked for PO")
 
         if industry_type == 'FMCG':
-            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Date', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
             if user.username in MILKBASKET_USERS:
                 table_headers.insert(4, 'Weight')
         else:
-            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Date', 'Qty', 'UOM', 'Unit Price', 'Amt',
+            table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
         # if ean_flag:
         #     table_headers.insert(1, 'EAN')
@@ -15806,7 +15806,7 @@ def get_po_delivery_schedule(request, user=''):
         if all_data.exists():
             for datum in all_data:
                 temp = {
-                    'delivery_date': datetime.datetime.strftime(datum['delivery_date'], '%d-%m-%Y'),
+                    'delivery_date': datetime.datetime.strftime(datum['delivery_date'], '%m/%d/%Y'),
                     'quantity': float(datum['quantity'])
                 }
                 respoanse_data.append(temp)

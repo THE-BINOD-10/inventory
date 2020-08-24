@@ -51,7 +51,7 @@
         <center>
           <div class="row mt20" ng-repeat="(index, charge) in $ctrl.model_data.details">
             <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding-left: 35px;">
-              <input ui-jq="datepicker" placeholder="Enter Delivery Date" ng-model="charge.delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" ng-disabled="!$ctrl.status">
+              <input ui-jq="datepicker" placeholder="Enter Delivery Date" ng-model="charge.delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{$ctrl.date}}" ng-disabled="!$ctrl.status">
             </div>
             <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding-left: 35px;">
               <input type="text" class="form-control" placeholder="Enter Quantity" ng-model="charge.quantity" ng-class="service.get_decimal_perm()" ng-disabled="!$ctrl.status">

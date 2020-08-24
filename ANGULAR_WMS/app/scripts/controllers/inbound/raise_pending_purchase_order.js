@@ -1415,6 +1415,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
+  vm.date = new Date();
   vm.lineData = items.fields;
   vm.line_id = items.pk;
   vm.status = items.status
@@ -1455,16 +1456,6 @@ angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstanc
         if(data.message) {
           vm.service.showNoty(data.data);
           vm.cancel('');
-          // if(data.data == "Success") {
-          //   vm.service.showNoty(data.data);
-          //   var temp_dict = {
-          //     'status': 'success',
-          //     'datum': vm.grnData['record']
-          //   }
-          //   vm.cancel('');
-          // } else {
-          //   vm.service.pop_msg(data.data);
-          // }
         }
       });
     }

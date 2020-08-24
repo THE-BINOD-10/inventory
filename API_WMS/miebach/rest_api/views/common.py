@@ -12957,7 +12957,8 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('first_name', 'username'))
+            plants_list = dict(plant_objs.annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+            # plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)

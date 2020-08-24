@@ -1335,6 +1335,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
+      if (!data.fields.cess_tax) {
+        data.fields.cess_tax = 0;
+      }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));

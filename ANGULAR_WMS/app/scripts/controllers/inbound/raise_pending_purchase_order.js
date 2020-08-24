@@ -1465,7 +1465,7 @@ angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstanc
     var temp_delivery_date = [];
     var total_count = 0;
     for (var i = 0; i < vm.model_data['details'].length; i++) {
-      if (vm.model_data['details'][i]['delivery_date']) {
+      if (vm.model_data['details'][i]['delivery_date'] && vm.model_data['details'][i]['quantity'] != 0) {
         if (temp_delivery_date.includes(vm.model_data['details'][i]['delivery_date'])) {
           vm.service.showNoty('Delivery Date Should Not be Same !');
           return false;
@@ -1475,7 +1475,7 @@ angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstanc
           total_count = vm.model_data['details'][i]['quantity'] ? parseFloat(total_count) + parseFloat(vm.model_data['details'][i]['quantity']) : parseFloat(total_count);
         }
       } else {
-        vm.service.showNoty('Delivery Date Should Not be Empty !');
+        vm.service.showNoty('Delivery Date (or) Quantity Should Not be Empty !');
         return false;
         break;
       }

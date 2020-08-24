@@ -229,7 +229,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.resubmitCheckObj[data.fields.sku.wms_code] = data.fields.order_quantity;
           });
           console.log(vm.resubmitCheckObj);
-
+          console.log(data.data)
           // vm.getTotals();
           vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
             if (data.message) {
@@ -278,13 +278,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
               angular.forEach(vm.model_data.data, function(eachField){
-                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name){
+                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name || eachField.fields.discount != eachField.fields.resubmit_discount){
                   vm.is_pa_resubmitted = true;
                 }
               })
             }
           }
-
           vm.model_data.suppliers = [vm.model_data.supplier_id];
           vm.model_data.supplier_id = vm.model_data.suppliers[0];
           vm.model_data['po_number'] = aData['PO Number'];
@@ -311,7 +310,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           }
         }
     });
-
     }
     if ($rootScope.$current_pr != '') {
       vm.supplier_id = $rootScope.$current_pr['Supplier ID'];
@@ -702,9 +700,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         sup_data.moq = supDetails.moq;
         sup_data.tax = supDetails.tax;
         sup_data.cess_tax = supDetails.cess_tax;
-        sup_data.amount = supDetails.amount;
         sup_data.price = supDetails.price;
-        sup_data.total = supDetails.total;
+        sup_data.final_price = parseFloat(sup_data.price) - parseFloat(sup_data.price) * parseFloat((sup_data.discount/100));
+        var discount_amount = sup_data.price * sup_data.order_quantity - sup_data.final_price * sup_data.order_quantity
+        sup_data.amount = (supDetails.amount - discount_amount).toFixed(2);
+        sup_data.total = (supDetails.total - discount_amount).toFixed(2);
         sup_data.supplier_id = supDetails.supplier_id;
         sup_data.supplier_id_name = supplier_id_name;
       }
@@ -758,7 +758,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           lineItem.is_doa_sent = true;          
         }
         vm.display_vision = {'display': 'block'};
-        console.log(selectedItem);
       });
     }
 
@@ -798,8 +797,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
 
       })
-
-      console.log(vm.barcode_print_data);
 
       vm.model_data['format_types'] = ['format1', 'format2', 'format3']
 
@@ -1089,7 +1086,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
     vm.get_sku_details = function(product, item, index) {
-      console.log(item);
       vm.clear_raise_po_data(product);
       vm.purchase_history_wms_code = item.wms_code;
       vm.blur_focus_flag = false;
@@ -1239,7 +1235,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.fields.sku.wms_code, {withCredentials : true}).success(function(data, status, headers, config) {
           if(Object.keys(data).length){
-            console.log(data);
           } else {
             Service.searched_sup_code = supplier;
             Service.searched_wms_code = product.fields.sku.wms_code;
@@ -1315,10 +1310,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.getTotals(vm.model_data, true);
     }
 
-    vm.getTotals = function(data) {
+    vm.getTotals = function(data, type='') {
       // if(not_update_tax === undefined) {
       //   not_update_tax = false;
       // }
+      if (data.fields.discount > 100) {
+        Service.showNoty('Discount Percentage Between 0 - 100 ONLY');
+        data.fields.discount = 0
+        data.fields.final_price = 0
+      } else if (type == 'change'){
+        data.fields.final_price = parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100))
+      }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
       if (data.fields.temp_price){
@@ -1329,14 +1331,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       data.fields.amount = 0
       data.fields.total = 0
-      data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
+      data.fields.amount = data.fields.order_quantity * Number(parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100)));
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
       data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
         if (!sku_data.fields.tax) {
           sku_data.fields.tax = 0;
         }
@@ -1412,7 +1414,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     }
 
   vm.checkSupplierExist = function (sup_id) {
-    console.log(sup_id);
     $http.get(Session.url + 'search_supplier?', {
       params: {
         q: sup_id,

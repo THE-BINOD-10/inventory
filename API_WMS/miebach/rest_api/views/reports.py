@@ -118,6 +118,10 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'final_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PR_REPORT_PR_STATUS
+        if 'po_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'po_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PO_REPORT_PO_STATUS
 
         if 'priority_type' in filter_keys:
             data_index = data['filters'].index(

@@ -14193,7 +14193,9 @@ def get_cancel_grn_report_data(search_params, user, sub_user):
         pr_value_list = ['pending_po__product_category', 'pending_po__pending_prs__requested_user__first_name','pending_po__pending_prs__wh_user__id',
                          'pending_po__full_po_number', 'pending_po__pending_prs__creation_date', 'pending_po__sku_category',
                          'pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__requested_user']
-
+        pr_plant, pr_department, pr_number, pr_date, final_pr_date, pr_raised_user, product_category, category = '', '', '', '', '', '', '', ''
+        full_po_number = ''
+        full_po_number = result['purchase_order__po_number']
         pr_data = PendingLineItems.objects.filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
         if pr_data.exists():
             pr_data = pr_data[0]
@@ -14201,7 +14203,6 @@ def get_cancel_grn_report_data(search_params, user, sub_user):
             pr_number = pr_data['pending_po__pending_prs__full_pr_number']
             pr_raised_user = pr_data['pending_po__pending_prs__requested_user__first_name']
             requested_user = pr_data['pending_po__pending_prs__requested_user']
-            pr_plant, pr_department = '', ''
             req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
             pr_department, pr_plant = get_plant_and_department(req_user)
             pr_date = pr_data['pending_po__pending_prs__creation_date']
@@ -14358,7 +14359,9 @@ def get_sku_wise_cancel_grn_report_data(search_params, user, sub_user):
                          'pending_po__full_po_number', 'pending_po__pending_prs__creation_date',
                          'pending_po__sku_category', 'pending_po__pending_prs__wh_user__id',
                          'pending_po__pending_prs__full_pr_number', 'pending_po__pending_prs__requested_user']
-
+        pr_plant, pr_department, pr_number, pr_date, final_pr_date, pr_raised_user, product_category, category = '', '', '', '', '', '', '', ''
+        full_po_number = ''
+        full_po_number = result['purchase_order__po_number']
         pr_data = PendingLineItems.objects.filter(pending_po__open_po__id=open_po_id).values(*pr_value_list).distinct()
         if pr_data.exists():
             pr_data = pr_data[0]

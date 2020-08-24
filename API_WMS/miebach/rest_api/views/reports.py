@@ -2086,8 +2086,8 @@ def print_purchase_order_form(request, user=''):
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
-        if pm_order.open_po.pendingpos.filter().exists():
-            pending_po_data = pm_order.open_po.pendingpos.filter()[0]
+        if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
+            pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:

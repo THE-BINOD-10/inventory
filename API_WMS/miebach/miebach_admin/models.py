@@ -3872,7 +3872,8 @@ class BarcodeEntities(models.Model):
 
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, blank=True, default=None)
+    company = models.ForeignKey(CompanyMaster, blank=True, default=None)
     field_type = models.CharField(max_length=32, default='')
     text_field = models.TextField(default='', blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)

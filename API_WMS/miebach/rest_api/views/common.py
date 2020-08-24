@@ -5679,7 +5679,7 @@ def get_sellers_list(request, user=''):
             ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
                                     'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
-                                    'raise_po_terms_conditions' : raise_po_terms_conditions,
+                                    'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 

@@ -2084,7 +2084,8 @@ def print_pending_po_form(request, user=''):
     company_name = profile.company.company_name
     receipt_type = request.GET.get('receipt_type', '')
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
-    tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+    user_company_id = get_company_id(user)
+    tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
 
@@ -9520,6 +9521,11 @@ def confirm_add_po(request, sales_data='', user=''):
             terms_condition= terms_condition.replace("%^PO_DATE^%", date_replace_terms)
         else:
             terms_condition= terms_condition.replace("%^PO_DATE^%", '')
+        if not terms_condition:
+            user_company_id = get_company_id(user)
+            tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
+            if tc_master.exists():
+                terms_condition = tc_master[0].text_field
         data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
                      'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'delivery_date': delivery_date, 'total': round(total), 'po_number': po_number ,

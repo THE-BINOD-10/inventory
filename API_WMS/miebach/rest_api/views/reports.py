@@ -2246,7 +2246,8 @@ def print_purchase_order_form(request, user=''):
         company_details['cin_number'] = profile.company.cin_number
         company_details['pan_number'] = profile.company.pan_number
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
-    tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+    user_company_id = get_company_id(user)
+    tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
     if open_po.supplier.lead_time:

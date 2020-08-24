@@ -12949,7 +12949,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id

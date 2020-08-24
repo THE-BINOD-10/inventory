@@ -8048,8 +8048,9 @@ def get_received_orders(request, user=''):
     sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
     prefix = request.GET['prefix']
+    full_po_number = request.GET['po_number']
     purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user=user.id, prefix=prefix,
-                                                   open_po__sku_id__in=sku_master_ids). \
+                                                   open_po__sku_id__in=sku_master_ids, po_number=full_po_number). \
         exclude(status__in=['', 'confirmed-putaway'])
     if not purchase_orders:
         st_orders = STPurchaseOrder.objects.filter(po__order_id=supplier_id, open_st__sku__user=user.id, po__prefix=prefix,

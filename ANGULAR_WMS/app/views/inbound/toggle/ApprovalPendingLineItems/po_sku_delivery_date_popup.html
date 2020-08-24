@@ -1,0 +1,76 @@
+<div style="z-index: 1049">
+  <form name="form" role="form">
+    <div class="modal-header" style="border-bottom: none;background: #d3d3d338;">
+      <h4 class="modal-title" id="modal-title">SKU Delivery Schedule</h4>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="row">
+        <div class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label"><b>SKU Code : </b></label>
+            <div class="col-md-6  col-sm-6 pull-left">
+              <label class="control-label">{{$ctrl.model_data.sku_code}}</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label"><b>SKU Desc : </b></label>
+            <div class="col-md-6 col-sm-6 pull-left">
+              <label class="control-label">{{$ctrl.model_data.sku_desc}}</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label"><b>Price : </b></label>
+            <div class="col-md-6 col-sm-6 pull-left">
+              <label class="control-label">{{$ctrl.model_data.price}}</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label"><b>SKU Quantity : </b></label>
+            <div class="col-md-6 col-sm-6 pull-left">
+              <label class="control-label">{{$ctrl.model_data.order_quantity}}</label>
+            </div>
+          </div>
+        </div>
+        <hr style="border-top: 1px solid #e4e4e475;">
+        <center>
+          <div class="row mt20">
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
+              <span class="label label-default" style="font-size: 12px;"> Delivery Date * </span>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
+              <span class="label label-default" style="font-size: 12px;"> Quantity * </span>
+            </div>
+          </div>
+        </center>
+        <center>
+          <div class="row mt20" ng-repeat="(index, charge) in $ctrl.model_data.details">
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding-left: 35px;">
+              <input ui-jq="datepicker" placeholder="Enter Delivery Date" ng-model="charge.delivery_date" class="form-control" type="text" id="pr_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" ng-disabled="!$ctrl.status">
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding-left: 35px;">
+              <input type="text" class="form-control" placeholder="Enter Quantity" ng-model="charge.quantity" ng-class="service.get_decimal_perm()" ng-disabled="!$ctrl.status">
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" align="left">
+              <i style="font-size: 20px;padding-top: 7px;cursor: pointer; color: palevioletred;" class="fa fa-minus-square-o" ng-click="$ctrl.model_data.details.splice(index, 1);"></i>
+            </div>
+          </div>
+        </center>
+        <center>
+          <div class="col-md-12 mt10" ng-if="$ctrl.status">
+            <a href="javascript:;" class="btn btn-success btn-outline btn-sm" ng-click="$ctrl.model_data.details.push({delivery_date: '', quantity: 0})">Add New Date(+)</a>
+          </div>
+        </center>
+      </div>
+    </div>
+    <div class="modal-footer" style="border-top: 1px solid #e4e4e475;">
+      <button class="btn btn-danger" type="button" ng-click="$ctrl.cancel('')">Close</button>
+      <button ng-if="$ctrl.status" class="btn btn-success" type="submit" ng-click="$ctrl.send_delivery_data()">Confirm</button>
+    </div>
+  </form>
+</div>

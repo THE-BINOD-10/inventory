@@ -20,7 +20,7 @@
   border: 1px solid #e8e8e8 !important;
 }
 </style>
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
@@ -158,6 +158,9 @@
                     <td>
 			            <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                    </td>
+                    <td>
+                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View Delivery Schedule</button>
                     </td>
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">

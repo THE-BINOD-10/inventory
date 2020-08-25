@@ -5686,7 +5686,7 @@ def get_sellers_list(request, user=''):
             ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
                                     'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
-                                    'raise_po_terms_conditions' : raise_po_terms_conditions,
+                                    'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 
@@ -12958,7 +12958,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -12966,7 +12966,8 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('first_name', 'username'))
+            plants_list = dict(plant_objs.annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+            # plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)

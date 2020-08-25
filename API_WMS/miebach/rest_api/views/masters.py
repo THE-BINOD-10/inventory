@@ -4759,9 +4759,11 @@ def insert_po_terms(request, user=''):
     message = ''
     status = 0
     data = {}
-    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', ''):
+    company_id = get_company_id(user)
+    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', '') and company_id:
         terms_dict['user_id'] = user.id
-        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        terms_dict['company_id'] = company_id
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'], company_id=company_id)
         if tc_master.exists():
             tc_master.update(text_field=terms_dict['text_field'])
             message = 'Updated Successfully'
@@ -4771,7 +4773,7 @@ def insert_po_terms(request, user=''):
             message = 'Added Successfully'
             status = 1
     elif terms_dict.get('get_data', '') == 'poTerms':
-        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        tc_master = UserTextFields.objects.filter(field_type=terms_dict['field_type'], company_id=company_id)
         if tc_master.exists():
             message = 'Data Access'
             status = 1

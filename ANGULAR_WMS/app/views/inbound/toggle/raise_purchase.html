@@ -1,4 +1,7 @@
 <style type="text/css">
+  .sidebar-panel{
+    z-index: 1000;
+ }
   .form-control{
     padding: 5px 4px;
  }
@@ -17,7 +20,7 @@
     border: 1px solid #e8e8e8 !important;
   }
 </style>
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
@@ -249,6 +252,7 @@
                     <th class="w10_" ng-if="!showCase.model_data.is_approval">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
+                    <th></th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -333,6 +337,9 @@
                     </td>
                     <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
                       <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
+                    </td>
+                    <td>
+                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View Delivery Schedule</button>
                     </td>
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

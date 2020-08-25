@@ -795,6 +795,18 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
     class Meta:
         db_table = "PURCHASE_APPROVAL_MAILS"
 
+class PurchaseDeliverySchedule(models.Model):
+    id = BigAutoField(primary_key=True)
+    po_line_item = models.ForeignKey(PendingLineItems, blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.CharField(max_length=32, default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "PURCHASE_DELIVERY_SCHEDULE"
+
 @reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
@@ -3864,7 +3876,8 @@ class BarcodeEntities(models.Model):
 
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, blank=True, default=None)
+    company = models.ForeignKey(CompanyMaster, blank=True, default=None)
     field_type = models.CharField(max_length=32, default='')
     text_field = models.TextField(default='', blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)

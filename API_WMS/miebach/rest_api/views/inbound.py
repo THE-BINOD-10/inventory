@@ -15817,3 +15817,55 @@ def get_po_delivery_schedule(request, user=''):
                 }
                 respoanse_data.append(temp)
     return HttpResponse(json.dumps(respoanse_data))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def check_sku_category_data(request, user=''):
+    status = 'success'
+    data_dict={}
+    data_dict['user'] = user.id
+    product_category = request.POST.get('product_cat', '')
+    data_dict['wms_code'] = request.POST.get('wms_code', '')
+    sku_id = ''
+    if request.POST.get('category', ''):
+        data_dict['sku_category'] = request.POST.get('category', '')
+    if product_category == "Kits&Consumables":
+        sku_id = SKUMaster.objects.filter(**data_dict)
+    if product_category == "Assets":
+        sku_id = AssetMaster.objects.filter(**data_dict)
+    if product_category == "Services":
+        sku_id = ServiceMaster.objects.filter(**data_dict)
+    if product_category == "OtherItems":
+        sku_id = OtherItemsMaster.objects.filter(**data_dict)
+    if not sku_id:
+        status = 'fail'
+    return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def validate_product_wms(request, user=''):
+    data_dict = {}
+    status = 'success'
+    myDict = dict(request.POST.iterlists())
+    product_category = myDict.get('product_category', '')[0]
+    if myDict.get('sku_category', '')[0]:
+        data_dict['sku_category'] = myDict.get('sku_category', '')[0]
+    data_dict['user'] = user.id
+    data_dict['wms_code__in'] = myDict.get('wms_code', [])
+    check_length = len(data_dict['wms_code__in'])
+    if not data_dict['wms_code__in'] and not product_category:
+        return HttpResponse('fail')
+    if product_category == "Kits&Consumables":
+        sku_id = SKUMaster.objects.filter(**data_dict)
+    if product_category == "Assets":
+        sku_id = AssetMaster.objects.filter(**data_dict)
+    if product_category == "Services":
+        sku_id = ServiceMaster.objects.filter(**data_dict)
+    if product_category == "OtherItems":
+        sku_id = OtherItemsMaster.objects.filter(**data_dict)
+    if check_length != sku_id.count():
+        status = 'fail'
+    return HttpResponse(status)

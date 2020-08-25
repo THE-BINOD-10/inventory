@@ -79,7 +79,8 @@
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>\
+            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, $index)" ng-class="showCase.service.isLast($last)"></i>
+            <!-- <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i> -->
           </td>
         </tr>
       </tbody>

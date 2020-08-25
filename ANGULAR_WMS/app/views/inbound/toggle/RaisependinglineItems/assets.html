@@ -11,6 +11,7 @@
           <th class="w10_">Quantity*</th>
           <th>Base Price excluding GST</th>
           <th>Tax</th>
+          <th>Cess Tax</th>
           <th>UOM</th>
           <th class="plus"></th>
         </tr>
@@ -53,6 +54,10 @@
           </td>
           <td class="text-center">
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" size="12" readonly>
+          </td>
+          <td class="text-center">
+            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="form-control detectTab"
               ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">

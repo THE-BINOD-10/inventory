@@ -1644,11 +1644,11 @@ def generated_pr_data(request, user=''):
     validated_users = list(prApprQs.filter(status='approved').values_list('validated_by', flat=True).order_by('level'))
     validated_users.insert(0, record[0].requested_user.email)
     lineItemVals = ['sku_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'price', 'measurement_unit', 'id',
-                    'cgst_tax', 'sgst_tax', 'igst_tax']
+                    'cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax']
     lineItems = record[0].pending_polineItems.values_list(*lineItemVals)
     for rec in lineItems:
-        sku_desc_edited, service_stdate, service_edate, temp_price, temp_tax = ['']*5
-        sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax = rec
+        sku_desc_edited, service_stdate, service_edate, temp_price, temp_tax, temp_cess_tax = ['']*6
+        sku_id, sku_code, sku_desc, qty, price, uom, apprId, cgst_tax, sgst_tax, igst_tax, cess_tax = rec
         if record[0].product_category == 'Services':
             tmp_json_id = []
             pr_obj = PendingLineItems.objects.get(id=apprId).pending_po.pending_prs.filter()
@@ -1673,6 +1673,10 @@ def generated_pr_data(request, user=''):
                 temp_tax = updatedJson['temp_tax']
             else:
                 temp_tax = ''
+            if updatedJson.has_key('temp_cess_tax'):
+                temp_cess_tax = updatedJson['temp_cess_tax']
+            else:
+                temp_cess_tax = ''
         search_params = {'sku__user': user.id}
         master_data = SKUMaster.objects.get(id=sku_id)
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
@@ -1686,11 +1690,12 @@ def generated_pr_data(request, user=''):
                                     'description': sku_desc,
                                     'order_quantity': qty, 'price': price,
                                     'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
-                                    'igst_tax': igst_tax,
+                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                     'measurement_unit': measurement_unit,
                                     'sku_conversion': sku_conversion,
                                     'sku_detail': sku_desc_edited, 'service_stdate': service_stdate, 'service_edate': service_edate,
-                                    'temp_price': temp_price, 'temp_tax': temp_tax
+                                    'temp_price': temp_price, 'temp_tax': temp_tax,
+                                    'temp_cess_tax': temp_cess_tax
                                     }, 'pk': apprId})
     if pr_id:
         central_po_data = TempJson.objects.filter(model_id=pr_id, model_name='CENTRAL_PO') or ''
@@ -1824,6 +1829,10 @@ def generated_actual_pr_data(request, user=''):
             temp_tax = updatedJson['temp_tax']
         else:
             temp_tax = ''
+        if updatedJson.has_key('temp_cess_tax'):
+            temp_cess_tax = updatedJson['temp_cess_tax']
+        else:
+            temp_cess_tax = ''
 
         stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
             skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code,
@@ -1853,6 +1862,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'price': json_data['price'],
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
+                                                    'cess_tax': json_data.get('cess_tax', 0),
                                                     'total': json_data['total'],
                                                     'gstin': supplier_gst_num
                                                     }
@@ -1876,6 +1886,7 @@ def generated_actual_pr_data(request, user=''):
                                                     'price': json_data['price'],
                                                     'amount': json_data['amount'],
                                                     'tax': json_data['tax'],
+                                                    'cess_tax': json_data.get('cess_tax', 0),
                                                     'total': json_data['total'],
                                                     'gstin': supplier_gst_num
                                                     }
@@ -1888,6 +1899,7 @@ def generated_actual_pr_data(request, user=''):
                 requester_json_data = eval(pr_req_provided_data[0].model_json)
                 temp_price = requester_json_data.get('temp_price', '')
                 temp_tax = requester_json_data.get('temp_tax', '')
+                temp_cess_tax = requester_json_data.get('temp_cess_tax', '')
 
             if supplierMappings.exists():
                 for supplierMapping in supplierMappings:
@@ -1903,8 +1915,9 @@ def generated_actual_pr_data(request, user=''):
                             sgst_tax = taxes[0]['sgst_tax']
                             cgst_tax = taxes[0]['cgst_tax']
                             igst_tax = taxes[0]['igst_tax']
+                            cess_tax = taxes[0]['cess_tax']
                         else:
-                            sgst_tax, cgst_tax, igst_tax = 0, 0, 0
+                            sgst_tax, cgst_tax, igst_tax, cess_tax = 0, 0, 0, 0
                         if skuTaxVal.get('sku_supplier_price', ''):
                             price = skuTaxVal.get('sku_supplier_price', '')
                         else:
@@ -1916,7 +1929,7 @@ def generated_actual_pr_data(request, user=''):
 
                         tax = sgst_tax + cgst_tax + igst_tax
                         amount = qty * price
-                        total = amount + (amount * (tax/100))
+                        total = amount + (amount * (tax/100)) + (amount * (cess_tax/100))
                         supplier_id_name = '%s:%s' %(supplierId, supplierName)
                     supplierDetailsMap[supplier_id_name] = {'supplier_id': supplierId,
                                                               'supplier_name': supplierName,
@@ -1924,6 +1937,7 @@ def generated_actual_pr_data(request, user=''):
                                                               'price': round(price, 2),
                                                               'amount': round(amount, 2),
                                                               'tax': tax,
+                                                              'cess_tax': cess_tax,
                                                               'total': round(total, 2),
                                                               'gstin': supplier_gstin
                                                               }
@@ -1962,6 +1976,7 @@ def generated_actual_pr_data(request, user=''):
                                     'service_end_date': service_edate,
                                     'temp_price': temp_price,
                                     'temp_tax': temp_tax,
+                                    'temp_cess_tax': temp_cess_tax,
                                     'discount': discount,
                                     'resubmit_discount': discount,
                                     'supplierDetails': supplierDetailsMap,
@@ -2967,6 +2982,7 @@ def get_raisepo_group_data(user, myDict):
         sku_category = ''
         temp_price = ''
         temp_tax = ''
+        temp_cess_tax = ''
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'approval_remarks' in myDict.keys():
@@ -3039,6 +3055,8 @@ def get_raisepo_group_data(user, myDict):
             temp_price = myDict['temp_price'][i]
         if 'temp_tax' in myDict.keys():
             temp_tax = myDict['temp_tax'][i]
+        if 'temp_cess_tax' in myDict.keys():
+            temp_cess_tax = myDict['temp_cess_tax'][i]
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
             order_type = order_types.get(receipt_type, 'SR')
@@ -3070,7 +3088,8 @@ def get_raisepo_group_data(user, myDict):
                                    'product_category': product_category, 'priority_type': priority_type,
                                    'description': description, 'service_start_date': service_start_date,
                                    'service_end_date': service_end_date, 'description_edited': description_edited,
-                                   'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax})
+                                   'sku_category': sku_category, 'temp_price': temp_price, 'temp_tax': temp_tax,
+                                   'temp_cess_tax': temp_cess_tax})
         order_qty = myDict['order_quantity'][i]
         if not order_qty:
             order_qty = 0
@@ -3576,6 +3595,10 @@ def approve_pr(request, user=''):
                 tax = float(myDict['tax'][i])
             else:
                 tax = 0
+            try:
+                cess_tax = float(myDict['cess_tax'][i])
+            except:
+                cess_tax = 0
             total = float(myDict['total'][i])
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
@@ -3588,6 +3611,7 @@ def approve_pr(request, user=''):
             pr_approver_data = {
                 'supplier_id': supplier_id,
                 'tax': tax,
+                'cess_tax': cess_tax,
                 'amount': round(amount, 3),
                 'price': unit_price,
                 'moq': moq,
@@ -3616,6 +3640,7 @@ def approve_pr(request, user=''):
                 lineItemObj.cgst_tax = cgst_tax
                 lineItemObj.sgst_tax = sgst_tax
                 lineItemObj.igst_tax = igst_tax
+                lineItemObj.cess_tax = cess_tax
                 lineItemObj.save()
 
             TempJson.objects.create(model_id=lineItemQs[0].id,
@@ -3802,6 +3827,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                     value['sgst_tax'] = taxes[0]['sgst_tax']
                     value['cgst_tax'] = taxes[0]['cgst_tax']
                     value['igst_tax'] = taxes[0]['igst_tax']
+                    value['cess_tax'] = taxes[0]['cess_tax']
                 if skuTaxVal.get('sku_supplier_price', ''):
                     value['price'] = skuTaxVal.get('sku_supplier_price', '')
                 else:
@@ -3814,6 +3840,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             setattr(record, 'sgst_tax', value['sgst_tax'])
             setattr(record, 'cgst_tax', value['cgst_tax'])
             setattr(record, 'igst_tax', value['igst_tax'])
+            if value.get('cess_tax', 0):
+                setattr(record, 'cess_tax', value['cess_tax'])
             if value['measurement_unit']:
                 setattr(record, 'measurement_unit', value['measurement_unit'])
             record.save()
@@ -3830,6 +3858,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
                 misc_json['temp_price'] = value['temp_price']
             if value.has_key('temp_tax'):
                 misc_json['temp_tax'] = value['temp_tax']
+            if value.has_key('temp_cess_tax'):
+                misc_json['temp_cess_tax'] = value['temp_cess_tax']
             if misc_json:
                 TempJson.objects.create(
                     model_id=data_id,
@@ -3859,6 +3889,7 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
         pendingLineItems['cgst_tax'] = value['cgst_tax']
         pendingLineItems['igst_tax'] = value['igst_tax']
         pendingLineItems['utgst_tax'] = value['utgst_tax']
+        pendingLineItems['cess_tax'] = value.get('cess_tax', 0)
         totalAmt += (pendingLineItems['quantity'] * pendingLineItems['price'])
         lineObj, created = PendingLineItems.objects.update_or_create(**pendingLineItems)
         misc_json = {}
@@ -3872,6 +3903,8 @@ def createPRObjandReturnOrderAmt(request, myDict, all_data, user, purchase_numbe
             misc_json['temp_price'] = value['temp_price']
         if value.has_key('temp_tax'):
             misc_json['temp_tax'] = value['temp_tax']
+        if value.has_key('temp_cess_tax'):
+            misc_json['temp_cess_tax'] = value['temp_cess_tax']
         if misc_json:
             TempJson.objects.create(
                 model_id=lineObj.id,
@@ -4041,13 +4074,14 @@ def convert_pr_to_po(request, user=''):
                             'cgst_tax': lineItem.cgst_tax,
                             'igst_tax': lineItem.igst_tax,
                             'utgst_tax': lineItem.utgst_tax,
+                            'cess_tax': lineItem.cess_tax
                         }
                         PendingLineItems.objects.create(**lineItemMap)
                     pendingPoObj.pending_prs.add(newPrObj)
                     lineItems.delete()
             for sku_code in all_skus:
                 quantity = skuQtyMap[sku_code]
-                tax, sgst_tax, cgst_tax, igst_tax, price, total = [0]*6
+                tax, sgst_tax, cgst_tax, igst_tax, cess_tax, price, total = [0]*7
                 sku_id = SKUMaster.objects.filter(sku_code=sku_code, user=pr_user.id)
                 if not sku_id:
                     continue
@@ -4080,6 +4114,11 @@ def convert_pr_to_po(request, user=''):
                     except:
                         log.info("Convert PR to Failed due to tax: %s and LineItem:%s" %(json_data.get('tax', ''), lineItemId))
                         tax = 0
+                    try:
+                        cess_tax = float(json_data.get('cess_tax', 0))
+                    except:
+                        log.info("Convert PR to Failed due to cess tax: %s and LineItem:%s" %(json_data.get('cess_tax', ''), lineItemId))
+                        cess_tax = 0
                     if tax_type == 'inter_state':
                         igst_tax = tax
                         cgst_tax = 0
@@ -4098,6 +4137,7 @@ def convert_pr_to_po(request, user=''):
                         sgst_tax = taxes[0]['sgst_tax']
                         cgst_tax = taxes[0]['cgst_tax']
                         igst_tax = taxes[0]['igst_tax']
+                        cess_tax = taxes[0]['cess_tax']
                     if skuTaxVal.get('sku_supplier_price', ''):
                         price = skuTaxVal.get('sku_supplier_price', '')
                     else:
@@ -4123,6 +4163,7 @@ def convert_pr_to_po(request, user=''):
                 pendingLineItems['sgst_tax'] = sgst_tax
                 pendingLineItems['cgst_tax'] = cgst_tax
                 pendingLineItems['igst_tax'] = igst_tax
+                pendingLineItems['cess_tax'] = cess_tax
                 PendingLineItems.objects.update_or_create(**pendingLineItems)
                 # netsuite_pr(user, existingPRObj)
     except Exception as e:
@@ -8467,6 +8508,12 @@ def putaway_data(request, user=''):
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
                     conv_value = batch_obj[0].pcf
+                    if not conv_value:
+                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase', uom='')
+                        conv_value = uom_dict.get('sku_conversion', 1)
+                        batch_obj[0].pcf = conv_value
+                        batch_obj[0].puom = uom_dict['measurement_unit']
+                        batch_obj[0].save()
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
                 if pallet_mapping:
                     stock_check_params['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
@@ -9300,13 +9347,13 @@ def confirm_add_po(request, sales_data='', user=''):
                 table_headers.insert(4, 'Weight')
         else:
             table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'Amt',
-                         'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
+                         'IGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
         # if ean_flag:
         #     table_headers.insert(1, 'EAN')
         if show_cess_tax:
-            table_headers.insert(table_headers.index('UTGST (%)'), 'CESS (%)')
+            table_headers.insert(table_headers.index('IGST (%)'), 'CESS (%)')
         if show_apmc_tax:
-            table_headers.insert(table_headers.index('UTGST (%)'), 'APMC (%)')
+            table_headers.insert(table_headers.index('IGST (%)'), 'APMC (%)')
         if display_remarks == 'true':
             table_headers.append('Remarks')
         order_id = None

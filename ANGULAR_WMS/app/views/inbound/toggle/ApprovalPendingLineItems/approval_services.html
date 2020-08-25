@@ -117,7 +117,9 @@
       </td>
       <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
         <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-        <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+        <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i>
+        <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i> -->
+      </td>
       </td>
       </tr>
     </tbody>

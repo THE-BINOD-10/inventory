@@ -5009,7 +5009,8 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
+                        "temp_cess_tax": tax_values[0]['cess_tax']}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5085,6 +5086,9 @@ def get_company_admin_user(user):
 def get_supplier_sku_prices(request, user=""):
     suppli_id = request.POST.get('suppli_id', '')
     sku_codes = request.POST.get('sku_codes', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
@@ -5260,14 +5264,17 @@ def build_search_data(user, to_data, from_data, limit):
                 sku_conversion = 0
             tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
             temp_tax=0
+            temp_cess_tax = 0
             if tax_values.exists():
                 temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
+                temp_cess_tax = tax_values[0]['cess_tax']
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
+                         "temp_cess_tax": temp_cess_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -6379,6 +6386,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
+        pcf = 1
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -6387,6 +6395,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             buy_price = batch_detail.buy_price
+            pcf = stock.batch_detail.pcf
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
@@ -6394,7 +6403,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price})
-        zones_data[cond]['total_quantity'] += stock.quantity
+        zones_data[cond]['total_quantity'] += stock.quantity/pcf
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
         availabe_quantity[location] += (stock.quantity - res_qty)

@@ -184,7 +184,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 measurement_type = stock_batch[0].batch_detail.puom
             wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
             total_wms_qty_unit_price = sum(
-                wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list(
+                wms_code_obj_unit_price.annotate(stock_value=Sum((F('quantity')/F('batch_detail__pcf')) * F('unit_price'))).values_list(
                     'stock_value', flat=True))
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             # total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
@@ -2594,6 +2594,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         tax = 0
         batch_id = ''
         mfg_date, exp_date = '', ''
+        pcf = 1
         if data.batch_detail:
             batch_no = data.batch_detail.batch_no
             mrp = data.batch_detail.mrp
@@ -2601,6 +2602,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
             price = data.batch_detail.buy_price
             tax = data.batch_detail.tax_percent
             batch_id = data.batch_detail.id
+            pcf = data.batch_detail.pcf
             if data.batch_detail.manufactured_date:
                 manufactured_date = data.batch_detail.manufactured_date.strftime("%d %b %Y")
                 mfg_date = data.batch_detail.manufactured_date.strftime("%m/%d/%Y")
@@ -2621,6 +2623,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone_obj = sub_zone_obj[0]
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
+        quantity = data.quantity/pcf
         row_data = OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
                                 ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),
@@ -2633,7 +2636,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Manufactured Date', manufactured_date), ('Expiry Date', expiry_date),
                                 ('Zone', zone), ('Sub Zone', sub_zone),
                                 ('Location', data.location.location),
-                                ('Quantity', get_decimal_limit(user.id, data.quantity)),
+                                ('Quantity', get_decimal_limit(user.id, quantity)),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type)))
         if pallet_switch != 'true' and row_data.get('Pallet'):
             del row_data['Pallet']

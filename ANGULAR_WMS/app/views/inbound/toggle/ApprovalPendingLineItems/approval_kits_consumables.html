@@ -17,6 +17,7 @@
         <th>Final Unit Price</th>
         <th>Amount(INR)</th>
         <th>Tax %</th>
+        <th>Cess Tax %</th>
         <th>Total(INR)</th>
         <th>OpenPR Qty</th>
         <!-- <th>Last 3M Avg Consumption</th> -->
@@ -109,6 +110,11 @@
           </span> 
           <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
         </td>
+        <td class="text-center">
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.cess_tax}}
+          </span>
+          <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
+        </td>
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
           </span> 
@@ -121,7 +127,8 @@
         <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
         <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
           <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-          <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+          <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i></td>
+          <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td> -->
         </td>
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
       </tr>

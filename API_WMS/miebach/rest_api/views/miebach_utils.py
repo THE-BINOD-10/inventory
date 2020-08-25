@@ -734,7 +734,8 @@ PR_REPORT_DICT = {
                    'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Status', 'Approver 2',
                    'Approver 2 Status','Approver 3','Approver 3 Status', 'Approver 4', 'Approver 4 Status',
                    'Approver 5','Approver 5 Status', 'Last Updated By', 'Last Updated Date',
-                   'Remarks'],
+                   'Remarks', 'Next Approver Email', 'Pending Approval Type', 'Pending Level'
+                   ],
 
     'dt_url': 'get_pr_report', 'excel_name': 'get_pr_report',
     'print_url': 'get_pr_report',
@@ -7801,7 +7802,7 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                 final_po_date = po_date_1.strftime('%d-%m-%Y')
                 dc_date = rtv.seller_po_summary.challan_date
                 po_number = rtv.seller_po_summary.purchase_order.po_number
-            pr_plant, pr_department = '', ''
+            pr_plant, pr_department, pr_request_user = '', '', ''
             product_category, warehouse, warehouse_type, dc_number, category, pr_number, pr_date, pr_raised_user, vendor_dispatch_date = '', '', '', '', '', '', '', '', ''
             if po_number:
                 pr_data = PendingLineItems.objects.filter(pending_po__full_po_number=po_number).values(
@@ -7821,20 +7822,22 @@ def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
                         plant = warehouse[0]['first_name']
                         warehouse_type = pr_user.userprofile.warehouse_type
 
-                pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-                user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-                if (user_profile.warehouse_type == "DEPT"):
-                    if (user_profile.stockone_code):
-                        pr_department = user_profile.stockone_code
+                pr_department, pr_plant = '', ''
+                if pr_data:
+                    pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
+                    user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+                    if (user_profile.warehouse_type == "DEPT"):
+                        if (user_profile.stockone_code):
+                            pr_department = user_profile.stockone_code
+                        else:
+                            pr_department = pr_dept.username
                     else:
-                        pr_department = pr_dept.username
-                else:
-                    pr_department = pr_request_user
-                pr_plant = get_admin(pr_dept)
-                if pr_plant.first_name:
-                    pr_plant = pr_plant.first_name
-                else:
-                    pr_plant = pr_plant.username
+                        pr_department = pr_request_user
+                    pr_plant = get_admin(pr_dept)
+                    if pr_plant.first_name:
+                        pr_plant = pr_plant.first_name
+                    else:
+                        pr_plant = pr_plant.username
                 if open_po.vendor:
                     vendor_dispatch_date = get_local_date(user, open_po.vendor.creation_date)
             temp_data['aaData'].append(OrderedDict((
@@ -10137,7 +10140,7 @@ def get_stock_cover_report_data(search_params, user, sub_user, serial_view=False
 def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
-        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin
+        truncate_float, get_sku_ean_list, get_warehouse_user_from_sub_user, get_warehouses_data,get_admin, check_and_get_plants_wo_request
     #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     users = [user.id]
     users = check_and_get_plants_wo_request(sub_user, user, users)
@@ -10302,21 +10305,22 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         # if data['seller_po_summary__purchase_order__open_po__vendor__creation_date']:
         #     vendor_dispatch_date = get_local_date(user, data['seller_po_summary__purchase_order__open_po__vendor__creation_date'])
 
-        pr_plant, pr_department = '', ''
-        pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
-        user_profile = UserProfile.objects.get(user_id=pr_dept.id)
-        if (user_profile.warehouse_type == "DEPT"):
-            if (user_profile.stockone_code):
-                pr_department = user_profile.stockone_code
+        pr_plant, pr_department, pr_request_user = '', '', ''
+        if pr_data:
+            pr_dept = get_warehouse_user_from_sub_user(pr_data[0]['pending_po__pending_prs__requested_user__id'])
+            user_profile = UserProfile.objects.get(user_id=pr_dept.id)
+            if (user_profile.warehouse_type == "DEPT"):
+                if (user_profile.stockone_code):
+                    pr_department = user_profile.stockone_code
+                else:
+                    pr_department = pr_dept.username
             else:
-                pr_department = pr_dept.username
-        else:
-            pr_department = pr_request_user
-        pr_plant = get_admin(pr_dept)
-        if pr_plant.first_name:
-            pr_plant = pr_plant.first_name
-        else:
-            pr_plant = pr_plant.username
+                pr_department = pr_request_user
+            pr_plant = get_admin(pr_dept)
+            if pr_plant.first_name:
+                pr_plant = pr_plant.first_name
+            else:
+                pr_plant = pr_plant.username
 
         temp_data['aaData'].append(
             OrderedDict((('PR Number', pr_number), ('PR date', pr_date), ('PR raised By ( User Name)', pr_raised_user),
@@ -13095,7 +13099,7 @@ def get_pr_report_data(search_params, user, sub_user):
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks','pending_pr__remarks',
-           'pending_pr__remarks']
+           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
@@ -13206,6 +13210,14 @@ def get_pr_report_data(search_params, user, sub_user):
         approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number']).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
+        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
+                                                            status='', pending_pr__final_status='pending')
+        next_approver_mail, pending_level, approval_type = ['']*3
+        if pending_approval.exists():
+            pending_approval = pending_approval[0]
+            next_approver_mail = pending_approval.validated_by
+            pending_level = pending_approval.level
+            approval_type = pending_approval.approval_type
         final_status =  result['pending_pr__final_status']
         if approver_data.exists():
             approver_len = len(approver_data)
@@ -13358,6 +13370,9 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Last Updated By', last_updated_by),
             ('Last Updated Date', last_updated_time),
             ('Remarks', last_remarks),
+            ('Next Approver Email', next_approver_mail),
+            ('Pending Approval Type', approval_type),
+            ('Pending Level', pending_level),
             ('DT_RowClass', 'results')))
         count += 1
         temp_data['aaData'].append(ord_dict)

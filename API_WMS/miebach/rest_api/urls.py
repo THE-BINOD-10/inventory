@@ -245,6 +245,8 @@ urlpatterns = [
     url(r'^download_credit_note_po_data/$',download_credit_note_po_data),
     url(r'^send_back_po_to_pr/$', send_back_po_to_pr),
     url(r'^send_for_approval_confirm_grn/$', send_for_approval_confirm_grn),
+    url(r'^save_po_delivery_schedule/$', save_po_delivery_schedule),
+    url(r'^get_po_delivery_schedule/$', get_po_delivery_schedule),
 
 
 

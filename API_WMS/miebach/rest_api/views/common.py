@@ -5009,7 +5009,8 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
+                        "temp_cess_tax": tax_values[0]['cess_tax']}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5085,6 +5086,9 @@ def get_company_admin_user(user):
 def get_supplier_sku_prices(request, user=""):
     suppli_id = request.POST.get('suppli_id', '')
     sku_codes = request.POST.get('sku_codes', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
@@ -5260,14 +5264,17 @@ def build_search_data(user, to_data, from_data, limit):
                 sku_conversion = 0
             tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
             temp_tax=0
+            temp_cess_tax = 0
             if tax_values.exists():
                 temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
+                temp_cess_tax = tax_values[0]['cess_tax']
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
+                         "temp_cess_tax": temp_cess_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -5679,7 +5686,7 @@ def get_sellers_list(request, user=''):
             ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
                                     'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
-                                    'raise_po_terms_conditions' : raise_po_terms_conditions,
+                                    'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 
@@ -6379,6 +6386,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
+        pcf = 1
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -6387,6 +6395,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             buy_price = batch_detail.buy_price
+            pcf = stock.batch_detail.pcf
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
@@ -6394,7 +6403,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price})
-        zones_data[cond]['total_quantity'] += stock.quantity
+        zones_data[cond]['total_quantity'] += stock.quantity/pcf
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
         availabe_quantity[location] += (stock.quantity - res_qty)
@@ -10688,7 +10697,7 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
                                                    invoice_number=invoice_num,
-                                                   purchase_order__open_po__supplier__supplier_id=supplier_id)
+                                                   purchase_order__open_po__supplier__supplier_id=supplier_id).exclude(status=1)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s/%s' % (exist_inv_obj[0].purchase_order.po_number,
                                                              str(exist_inv_obj[0].receipt_number))
@@ -12949,7 +12958,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -12957,7 +12966,8 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('first_name', 'username'))
+            plants_list = dict(plant_objs.annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+            # plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
@@ -13012,3 +13022,18 @@ def get_netsuite_mapping_list(type_name_list):
     type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
                          values_list('type_value', flat=True).distinct())
     return type_val_list
+
+
+def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
+    base_uom = ''
+    uom_dict = {'measurement_unit': '', 'sku_conversion': 0}
+    company_id = get_company_id(user)
+    filt_dict = {'sku_code': sku_code, 'company_id': company_id, 'uom_type': uom_type}
+    if uom:
+        filt_dict['uom'] = uom
+    sku_uom = UOMMaster.objects.filter(**filt_dict)
+    if sku_uom.exists():
+        uom_dict['measurement_unit'] = sku_uom[0].uom
+        uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
+        uom_dict['base_uom'] = sku_uom[0].base_uom
+    return uom_dict

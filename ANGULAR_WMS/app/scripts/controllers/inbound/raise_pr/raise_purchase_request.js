@@ -220,9 +220,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.validated_users = data.data.validated_users;
           vm.model_data.approval_remarks = data.data.approval_remarks;
           angular.forEach(vm.model_data.data, function(data){
-            if (!data.fields.cess_tax) {
-              data.fields.cess_tax = 0;
-            }
+//            if (!data.fields.cess_tax) {
+//              if (data.fields.temp_cess_tax){
+//                data.fields.cess_tax = data.fields.temp_cess_tax;
+//              }
+//            }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
@@ -1165,6 +1167,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         product.fields.utgst_tax = "";
         product.fields.tax = "";
         product.fields.temp_tax= item.temp_tax;
+        product.fields.temp_cess_tax= item.temp_cess_tax;
         product.fields.openpr_qty = item.openpr_qty;
         product.fields.available_qty = item.available_qty;
         product.fields.openpo_qty = item.openpo_qty;
@@ -1396,7 +1399,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      if (!data.fields.cess_tax) {
+          data.fields.cess_tax = 0;
+      }
+      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
         sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
@@ -1409,7 +1415,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
         // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +temp;
       })
     }
 

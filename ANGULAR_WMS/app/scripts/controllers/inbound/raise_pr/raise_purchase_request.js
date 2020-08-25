@@ -1255,23 +1255,23 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         })
       }
     }
-    vm.check_sku_product_category = function(prod_cat, sku_cat, sku, index){
+    vm.check_sku_product_category = function(prod_cat, sku_cat, sku, index, page=''){
       var data_dict = {}
       data_dict['product_cat'] = prod_cat ? prod_cat : '';
-      data_dict['category'] = sku_cat ? sku_cat : '';
+      data_dict['category'] = sku_cat && sku_cat != 'All' ? sku_cat : '';
       data_dict['wms_code'] = sku ? sku : '';
       if (sku) {
         vm.service.apiCall('check_sku_category_data/', 'POST', data_dict).then(function(data){
           if(data.message){
             if (data.data == 'success'){
-              vm.update_data(index, true, true);
+              page == 'approve' ? vm.update_data(index) : vm.update_data(index, true, true)
             } else {
               vm.service.showNoty('Invalid SKU Code, please Enter Proper SKU !', 'error');
             }
           }
         })
       } else {
-        vm.update_data(index, true, true);
+        page == 'approve' ? vm.update_data(index) : vm.update_data(index, true, true)
       }
     }
     vm.clear_raise_po_data = function(product){

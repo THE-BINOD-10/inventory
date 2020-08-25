@@ -17,6 +17,7 @@
         <th>Final Unit Price</th>
         <th>Amount(INR)</th>
         <th>Tax %</th>
+        <th>Cess Tax %</th>
         <th>Total(INR)</th>
         <th>OpenPR Qty</th>
         <!-- <th>Last 3M Avg Consumption</th> -->
@@ -108,6 +109,11 @@
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
           </span> 
           <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
+        </td>
+        <td class="text-center">
+          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.cess_tax}}
+          </span>
+          <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
         </td>
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}

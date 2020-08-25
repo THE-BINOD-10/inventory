@@ -658,7 +658,7 @@ class PendingPR(models.Model):
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
     sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
-    full_pr_number = models.CharField(max_length=32, default='')
+    full_pr_number = models.CharField(max_length=32, default='', db_index=True)
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     product_category = models.CharField(max_length=64, default='')
@@ -674,7 +674,7 @@ class PendingPR(models.Model):
 
     class Meta:
         db_table = 'PENDING_PR'
-
+        #index_together = (('full_pr_number',))
 
 @reversion.register()
 class PendingPO(models.Model):
@@ -717,6 +717,7 @@ class PendingLineItems(models.Model):
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -932,6 +933,9 @@ class BatchDetail(models.Model):
     receipt_number = models.PositiveIntegerField(default=0)
     weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
+    puom = models.CharField(max_length=64, default='')
+    pquantity = models.FloatField(default=0)
+    pcf = models.FloatField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     batch_ref = models.CharField(max_length=100, default='')

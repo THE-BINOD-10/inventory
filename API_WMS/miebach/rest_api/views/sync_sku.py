@@ -380,6 +380,7 @@ def create_update_sku(all_skus, all_users):
     for user in create_in_users:
         insert_update_brands(User.objects.get(id=user))
     if dump_sku_codes and all_skus:
-        dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
+        for user in create_in_users:
+            dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 
     return "success"

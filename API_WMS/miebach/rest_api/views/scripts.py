@@ -31,18 +31,18 @@ log = init_logger('logs/upload_PO_scripts_grl.log')
 
 
 def upload_po_data(file_location):
-    import datetime
-    import pandas as pd
-    from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
-    from rest_api.views.inbound import netsuite_po
-    # file_location = "/var/www/metropolis_prod/WMS_ANGULAR/API_WMS/miebach/"
-    #  UserProfile.objects.get(stockone_code="33004")
-    # SupplierMaster.objects.get(user=55, supplier_id__contains='LO2145A018').tin_number
-    from pytz import timezone
-    from django.forms.models import model_to_dict
-    df = pd.read_excel(file_location, header=1)
-    df = df.fillna('')
-    data= df.groupby('PO No.'.strip()).apply(lambda x: x.to_dict(orient='r')).to_dict()
+import datetime
+import pandas as pd
+from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
+from rest_api.views.inbound import netsuite_po
+# file_location = "/var/www/metropolis_prod/WMS_ANGULAR/API_WMS/miebach/"
+#  UserProfile.objects.get(stockone_code="33004")
+# SupplierMaster.objects.get(user=55, supplier_id__contains='LO2145A018').tin_number
+from pytz import timezone
+from django.forms.models import model_to_dict
+df = pd.read_excel(file_location, header=1)
+df = df.fillna('')
+data= df.groupby('PO No.'.strip()).apply(lambda x: x.to_dict(orient='r')).to_dict()
     count=1
     failed=0
     already_complted=0
@@ -250,57 +250,57 @@ def upload_po_data(file_location):
         count=count+1
 
 def zone_location_script():
-    from rest_api.views.common import get_related_users_filters
-    main_user = User.objects.get(username='mhl_admin')
-    dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
-    # dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
-    zones_list_obj= ZoneMaster.objects.filter(user=main_user.id)
-    for user in dept_users:
-        for zone_row in zones_list_obj:
-            check_zone= ZoneMaster.objects.filter(user=user.id, zone=zone_row.zone)
-            if not check_zone:
-                zone_dict_data= {"user": user.id, "zone": zone_row.zone}
-                zone_obj= ZoneMaster(**zone_dict_data)
-                zone_obj.save()
-                location_obj= LocationMaster.objects.filter(zone=zone_row.id)
-                for location_row in location_obj:
-                    check_location= LocationMaster.objects.filter(zone=zone_obj.id, location=location_row.location)
-                    zone_id = zone_obj.id
-                    location_dict={ "zone_id": zone_id,
-                                    "location": location_row.location,
-                                    "max_capacity": location_row.max_capacity,
-                                    "lock_status": '',
-                                    "filled_capacity":location_row.filled_capacity,
-                                    "pallet_capacity": location_row.pallet_capacity,
-                                    "pick_sequence": location_row.pick_sequence,
-                                    "fill_sequence": location_row.fill_sequence,
-                                    "pallet_filled": location_row.pallet_filled
-                                }
-                    if not check_location:
-                        location_obj1=LocationMaster(**location_dict)
-                        location_obj1.save()
-                    else:
-                        check_location.update(**location_dict)
-            else:
-                location_obj= LocationMaster.objects.filter(zone=zone_row.id)
-                for location_row in location_obj:
-                    check_location= LocationMaster.objects.filter(zone=check_zone[0].id, location=location_row.location)
-                    zone_id = check_zone[0].id
-                    location_dict={ "zone_id": zone_id,
-                                    "location": location_row.location,
-                                    "max_capacity": location_row.max_capacity,
-                                    "lock_status": '',
-                                    "filled_capacity":location_row.filled_capacity,
-                                    "pallet_capacity": location_row.pallet_capacity,
-                                    "pick_sequence": location_row.pick_sequence,
-                                    "fill_sequence": location_row.fill_sequence,
-                                    "pallet_filled": location_row.pallet_filled
-                                }
-                    if not check_location:
-                        location_obj1=LocationMaster(**location_dict)
-                        location_obj1.save()
-                    else:
-                        check_location.update(**location_dict)
+from rest_api.views.common import get_related_users_filters
+main_user = User.objects.get(username='mhl_admin')
+# dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
+dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
+zones_list_obj= ZoneMaster.objects.filter(user=main_user.id)
+for user in dept_users:
+    for zone_row in zones_list_obj:
+        check_zone= ZoneMaster.objects.filter(user=user.id, zone=zone_row.zone)
+        if not check_zone:
+            zone_dict_data= {"user": user.id, "zone": zone_row.zone}
+            zone_obj= ZoneMaster(**zone_dict_data)
+            zone_obj.save()
+            location_obj= LocationMaster.objects.filter(zone=zone_row.id)
+            for location_row in location_obj:
+                check_location= LocationMaster.objects.filter(zone=zone_obj.id, location=location_row.location)
+                zone_id = zone_obj.id
+                location_dict={ "zone_id": zone_id,
+                                "location": location_row.location,
+                                "max_capacity": location_row.max_capacity,
+                                "lock_status": '',
+                                "filled_capacity":location_row.filled_capacity,
+                                "pallet_capacity": location_row.pallet_capacity,
+                                "pick_sequence": location_row.pick_sequence,
+                                "fill_sequence": location_row.fill_sequence,
+                                "pallet_filled": location_row.pallet_filled
+                            }
+                if not check_location:
+                    location_obj1=LocationMaster(**location_dict)
+                    location_obj1.save()
+                else:
+                    check_location.update(**location_dict)
+        else:
+            location_obj= LocationMaster.objects.filter(zone=zone_row.id)
+            for location_row in location_obj:
+                check_location= LocationMaster.objects.filter(zone=check_zone[0].id, location=location_row.location)
+                zone_id = check_zone[0].id
+                location_dict={ "zone_id": zone_id,
+                                "location": location_row.location,
+                                "max_capacity": location_row.max_capacity,
+                                "lock_status": '',
+                                "filled_capacity":location_row.filled_capacity,
+                                "pallet_capacity": location_row.pallet_capacity,
+                                "pick_sequence": location_row.pick_sequence,
+                                "fill_sequence": location_row.fill_sequence,
+                                "pallet_filled": location_row.pallet_filled
+                            }
+                if not check_location:
+                    location_obj1=LocationMaster(**location_dict)
+                    location_obj1.save()
+                else:
+                    check_location.update(**location_dict)
 
 def hsn_code_internal_id_script(file_location):
     import datetime
@@ -339,3 +339,113 @@ def hsn_code_internal_id_script(file_location):
                 print("hsn_code not Present",{"hsn_code": row["product_type"]})
     else:
         print("file_locatio is empty")
+
+def vendrod_plant_mapping():
+import datetime
+import pandas as pd
+# if file_location:
+file_location="Vendor-Plant mapping needed.xlsx"
+df = pd.read_excel(file_location, header=0)
+csv_data=df.to_dict('r')
+len(csv_data)
+from miebach_admin.models import *
+from django.forms.models import model_to_dict
+for row in csv_data:
+    user=''
+    user_profile_obj=UserProfile.objects.filter(stockone_code=row['StockOne Plant Code'])
+    if user_profile_obj:
+        user=user_profile_obj[0].user
+    else:
+        user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(row['StockOne Plant Code']))
+        if user_profile_obj:
+            user=user_profile_obj[0].user
+        else:
+            print('PO Upload failed for plantcode is %s' % (str(row['StockOne Plant Code'])))
+            continue
+    print("\n plant_user",user)
+    supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['StockOne Vendor Code']).strip())
+    if not supplier_obj:
+        print('PO Upload failed Beacause Vendor not present for %s  and error statement is %s' % (user.username, str(row['StockOne Vendor Code'])))
+        ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['StockOne Vendor Code']).strip())
+        if ori_sup_obj:
+            print("need to create vendor\n\n")
+            ori_sup=model_to_dict(ori_sup_obj[0])
+            supp_id=ori_sup['id']
+            temp_suplier_id= ori_sup['id'].split('_')
+            del temp_suplier_id[0]
+            ori_sup["id"]= (str(user.id)+"_")+"_".join(temp_suplier_id)
+            ori_sup["user"]= user.id
+            obj=SupplierMaster(**ori_sup)
+            obj.save()
+            ori_pay=PaymentTerms.objects.filter(supplier=supp_id)
+            for pay in ori_pay:
+                temp_dict= { "supplier": obj, "payment_code": pay.payment_code, "payment_description": pay.payment_description}
+                payment_obj=PaymentTerms(**temp_dict)
+                payment_obj.save()
+            print("vendor created ",supp_id, "user= ",user.username)
+        else:
+            print('PO Upload failed Beacause MHL admin vendor is not present for and error statement is %s' % (str(row['StockOne Vendor Code'])))
+            flag= False
+            # break
+    else:
+        print('Vendor present for this plant =', user.username, "Vendor =", str(row['StockOne Vendor Code']) )
+
+
+
+def delete_uploaded_po_data(file_location):
+import datetime
+import pandas as pd
+from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
+from rest_api.views.inbound import netsuite_po
+# file_location = "/var/www/metropolis_prod/WMS_ANGULAR/API_WMS/miebach/"
+#  UserProfile.objects.get(stockone_code="33004")
+# SupplierMaster.objects.get(user=55, supplier_id__contains='LO2145A018').tin_number
+from pytz import timezone
+from django.forms.models import model_to_dict
+df = pd.read_excel(file_location, header=1)
+df = df.fillna('')
+data= df.groupby('PO No.'.strip()).apply(lambda x: x.to_dict(orient='r')).to_dict()
+count=1
+failed=0
+already_complted=0
+success_count=0
+for key, value in data.iteritems():
+    sku_code = value[0]['Material code.1'].strip()
+    user=''
+    user_profile_obj=UserProfile.objects.filter(stockone_code=value[0]['STOCKONE Plant code'])
+    if user_profile_obj:
+        user=user_profile_obj[0].user
+    else:
+        user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['STOCKONE Plant code']))
+        if user_profile_obj:
+            user=user_profile_obj[0].user
+        else:
+            print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
+            log.info('PO Upload failed for %s and params are %s and plant code is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
+            continue
+    print("\n plant_user",user)
+    flag=True
+    check_po=False
+    utc_tz=timezone("UTC")
+    po_date_time =utc_tz.localize(datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y'))
+    po_obj= PurchaseOrder.objects.filter(po_number=str(key))
+    delete_check = True
+    grn_done=["4000097076"]
+    if po_obj:
+        for row in po_obj:
+            if row.received_quantity>0:
+                log.info('GRN completed for %s and PO Id is %s and user is %s' % (str(key), str(row.id), str(user.username)))
+                print('GRN completed for %s and PO Id is %s and user is %s' % (str(key), str(row.id), str(user.username)))
+                delete_check=False
+    else:
+        print("\n\nPO_NOT PRESENT ", str(key))
+    if delete_check and str(key) not in grn_done:
+        for row in po_obj:
+            # OpenPO.objects.filter(id=row.open_po.id, sku__user=user.id).delete()
+            # PurchaseOrder.objects.filter(id=row.id).delete()
+            print("deleted", str(key))
+        log.info('PO Delete for %s and params are %s and user is %s' % (str(key), "value", str(user.username)))
+    else:
+        print("\n\n PO NOT_DELETED ",str(key))
+    print("total_count",len(data), "completed= ", count)
+    count=count+1

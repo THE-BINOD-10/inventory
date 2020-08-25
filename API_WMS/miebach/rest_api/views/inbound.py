@@ -9559,7 +9559,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request, replaceAll=''):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
@@ -9656,7 +9656,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                    'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+                    'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number, 'replaceAll': 'replaceAll_'+str(replaceAll)}
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)

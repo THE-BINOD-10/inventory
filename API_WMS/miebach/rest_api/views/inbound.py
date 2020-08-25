@@ -15943,7 +15943,8 @@ def validate_product_wms(request, user=''):
     status = 'success'
     myDict = dict(request.POST.iterlists())
     product_category = myDict.get('product_category', '')[0]
-    if myDict.get('sku_category', '')[0]:
+    import pdb; pdb.set_trace()
+    if myDict.get('sku_category', '')[0] and myDict.get('sku_category', '')[0] !='All':
         data_dict['sku_category'] = myDict.get('sku_category', '')[0]
     data_dict['user'] = user.id
     data_dict['wms_code__in'] = myDict.get('wms_code', [])

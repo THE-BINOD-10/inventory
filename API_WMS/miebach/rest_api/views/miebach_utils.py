@@ -734,7 +734,8 @@ PR_REPORT_DICT = {
                    'Priority Type', 'Total Amount','PR Status', 'Approver 1', 'Approver 1 Status', 'Approver 2',
                    'Approver 2 Status','Approver 3','Approver 3 Status', 'Approver 4', 'Approver 4 Status',
                    'Approver 5','Approver 5 Status', 'Last Updated By', 'Last Updated Date',
-                   'Remarks'],
+                   'Remarks', 'Next Approver Email', 'Pending Approval Type', 'Pending Level'
+                   ],
 
     'dt_url': 'get_pr_report', 'excel_name': 'get_pr_report',
     'print_url': 'get_pr_report',
@@ -13011,7 +13012,7 @@ def get_pr_report_data(search_params, user, sub_user):
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__final_status', 'pending_pr__pending_level',
            'pending_pr__pr_number', 'pending_pr__pr_number','pending_pr__pr_number','pending_pr__pr_number',
            'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__remarks','pending_pr__remarks',
-           'pending_pr__remarks']
+           'pending_pr__remarks', 'pending_pr__pr_number', 'pending_pr__pr_number', 'pending_pr__pr_number']
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term')
     order_data = lis[col_num]
@@ -13122,6 +13123,14 @@ def get_pr_report_data(search_params, user, sub_user):
         approver_data = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number']).exclude(status='').values('level',
                                 'validated_by', 'status', 'approval_type', 'updation_date', 'remarks', 'pending_pr__final_status').latest('approval_type')
         approver1_status, approver2_status, approver3_status, approver4_status, approver5_status = '', '', '', '', ''
+        pending_approval = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
+                                                            status='', pending_pr__final_status='pending')
+        next_approver_mail, pending_level, approval_type = ['']*3
+        if pending_approval.exists():
+            pending_approval = pending_approval[0]
+            next_approver_mail = pending_approval.validated_by
+            pending_level = pending_approval.level
+            approval_type = pending_approval.approval_type
         final_status =  result['pending_pr__final_status']
         if approver_data:
             approver_len = len(approver_data)
@@ -13290,6 +13299,9 @@ def get_pr_report_data(search_params, user, sub_user):
             ('Last Updated By', last_updated_by),
             ('Last Updated Date', last_updated_time),
             ('Remarks', last_remarks),
+            ('Next Approver Email', next_approver_mail),
+            ('Pending Approval Type', approval_type),
+            ('Pending Level', pending_level),
             ('DT_RowClass', 'results')))
         count += 1
         temp_data['aaData'].append(ord_dict)

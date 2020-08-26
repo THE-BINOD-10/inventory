@@ -220,9 +220,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.model_data.validated_users = data.data.validated_users;
           vm.model_data.approval_remarks = data.data.approval_remarks;
           angular.forEach(vm.model_data.data, function(data){
-            if (!data.fields.cess_tax) {
-              data.fields.cess_tax = 0;
-            }
+//            if (!data.fields.cess_tax) {
+//              if (data.fields.temp_cess_tax){
+//                data.fields.cess_tax = data.fields.temp_cess_tax;
+//              }
+//            }
             if (!data.fields.apmc_tax) {
               data.fields.apmc_tax = 0;
             }
@@ -541,11 +543,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           elem.push({name:'is_resubmitted', value:true})
         }
         var confirm_api = vm.permissions.sku_pack_config ?  vm.sku_pack_validation(vm.model_data.data) : true;
-        if (type == 'save'){
-          confirm_api ? vm.update_raise_pr() : '';
-        } else {
-          confirm_api ? vm.add_raise_pr_comfirm(elem) : '';
-        }
+        vm.service.apiCall('validate_product_wms/', 'POST', elem, true).then(function(data){
+          if(data.message){
+            if (data.data == 'success') {
+              if (type == 'save'){
+                confirm_api ? vm.update_raise_pr() : '';
+              } else {
+                confirm_api ? vm.add_raise_pr_comfirm(elem) : '';
+              }
+            } else {
+              vm.service.alert_info('Invalid Inputs', 'Mismatch - Product Category & Category with SKU Codes !!')
+            }
+          }
+        })
       } else {
         vm.service.showNoty('please Fill * Fields (or) Remove Empty lines !!');
       }
@@ -1165,6 +1175,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         product.fields.utgst_tax = "";
         product.fields.tax = "";
         product.fields.temp_tax= item.temp_tax;
+        product.fields.temp_cess_tax= item.temp_cess_tax;
         product.fields.openpr_qty = item.openpr_qty;
         product.fields.available_qty = item.available_qty;
         product.fields.openpo_qty = item.openpo_qty;
@@ -1242,6 +1253,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             }
           }
         })
+      }
+    }
+    vm.check_sku_product_category = function(prod_cat, sku_cat, sku, index, page=''){
+      var data_dict = {}
+      data_dict['product_cat'] = prod_cat ? prod_cat : '';
+      data_dict['category'] = sku_cat && sku_cat != 'All' ? sku_cat : '';
+      data_dict['wms_code'] = sku ? sku : '';
+      if (sku) {
+        vm.service.apiCall('check_sku_category_data/', 'POST', data_dict).then(function(data){
+          if(data.message){
+            if (data.data == 'success'){
+              page == 'approve' ? vm.update_data(index) : vm.update_data(index, true, true)
+            } else {
+              vm.service.showNoty('Invalid SKU Code, please Enter Proper SKU !', 'error');
+            }
+          }
+        })
+      } else {
+        page == 'approve' ? vm.update_data(index) : vm.update_data(index, true, true)
       }
     }
     vm.clear_raise_po_data = function(product){
@@ -1396,7 +1426,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      if (!data.fields.cess_tax) {
+          data.fields.cess_tax = 0;
+      }
+      data.fields.total = data.fields.total + ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
         sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
@@ -1409,7 +1442,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
         }
         // sku_data.fields.total = sku_data.fields.total + ((sku_data.fields.amount / 100) * sku_data.fields.tax) + sku_data.fields.amount;
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) +temp;
       })
     }
 

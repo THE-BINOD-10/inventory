@@ -6525,7 +6525,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             buy_price = 0
             if 'buy_price' in myDict.keys():
                 buy_price = myDict['buy_price'][i]
-            uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase', uom=uom)
+            uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase')
             batch_dict = {
                 'transact_type': 'po_loc',
                 'batch_no': batch_no,

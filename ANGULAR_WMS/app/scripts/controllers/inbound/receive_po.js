@@ -197,6 +197,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
                 vm.current_grn = aData['Received Qty'] == 0 ? true : false;
                 vm.product_type = aData['Product Category'];
+                vm.store = aData['Store'];
                 vm.total_order_qty =aData["Total Qty"];
                 vm.total_receivable_qty =aData["Receivable Qty"];
                 vm.total_received_qty =aData["Received Qty"];
@@ -228,7 +229,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1550px'
+                        'width': '1300px'
                       };
                     } else {
                       vm.extra_width = {

@@ -6538,7 +6538,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'batch_ref': batch_ref,
                 'puom': uom_dict.get('measurement_unit', ''),
                 'pquantity': value,
-                'pcf': uom_dict.get('sku_conversion', 0)
+                'pcf': uom_dict.get('sku_conversion', 1)
             }
 
         seller_received_list = []

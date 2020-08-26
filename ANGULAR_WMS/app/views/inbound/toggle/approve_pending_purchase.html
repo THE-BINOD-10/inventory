@@ -1,12 +1,14 @@
 <style type="text/css">
 .form-control{
-    padding: 5px 4px;
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
  }
  .table > tbody > tr > td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .table > thead > tr> td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .sidebar-panel{
     z-index: 1000;
@@ -104,7 +106,8 @@
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
                     <th class="w10_">CESS(%)</th>
-                    <th class="plus"></th>
+                    <th class="w10_">Delivery Schedule</th>
+                    <!-- <th class="plus"></th> -->
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -159,8 +162,8 @@
 			            <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
                         <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
-                    <td>
-                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View Delivery Schedule</button>
+                    <td align="center">
+                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
                     </td>
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">

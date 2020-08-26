@@ -747,7 +747,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
 
 class TableLists(models.Model):
-    name = models.CharField(max_length=64, default='')
+    name = models.CharField(max_length=64, default='', db_index=True)
 
     class Meta:
         db_table = 'TABLE_LISTS'

@@ -6993,7 +6993,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'received_quantity': value, 'measurement_unit': key[2],
                                                'price': key[3], 'cgst_tax': key[4], 'sgst_tax': key[5],
                                                'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
-                                               'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': key[12],
+                                               'sku_desc': key[8], 'cess_tax': key[9], 'apmc_tax': key[11], 'batch_no': key[12],
                                                'mrp': key[13], "order_idx": key[14], "mfg_date":key[15],"exp_date":key[16]})
             else:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3],key[4], key[5],
@@ -7003,7 +7003,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                               'measurement_unit': key[2], 'price': key[3],
                                               'cgst_tax': key[4], 'sgst_tax': key[5],
                                               'igst_tax': key[6], 'utgst_tax': key[7], 'amount': float("%.2f" % entry_price),
-                                              'sku_desc': key[8], 'apmc_tax': key[9], 'batch_no': '',
+                                              'sku_desc': key[8], 'cess_tax': key[9], 'apmc_tax': key[11], 'batch_no': '',
                                               'mrp': key[12],"order_idx": key[13], "mfg_date":"","exp_date":""})
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value

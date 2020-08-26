@@ -204,7 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.expected_date =aData["Expected Date"];
                 vm.order_type= aData["Order Type"];
                 if(vm.product_type=="Services"){
-                  vm.display_approval_button=true
+                  vm.display_approval_button= aData['service_doa'] ? true : false;
                   vm.display_approval_button_DOA=aData["display_approval_button_DOA"]
                 }
                 vm.warehouse = aData['Warehouse']

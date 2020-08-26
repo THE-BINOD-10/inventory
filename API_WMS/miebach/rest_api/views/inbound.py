@@ -1089,11 +1089,12 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
                                             .values_list('quantity',flat=True)))
         warehouse = User.objects.get(id=order_data['sku'].user)
-        productType, send_to = '', ''
+        productType, send_to, services_doa = '', '', ''
         if supplier.open_po is not None:
             productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
             if productQs.exists():
                 productType = productQs[0]
+                services_doa = True
         display_approval_button_DOA=False
         if productType=="Services":
             doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=supplier.id, doa_status="pending")
@@ -1131,7 +1132,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
-                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to)
+                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), ('service_doa', services_doa)
                                       )))
     temp_data['aaData'] = data_list
 

@@ -51,10 +51,16 @@
                 <input type="text" name="purchase_id" ng-model="showCase.model_data.purchase_id" class="hide">
               </div>
             </div>
-            <div class="col-md-2 col-sm-3 col-xs-4">
+            <div class="col-md-1 col-sm-3 col-xs-4">
               <div class="form-group">
                 <label class="control-label">PR Date</label>
                 <input name="pr_created_date" ng-model="showCase.model_data.pr_created_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
+              </div>
+            </div>
+            <div class="col-md-1 col-sm-2 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Need by Date</label>
+                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
               </div>
             </div>
             <div class="col-md-2 col-sm-3 col-xs-4">
@@ -79,12 +85,6 @@
               <div class="form-group">
                 <label class="control-label"> Category </label>
                 <input type="text" ng-model="showCase.model_data.sku_category" name="sku_category" class="form-control" ng-readonly="true">
-              </div>
-            </div>
-            <div class="col-md-2 col-sm-2 col-xs-3">
-              <div class="form-group">
-                <label class="control-label">Need by Date</label>
-                <input name="pr_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.pr_delivery_date" class="form-control" type="text" id="pr_delivery_date" ng-readonly="true">
               </div>
             </div>
           </div>

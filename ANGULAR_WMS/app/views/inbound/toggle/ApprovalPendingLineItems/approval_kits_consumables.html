@@ -1,3 +1,11 @@
+<style type="text/css">
+  .text_element{
+    font-style: italic;
+    font-size: 12px;
+    line-height: 30px;
+    font-weight: 600;
+  }
+</style>
 <div class="row">
   <table class="table">
     <thead>
@@ -7,7 +15,7 @@
         <th>WMS Code*</th>
         <th>Title</th>
         <th>HSN Code</th>
-        <th class="w10_">Quantity*</th>
+        <th class="w10_">Qty*</th>
         <th>UOM</th>
         <th>No.Of Base Units</th>
         <th>Base UOM</th>
@@ -82,49 +90,49 @@
                  size="8">
         </td>
         <td>
-            <input ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="10">
+          <span class="text_element">{{product.fields.base_uom}}</span>
           </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span> 
+          <span class="text_element">{{product.fields.moq}}</span> 
           <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
         </td>
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.price | number:2}}
+          <span class="text_element">{{product.fields.price | number:2}}
           </span>
           <input type="text" name="price" ng-model="product.fields.price" class="hide">
         </td>
         <td><input type="text" ng-model="product.fields.discount" size="5" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.final_price | number:2}}
+          <span class="text_element">{{product.fields.final_price | number:2}}
           </span>
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
+          <span class="text_element">{{product.fields.amount | number:2}}
           </span> 
           <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+          <span class="text_element">{{product.fields.tax}}
           </span> 
           <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
         </td>
         <td class="text-center">
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.cess_tax}}
+          <span class="text_element">{{product.fields.cess_tax}}
           </span>
           <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
+          <span class="text_element">{{product.fields.total | number:2}}
           </span> 
           <input type="text" name="total" ng-model="product.fields.total" class="hide">
         </td>
 
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.openpr_qty}}</span> </td>
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.capacity}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.intransit_quantity}}</span> </td>
         <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
           <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
           <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i></td>

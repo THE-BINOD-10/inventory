@@ -8532,7 +8532,7 @@ def putaway_data(request, user=''):
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
                     conv_value = batch_obj[0].pcf
                     if not conv_value:
-                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase', uom='')
+                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase')
                         conv_value = uom_dict.get('sku_conversion', 1)
                         batch_obj[0].pcf = conv_value
                         batch_obj[0].puom = uom_dict['measurement_unit']

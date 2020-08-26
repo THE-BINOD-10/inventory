@@ -5160,6 +5160,8 @@ def get_supplier_data(request, users=''):
             else:
                 temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
             request_button = False
+            sku_conversion, measurement_unit, base_uom = '', '', ''
+            sku_conversion, measurement_unit, base_uom = get_uom_data(user, order_data['sku'], 'Purchase')
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     if(model_id):
@@ -5188,8 +5190,8 @@ def get_supplier_data(request, users=''):
                                     'price':float("%.2f"% float(order_data.get('price',0))),
                                     'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                                    'unit': order_data['unit'],
-                                    'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
+                                    'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
+                                    'dis': True, 'weight_copy':temp_json.get('weight_copy', 0), 'base_unit': sku_conversion,
                                     'tax_percent_copy':temp_json.get('tax_percent_copy', 0),
                                     'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                     'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
@@ -5203,7 +5205,7 @@ def get_supplier_data(request, users=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
-                                    "batch_ref": temp_json.get('batch_ref', ''),
+                                    "batch_ref": temp_json.get('batch_ref', ''), 'batch_based': order_data['sku'].batch_based,
                                     'pallet_number': temp_json.get('pallet_number', ''), 'price_request': request_button,
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
@@ -5229,8 +5231,8 @@ def get_supplier_data(request, users=''):
                                 'grn_price':float("%.2f"% float(order_data.get('price',0))),
                                 'mrp': float("%.2f"% float(order_data.get('mrp',0))),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                                'unit': order_data['unit'],
-                                'dis': True,'wrong_sku':0,
+                                'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
+                                'dis': True,'wrong_sku':0, 'base_unit': sku_conversion,
                                 'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                 'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
                                 'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
@@ -6506,10 +6508,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if 'batch_no' in myDict.keys():
                 batch_no = myDict['batch_no'][i]
             expiry_date = ''
-            if 'expiry_date' in myDict.keys():
+            if 'exp_date' in myDict.keys():
                 expiry_date = myDict['exp_date'][i]
             manufactured_date = ''
-            if 'manufactured_date' in myDict.keys():
+            if 'mfg_date' in myDict.keys():
                 manufactured_date = myDict['mfg_date'][i]
             tax_percent = 0
             if 'tax_percent' in myDict.keys():
@@ -6924,7 +6926,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_comment("generate_grn")
     data_dict = ''
     owner_email = ''
-    grn_po_number = ''
+    grn_po_number, warehouse_store = '', ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
@@ -7041,8 +7043,9 @@ def confirm_grn(request, confirm_returns='', user=''):
             remarks = purchase_data['remarks']
             order_id = data.order_id
             grn_po_number = data.po_number
+            warehouse_store = User.objects.get(id=data.open_po.sku.user).first_name
             if data.sellerposummary_set.filter().exists():
-                seller_po_summary_date = data.sellerposummary_set.filter()[0].creation_date
+                seller_po_summary_date = data.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
                 order_date = get_local_date(request.user, seller_po_summary_date)
             else:
                 order_date = get_local_date(request.user, data.creation_date)
@@ -7103,7 +7106,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no, 'product_category': po_product_category,
-                                'order_date': order_date, 'order_id': order_id,
+                                'order_date': order_date, 'order_id': order_id, 'warehouse_store': warehouse_store,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             try:

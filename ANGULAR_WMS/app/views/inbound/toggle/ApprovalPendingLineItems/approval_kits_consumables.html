@@ -30,7 +30,7 @@
     <tbody>
       <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
         <td>
-          <select ui-select class="form-control" name="supplier" style="width:140px;"
+          <select ui-select class="form-control" name="supplier" style="width:110px;"
           ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
           ng-model="product.fields.supplier_id_name" 
           ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields); showCase.checkResubmitPurchaseApprover(product.fields)"
@@ -46,13 +46,13 @@
           <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(product.fields.sku.wms_code, product.fields, showCase.model_data.purchase_id)" ng-if="!product.fields.supplier_id_name && !product.fields.is_doa_sent && showCase.permissions.change_pendinglineitems" style="cursor: pointer;">+</span>
         </td> 
         <td>
-          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="35"
+          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="45"
           title="{{ product.fields.sku.wms_code }}">
           <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
           <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
         </td>
         <td>
-          <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+          <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="120">
         </td>
         <td>
           <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="25">
@@ -70,19 +70,19 @@
                  ng-readonly="!showCase.quantity_editable"
                  ng-change="showCase.checkResubmit(product.fields); showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
                  ng-keyup="showCase.getTotals(product)"
-                 size="12">
+                 size="4">
         </td>
         <td>
-          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="8">
         </td>
         <td>
           <input ng-model="product.fields.conversion" type="text" name="no_of_tests"
                  class="form-control detectTab"
                  ng-class="service.get_decimal_perm()" ng-readonly="true"
-                 size="12">
+                 size="8">
         </td>
         <td>
-            <input ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
+            <input ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="10">
           </td>
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span> 
@@ -94,7 +94,7 @@
           </span>
           <input type="text" name="price" ng-model="product.fields.price" class="hide">
         </td>
-        <td><input type="text" ng-model="product.fields.discount" size="10" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
+        <td><input type="text" ng-model="product.fields.discount" size="5" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
 
         <td class="text-center"> 
           <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.final_price | number:2}}

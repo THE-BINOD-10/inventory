@@ -7218,9 +7218,12 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         for row in unitdata.get('uom_items', None):
             if row.get('unit_type', '') == 'Purchase':
                 purchaseUOMname = row.get('unit_name', None)
+        cess_tax=0
+        if 'cess_tax' in data:
+            cess_tax =data['cess_tax']
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],"order_idx":data["order_idx"],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
-                'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
+                'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'], 'cess_tax': cess_tax,
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname, "itemReceive": True}
         if(data.get("mfg_date",None)):

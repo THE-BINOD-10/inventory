@@ -19,7 +19,7 @@
         <th>UOM</th>
         <th>No.Of Base Units</th>
         <th>Base UOM</th>
-        <th>MOQ</th>
+        <!-- <th>MOQ</th> -->
         <th>Unit Rate(INR)</th>
         <th>Discount</th>
         <th>Final Unit Price</th>
@@ -54,7 +54,7 @@
           <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(product.fields.sku.wms_code, product.fields, showCase.model_data.purchase_id)" ng-if="!product.fields.supplier_id_name && !product.fields.is_doa_sent && showCase.permissions.change_pendinglineitems" style="cursor: pointer;">+</span>
         </td> 
         <td>
-          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="45"
+          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="30"
           title="{{ product.fields.sku.wms_code }}">
           <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
           <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
@@ -90,12 +90,12 @@
                  size="8">
         </td>
         <td>
-          <span class="text_element">{{product.fields.base_uom}}</span>
-          </td>
-        <td class="text-center"> 
+          <input type="text" class="form-control" ng-model="product.fields.base_uom" size="4" readonly>
+        </td>
+        <!-- <td class="text-center"> 
           <span class="text_element">{{product.fields.moq}}</span> 
           <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
-        </td>
+        </td> -->
 
         <td class="text-center"> 
           <span class="text_element">{{product.fields.price | number:2}}

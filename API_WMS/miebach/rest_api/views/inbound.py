@@ -48,6 +48,13 @@ def get_filtered_params(filters, data_list):
     return filter_params
 
 
+def get_dept_from_store_search(user, search_term):
+    stores_list = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    stores_list = stores_list.filter(first_name__icontains=search_term).values_list('username', flat=True)
+    store_depts = []
+    if stores_list:
+        store_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=stores_list)
+    return store_depts
 
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -107,12 +114,17 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
-    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'total_qty', 'total_amt', 'creation_date',
-            'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
+    lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if search_params.get('pending_pr__delivery_date__icontains'):
+        plant_search = search_params['pending_pr__delivery_date__icontains']
+        search_params.pop('pending_pr__delivery_date__icontains')
+        store_depts = get_dept_from_store_search(user, plant_search)
+        search_params['pending_pr__wh_user_id__in'] = store_depts
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -128,6 +140,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
+        store_depts = get_dept_from_store_search(user, search_term)
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
                                 Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
@@ -135,9 +148,11 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
                                 Q(pending_pr__final_status__icontains=search_term) |
                                 Q(pending_pr__pending_level__icontains=search_term) |
-                                Q(sku__sku_code__icontains=search_term))
+                                Q(sku__sku_code__icontains=search_term) |
+                                Q(pending_pr__wh_user_id__in=store_depts) |
+                                Q(pending_pr__wh_user__first_name__icontains=search_term), **search_params)
     if order_term:
-        results = results.order_by(order_data)
+        results = results.filter(**search_params).order_by(order_data)
 
     resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
@@ -236,12 +251,17 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id}
     status =  request.POST.get('special-key', '')
-    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'total_qty', 'total_amt', 'creation_date',
-            'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
+    lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if search_params.get('pending_pr__delivery_date__icontains'):
+        plant_search = search_params['pending_pr__delivery_date__icontains']
+        search_params.pop('pending_pr__delivery_date__icontains')
+        store_depts = get_dept_from_store_search(user, plant_search)
+        search_params['pending_pr__wh_user_id__in'] = store_depts
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -256,6 +276,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
+        store_depts = get_dept_from_store_search(user, search_term)
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
                                 Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
@@ -263,9 +284,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
                                 Q(pending_pr__final_status__icontains=search_term) |
                                 Q(pending_pr__pending_level__icontains=search_term) |
-                                Q(sku__sku_code__icontains=search_term))
+                                Q(pending_pr__wh_user_id__in=store_depts) |
+                                Q(pending_pr__wh_user__first_name__icontains=search_term) |
+                                Q(sku__sku_code__icontains=search_term), **search_params)
     if order_term:
-        results = results.order_by(order_data)
+        results = results.filter(**search_params).order_by(order_data)
     resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()

@@ -11374,8 +11374,7 @@ def check_generated_label(request, user=''):
             if not po_labels:
                 status = {'message': 'Invalid Serial Number', 'data': {}}
             elif po_labels[0].purchase_order and not int(po_labels[0].purchase_order.order_id) == int(order_id):
-                status = {'message': 'Serial Number is mapped with PO Number ' + get_po_reference(
-                    po_labels[0].purchase_order), 'data': {}}
+                status = {'message': 'Serial Number is mapped with PO Number ' + get_po_reference(po_labels[0].purchase_order), 'data': {}}
             elif po_labels[0].job_order and not int(po_labels[0].job_order.job_code) == int(order_id):
                 status = {'message': 'Serial Number is mapped with JO Number ' + \
                                      str(po_labels[0].job_order.job_code), 'data': {}}

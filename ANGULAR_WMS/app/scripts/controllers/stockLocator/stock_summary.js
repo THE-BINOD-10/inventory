@@ -13,7 +13,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.tb_data = {};
     vm.selected_size = vm.g_data.size_type;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.warehouse_type = Session.user_profile.warehouse_type;
 
     vm.dt_display = false;
     vm.build_dt = function() {
@@ -43,9 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       vm.dtColumns.push(DTColumnBuilder.newColumn('sku_packs').withTitle('Available SKU Packs'))
       vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable())
       vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable())
-      if (vm.warehouse_type.toLowerCase() == 'dept'){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable())
-      }
+      vm.dtColumns.push(DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable())
 
       vm.dt_display = true;
     }

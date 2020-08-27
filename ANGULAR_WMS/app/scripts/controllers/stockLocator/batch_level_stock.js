@@ -9,7 +9,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.warehouse_type = Session.user_profile.warehouse_type;
     
     vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -47,12 +46,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type'),
         DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable(),
-        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable()
+        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable(),
+        DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable()
     ];
-    if (vm.warehouse_type.toLowerCase() == 'dept'){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable())
-      }
-      
+
     vm.dtInstance = {};
     vm.reloadData = reloadData;
 

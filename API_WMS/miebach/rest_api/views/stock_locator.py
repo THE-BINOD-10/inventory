@@ -1496,13 +1496,16 @@ def get_id_cycle(request, user=''):
 @get_admin_user
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     stock_ids = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code,
-                                                                     sku__user=user.id, quantity__gt=0).values_list(
+                                                                     sku__user__in=user_ids, quantity__gt=0).values_list(
         'id', flat=True)
-    pick_stock_ids = PicklistLocation.objects.filter(picklist__order__user=user.id,
+    pick_stock_ids = PicklistLocation.objects.filter(picklist__order__user__in=user_ids,
                                                      stock__sku__wms_code=wms_code, status=1).values_list('stock_id',
                                                                                                           flat=True)
-    rm_stock_ids = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+    rm_stock_ids = RMLocation.objects.filter(material_picklist__jo_material__material_code__user__in=user_ids,
                                              stock__sku__wms_code=wms_code, status=1).values_list('stock_id', flat=True)
     stock_ids = list(chain(stock_ids, pick_stock_ids, rm_stock_ids))
     stock_data = StockDetail.objects.filter(id__in=stock_ids)
@@ -1510,13 +1513,13 @@ def stock_summary_data(request, user=''):
     load_unit_handle = ""
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
-    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user, user_list=user_ids)
 
-    job_order = JobOrder.objects.filter(product_code__user=user.id, product_code__wms_code=wms_code,
+    job_order = JobOrder.objects.filter(product_code__user__in=user_ids, product_code__wms_code=wms_code,
                                         status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
     job_codes = job_order.values_list('job_code', flat=True).distinct()
     extra_headers = list(
-        ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
+        ProductionStages.objects.filter(user__in=user_ids).order_by('order').values_list('stage_name', flat=True))
     for job_code in job_codes:
         job_ids = job_order.filter(job_code=job_code).values_list('id', flat=True)
         pallet_mapping = PalletMapping.objects.filter(po_location__job_order__job_code=job_code,

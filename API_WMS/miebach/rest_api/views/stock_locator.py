@@ -23,7 +23,10 @@ log = init_logger('logs/stock_locator.log')
 @csrf_exempt
 @fn_timer
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
            'sku__measurement_type', 'stock_value', 'sku__wms_code']
@@ -38,9 +41,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
-    users = [user.id]
-    users = check_and_get_plants(request, users)
-    user_ids = list(users.values_list('id', flat=True))
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -64,7 +64,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_ids).values_list(
         'stock__sku__wms_code'). \
                              distinct().annotate(reserved=Sum('reserved')))
-    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__use__inr=user_ids). \
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_ids). \
                         values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
                         annotate(rm_reserved=Sum('reserved')))
 
@@ -123,7 +123,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(
                 sku_category__icontains=search_term))
 
-    zero_quantity = zero_quantity.values_list('wms_code', 'sku_desc', 'sku_category', 'sku_brand', 'sku_user','skuquantity')
+    zero_quantity = zero_quantity.values_list('wms_code', 'sku_desc', 'sku_category', 'sku_brand', 'user','skuquantity')
     master_data = list(chain(master_data, zero_quantity))
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -997,7 +997,10 @@ def get_aging_bracket(age_days):
 @csrf_exempt
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'location__zone__zone',
            'location__location', 'quantity',
            'receipt_type', 'stock_value', 'pallet_detail__pallet_code']
@@ -1023,14 +1026,14 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                    Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) |
                    Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
                    Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),
-                   sku__user=user.id).filter(**search_params).order_by(order_data)
+                   sku__user__in=user_ids).filter(**search_params).order_by(order_data)
     else:
         master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku',
                                                                                                           'location',
                                                                                                           'location__zone',
                                                                                                           'pallet_detail'). \
             annotate(stock_value=Sum((F('quantity')/F('batch_detail__pcf')) * F('unit_price'))). \
-            filter(sku__user=user.id, **search_params).order_by(order_data)
+            filter(sku__user__in=user_ids, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -1060,6 +1063,16 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         #                                             ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
         #                                             )))
         # else:
+        sku_user = User.objects.get(id=data.sku.user)
+        plant_code = sku_user.userprofile.stockone_code
+        plant_name = sku_user.first_name
+        dept_type = ''
+        if sku_user.userprofile.warehouse_type.lower() == 'dept':
+            admin_user = get_admin(sku_user)
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         data_dict = OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
                                  ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                  ('WMS Code', data.sku.wms_code),
@@ -1068,7 +1081,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                  ('Location', data.location.location),
                                  ('Quantity', stock_quantity),
                                  ('Receipt Type', data.receipt_type),
-                                 ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity))
+                                 ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity)),
+                                 ('Plant Code', plant_code),
+                                 ('Plant Name', plant_name),
+                                 ('dept_type', dept_type)
                                  ))
         if pallet_switch == 'true':
             pallet_code = ''
@@ -2562,7 +2578,10 @@ def inventory_adj_reasons(request, user=''):
 
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',
            'batch_detail__batch_no',
            'batch_detail__mrp', 'batch_detail__weight', 'batch_detail__buy_price', 'batch_detail__tax_percent',
@@ -2586,7 +2605,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
     stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
                                                            'batch_detail').prefetch_related('sku', 'location',
                                                                                             'location__zone'). \
-        exclude(receipt_number=0).filter(sku__user=user.id, quantity__gt=0,
+        exclude(receipt_number=0).filter(sku__user__in=user_ids, quantity__gt=0,
                                          **search_params)
     if search_term:
         master_data = stock_detail_objs.filter(Q(receipt_number__icontains=search_term) |
@@ -2644,6 +2663,16 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                 sub_zone = zone
                 zone = sub_zone_obj.zone.zone
         quantity = data.quantity/pcf
+        sku_user = User.objects.get(id=data.sku.user)
+        plant_code = sku_user.userprofile.stockone_code
+        plant_name = sku_user.first_name
+        dept_type = ''
+        if sku_user.userprofile.warehouse_type.lower() == 'dept':
+            admin_user = get_admin(sku_user)
+            plant_code = admin_user.userprofile.stockone_code
+            plant_name = admin_user.first_name
+            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_type = department_mapping.get(sku_user.userprofile.stockone_code, '')
         row_data = OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
                                 ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                 ('WMS Code', data.sku.wms_code),

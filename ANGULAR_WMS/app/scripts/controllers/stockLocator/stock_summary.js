@@ -41,10 +41,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       var columns = vm.g_data.tb_headers[vm.g_data.view].concat(vm.extra_c);
       vm.dtColumns = vm.service.build_colums(columns);
       vm.dtColumns.push(DTColumnBuilder.newColumn('sku_packs').withTitle('Available SKU Packs'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code'))
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable())
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable())
       if (vm.warehouse_type.toLowerCase() == 'dept'){
-        vm.dtColumns.push(DTColumnBuilder.newColumn('dept_type').withTitle('Department Type'))
+        vm.dtColumns.push(DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable())
       }
 
       vm.dt_display = true;

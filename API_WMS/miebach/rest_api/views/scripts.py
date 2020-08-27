@@ -26,7 +26,8 @@ from stockone_integrations.views import Integrations
 from rest_api.views.inbound import confirm_grn
 from miebach.celery import app
 from rest_api.views.inbound_common_operations import *
-log = init_logger('logs/final_batch_upload_PO_scripts.log')
+
+log = init_logger('logs/OPEN_PO_scripts.log')
 
 
 
@@ -130,7 +131,7 @@ def upload_po_data(file_location):
                         flag= False
                         break
                     if index >1:
-                        break
+                        continue
                     supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
                     if not supplier_obj:
                         log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
@@ -351,6 +352,7 @@ def inventory_upload(file_location):
     df = pd.read_excel(file_location, header=0)
     df = df.fillna('')
     csv_data=df.to_dict('r')
+    print(len(csv_data))
     total_count=len(csv_data)
     failed_count=0
     completed_count=0
@@ -358,7 +360,24 @@ def inventory_upload(file_location):
         try:
             user=""
             sku_code=""
+            plant_user=""
             receipt_type= "Opening Stock"
+            if row.get('Plant', None):
+                user_profile_obj=UserProfile.objects.filter(stockone_code=row['Plant'])
+                if user_profile_obj:
+                    plant_user=user_profile_obj[0].user
+                else:
+                    user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(row['Plant']))
+                    if user_profile_obj:
+                        plant_user=user_profile_obj[0].user
+                    else:
+                        failed_count+=1
+                        print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(row), str("value"), str(row['Plant'])))
+                        continue
+            else:
+                failed_count+=1
+                print("username is empty and data= ", row)
+                continue
             if row.get('WH username', None):
                 user_obj= User.objects.filter(username=str(row['WH username']).strip())
                 if user_obj:
@@ -371,6 +390,7 @@ def inventory_upload(file_location):
                 failed_count+=1
                 print("username is empty and data= ", row)
                 continue
+            print("\n plant_user", plant_user, "wherehouse_user", user)
             sku_id, location= "",""
             if row.get('SKU Code', ''):
                 sku_code = str(row['SKU Code']).strip()
@@ -460,14 +480,72 @@ def inventory_upload(file_location):
             print(stock_details)
             stockdetail_obj = StockDetail(**stock_details)
             stockdetail_obj.save()
+            sku_details_data={
+                'sku_id': sku_obj.id,
+                'stock_detail_id': stockdetail_obj.id,
+                'transact_type': 'inventory-upload',
+                'quantity': quantity
+            }
+            SKUDetailStats_obj=SKUDetailStats(**sku_details_data)
+            SKUDetailStats_obj.save()
+
+            cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+            #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+            if not cycle_count:
+                cycle_id = 1
+            else:
+                cycle_id = cycle_count + 1
+            reason = "Initial Inventory Upload"
+            # netsuite_inventory_upload(cycle_id, sku_obj.wms_code, pquantity, reason, str(batch_no), mrp, weight, unit_price , row['Expiry Date(YYYY-MM-DD)'],plant_user)
             completed_count+=1
             print("completed_count",completed_count, "failed_count ",failed_count)
+            # break
         except Exception as e:
             failed_count+=1
             completed_count+=1
             print("completed_count",completed_count, "failed_count ",failed_count)
             print("\n\n\n Exception data = ", str(row), "\n error is =" ,str(e))
+        # break
 
+def netsuite_inventory_upload(cycle_id, wmscode, purchase_quantity, reason, batch_no, mrp, weight, unit_price , expiry_date, user=''):
+    from stockone_integrations.views import Integrations
+    from rest_api.views.inbound import gather_uom_master_for_sku
+    from datetime import datetime
+    from pytz import timezone
+    ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
+    import time
+    unixtime = int(round(time.time() * 1000))
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    location_int_id = user.userprofile.location_code
+    department= ""
+    unitdata = gather_uom_master_for_sku(user, wmscode)
+    unitexid = unitdata.get('name', None)
+    purchaseUOMname = None
+    for row in unitdata.get('uom_items', None):
+        if row.get('unit_type', '') == 'Purchase':
+            purchaseUOMname = row.get('unit_name', None)
+    if(expiry_date):
+        exp_date = datetime.strptime(expiry_date, "%Y-%m-%d")
+        exp_date= exp_date.isoformat()
+    inventory_data = {'ia_number': str(user.userprofile.stockone_code)+ "_"+ str(wmscode)+"_"+str(unixtime),
+        'department': department,
+        "subsidiary": subsidary,
+        "account": location_int_id,
+        "plant": plant,
+        'items':[{"sku_code": wmscode,
+            "adjust_qty_by": purchase_quantity,
+            "price": unit_price,
+            'batch_no': batch_no,
+            'exp_date': exp_date,
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname,
+         }],
+        "ia_date": ia_date,
+        "remarks": reason
+    }
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateInventoryAdjustment(inventory_data, "ia_number", is_multiple=False)
 
 def upload_po_data_to_netsuite(file_location):
     import datetime
@@ -637,11 +715,13 @@ def add_new_sku_code_to_netsuite():
         # netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "")
 
 def update_po_price():
-    po_number="4000097850"
-    old_sku_code="REG001948"
+    po_number="6500001664"
+    old_sku_code="REG000747"
     new_sku_code = "REG001949"
-    stockone_code ="33004"
+    stockone_code ="27018"
     price = 8674
+    sgst = 0
+    cgst = 0
     user_profile_obj= UserProfile.objects.filter(stockone_code=stockone_code)
     if user_profile_obj:
         user=user_profile_obj[0].user
@@ -649,3 +729,5 @@ def update_po_price():
     sku_id = SKUMaster.objects.filter(wms_code=new_sku_code, user=user.id)
     if sku_id:
         OpenPO.objects.filter(id=po_1.open_po.id).update(price=price, sku_id=sku_id[0].id)
+    # if po_1:
+    #     OpenPO.objects.filter(id=po_1.open_po.id).update(sgst_tax=sgst, cgst_tax= cgst)

@@ -252,8 +252,10 @@ class netsuiteIntegration(object):
             if(grn_data.get("inv_receipt_date",None)):
                 custom_field_list.append(ns.DateCustomFieldRef(scriptId='custbody_mhl_grn_veninvoicereceivedate', value=grn_data["inv_receipt_date"]))
             grnrec.customFieldList =  ns.CustomFieldList(custom_field_list)
+            subsidiary=0
             if(grn_data.get("subsidiary",None)):
-                grnrec.subsidiary = ns.ListOrRecordRef(internalId=grn_data['subsidiary'])
+                subsidiary=grn_data['subsidiary']
+                grnrec.subsidiary = ns.ListOrRecordRef(internalId=subsidiary)
             if(grn_data.get("department",None)):
                 grnrec.department = ns.RecordRef(internalId=grn_data['department'])
             if(grn_data.get("items",None)):
@@ -278,18 +280,21 @@ class netsuiteIntegration(object):
                     #"customFieldList": ns.CustomFieldList(grn_custom_field_list)
                     }
                     if data.get("unit_price", None):
-                        cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax=[0]*5
-                        if data.get('cgst_tax', 0):
-                            cgst_tax= float(data["cgst_tax"])
-                        if data.get('sgst_tax', 0):
-                            sgst_tax= float(data["sgst_tax"])
-                        if data.get('igst_tax', 0):
-                            igst_tax= float(data["igst_tax"])
-                        if data.get('utgst_tax', 0):
-                            utgst_tax= float(data['utgst_tax'])
-                        if data.get('cess_tax', 0):
-                            cess_tax = float(data['cess_tax'])
-                        unit_price= data['unit_price'] +((data['unit_price'] *(igst_tax+ sgst_tax + cgst_tax+ utgst_tax + cess_tax))/100)
+                        if int(subsidiary) == 17:
+                            unit_price= data['unit_price']
+                        else:
+                            cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax=[0]*5
+                            if data.get('cgst_tax', 0):
+                                cgst_tax= float(data["cgst_tax"])
+                            if data.get('sgst_tax', 0):
+                                sgst_tax= float(data["sgst_tax"])
+                            if data.get('igst_tax', 0):
+                                igst_tax= float(data["igst_tax"])
+                            if data.get('utgst_tax', 0):
+                                utgst_tax= float(data['utgst_tax'])
+                            if data.get('cess_tax', 0):
+                                cess_tax = float(data['cess_tax'])
+                            unit_price= data['unit_price'] +((data['unit_price'] *(igst_tax+ sgst_tax + cgst_tax+ utgst_tax + cess_tax))/100)
                         line_item.update({'rate': unit_price})
                         grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_unit_price_grn', value= unit_price))
                         grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_unit_price_wo_gst',value=data["unit_price"]))

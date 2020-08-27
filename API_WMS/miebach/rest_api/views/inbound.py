@@ -4976,7 +4976,7 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment',price=price)
-        netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
+        netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
@@ -4984,10 +4984,12 @@ def insert_inventory_adjust(request, user=''):
     check_and_update_stock([wmscode], user)
     return HttpResponse(status)
 
-def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
+def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
     from datetime import datetime
     from pytz import timezone
     ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
+    import time
+    unixtime = int(round(time.time() * 1000))
     plant = user.userprofile.reference_id
     subsidary= user.userprofile.company.reference_id
     location_int_id = user.userprofile.location_code
@@ -5000,7 +5002,7 @@ def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_st
     for row in unitdata.get('uom_items', None):
         if row.get('unit_type', '') == 'Purchase':
             purchaseUOMname = row.get('unit_name', None)
-    inventory_data = {'ia_number': "inventory_adjustment_"+str(cycle_id),
+    inventory_data = { 'ia_number': str(user.userprofile.stockone_code)+ "_"+ str(wmscode)+"_"+str(unixtime),
         'department': department,
         "subsidiary": subsidary,
         "account": location_int_id,

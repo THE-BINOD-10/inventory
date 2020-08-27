@@ -118,7 +118,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             'pending_pr__sku_category', 'total_qty', 'creation_date',
             'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
-            'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
+            'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
     if search_params.get('pending_pr__delivery_date__icontains'):
         plant_search = search_params['pending_pr__delivery_date__icontains']
@@ -220,6 +220,14 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         # full_pr_number = result['pending_pr__full_pr_number'] #'%s%s_%s' % (result['pending_pr__prefix'], dateInPR, pr_number)
         if result['pending_pr__final_status'] == 'approved':
             validated_by = ''
+        enq_status = ''
+        gen_enqs = GenericEnquiry.objects.filter(sender_id=request.user.id, master_type='pendingPR',
+                                                 master_id=result['pending_pr_id']).order_by('-creation_date')
+        if gen_enqs.exists():
+            if gen_enqs[0].status == 'submitted':
+                enq_status = '<span class="label label-success">Responded</span>'
+            else:
+                enq_status = '<span class="label label-danger">Pending</span>'
         temp_data['aaData'].append(OrderedDict((
                                                 ('Purchase Id', result['pending_pr_id']),
                                                 # ('PR Number', pr_number),
@@ -243,6 +251,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                                 ('Last Updated By', last_updated_by),
                                                 ('Last Updated At', last_updated_time),
                                                 ('Remarks', last_updated_remarks),
+                                                ('Enquiry Status', enq_status),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 

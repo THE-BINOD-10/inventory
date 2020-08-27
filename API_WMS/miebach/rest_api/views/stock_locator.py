@@ -145,10 +145,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             if data[0] in raw_reserved.keys():
                 total_reserved = float(raw_reserved[data[0]])
                 temp_data['totalReservedQuantity'] += total_reserved
-            if len(data) >= 5:
-                if data[4] != None:
-                    if len(data) > 4:
-                        total = data[4]
+            if len(data) >= 6:
+                if data[5] != None:
+                    if len(data) > 5:
+                        total = data[5]
                 diff = total - total_reserved
             if not diff < 0:
                 total_available_quantity = diff
@@ -171,7 +171,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if len(data) > 5:
                     total = data[5]
 
-        sku = sku_master.get(user=user.id, sku_code=data[0])
+        sku = sku_master.get(user=data[4], sku_code=data[0])
         if data[0] in picklist_reserved.keys():
             reserved += float(picklist_reserved[data[0]])
         if data[0] in raw_reserved.keys():
@@ -185,7 +185,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         measurement_type = sku.measurement_type
         if quantity:
             wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code=data[0],
-                                                                                sku__user__in=user_ids)
+                                                                                sku__user=data[4])
             stock_batch = wms_code_obj.filter(batch_detail__isnull=False)
             if stock_batch.exists():
                 measurement_type = stock_batch[0].batch_detail.puom

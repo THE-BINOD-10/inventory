@@ -44,7 +44,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         //DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
-        DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type')
+        DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type'),
+        DTColumnBuilder.newColumn('Plant Code').withTitle('Plant Code').notSortable(),
+        DTColumnBuilder.newColumn('Plant Name').withTitle('Plant Name').notSortable(),
+        DTColumnBuilder.newColumn('dept_type').withTitle('Department Type').notSortable()
     ];
 
     vm.dtInstance = {};

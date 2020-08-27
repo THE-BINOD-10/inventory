@@ -1132,17 +1132,17 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 sku= sku_id[0]
                 try:
                     if sku.assetmaster:
-                        product_category="Assets"
+                        productType="Assets"
                 except:
                     pass
                 try:
                     if sku.servicemaster:
-                        product_category="Services"
+                        productType="Services"
                 except:
                     pass
                 try:
                     if sku.otheritemsmaster:
-                        product_category="OtherItems"
+                        productType="OtherItems"
                 except:
                     pass
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),

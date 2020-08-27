@@ -194,6 +194,17 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                 if sku_pack_obj.exists() and sku_pack_obj[0].pack_quantity:
                     sku_packs = int(quantity / sku_pack_obj[0].pack_quantity)
         open_order_qty = sku_type_qty.get(data[0], 0)
+        sku_user = sku.user
+        plant_code = sku_user.user_profile.stockone_code
+        plant_name = sku_user.first_name
+        dept_type = ''
+        if user_profile.warehouse_type.lower() == 'dept':
+            admin_user = get_admin(sku_user)
+            plant_code = admin_user.user_profile.stockone_code
+            plant_name = admin_user.first_name
+            department_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
+            dept_type = department_mapping.get(department_code, '')
+
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
@@ -202,6 +213,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Open Order Quantity', open_order_qty),
                                                 ('Unit of Measurement', measurement_type),
                                                 ('Stock Value', '%.2f' % total_stock_value),
+                                                ('Plant Code', '%.2f' % plant_code),
+                                                ('Plant Name', '%.2f' % plant_name),
+                                                ('dept_type', '%.2f' % dept_type),
                                                 ('DT_RowId', data[0]))))
 
 

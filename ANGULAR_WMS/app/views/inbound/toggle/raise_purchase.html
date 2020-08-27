@@ -2,14 +2,16 @@
   .sidebar-panel{
     z-index: 1000;
  }
-  .form-control{
-    padding: 5px 4px;
+ .form-control{
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
  }
  .table > tbody > tr > td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .table > thead > tr> td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
   .table > tbody > tr > td {
     border-color: #ffffff !important;
@@ -252,8 +254,8 @@
                     <th class="w10_" ng-if="!showCase.model_data.is_approval">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
-                    <th></th>
-                    <th class="plus"></th>
+                    <th class="w10_">Delivery Schedule</th>
+                    <!-- <th class="plus"></th> -->
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -338,8 +340,8 @@
                     <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
                       <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
                     </td>
-                    <td>
-                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View Delivery Schedule</button>
+                    <td align="center">
+                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
                     </td>
                     <td>
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">

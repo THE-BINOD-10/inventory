@@ -7,7 +7,7 @@
           <th>Item Code*</th>
           <th>Title</th>
           <th>HSN Code</th>
-          <th class="w10_">Quantity*</th>
+          <th>Qty*</th>
           <th>UOM</th>
           <th>Unit Rate(INR)</th>
           <th>Base Price excluding GST</th>
@@ -38,10 +38,10 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="70">
           </td>
           <td>
-            <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
+            <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="32">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
@@ -93,7 +93,9 @@
           </td>
           <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-            <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i>
+            <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i> -->
+          </td>
           </td>
         </tr>
       </tbody>

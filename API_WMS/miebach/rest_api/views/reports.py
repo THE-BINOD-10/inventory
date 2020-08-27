@@ -1210,6 +1210,7 @@ def print_po_reports(request, user=''):
     bill_no = ''
     bill_date = ''
     sr_number = ''
+    warehouse_store = ''
     # po_data = []
     headers = (
         'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -1275,7 +1276,14 @@ def print_po_reports(request, user=''):
                     mrp = 0
                     if user.userprofile.user_type == 'warehouse_user':
                         mrp = open_data.sku.mrp
+                    sku_batch_no, expiry_date = '', ''
                     if seller_summary_obj.batch_detail:
+                        sku_batch_no = seller_summary_obj.batch_detail.batch_no
+                        expiry_date = seller_summary_obj.batch_detail.expiry_date
+                        if expiry_date:
+                            expiry_date = datetime.datetime.strftime(expiry_date, '%d/%m/%Y')
+                        else:
+                            expiry_date = ''
                         price = seller_summary_obj.batch_detail.buy_price
                         mrp = seller_summary_obj.batch_detail.mrp
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
@@ -1305,7 +1313,7 @@ def print_po_reports(request, user=''):
                                                            'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                                            'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
-                                                           'mrp': mrp})
+                                                           'mrp': mrp, 'batch_no': sku_batch_no, 'exp_date':expiry_date})
                     grouped_data[grouping_key]['received_quantity'] += quantity
                     grouped_data[grouping_key]['amount'] += float("%.2f" % amount)
                     total += amount
@@ -1384,27 +1392,21 @@ def print_po_reports(request, user=''):
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
+        grn_po_number = purchase_order.po_number
+        warehouse_store = User.objects.get(id=purchase_order.open_po.sku.user).first_name
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
-        order_date = datetime.datetime.strftime(purchase_order.creation_date, "%d-%m-%Y")
+        if purchase_order.sellerposummary_set.filter().exists():
+            seller_po_summary_date = purchase_order.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
+            order_date = get_local_date(request.user, seller_po_summary_date)
+        else:
+            order_date = get_local_date(request.user, purchase_order.creation_date)
+        order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)  # user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
-    if results and oneassist_condition == 'true':
-        purchase_order = results[0]
-        customer_data = OrderMapping.objects.filter(mapping_id=purchase_order.id, mapping_type='PO')
-        if customer_data:
-            admin_user = get_admin(user)
-            interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id,
-                                                                user_id=admin_user.id)
-            if interorder_data:
-                inter_order_id = interorder_data[0].interm_order_id
-                courtesy_sr_number = OrderFields.objects.filter(original_order_id=inter_order_id, user=admin_user.id,
-                                                                name='original_order_id')
-                if courtesy_sr_number:
-                    sr_number = courtesy_sr_number[0].value
     sku_list = po_data[po_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     table_headers = (
@@ -1424,8 +1426,8 @@ def print_po_reports(request, user=''):
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'overall_discount': overall_discount,
-                   'st_grn':st_grn,
+                   'overall_discount': overall_discount, 'grn_po_number': grn_po_number,
+                   'st_grn':st_grn, 'warehouse_store': warehouse_store,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,

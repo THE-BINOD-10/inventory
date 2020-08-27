@@ -1,12 +1,14 @@
 <style type="text/css">
-.form-control{
-    padding: 5px 4px;
- }
  .table > tbody > tr > td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .table > thead > tr> td{
-    padding: 6px 4px;
+    padding: 3px 3px;
+ }
+ .form-control{
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
  }
  .sidebar-panel{
     z-index: 1000;
@@ -130,8 +132,8 @@
                     <th>SKU Code*</th>
                     <th>Title</th>
                     <th ng-if="showCase.model_data.product_category == 'Services'">Detail</th>
-                    <th>AvailableQty</th>
-                    <th>IntransitQty</th>
+                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">AvailableQty</th>
+                    <th ng-if="showCase.model_data.product_category == 'Kits&Consumables'">IntransitQty</th>
                     <th ng-if="showCase.permissions.sku_pack_config">PackQty</th>
                     <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <!-- <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th> -->
@@ -148,6 +150,7 @@
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
                     <th class="w10_">CESS(%)</th>
+                    <th class="w10_">Delivery schedule</th>
                     <!-- <th class="w10_">CESS(%)</th>
                     <th class="w10_">APMC(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
@@ -172,8 +175,8 @@
                     <td ng-if="showCase.model_data.product_category == 'Services'">
                       <input ng-model="product.fields.sku_detail" title="{{ product.fields.sku_detail }}" type="text" class="form-control detectTab" readonly size="50">
                     </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
+                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
+                    <td class="text-center" ng-if="showCase.model_data.product_category == 'Kits&Consumables'"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
                     <td class="text-center" ng-if="showCase.permissions.sku_pack_config"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.skuPack_quantity}}</span> </td>
                     <td ng-if="showCase.show_ean_number">
                       <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="30">
@@ -224,7 +227,7 @@
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
                       <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td> -->
                     <td>
-                      <button class="btn btn-success" ng-click="showCase.sku_delivery_date(product)">Add Delivery schedule(+)</button>
+                      <button class="btn btn-success" ng-click="showCase.sku_delivery_date(product)">Add (+)</button>
                     </td>
                   </tr>
                 </tbody>

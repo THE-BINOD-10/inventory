@@ -48,6 +48,13 @@ def get_filtered_params(filters, data_list):
     return filter_params
 
 
+def get_dept_from_store_search(user, search_term):
+    stores_list = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'])
+    stores_list = stores_list.filter(first_name__icontains=search_term).values_list('username', flat=True)
+    store_depts = []
+    if stores_list:
+        store_depts = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=stores_list)
+    return store_depts
 
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -107,12 +114,17 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
-    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'total_qty', 'total_amt', 'creation_date',
-            'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
+    lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if search_params.get('pending_pr__delivery_date__icontains'):
+        plant_search = search_params['pending_pr__delivery_date__icontains']
+        search_params.pop('pending_pr__delivery_date__icontains')
+        store_depts = get_dept_from_store_search(user, plant_search)
+        search_params['pending_pr__wh_user_id__in'] = store_depts
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -128,6 +140,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
+        store_depts = get_dept_from_store_search(user, search_term)
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
                                 Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
@@ -135,9 +148,11 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
                                 Q(pending_pr__final_status__icontains=search_term) |
                                 Q(pending_pr__pending_level__icontains=search_term) |
-                                Q(sku__sku_code__icontains=search_term))
+                                Q(sku__sku_code__icontains=search_term) |
+                                Q(pending_pr__wh_user_id__in=store_depts) |
+                                Q(pending_pr__wh_user__first_name__icontains=search_term), **search_params)
     if order_term:
-        results = results.order_by(order_data)
+        results = results.filter(**search_params).order_by(order_data)
 
     resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
@@ -236,12 +251,17 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id}
     status =  request.POST.get('special-key', '')
-    lis = ['pending_pr_id', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'total_qty', 'total_amt', 'creation_date',
-            'pending_pr__delivery_date', 'sku__user', 'pending_pr__requested_user__username',
+    lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
+            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks']
     search_params = get_filtered_params(filters, lis)
+    if search_params.get('pending_pr__delivery_date__icontains'):
+        plant_search = search_params['pending_pr__delivery_date__icontains']
+        search_params.pop('pending_pr__delivery_date__icontains')
+        store_depts = get_dept_from_store_search(user, plant_search)
+        search_params['pending_pr__wh_user_id__in'] = store_depts
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -256,6 +276,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 values(*values_list).distinct().\
                 annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity')*F('price')))
     if search_term:
+        store_depts = get_dept_from_store_search(user, search_term)
         results = results.filter(Q(pending_pr__pr_number__icontains=search_term) |
                                 Q(pending_pr__full_pr_number__icontains=search_term) |
                                 Q(pending_pr__product_category__icontains=search_term) |
@@ -263,9 +284,11 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                 Q(pending_pr__requested_user__username__icontains=search_term) |
                                 Q(pending_pr__final_status__icontains=search_term) |
                                 Q(pending_pr__pending_level__icontains=search_term) |
-                                Q(sku__sku_code__icontains=search_term))
+                                Q(pending_pr__wh_user_id__in=store_depts) |
+                                Q(pending_pr__wh_user__first_name__icontains=search_term) |
+                                Q(sku__sku_code__icontains=search_term), **search_params)
     if order_term:
-        results = results.order_by(order_data)
+        results = results.filter(**search_params).order_by(order_data)
     resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
@@ -1089,11 +1112,12 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             discrepency_qty = sum(list(Discrepancy.objects.filter(user = user.id, purchase_order__order_id=supplier.order_id)\
                                             .values_list('quantity',flat=True)))
         warehouse = User.objects.get(id=order_data['sku'].user)
-        productType, send_to = '', ''
+        productType, send_to, services_doa = '', '', ''
         if supplier.open_po is not None:
             productQs = PendingPO.objects.filter(po_number=supplier.order_id, prefix=supplier.prefix, wh_user=supplier.open_po.sku.user).values_list('product_category', flat=True)
             if productQs.exists():
                 productType = productQs[0]
+                services_doa = True
         display_approval_button_DOA=False
         if productType=="Services":
             doaQs = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=supplier.id, doa_status="pending")
@@ -1131,7 +1155,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
-                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to)
+                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), ('service_doa', services_doa)
                                       )))
     temp_data['aaData'] = data_list
 
@@ -5136,6 +5160,8 @@ def get_supplier_data(request, users=''):
             else:
                 temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
             request_button = False
+            sku_conversion, measurement_unit, base_uom = '', '', ''
+            sku_conversion, measurement_unit, base_uom = get_uom_data(user, order_data['sku'], 'Purchase')
             if temp_jsons.exists():
                 for temp_json_obj in temp_jsons:
                     if(model_id):
@@ -5164,8 +5190,8 @@ def get_supplier_data(request, users=''):
                                     'price':float("%.2f"% float(order_data.get('price',0))),
                                     'mrp': float("%.2f" % float(mrp)),
                                     'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                                    'unit': order_data['unit'],
-                                    'dis': True, 'weight_copy':temp_json.get('weight_copy', 0),
+                                    'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
+                                    'dis': True, 'weight_copy':temp_json.get('weight_copy', 0), 'base_unit': sku_conversion,
                                     'tax_percent_copy':temp_json.get('tax_percent_copy', 0),
                                     'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                     'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
@@ -5179,7 +5205,7 @@ def get_supplier_data(request, users=''):
                                     'batch_no': temp_json.get('batch_no', ''),
                                     'mfg_date': temp_json.get('mfg_date', ''),
                                     'exp_date': temp_json.get('exp_date', ''),
-                                    "batch_ref": temp_json.get('batch_ref', ''),
+                                    "batch_ref": temp_json.get('batch_ref', ''), 'batch_based': order_data['sku'].batch_based,
                                     'pallet_number': temp_json.get('pallet_number', ''), 'price_request': request_button,
                                     'is_stock_transfer': temp_json.get('is_stock_transfer', ''),'po_extra_fields':json.dumps(list(extra_po_fields)),
                                     }])
@@ -5205,8 +5231,8 @@ def get_supplier_data(request, users=''):
                                 'grn_price':float("%.2f"% float(order_data.get('price',0))),
                                 'mrp': float("%.2f"% float(order_data.get('mrp',0))),
                                 'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                                'unit': order_data['unit'],
-                                'dis': True,'wrong_sku':0,
+                                'unit': order_data['unit'], 'uom': measurement_unit, 'base_uom': base_uom,
+                                'dis': True,'wrong_sku':0, 'base_unit': sku_conversion,
                                 'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                 'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
                                 'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
@@ -6482,10 +6508,10 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             if 'batch_no' in myDict.keys():
                 batch_no = myDict['batch_no'][i]
             expiry_date = ''
-            if 'expiry_date' in myDict.keys():
+            if 'exp_date' in myDict.keys():
                 expiry_date = myDict['exp_date'][i]
             manufactured_date = ''
-            if 'manufactured_date' in myDict.keys():
+            if 'mfg_date' in myDict.keys():
                 manufactured_date = myDict['mfg_date'][i]
             tax_percent = 0
             if 'tax_percent' in myDict.keys():
@@ -6502,7 +6528,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
             buy_price = 0
             if 'buy_price' in myDict.keys():
                 buy_price = myDict['buy_price'][i]
-            uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase', uom=uom)
+            uom_dict = get_uom_with_sku_code(user, myDict['wms_code'][i], uom_type='purchase')
             batch_dict = {
                 'transact_type': 'po_loc',
                 'batch_no': batch_no,
@@ -6515,7 +6541,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'batch_ref': batch_ref,
                 'puom': uom_dict.get('measurement_unit', ''),
                 'pquantity': value,
-                'pcf': uom_dict.get('sku_conversion', 0)
+                'pcf': uom_dict.get('sku_conversion', 1)
             }
 
         seller_received_list = []
@@ -6900,7 +6926,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_comment("generate_grn")
     data_dict = ''
     owner_email = ''
-    grn_po_number = ''
+    grn_po_number, warehouse_store = '', ''
     headers = (
             'WMS CODE','Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
             'UTGST(%)', 'Amount', 'Description', 'CESS(%)', 'batch_no')
@@ -7017,8 +7043,9 @@ def confirm_grn(request, confirm_returns='', user=''):
             remarks = purchase_data['remarks']
             order_id = data.order_id
             grn_po_number = data.po_number
+            warehouse_store = User.objects.get(id=data.open_po.sku.user).first_name
             if data.sellerposummary_set.filter().exists():
-                seller_po_summary_date = data.sellerposummary_set.filter()[0].creation_date
+                seller_po_summary_date = data.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
                 order_date = get_local_date(request.user, seller_po_summary_date)
             else:
                 order_date = get_local_date(request.user, data.creation_date)
@@ -7079,7 +7106,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'address': address,'grn_extra_field_dict':grn_extra_field_dict,
                                 'company_name': profile.company.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no, 'product_category': po_product_category,
-                                'order_date': order_date, 'order_id': order_id,
+                                'order_date': order_date, 'order_id': order_id, 'warehouse_store': warehouse_store,
                                 'btn_class': btn_class, 'bill_date': bill_date, 'lr_number': lr_number,
                                 'remarks':remarks, 'show_mrp_grn': get_misc_value('show_mrp_grn', user.id)}
             try:
@@ -8509,7 +8536,7 @@ def putaway_data(request, user=''):
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
                     conv_value = batch_obj[0].pcf
                     if not conv_value:
-                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase', uom='')
+                        uom_dict = get_uom_with_sku_code(user, order_data['sku'].sku_code, uom_type='purchase')
                         conv_value = uom_dict.get('sku_conversion', 1)
                         batch_obj[0].pcf = conv_value
                         batch_obj[0].puom = uom_dict['measurement_unit']

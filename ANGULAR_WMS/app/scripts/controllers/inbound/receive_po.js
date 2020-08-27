@@ -197,6 +197,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
                 vm.current_grn = aData['Received Qty'] == 0 ? true : false;
                 vm.product_type = aData['Product Category'];
+                vm.store = aData['Store'];
                 vm.total_order_qty =aData["Total Qty"];
                 vm.total_receivable_qty =aData["Receivable Qty"];
                 vm.total_received_qty =aData["Received Qty"];
@@ -204,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.expected_date =aData["Expected Date"];
                 vm.order_type= aData["Order Type"];
                 if(vm.product_type=="Services"){
-                  vm.display_approval_button=true
+                  vm.display_approval_button= aData['service_doa'] ? true : false;
                   vm.display_approval_button_DOA=aData["display_approval_button_DOA"]
                 }
                 vm.warehouse = aData['Warehouse']
@@ -228,7 +229,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1550px'
+                        'width': '1300px'
                       };
                     } else {
                       vm.extra_width = {
@@ -449,11 +450,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           $state.go('app.inbound.RevceivePo');
       }
     }
-
     vm.update_data = update_data;
-    function update_data(index, data, special_flag=true) {
+    function update_data(index, data) {
       if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
-        if (index == data.length-1 && special_flag) {
+        if (index == data.length-1) {
           var new_dic = {};
           angular.copy(data[0], new_dic);
           new_dic.receive_quantity = 0;
@@ -465,7 +465,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.total_amt = "";
           new_dic.temp_json_id = "";
           new_dic.is_stock_transfer = "";
-          new_dic.check = false;
           data.push(new_dic);
         } else {
           if (typeof(data[index]) != "undefined") {
@@ -821,91 +820,89 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.confirm_grn_api = function() {
-      if(check_receive()){
-        var that = vm;
-        var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        var form_data = new FormData();
-        var files = $(".grn-form").find('[name="files"]')[0].files;
-        $.each(files, function(i, file) {
-          form_data.append('files-' + i, file);
-        });
-        if (vm.product_type) {
-          elem.push({'name':'product_category', 'value': vm.product_type})
-        }
-        if (vm.model_data.other_charges.length > 0) {
-          elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
-        }
-        if (vm.permissions.receive_po_inv_value_qty_check) {
-          elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
-          elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
-        }
-        if(vm.display_approval_button==true){
-          elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
-          elem.push({'name':'total_order_qty', 'value': vm.total_order_qty});
-          elem.push({'name':'total_receivable_qty', 'value': vm.total_receivable_qty});
-          elem.push({'name':'total_received_qty', 'value': vm.total_received_qty});
-          elem.push({'name':'supplier_id_name', 'value': vm.supplier_id_name});
-          elem.push({'name':'expected_date', 'value': vm.expected_date});
-          elem.push({'name':'order_type', 'value': vm.order_type});
-        }
-        $.each(elem, function(i, val) {
-          form_data.append(val.name, val.value);
-        });
-        var url = "confirm_grn/"
-        if(vm.po_qc) {
-          url = "confirm_receive_qc/"
-        }
-        if (vm.display_approval_button==true) {
-          url = "send_for_approval_confirm_grn/"
-          vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
-            if(data.message) {
-              if(data.data == 'Updated Successfully') {
-                vm.close();
-                vm.service.refresh(vm.dtInstance);
-              } else {
-                pop_msg(data.data);
-              }
+      var that = vm;
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var form_data = new FormData();
+      var files = $(".grn-form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      if (vm.product_type) {
+        elem.push({'name':'product_category', 'value': vm.product_type})
+      }
+      if (vm.model_data.other_charges.length > 0) {
+        elem.push({'name': 'other_charges', 'value': JSON.stringify(vm.model_data.other_charges)});
+      }
+      if (vm.permissions.receive_po_inv_value_qty_check) {
+        elem.push({'name': 'grn_quantity', 'value': vm.total_grn_quantity});
+        elem.push({'name': 'grn_total_amount', 'value': vm.model_data.round_off_total});
+      }
+      if(vm.display_approval_button==true){
+        elem.push({'name': 'display_approval_button', value: vm.display_approval_button});
+        elem.push({'name':'total_order_qty', 'value': vm.total_order_qty});
+        elem.push({'name':'total_receivable_qty', 'value': vm.total_receivable_qty});
+        elem.push({'name':'total_received_qty', 'value': vm.total_received_qty});
+        elem.push({'name':'supplier_id_name', 'value': vm.supplier_id_name});
+        elem.push({'name':'expected_date', 'value': vm.expected_date});
+        elem.push({'name':'order_type', 'value': vm.order_type});
+      }
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      var url = "confirm_grn/"
+      if(vm.po_qc) {
+        url = "confirm_receive_qc/"
+      }
+      if (vm.display_approval_button==true) {
+        url = "send_for_approval_confirm_grn/"
+        vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
+          if(data.message) {
+            if(data.data == 'Updated Successfully') {
+              vm.close();
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              pop_msg(data.data);
             }
-          });
-        } else {
-          vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
-            if (data.message) {
-              if (data.data.search("<div") != -1) {
-                vm.passed_serial_number = {}
-                $rootScope.collect_imei_details = {}
-                vm.failed_serial_number = {}
-                vm.collect_imei_details = {}
-                vm.extra_width = {}
-                if (data.data.search('discrepancy_data') != -1) {
-                  vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
-                  angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
-                } else{
-                  vm.html = $(data.data);
-                  angular.element(".modal-body").html($(data.data));
-                }
-                vm.print_enable = true;
-                vm.service.refresh(vm.dtInstance);
-                if(vm.permissions.use_imei) {
-                  fb.generate = true;
-                  fb.remove_po(fb.poData["id"]);
-                }
-              } else if(data.data.search("Success") != -1) {
-                vm.passed_serial_number = {}
-                $rootScope.collect_imei_details = {}
-                vm.failed_serial_number = {}
-                vm.collect_imei_details = {}
-                vm.extra_width = {}
-                vm.print_enable = true;
-                vm.service.refresh(vm.dtInstance);
-                vm.close();
-              } else {
-                pop_msg(data.data)
+          }
+        });
+      } else {
+        vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
+          if (data.message) {
+            if (data.data.search("<div") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
+              vm.extra_width = {}
+              if (data.data.search('discrepancy_data') != -1) {
+                vm.discrepancy_data = JSON.parse(data.data)['discrepancy_data']
+                angular.element(".modal-body").html($(JSON.parse(data.data)['grn_data']));
+              } else{
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
               }
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              if(vm.permissions.use_imei) {
+                fb.generate = true;
+                fb.remove_po(fb.poData["id"]);
+              }
+            } else if(data.data.search("Success") != -1) {
+              vm.passed_serial_number = {}
+              $rootScope.collect_imei_details = {}
+              vm.failed_serial_number = {}
+              vm.collect_imei_details = {}
+              vm.extra_width = {}
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              vm.close();
+            } else {
+              pop_msg(data.data)
             }
-          });
-        }
+          }
+        });
       }
     }
 
@@ -2632,7 +2629,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   vm.invoice_readonly_option = false;
   vm.invoice_readonly = function(event, data, key_name, is_number){
-      console.log(vm);
       if(vm.permissions.receive_po_invoice_check)
       {
         if(!vm.model_data.invoice_value || vm.model_data.invoice_value == "0")
@@ -2782,7 +2778,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // }
   }
 
-
+  vm.check_receive_qty = function($event, model_data, index, outerIndex, data, all_data) {
+    var data_dict = {}
+    if (parseFloat(data.value) > 0) {
+      angular.forEach(all_data, function(sku_row_data, indexs) {
+        if (!Object.keys(data_dict).includes(sku_row_data['wms_code'])){
+          data_dict[sku_row_data['wms_code']] = {
+            'po_total': parseFloat(sku_row_data.po_quantity),
+            'grn_total': parseFloat(sku_row_data.value ? sku_row_data.value : 0)
+          }
+        } else {
+          data_dict[sku_row_data['wms_code']]['grn_total'] = data_dict[sku_row_data['wms_code']]['grn_total'] + parseFloat(sku_row_data.value ? sku_row_data.value : 0);
+        }
+        if (all_data.length == indexs+1) {
+          if (parseFloat(data_dict[data.wms_code]['po_total']) >= parseFloat(data_dict[data.wms_code]['grn_total'])) {
+            vm.calc_total_amt($event, model_data, index, outerIndex)
+          } else {
+            data.value = 0
+            vm.calc_total_amt($event, model_data, index, outerIndex)
+            Service.showNoty("Received Quantity Greater Than PO Quantity")
+          }
+        }
+      })
+    } else {
+      vm.calc_total_amt($event, model_data, index, outerIndex)
+    }
+  }
    vm.validate_weight = function(event, data) {
      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0){
        data.weight = data.weight.toUpperCase().replace('UNITS', 'Units').replace(/\s\s+/g, ' ').replace('PCS', 'Pcs').replace('UNIT', 'Unit').replace('INCHES', 'Inches').replace('INCH', 'Inch');

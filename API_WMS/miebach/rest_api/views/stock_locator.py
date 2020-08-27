@@ -26,6 +26,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
+    user_ids.append(user.id)
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     is_excel = request.POST.get('excel', 'false')
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'total',
@@ -1000,6 +1001,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
+    user_ids.append(user.id)
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'location__zone__zone',
            'location__location', 'quantity',
@@ -1499,6 +1501,7 @@ def stock_summary_data(request, user=''):
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
+    user_ids.append(user.id)
     stock_ids = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code,
                                                                      sku__user__in=user_ids, quantity__gt=0).values_list(
         'id', flat=True)
@@ -2689,6 +2692,9 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                 ('Zone', zone), ('Sub Zone', sub_zone),
                                 ('Location', data.location.location),
                                 ('Quantity', get_decimal_limit(user.id, quantity)),
+                                ('Plant Code', plant_code),
+                                ('Plant Name', plant_name),
+                                ('dept_type', dept_type),
                                 ('Pallet', pallet_code), ('Receipt Type', data.receipt_type)))
         if pallet_switch != 'true' and row_data.get('Pallet'):
             del row_data['Pallet']

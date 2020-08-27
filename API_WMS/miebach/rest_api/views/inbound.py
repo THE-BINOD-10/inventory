@@ -1340,7 +1340,6 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
         po_col = '-%s' % po_col
         st_col = '-%s' % st_col
         rw_col = '-%s' % rw_col
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
@@ -1348,7 +1347,8 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     st_search_query = build_search_term_query(st_lis, search_term)
     rw_purchase_query = build_search_term_query(rw_lis, search_term)
     users = check_and_get_plants(request, users)
-    po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0, open_po__sku_id__in=sku_master_ids).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
+    po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
+                                    .exclude(open_po__sku_id__in=AssetMaster.objects.all()).exclude(open_po__sku_id__in=ServiceMaster.objects.all()).exclude(open_po__sku_id__in=OtherItemsMaster.objects.all())\
                                     .values('order_id', 'prefix', 'po_number').distinct().order_by(po_col, st_col, rw_col)
     po_ids = po_dict.values_list('order_id',flat = True)
 

@@ -13140,6 +13140,7 @@ def get_pr_report_data(search_params, user, sub_user):
                 if final_updated_time:
                     last_updated_time = datetime.datetime.strftime(final_updated_time, '%d-%m-%Y')
                 final_status = approver_1_detail_data.get('pending_pr__final_status')
+
             else:
                 approver1_status = 'No'
                 last_updated_by = approver_1_detail_data.get('validated_by')
@@ -13168,6 +13169,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver1_status = 'Yes'
                     approver_1_details = approver_2_detail_data.get('validated_by')
                     approver2_status,approver_2_details = '', ''
+
             else:
                 approver1_status = 'No'
                 last_updated_by = approver_2_detail_data.get('validated_by')
@@ -13313,6 +13315,7 @@ def get_pr_report_data(search_params, user, sub_user):
                     approver4_status = 'Yes'
                     approver_4_details = approver_4_detail_data.get('validated_by')
                     approver5_status, approver_5_details = '', ''
+
             else:
                 approver5_status = 'No'
                 approver_5_details = approver_5_detail_data.get('validated_by')

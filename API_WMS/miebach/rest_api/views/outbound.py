@@ -2334,14 +2334,16 @@ def netsuite_picklist_confirmation(final_data_list, user):
     from datetime import datetime
     from pytz import timezone
     it_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    location_int_id = user.userprofile.location_code
+    department= ""
     items=[]
     reason = ""
     for picklist_dict in final_data_list:
         value = picklist_dict['value']
         key = picklist_dict['key']
         for item in value:
-
             #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
            # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
            # price= open_st.price
@@ -2362,12 +2364,20 @@ def netsuite_picklist_confirmation(final_data_list, user):
                 e_date=datetime.strptime(exp_date, '%d-%m-%Y')
                 exp_date= e_date.isoformat()
             print(mfg_date, exp_date)
+            unitdata = gather_uom_master_for_sku(user, item.get("wms_code"))
+            unitexid = unitdata.get('name', None)
+            purchaseUOMname = None
+            for row in unitdata.get('uom_items', None):
+                if row.get('unit_type', '') == 'Purchase':
+                    purchaseUOMname = row.get('unit_name', None)
             items.append({ "adjust_qty_by": item.get("picked_quantity",0),
                         "sku_code": item.get("wms_code"),
                         "batchno": item.get("batchno",""),
                         "mrp" : item.get("mrp",0),
                         "exp_date": exp_date,
                         "mfg_date": mfg_date,
+                        'unitypeexid': unitexid,
+                        'uom_name': purchaseUOMname,
                         #"price": price,
                         #"order_quantity":order_quantity,
                         #"cgst_tax":cgst_tax,
@@ -2379,6 +2389,7 @@ def netsuite_picklist_confirmation(final_data_list, user):
     stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
         'department': department,
         "subsidiary": subsidary,
+        "location_int_id": location_int_id,
         "plant": plant,
         'items': items,
         "it_date": it_date,

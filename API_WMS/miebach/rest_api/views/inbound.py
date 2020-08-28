@@ -5000,7 +5000,7 @@ def insert_inventory_adjust(request, user=''):
         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
                                        receipt_type='inventory-adjustment',price=price)
-        netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
+        netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     update_filled_capacity([loc], user.id)
@@ -5008,18 +5008,36 @@ def insert_inventory_adjust(request, user=''):
     check_and_update_stock([wmscode], user)
     return HttpResponse(status)
 
-def netsuite_inventory_adjust(cycle_id, wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
+def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
     from datetime import datetime
     from pytz import timezone
     ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
-    department, plant, subsidary=get_plant_subsidary_and_department(user)
+    import time
+    unixtime = int(round(time.time() * 1000))
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    location_int_id = user.userprofile.location_code
+    department= ""
     if(sku_stock_quantity):
         quantity=float(quantity)-float(sku_stock_quantity)
-    inventory_data = {'ia_number': "inventory_adjustment_"+str(cycle_id),
+    unitdata = gather_uom_master_for_sku(user, wmscode)
+    unitexid = unitdata.get('name', None)
+    purchaseUOMname = None
+    for row in unitdata.get('uom_items', None):
+        if row.get('unit_type', '') == 'Purchase':
+            purchaseUOMname = row.get('unit_name', None)
+    inventory_data = { 'ia_number': str(user.userprofile.stockone_code)+ "_"+ str(wmscode)+"_"+str(unixtime),
         'department': department,
         "subsidiary": subsidary,
+        "account": location_int_id,
         "plant": plant,
-        'items':[{"sku_code":wmscode, "adjust_qty_by": quantity,"price": price, 'batch_no':batch_no }],
+        'items':[{"sku_code": wmscode,
+            "adjust_qty_by": quantity,
+            "price": price,
+            'batch_no':batch_no,
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname,
+         }],
         "ia_date": ia_date,
         "remarks": reason
     }
@@ -7229,9 +7247,12 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         for row in unitdata.get('uom_items', None):
             if row.get('unit_type', '') == 'Purchase':
                 purchaseUOMname = row.get('unit_name', None)
+        cess_tax=0
+        if 'cess_tax' in data:
+            cess_tax =data['cess_tax']
         item = {'sku_code':data['wms_code'], 'sku_desc':data['sku_desc'],"order_idx":data["order_idx"],
                 'quantity':data['order_quantity'], 'unit_price':data['price'],
-                'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'],
+                'mrp':data['mrp'],'sgst_tax':data['sgst_tax'], 'igst_tax':data['igst_tax'], 'cess_tax': cess_tax,
                 'cgst_tax':data['cgst_tax'], 'utgst_tax':data['utgst_tax'], 'received_quantity':data['received_quantity'],
                 'batch_no':data['batch_no'], 'unitypeexid': unitexid, 'uom_name': purchaseUOMname, "itemReceive": True}
         if(data.get("mfg_date",None)):
@@ -7247,7 +7268,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         grn_data['items'].append(item)
         received_sku_list.append(data['wms_code'])
         data_order_idx.append(data["order_idx"])
-    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
+    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__order_quantity=received_quantity, open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
     if(partial_grn_skus_po_obj):
         po_line_items_length=len(partial_grn_skus_po_obj)+ len(data_order_idx)
         temp_list=[]
@@ -9678,7 +9699,7 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
-def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request):
+def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category, prQs, request, replaceAll=''):
     # from api_calls.netsuite import netsuite_create_po
     order_id = order_id
     po_number = po_number
@@ -9775,7 +9796,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
                     'terms_condition':data_dict.get('terms_condition', ''), 'company_id':company_id, 'user_id':user.id,
                     'remarks':_purchase_order.remarks, 'items':[], 'supplier_id':supplier_id, 'order_type':_purchase_order.open_po.order_type,
                     'reference_id':_purchase_order.open_po.supplier.reference_id, 'product_category':product_category, 'pr_number':pr_number,
-                    'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number}
+                    'approval1':approval1,'approval2':approval2,'approval3':approval3,'approval4':approval4, "requested_by": requested_by , 'full_pr_number':full_pr_number, 'replaceAll': 'replaceAll_'+str(replaceAll)}
         for purchase_order in purchase_objs:
             _open = purchase_order.open_po
             user_obj = User.objects.get(pk=_open.sku.user)

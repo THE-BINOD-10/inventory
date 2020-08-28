@@ -6360,13 +6360,16 @@ def get_warehouse_level_data(request, user=''):
 
 
 
-def get_sku_stock_summary(stock_data, load_unit_handle, user):
+def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
+    user_ids = [user.id]
+    if user_list:
+        user_ids = user_list
     availabe_quantity = {}
     industry_type = user.userprofile.industry_type
     res_qty_dict = {}
-    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user=user.id,
+    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user__in=user_ids,
                                                    stock_id__in=stock_data.values_list('id', flat=True), status=1).\
         only('stock_id', 'reserved')
     for res_qty_obj in res_qty_objs:
@@ -6375,7 +6378,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     for stock in stock_data:
         res_qty = res_qty_dict.get(stock.id, 0)
 
-        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user__in=user_ids,
                                                  stock_id=stock.id, status=1).aggregate(Sum('reserved'))['reserved__sum']
 
         if not res_qty:

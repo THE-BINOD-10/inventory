@@ -25,8 +25,9 @@ from inbound_common_operations import *
 from stockone_integrations.views import Integrations
 from rest_api.views.inbound import confirm_grn
 from miebach.celery import app
+from rest_api.views.inbound_common_operations import *
 
-log = init_logger('logs/upload_PO_scripts_grl.log')
+log = init_logger('logs/OPEN_PO_scripts.log')
 
 
 
@@ -46,6 +47,7 @@ def upload_po_data(file_location):
     count=1
     failed=0
     already_complted=0
+    success_count=0
     for key, value in data.iteritems():
         sku_code = value[0]['Material code.1'].strip()
         print(sku_code)
@@ -54,12 +56,12 @@ def upload_po_data(file_location):
         if user_profile_obj:
             user=user_profile_obj[0].user
         else:
-            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['StockOne Plant ID']))
+            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['STOCKONE Plant code']))
             if user_profile_obj:
                 user=user_profile_obj[0].user
             else:
-                print('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-                log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
+                log.info('PO Upload failed for %s and params are %s and plant code is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
                 continue
         print("\n plant_user",user)
         try:
@@ -79,7 +81,7 @@ def upload_po_data(file_location):
             po_id=po_obj[0].order_id
             flag= True
             check_po= True
-            po_obj.update(creation_date=po_date_time,updation_date=po_date_time, po_date= po_date)
+            po_obj.update(creation_date=po_date_time,updation_date=po_date_time, po_date= po_date_time)
             already_complted=already_complted+1
         f1_sku_product="Kits&Consumables"
         product_category_test=True
@@ -90,6 +92,10 @@ def upload_po_data(file_location):
                     sku_id = SKUMaster.objects.filter(wms_code=row['Material code.1'].upper().strip(), user=user.id)
                     if sku_id:
                         sku= sku_id[0]
+                        if not sku.hsn_code:
+                            log.info('PO Upload failed hsn code is not present for %s and params are %s and PO is %s' % (str(row[    'Material code.1']), str(value), str(key)))
+                            flag= False
+                            break
                         try:
                             if sku.assetmaster:
                                 if index==0:
@@ -124,10 +130,12 @@ def upload_po_data(file_location):
                         log.info('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
                         flag= False
                         break
+                    if index >1:
+                        continue
                     supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
                     if not supplier_obj:
-                        log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(e)))
-                        print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(e)))
+                        log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
+                        print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
                         ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip())
                         if ori_sup_obj:
                             log.info("need to create vendor\n\n")
@@ -145,8 +153,8 @@ def upload_po_data(file_location):
                                 payment_obj=PaymentTerms(**temp_dict)
                                 payment_obj.save()
                         else:
-                            print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-                            log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                            print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
+                            log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
                             flag= False
                             break
                 else:
@@ -225,17 +233,22 @@ def upload_po_data(file_location):
                 else:
                     break
                     log.info("PO already present in stockone PO Number= %s" % (str(key)))
+            success_count= success_count+1
         else:
             failed=failed+1
-        po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
-        delivery_date= po_date_time.strftime('%d-%m-%Y')
-        data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
-        try:
-            netsuite_po(int(po_id), user, "open_po", data_dict, str(key), product_category, None, "")
-        except Exception as e:
-            log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
-            pass
-        print("total_count",len(data), "completed= ", count, "failed=",failed, "already_complted=", already_complted)
+        #print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
+        #count=count+1
+        #continue
+        if not check_po:
+            po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
+            delivery_date= po_date_time.strftime('%d-%m-%Y')
+            data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
+            try:
+                netsuite_po(int(po_id), user, "open_po", data_dict, str(key), product_category, None, "")
+            except Exception as e:
+                log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
+                pass
+        print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
         count=count+1
 
 def zone_location_script():
@@ -328,3 +341,393 @@ def hsn_code_internal_id_script(file_location):
                 print("hsn_code not Present",{"hsn_code": row["product_type"]})
     else:
         print("file_locatio is empty")
+
+
+def inventory_upload(file_location):
+    from miebach_admin.models import *
+    import datetime
+    import pandas as pd
+    from rest_api.views.common import create_update_batch_data,add_ean_weight_to_batch_detail
+    from pytz import timezone
+    df = pd.read_excel(file_location, header=0)
+    df = df.fillna('')
+    csv_data=df.to_dict('r')
+    print(len(csv_data))
+    total_count=len(csv_data)
+    failed_count=0
+    completed_count=0
+    for row in csv_data:
+        try:
+            user=""
+            sku_code=""
+            plant_user=""
+            receipt_type= "Opening Stock"
+            if row.get('Plant', None):
+                user_profile_obj=UserProfile.objects.filter(stockone_code=row['Plant'])
+                if user_profile_obj:
+                    plant_user=user_profile_obj[0].user
+                else:
+                    user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(row['Plant']))
+                    if user_profile_obj:
+                        plant_user=user_profile_obj[0].user
+                    else:
+                        failed_count+=1
+                        print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(row), str("value"), str(row['Plant'])))
+                        continue
+            else:
+                failed_count+=1
+                print("username is empty and data= ", row)
+                continue
+            if row.get('WH username', None):
+                user_obj= User.objects.filter(username=str(row['WH username']).strip())
+                if user_obj:
+                    user= user_obj[0]
+                else:
+                    print("username is not present and User= ", row['WH username'])
+                    failed_count+=1
+                    continue
+            else:
+                failed_count+=1
+                print("username is empty and data= ", row)
+                continue
+            print("\n plant_user", plant_user, "wherehouse_user", user)
+            sku_id, location= "",""
+            if row.get('SKU Code', ''):
+                sku_code = str(row['SKU Code']).strip()
+                sku_id = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+                if sku_id:
+                    sku_obj= sku_id[0]
+            if not row.get('SKU Code', '')  or not sku_id:
+                failed_count+=1
+                print("SKU_CODE is not present data =", str(row))
+                continue
+            if row.get('Location', ''):
+                location = str(row['Location']).strip()
+                location_obj=LocationMaster.objects.filter(location=location, zone__user=user.id)
+                if location_obj:
+                    location_obj=location_obj[0]
+            if not location_obj or not row.get('Location', ''):
+                failed_count+=1
+                print("Location is not present data =", str(row))
+                continue
+            unit_price, buy_price, mrp ,quantity= [0]*4
+            if row.get('Price', 0):
+                buy_price= row['Price']
+                unit_price= row['Price']
+            if row.get('MRP', 0):
+                mrp= row['MRP']
+            if row.get('Base UOM Quantity', 0):
+                quantity= row['Base UOM Quantity']
+            if 'Receipt Type' in row:
+                receipt_type = row['Receipt Type']
+            if row.get('Receipt Number', ''):
+                receipt_number =row['Receipt Number']
+            else:
+                failed_count+=1
+                print("Receipt Number is not present data", str(row))
+                continue
+            if row.get('Receipt Date(YYYY-MM-DD)'):
+                receipt_date= datetime.datetime.strptime(row['Receipt Date(YYYY-MM-DD)'], "%Y-%m-%d").strftime("%m/%d/%Y")
+                receipt_date = datetime.datetime.strptime(receipt_date, '%m/%d/%Y')
+            else:
+                failed_count+=1
+                print("Receipt Date is not present data= ", str(row))
+                continue
+            puom, pcf, pquantity, weight, expiry_date, manufactured_date, batch_no = ['']*7
+            if 'Purchase UOM' in row:
+                puom = row['Purchase UOM']
+            if 'Purchase Conversion Factor' in row:
+                pcf= row['Purchase Conversion Factor']
+            if 'Purchase Quantity' in row:
+                pquantity =row['Purchase Quantity']
+            if 'Weight' in row:
+                weight= row['Weight']
+            if row.get('Expiry Date(YYYY-MM-DD)', ''):
+                expiry_date = row['Expiry Date(YYYY-MM-DD)']
+                expiry_date= datetime.datetime.strptime(expiry_date, "%Y-%m-%d").strftime("%m/%d/%Y")
+            if row.get('Manufactured Date(YYYY-MM-DD)', ''):
+                manufactured_date = row['Manufactured Date(YYYY-MM-DD)']
+                manufactured_date = datetime.datetime.strptime(manufactured_date, "%Y-%m-%d").strftime("%m/%d/%Y")
+            if 'Batch Number' in row:
+                batch_no = row['Batch Number']
+                if isinstance(batch_no, float):
+                    batch_no=str(int(batch_no))
+            batch_dict = {
+                # 'transact_type': 'upload_loc',
+                'batch_no': str(batch_no),
+                'expiry_date': expiry_date,
+                'manufactured_date': manufactured_date,
+                'mrp': mrp,
+                'buy_price': buy_price,
+                'weight': weight,
+                'puom': puom,
+                'pquantity': pquantity,
+                'pcf': pcf
+            }
+            add_ean_weight_to_batch_detail(sku_obj, batch_dict)
+            batch_obj= create_update_batch_data(batch_dict)
+            stock_details={
+                'batch_detail_id': batch_obj.id,
+                'location_id' : location_obj.id,
+                'sku_id': sku_obj.id,
+                'receipt_number': receipt_number,
+                'receipt_date': receipt_date,
+                'receipt_type' : receipt_type,
+                'quantity': quantity,
+                'unit_price': unit_price,
+            }
+            print(batch_dict)
+            print(stock_details)
+            stockdetail_obj = StockDetail(**stock_details)
+            stockdetail_obj.save()
+            sku_details_data={
+                'sku_id': sku_obj.id,
+                'stock_detail_id': stockdetail_obj.id,
+                'transact_type': 'inventory-upload',
+                'quantity': quantity
+            }
+            SKUDetailStats_obj=SKUDetailStats(**sku_details_data)
+            SKUDetailStats_obj.save()
+
+            cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+            #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+            if not cycle_count:
+                cycle_id = 1
+            else:
+                cycle_id = cycle_count + 1
+            reason = "Initial Inventory Upload"
+            # netsuite_inventory_upload(cycle_id, sku_obj.wms_code, pquantity, reason, str(batch_no), mrp, weight, unit_price , row['Expiry Date(YYYY-MM-DD)'],plant_user)
+            completed_count+=1
+            print("completed_count",completed_count, "failed_count ",failed_count)
+            # break
+        except Exception as e:
+            failed_count+=1
+            completed_count+=1
+            print("completed_count",completed_count, "failed_count ",failed_count)
+            print("\n\n\n Exception data = ", str(row), "\n error is =" ,str(e))
+        # break
+
+def netsuite_inventory_upload(cycle_id, wmscode, purchase_quantity, reason, batch_no, mrp, weight, unit_price , expiry_date, user=''):
+    from stockone_integrations.views import Integrations
+    from rest_api.views.inbound import gather_uom_master_for_sku
+    from datetime import datetime
+    from pytz import timezone
+    ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
+    import time
+    unixtime = int(round(time.time() * 1000))
+    plant = user.userprofile.reference_id
+    subsidary= user.userprofile.company.reference_id
+    location_int_id = user.userprofile.location_code
+    department= ""
+    unitdata = gather_uom_master_for_sku(user, wmscode)
+    unitexid = unitdata.get('name', None)
+    purchaseUOMname = None
+    for row in unitdata.get('uom_items', None):
+        if row.get('unit_type', '') == 'Purchase':
+            purchaseUOMname = row.get('unit_name', None)
+    if(expiry_date):
+        exp_date = datetime.strptime(expiry_date, "%Y-%m-%d")
+        exp_date= exp_date.isoformat()
+    inventory_data = {'ia_number': str(user.userprofile.stockone_code)+ "_"+ str(wmscode)+"_"+str(unixtime),
+        'department': department,
+        "subsidiary": subsidary,
+        "account": location_int_id,
+        "plant": plant,
+        'items':[{"sku_code": wmscode,
+            "adjust_qty_by": purchase_quantity,
+            "price": unit_price,
+            'batch_no': batch_no,
+            'exp_date': exp_date,
+            'unitypeexid': unitexid,
+            'uom_name': purchaseUOMname,
+         }],
+        "ia_date": ia_date,
+        "remarks": reason
+    }
+    intObj = Integrations(user, 'netsuiteIntegration')
+    intObj.IntegrateInventoryAdjustment(inventory_data, "ia_number", is_multiple=False)
+
+def upload_po_data_to_netsuite(file_location):
+    import datetime
+    import pandas as pd
+    from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
+    # from rest_api.views.inbound import netsuite_po
+    # file_location = "/var/www/metropolis_prod/WMS_ANGULAR/API_WMS/miebach/"
+    #  UserProfile.objects.get(stockone_code="33004")
+    # SupplierMaster.objects.get(user=55, supplier_id__contains='LO2145A018').tin_number
+    from pytz import timezone
+    from django.forms.models import model_to_dict
+    from rest_api.views.inbound_common_operations import *
+    log = init_logger('logs/new_PAST_PO_UPLOAD_scripts.log')
+    df = pd.read_excel(file_location, header=1)
+    df = df.fillna('')
+    data= df.groupby('PO No.'.strip()).apply(lambda x: x.to_dict(orient='r')).to_dict()
+    count=1
+    failed=0
+    success=0
+    for key, value in data.iteritems():
+        sku_code = value[0]['Material code.1'].strip()
+        print(sku_code)
+        user=''
+        user_profile_obj=UserProfile.objects.filter(stockone_code=value[0]['STOCKONE Plant code'])
+        if user_profile_obj:
+            user=user_profile_obj[0].user
+        else:
+            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['StockOne Plant ID']))
+            if user_profile_obj:
+                user=user_profile_obj[0].user
+            else:
+                print('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                continue
+        print("\n plant_user",user)
+        flag=True
+        if flag:
+            for index, row in enumerate(value):
+                if row.get('Material code.1', ''):
+                    if not row['Pending PO Qty']:
+                        print('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
+                        flag= False
+                        break
+                    try:
+                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
+                        if not supplier_obj:
+                            log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str("e")))
+                            print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str("e")))
+                            ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip())
+                            if ori_sup_obj:
+                                print("need to create vendor\n\n")
+                                log.info("need to create vendor")
+                                ori_sup=model_to_dict(ori_sup_obj[0])
+                                supp_id=ori_sup['id']
+                                temp_suplier_id= ori_sup['id'].split('_')
+                                del temp_suplier_id[0]
+                                ori_sup["id"]= (str(user.id)+"_")+"_".join(temp_suplier_id)
+                                ori_sup["user"]= user.id
+                                obj=SupplierMaster(**ori_sup)
+                                obj.save()
+                                supplier_obj = [obj]
+                                ori_pay=PaymentTerms.objects.filter(supplier=supp_id)
+                                for pay in ori_pay:
+                                    temp_dict= { "supplier": obj, "payment_code": pay.payment_code, "payment_description": pay.payment_description}
+                                    payment_obj=PaymentTerms(**temp_dict)
+                                    payment_obj.save()
+                            else:
+                                log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str("e")))
+                                print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str("e")))
+                                flag= False
+                                break
+                        else:
+                            if(supplier_obj[0].reference_id in ['13733','14827']):
+                                flag=True
+                            else:
+                                flag=False
+                            break
+                    except Exception as e:
+                        log.info('PO Upload failed Beacause vendor error for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                else:
+                    print('PO Upload failed for %s and params are %s and PO error is StockOne SKU Code or StockOne Plant ID is empty' % (str(key), str(value)))
+                    flag= False
+                    break
+        product_category= "OtherItems"
+        if flag:
+            po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
+            delivery_date= po_date_time.strftime('%d-%m-%Y')
+            data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':"" , "line_items":value}
+            try:
+                if supplier_obj:
+                    netsuite_po(1, user, "open_po", data_dict, str(key), product_category, None, "", supplier_obj[0])
+                else:
+                    print("supplier not present",value[0]['Vendor Code'], "User= " ,user.username)
+            except Exception as e:
+                print("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
+                pass
+            success+=1
+        else:
+            failed+=1
+        print("total_count= ", len(data), "completed= ", count, "Failed= ", failed, "Success= ", success)
+        count=count+1
+
+
+def add_new_sku_code_to_netsuite():
+    po_number="4000097229"
+    stockone_code ="33004"
+    PO_Date ="23.07.2020"
+    Material_code ="CON001412"
+    quantity = 300
+    price = 210
+    sgst_tax = 9
+    cgst_tax = 9
+    igst_tax = 0
+    product_category = "Kits&Consumables"  #Assets Services OtherItems
+    po_data = {'open_po_id': '', 'status': '', 'received_quantity': 0}
+    po_suggestions={'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'order_type': 'SR', 'price': 0,
+                               'status': 1}
+    from miebach_admin.models import *
+    from pytz import timezone
+    from rest_api.views.inbound import netsuite_po
+    import datetime
+    utc_tz=timezone("UTC")
+    po_date_time =utc_tz.localize(datetime.datetime.strptime(PO_Date, '%d.%m.%Y'))
+    po_objs=PurchaseOrder.objects.filter(po_number=po_number).values('order_id', 'open_po__supplier_id')
+    len(po_objs)
+    if po_objs:
+        po_obj = po_objs[0]
+        po_id = po_obj["order_id"]
+        supplier_id= po_obj['open_po__supplier_id']
+        user_profile_obj= UserProfile.objects.filter(stockone_code=stockone_code)
+        if user_profile_obj:
+            user=user_profile_obj[0].user
+        sku_id = SKUMaster.objects.filter(wms_code=Material_code, user=user.id)
+        if sku_id:
+            sku= sku_id[0]
+        po_suggestions['sku_id'] = sku_id[0].id
+        po_suggestions['supplier_id'] =  supplier_id
+        po_suggestions['order_quantity'] = quantity
+        po_suggestions['price'] = price
+        po_suggestions['status'] = 'Manual'
+        po_suggestions['measurement_unit'] = "UNITS"
+        po_suggestions['sgst_tax'] = sgst_tax
+        po_suggestions['cgst_tax'] = cgst_tax
+        po_suggestions['igst_tax'] = igst_tax
+        data1 = OpenPO(**po_suggestions)
+        data1.save()
+        data1.creation_date= po_date_time
+        data1.updation_date= po_date_time
+        data1.save()
+        purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
+        sup_id = purchase_order.id
+        supplier = purchase_order.supplier_id
+        po_data['open_po_id'] = sup_id
+        po_data['order_id'] = int(po_id)
+        # po_data['prefix'] = prefix
+        po_data['po_number'] = str(po_number)
+        order = PurchaseOrder(**po_data)
+        order.save()
+        order.creation_date= po_date_time
+        order.updation_date= po_date_time
+        order.po_date= po_date_time
+        order.save()
+        print("Saved data ")
+        po_date_time =datetime.datetime.strptime(PO_Date, '%d.%m.%Y')
+        delivery_date= po_date_time.strftime('%d-%m-%Y')
+        data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
+        netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "", False)
+        # netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "")
+
+def update_po_price():
+    po_number="6500001664"
+    old_sku_code="REG000747"
+    new_sku_code = "REG001949"
+    stockone_code ="27018"
+    price = 8674
+    sgst = 0
+    cgst = 0
+    user_profile_obj= UserProfile.objects.filter(stockone_code=stockone_code)
+    if user_profile_obj:
+        user=user_profile_obj[0].user
+    po_1= PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__sku_code= old_sku_code, open_po__sku__user= user.id)[0]
+    sku_id = SKUMaster.objects.filter(wms_code=new_sku_code, user=user.id)
+    if sku_id:
+        OpenPO.objects.filter(id=po_1.open_po.id).update(price=price, sku_id=sku_id[0].id)
+    # if po_1:
+    #     OpenPO.objects.filter(id=po_1.open_po.id).update(sgst_tax=sgst, cgst_tax= cgst)

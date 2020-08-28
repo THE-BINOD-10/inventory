@@ -338,7 +338,7 @@ class NetSuiteClient:
         method = getattr(self._service_proxy, name)
         # call the service:
         include_search_preferences = (name == 'search')
-        response = method(*args, 
+        response = method(*args,
                 _soapheaders=self._build_soap_headers(include_search_preferences=include_search_preferences)
                 , **kwargs)
         return response
@@ -521,7 +521,7 @@ class NetSuiteClient:
 
             if len(current_batch):
                 all_batches.append(current_batch)
-            
+
             for batch in all_batches:
                 dataToSend.append(self.upsertList(batch))
 
@@ -549,26 +549,42 @@ class NetSuiteClient:
                 recordType = type(row).__name__
                 recordType = recordType[0].lower() + recordType[1:]
                 recordsList.append(self.RecordRef(type=recordType, externalId=row.externalId))
-                
-            
+
+
 
             response = self.request('%sList' % action, baseRef=recordsList)
+        elif action == 'initialize':
+            recordsList = []
+            for row in records:
+                recordType = type(row).__name__
+                recordType = recordType[0].lower() + recordType[1:]
+                recordsList.append({ "type": recordType , "reference": {"externalId": row.createdFrom.externalId, "type": "purchaseOrder"}})
+            response = self.request('%sList' % action, initializeRecord=recordsList)
         else:
             response = self.request('%sList' % action, record=records)
-        responses = response.body.writeResponseList.writeResponse
         record_refs = []
-        for response in responses:
-            status = response.status
-            if status.isSuccess:
-                record_ref = response['baseRef']
-                self.logger.debug('Successfully updated record of type {type}, internalId: {internalId}, externalId: {externalId}'.format(
-                        type=record_ref['type'], internalId=record_ref['internalId'], externalId=record_ref['externalId']))
-                record_refs.append(record_ref)
-            else:
-                record_ref = response['baseRef']
-                record_ref.error = True
-                record_ref.error_msg = status['statusDetail'][0].message
-                record_refs.append(record_ref)
+        if action == 'initialize':
+            record_refs={}
+            responses = response.body.readResponseList.readResponse
+            for response in responses:
+                status = response.status
+                if status.isSuccess:
+                    record_ref = response['record']
+                    record_refs.update({record_ref['createdFrom']['name'].split("#")[-1] : record_ref['itemList']['item']})
+        else:
+            responses = response.body.writeResponseList.writeResponse
+            for response in responses:
+                status = response.status
+                if status.isSuccess:
+                    record_ref = response['baseRef']
+                    self.logger.debug('Successfully updated record of type {type}, internalId: {internalId}, externalId: {externalId}'.format(
+                            type=record_ref['type'], internalId=record_ref['internalId'], externalId=record_ref['externalId']))
+                    record_refs.append(record_ref)
+                else:
+                    record_ref = response['baseRef']
+                    record_ref.error = True
+                    record_ref.error_msg = status['statusDetail'][0].message
+                    record_refs.append(record_ref)
 
-                
+
         return record_refs

@@ -69,7 +69,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
         else:
-            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected', 'resubmitted']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level

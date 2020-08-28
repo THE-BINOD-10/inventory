@@ -3236,9 +3236,12 @@ def save_config_extra_fields(request, user=''):
 @login_required
 @get_admin_user
 def search_wms_codes(request, user=''):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
+    instanceName = SKUMaster
+    if sku_type == 'Test':
+        instanceName = TestMaster
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     extra_filter = {}
     data_exact = sku_master.filter(Q(wms_code__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
         'wms_code')
@@ -3273,6 +3276,35 @@ def search_wms_codes(request, user=''):
     # wms_codes = list(set(wms_codes))
 
     return HttpResponse(json.dumps(wms_codes))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_machine_codes(request, user=''):
+    data_id = request.GET.get('q', '')
+    extra_filter = {}
+    data_exact = MachineMaster.objects.filter(Q(machine_code__iexact=data_id) | Q(machine_name__iexact=data_id), user=user.id).order_by(
+        'machine_code')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = MachineMaster.objects.filter(user=user.id).exclude(id__in=exact_ids).filter(Q(machine_code__icontains=data_id) | Q(machine_name__icontains=data_id),
+                                                       user=user.id).order_by('machine_code')
+    machine_codes = []
+    data = list(chain(data_exact, data))
+    count = 0
+    if data:
+        for machine in data:
+            machine_codes.append(str(machine.machine_code))
+            #if not sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
+            #elif wms.sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
+            if len(machine_codes) >= 10:
+                break
+
+    # wms_codes = list(set(wms_codes))
+
+    return HttpResponse(json.dumps(machine_codes))
 
 @csrf_exempt
 @login_required
@@ -5382,7 +5414,8 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
     if instanceName.__name__ == 'SKUMaster' and not all_prod_catgs:
         sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
                         exclude(id__in=ServiceMaster.objects.all()). \
-                        exclude(id__in=OtherItemsMaster.objects.all())
+                        exclude(id__in=OtherItemsMaster.objects.all()). \
+                        exclude(id__in=TestMaster.objects.all())
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         if is_list:
@@ -13012,3 +13045,23 @@ def get_netsuite_mapping_list(type_name_list):
     type_val_list = list(NetsuiteIdMapping.objects.filter(type_name__in=type_name_list).\
                          values_list('type_value', flat=True).distinct())
     return type_val_list
+
+def get_sku_uom_list_data(sku, uom_type=''):
+    user = User.objects.get(id=sku.user)
+    company_id = get_company_id(user)
+    uom_objs = UOMMaster.objects.filter(company_id=company_id, sku_code=sku.sku_code, uom_type=uom_type).\
+                                values('name', 'base_uom', 'uom_type', 'uom', 'conversion')
+    return list(uom_objs)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_uom_list(request, user=''):
+    sku_code = request.GET['sku_code']
+    uom_type = request.GET.get('uom_type', '')
+    uom_data = []
+    sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+    if sku.exists():
+        uom_data = get_sku_uom_list_data(sku[0], uom_type=uom_type)
+    return HttpResponse(json.dumps({'data': uom_data}))

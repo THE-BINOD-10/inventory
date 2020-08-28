@@ -163,6 +163,7 @@ urlpatterns = [
     url(r'^search_wh_supplier/$', search_wh_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_machine_codes/$', search_machine_codes),
     url(r'^search_sku_brands/$', search_sku_brands),
     url(r'^search_sku_categorys/$', search_sku_categorys),
     url(r'^search_corporate_names/$', search_corporate_names),
@@ -791,6 +792,8 @@ urlpatterns += [
     url(r'^get_sku_category_list/$', get_sku_category_list),
     url(r'^get_user_groups_list/$', get_user_groups_list),
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
+    url(r'^get_sku_uom_list/$', get_sku_uom_list),
+
 
 
     # Retailone

@@ -1622,10 +1622,27 @@ class StatusTrackingSummary(models.Model):
         index_together = (('status_tracking', 'processed_stage'), ('status_tracking', 'processed_stage', 'processed_quantity'))
 
 
+class MachineMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User,blank=True, null=True)
+    machine_code = models.CharField(max_length=128)
+    machine_name = models.CharField(max_length=128)
+    model_number = models.CharField(max_length=128)
+    serial_number = models.CharField(max_length=128)
+    brand = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MACHINE_MASTER'
+
+
 class BOMMaster(models.Model):
     id = BigAutoField(primary_key=True)
     material_sku = models.ForeignKey(SKUMaster, default=None)
     product_sku = models.ForeignKey(SKUMaster, related_name='product_sku', blank=True, null=True)
+    machine_master = models.ForeignKey(MachineMaster, blank=True, null=True)
     material_quantity = models.FloatField(default=0)
     wastage_percent = models.FloatField(default=0)
     unit_of_measurement = models.CharField(max_length=10, default='')
@@ -4006,21 +4023,6 @@ class UOMMaster(models.Model):
         return '%s-%s' % (self.company, self.name)
 
 
-class MachineMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User,blank=True, null=True)
-    machine_code = models.CharField(max_length=128)
-    machine_name = models.CharField(max_length=128)
-    model_number = models.CharField(max_length=128)
-    serial_number = models.CharField(max_length=128)
-    brand = models.CharField(max_length=64, default='')
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'MACHINE_MASTER'
-
 class TestMaster(SKUMaster):
     test_code = models.CharField(max_length=128)
     test_name = models.CharField(max_length=128)
@@ -4029,3 +4031,27 @@ class TestMaster(SKUMaster):
 
     class Meta:
         db_table = 'TEST_MASTER'
+
+
+class Consumption(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, related_name='consumption_user')
+    machine = models.ForeignKey(MachineMaster, related_name='consumption_machine')
+    test = models.ForeignKey(TestMaster, related_name='consumption_test')
+    rerun = models.FloatField(default=0)
+    one_time_process = models.FloatField(default=0)
+    two_time_process = models.FloatField(default=0)
+    three_time_process = models.FloatField(default=0)
+    n_time_process = models.FloatField(default=0)
+    n_time_process_val = models.FloatField(default=0)
+    quality_check = models.FloatField(default=0)
+    no_patient = models.FloatField(default=0)
+    total_test = models.FloatField(default=0)
+    qnp = models.FloatField(default=0)
+    total = models.FloatField(default=0)
+    total_patients = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CONSUMPTION'

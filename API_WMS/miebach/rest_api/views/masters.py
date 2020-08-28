@@ -817,7 +817,7 @@ def get_staff_master(start_index, stop_index, temp_data, search_term, order_term
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    #sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['product_sku__sku_code', 'product_sku__sku_desc']
 
     search_params = get_filtered_params(filters, lis)
@@ -825,17 +825,17 @@ def get_bom_results(start_index, stop_index, temp_data, search_term, order_term,
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if order_term:
-        master_data = BOMMaster.objects.filter(product_sku_id__in=sku_master_ids).filter(product_sku__user=user.id,
+        master_data = BOMMaster.objects.filter(product_sku__user=user.id).filter(product_sku__user=user.id,
                                                                                          **search_params).order_by(
             order_data). \
             values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
     if search_term:
-        master_data = BOMMaster.objects.filter(product_sku_id__in=sku_master_ids).filter(
+        master_data = BOMMaster.objects.filter(product_sku__user=user.id).filter(
             Q(product_sku__sku_code__icontains=search_term) |
             Q(product_sku__sku_desc__icontains=search_term), product_sku__user=user.id, **search_params). \
             values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = master_data.count()
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
             {'Product SKU Code': data['product_sku__sku_code'], 'Product Description': data['product_sku__sku_desc'],
@@ -1573,13 +1573,19 @@ def get_bom_data(request, user=''):
     all_data = []
     data_id = request.GET['data_id']
     bom_master = BOMMaster.objects.filter(product_sku__sku_code=data_id, product_sku__user=user.id)
+    machine_code = ''
+    if bom_master[0].machine_master:
+        machine_code = bom_master[0].machine_master.machine_code
     for bom in bom_master:
         cond = (bom.material_sku.sku_code)
+        uom_data = get_sku_uom_list_data(bom.material_sku, uom_type='consumption')
+        unit_list = map(lambda x: x['uom'], uom_data)
         all_data.append({"Material_sku": cond, "Material_Quantity": get_decimal_limit(user.id, bom.material_quantity),
-                         "Units": bom.unit_of_measurement.upper(),
-                         "BOM_ID": bom.id, "wastage_percent": bom.wastage_percent})
+                         "Units": bom.unit_of_measurement,
+                         "BOM_ID": bom.id, "wastage_percent": bom.wastage_percent,
+                         "unit_list": unit_list})
     title = 'Update BOM Data'
-    return HttpResponse(json.dumps({'data': all_data, 'product_sku': data_id}))
+    return HttpResponse(json.dumps({'data': all_data, 'product_sku': data_id, 'machine_code': machine_code}))
 
 
 @csrf_exempt
@@ -2605,14 +2611,19 @@ def get_supplier_list(request, user=''):
 
 
 
-def validate_bom_data(all_data, product_sku, user):
+def validate_bom_data(all_data, product_sku, user, machine_code):
     status = ''
     m_status = ''
     q_status = ''
     d_status = ''
+    mc_status = ''
     p_sku = SKUMaster.objects.filter(sku_code=product_sku, user=user)
     if not p_sku:
-        status = "Invalid Product SKU Code %s" % product_sku
+        status = "Invalid Test Code %s" % product_sku
+    if machine_code:
+        machine_obj = MachineMaster.objects.filter(machine_code=machine_code, user_id=user)
+        if not machine_obj:
+            mc_status = "Invalid Machine Code %s" % machine_code
     #else:
     #    if p_sku[0].sku_type not in ('FG', 'RM', 'CS'):
     #        status = 'Invalid Product SKU Code %s' % product_sku
@@ -2647,6 +2658,8 @@ def validate_bom_data(all_data, product_sku, user):
                     d_status += ', (%s,%s)' % (product_sku, key)
     if m_status:
         status += ' ' + m_status
+    if mc_status:
+        status += ' ' + mc_status
     if q_status:
         status += ' ' + q_status
     if d_status:
@@ -2654,8 +2667,11 @@ def validate_bom_data(all_data, product_sku, user):
     return status
 
 
-def insert_bom(all_data, product_code, user):
-    product_sku = SKUMaster.objects.get(sku_code=product_code, user=user)
+def insert_bom(all_data, product_code, user, machine_code):
+    product_sku = TestMaster.objects.get(sku_code=product_code, user=user)
+    machine_obj = None
+    if machine_code:
+        machine_obj = MachineMaster.objects.filter(machine_code=machine_code, user_id=user)
     for key, value in all_data.iteritems():
         for val in value:
             bom = BOMMaster.objects.filter(product_sku__sku_code=product_code, material_sku__sku_code=key,
@@ -2673,6 +2689,8 @@ def insert_bom(all_data, product_code, user):
                 bom_dict = copy.deepcopy(ADD_BOM_FIELDS)
                 bom_dict['product_sku_id'] = product_sku.id
                 bom_dict['material_sku_id'] = material_sku.id
+                if machine_obj:
+                    bom_dict['machine_master_id'] = machine_obj[0].id
                 bom_dict['unit_of_measurement'] = val[1]
                 if val[0]:
                     bom_dict['material_quantity'] = float(val[0])
@@ -2689,7 +2707,8 @@ def insert_bom_data(request, user=''):
     all_data = {}
     product_sku = request.POST.get('product_sku', '')
     if not product_sku:
-        return HttpResponse('Product Sku Code should not be empty')
+        return HttpResponse('Test Code should not be empty')
+    machine_code = request.POST.get('machine_code', '')
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['material_sku'])):
         if not data_dict['material_sku'][i]:
@@ -2701,9 +2720,9 @@ def insert_bom_data(request, user=''):
         all_data.setdefault(cond, [])
         all_data[cond].append([data_dict['material_quantity'][i], data_dict['unit_of_measurement'][i], data_id,
                                data_dict['wastage_percent'][i]])
-    status = validate_bom_data(all_data, product_sku, user.id)
+    status = validate_bom_data(all_data, product_sku, user.id, machine_code)
     if not status:
-        all_data = insert_bom(all_data, product_sku, user.id)
+        all_data = insert_bom(all_data, product_sku, user.id, machine_code)
         status = "Added Successfully"
     return HttpResponse(status)
 

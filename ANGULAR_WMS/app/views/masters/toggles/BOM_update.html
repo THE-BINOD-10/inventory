@@ -9,8 +9,12 @@
       <div class="modal-body">
           <div class="row">
             <div class="col-md-4 col-sm-6 col-xs-6">
-              <label>Product SKU Code</label>
-              <input type="text" autocomplete="off" name="product_sku" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.product_sku" ng-blur="showCase.service.checkSearchValue(showCase.model_data.product_sku,'search_wms_codes?', $event, 'RM','Product SKU Code')">
+              <label>Test Code</label>
+              <input type="text" autocomplete="off" name="product_sku" class="form-control" placeholder="Search Test Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'Test')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.product_sku" ng-blur="showCase.service.checkSearchValue(showCase.model_data.product_sku,'search_wms_codes?', $event, 'Test','Test Code')">
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <label>Machine Code</label>
+              <input type="text" autocomplete="off" name="machine_code" class="form-control" placeholder="Search Machine Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_machine_codes?', 'Machine')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.machine_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.machine_code,'search_machine_codes?', $event, 'Machine','Machine Code')">
             </div>
           </div>
           <div class="row">
@@ -32,14 +36,19 @@
                   <tr ng-repeat= "material in showCase.model_data.data">
                     <input type="hidden" name="id" class="form-control" value="{{material.BOM_ID}}">
                     <td>
-                      <input type="text" autocomplete="off" name="material_sku" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="material.Material_sku" ng-blur="showCase.service.checkSearchValue(material.Material_sku,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+                      <input type="text" autocomplete="off" name="material_sku" class="form-control"
+                             placeholder="Search Material SKU Code"
+                             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')"
+                             typeahead-loading="loadingLocations" ng-model="material.Material_sku"
+                             ng-blur="showCase.service.checkSearchValue(material.Material_sku,'search_wms_codes?', $event, 'RM', 'Material SKU Code')"
+                             typeahead-on-select="showCase.get_uom_list(material)">
                     </td>
                     <td>
                       <input type="text" name="material_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="material.Material_Quantity"></td>
                     <td><input type="text" name="wastage_percent" class="form-control" ng-model="material.wastage_percent" ng-class="service.get_decimal_perm()" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"></td>
                     <td>
                       <select name="unit_of_measurement" class="form-control" ng-model="material.Units">
-                        <option ng-repeat="unit in showCase.units" ng-selected="material.Units == unit">{{unit}}</option>
+                        <option ng-repeat="unit in material.unit_list" ng-selected="material.Units == unit">{{unit}}</option>
                       </select>
                     </td>
                     <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>

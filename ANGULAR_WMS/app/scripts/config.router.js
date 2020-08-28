@@ -667,7 +667,7 @@ var app = angular.module('urbanApp')
           url: '/BOMMaster',
           permission: 'add_bommaster',
           templateUrl: 'views/masters/BOM_datatable.html',
-          permission: 'production_switch',
+          //permission: 'production_switch',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/masters/BOMMaster.js');

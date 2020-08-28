@@ -1961,6 +1961,7 @@ def generated_actual_pr_data(request, user=''):
                             moq = 0
 
                         tax = sgst_tax + cgst_tax + igst_tax
+                        cess_tax = get_kerala_cess_tax(tax, supplierMapping.supplier)
                         amount = qty * price
                         total = amount + (amount * (tax/100)) + (amount * (cess_tax/100))
                         supplier_id_name = '%s:%s' %(supplierId, supplierName)
@@ -2873,8 +2874,8 @@ def search_supplier(request, user=''):
         user = User.objects.get(id=warehouse_id)
     if arg_type == 'is_parent':
         user = get_admin(user)
-    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
-                                        Q(name__icontains=data_id), user=user.id)
+    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id, user=user.id) |
+                                        Q(name__icontains=data_id, user=user.id)).only('supplier_id', 'name')
     suppliers = []
     if data.exists():
         for supplier in data[:15]:

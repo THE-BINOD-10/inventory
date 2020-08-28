@@ -4038,6 +4038,7 @@ class Consumption(models.Model):
     user = models.ForeignKey(User, related_name='consumption_user')
     machine = models.ForeignKey(MachineMaster, related_name='consumption_machine')
     test = models.ForeignKey(TestMaster, related_name='consumption_test')
+    patient_samples = models.FloatField(default=0)
     rerun = models.FloatField(default=0)
     one_time_process = models.FloatField(default=0)
     two_time_process = models.FloatField(default=0)

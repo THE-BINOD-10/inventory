@@ -24,6 +24,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     vm.is_contracted_supplier = false;
     vm.cleared_data = true;
     vm.blur_focus_flag = true;
+    vm.quantity_editable = false;
+//    if(vm.permissions.change_pendinglineitems) {
+//      vm.quantity_editable = true;
+//    }
     vm.filters = {'datatable': 'PendingPRApproval', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -273,12 +277,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.checkResubmitPurchaseApprover = function(sku_data) {
             if (!vm.resubmitting_user) {
               vm.is_pa_resubmitted = true;
-              return;    
+              return;
             }
             vm.is_pa_resubmitted = false;
             if (vm.permissions.change_pendinglineitems){
               angular.forEach(vm.model_data.data, function(eachField){
-                if (eachField.fields.preferred_supplier != eachField.fields.supplier_id_name || eachField.fields.discount != eachField.fields.resubmit_discount){
+                if(eachField.fields.preferred_supplier != eachField.fields.supplier_id_name ||
+                   eachField.fields.discount != eachField.fields.resubmit_discount ||
+                   eachField.fields.order_quantity != eachField.fields.resubmit_quantity ||
+                   eachField.fields.price != eachField.fields.resubmit_price){
                   vm.is_pa_resubmitted = true;
                 }
               })
@@ -557,9 +564,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                 return;
               }
             } else if (key.name == 'order_quantity') {
-              if (key.value == '' || parseInt(key.value) <= 0) {
+              if (key.value == '' || parseInt(key.value) < 0) {
                 keepGoing = false;
-                Service.showNoty('Order Quantity cant be 0');
+                Service.showNoty('Order Quantity cant be empty or negative');
                 return; 
               }
             }

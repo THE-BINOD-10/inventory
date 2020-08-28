@@ -58,7 +58,7 @@ def get_dept_from_store_search(user, search_term):
 
 @csrf_exempt
 def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': []}
+    filtersMap = {'purchase_type': 'PR', 'pending_pr_id__in': [], 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
     if request.user.id != user.id:
         currentUserLevel = ''
@@ -69,7 +69,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         if status:
             pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected'])
         else:
-            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
+            pa_mails = PurchaseApprovalMails.objects.filter(email=currentUserEmailId).exclude(pr_approval__status__in=['approved', 'rejected', 'resubmitted']).exclude(pr_approval__pending_pr__final_status__in=['approved', 'saved', 'cancelled', 'rejected'])
         if pa_mails:
             for pa_mail in pa_mails:
                 currentUserLevel = pa_mail.level
@@ -1830,7 +1830,7 @@ def generated_actual_pr_data(request, user=''):
     if request.user.email != record[0].requested_user.email:
         validated_users.insert(0, record[0].requested_user.email)
     validated_users = list(set(validated_users))
-    lineItems = record[0].pending_prlineItems.values_list(*lineItemVals)
+    lineItems = record[0].pending_prlineItems.filter(quantity__gt=0).values_list(*lineItemVals)
     for rec in lineItems:
         updatedJson = {}
         sku_id, sku_code, sku_desc, sku_brand, qty, price, uom, lineItemId, \
@@ -1999,7 +1999,9 @@ def generated_actual_pr_data(request, user=''):
                                     'sku_class': sku_class,
                                     'hsn_code': hsn_code,
                                     'order_quantity': qty,
+                                    'resubmit_quantity': qty,
                                     'price': price,
+                                    'resubmit_price': price,
                                     'final_price': round(final_price, 2),
                                     'measurement_unit': measurement_unit,
                                     'conversion': sku_conversion,
@@ -3632,6 +3634,10 @@ def approve_pr(request, user=''):
                 cess_tax = float(myDict['cess_tax'][i])
             except:
                 cess_tax = 0
+            try:
+                quantity = float(myDict['order_quantity'][i])
+            except:
+                quantity = ''
             total = float(myDict['total'][i])
             unit_price = myDict['price'][i]
             if myDict.has_key('moq'):
@@ -3674,6 +3680,8 @@ def approve_pr(request, user=''):
                 lineItemObj.sgst_tax = sgst_tax
                 lineItemObj.igst_tax = igst_tax
                 lineItemObj.cess_tax = cess_tax
+                if quantity != '':
+                    lineItemObj.quantity = quantity
                 lineItemObj.save()
 
             TempJson.objects.create(model_id=lineItemQs[0].id,

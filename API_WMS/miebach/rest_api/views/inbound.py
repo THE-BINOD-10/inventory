@@ -7195,9 +7195,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     vendorbill_url=""
     if purchase_order_obj:
         po_order_id = purchase_order_obj[0].order_id
-        master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
-                                                master_type='GRN')
-        vendorbill_url=grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+        master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id, master_type='GRN', extra_flag=data_dict["receipt_number"]).order_by('-creation_date')
+        vendorbill_url= grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     grn_qty=float(data_dict.get("total_received_qty",0.0))
     grn_value=float(data_dict.get("net_amount",0.0))
     invoice_quantity= float(invoice_quantity)
@@ -12417,7 +12416,7 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     invoice_value = request.POST.get('inv_value', 0)
     invoice_quantity = request.POST.get('inv_quantity', 0)
     master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
-                                            master_type='GRN')
+                                            master_type='GRN').order_by('-creation_date')
     invoice_url=""
     if master_docs_obj:
         invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
@@ -15399,7 +15398,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         po_num=po_data["po_number"]
         po_order_id=s_po_s[0].purchase_order.order_id
         master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
-                                                master_type='GRN')
+                                                master_type='GRN').order_by('-creation_date')
         vendor_url=""
         if master_docs_obj:
             vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]

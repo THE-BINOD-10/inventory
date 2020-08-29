@@ -27,20 +27,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "Cancel GRN Report");
   }
 
-  /*vm.report_data = {};
-  vm.service.get_report_data("rtv_report").then(function(data) {
-    angular.copy(data, vm.report_data);
-    vm.report_data["row_call"] = vm.row_call;
-    vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data) {
-      vm.empty_data = data.empty_data;
-      angular.copy(vm.empty_data, vm.model_data);
-      vm.dtOptions = data.dtOptions;
-      vm.dtColumns = data.dtColumns;
-      vm.datatable = true;
-      vm.dtInstance = {};
-    })
-  })*/
-
   vm.reports = {}
 
   vm.title = "Cancel GRN Report";
@@ -71,11 +57,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.datatable = true;
         vm.dtInstance = {};
         vm.report_data['excel2'] = true;
-        if (vm.toggle_sku_wise) {
-            vm.report_data['excel_name'] = 'sku_wise_cancel_grn_report'
-        } else {
+        if (name =="sku_wise_cancel_grn_report")
+    		{
+            vm.report_data['excel_name'] = 'get_sku_wise_cancel_grn_report'
+            }
+            else{
             vm.report_data['excel_name'] = 'get_cancel_grn_report'
-        }
+            }
       })
 	}
 	}

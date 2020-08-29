@@ -119,7 +119,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     }
 
     vm.get_report_dt = function(filters, data) {
-
+      var grn_report_flag = false;
+      if (Object.keys(data).includes('dt_url')) {
+        if (data['dt_url'] == 'get_po_filter') {
+          grn_report_flag = true;
+        }
+      }
       var d = $q.defer();
       var send = {dtOptions: '', dtColumns: '', empty_data: {}};
 
@@ -133,7 +138,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data.from_date = ''
       }
       else{
-        send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+        if (grn_report_flag) {
+          send.empty_data.grn_from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+        } else {
+          send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+        }
       }
       send.empty_data.to_date = ''
 

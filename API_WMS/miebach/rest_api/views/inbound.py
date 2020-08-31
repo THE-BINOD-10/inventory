@@ -7192,6 +7192,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     from pytz import timezone
+    from django.db.models import F
 
     # grn_number = data_dict.get('po_number', '')
     grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
@@ -7283,7 +7284,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         grn_data['items'].append(item)
         received_sku_list.append(data['wms_code'])
         data_order_idx.append(data["order_idx"])
-    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__order_quantity=received_quantity, open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
+    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(received_quantity=F('open_po__order_quantity'), open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
     if(partial_grn_skus_po_obj):
         po_line_items_length=len(partial_grn_skus_po_obj)+ len(data_order_idx)
         temp_list=[]
@@ -15138,7 +15139,7 @@ def check_sku_pack_scan(request, user=''):
 @login_required
 @get_admin_user
 def download_grn_invoice_mapping(request, user=''):
-    search_parameters = {'purchase_order__open_po__sku__user': user.id}
+    search_parameters = {}#{'purchase_order__open_po__sku__user': user.id}
     if request.GET.get('from_date', ''):
         from_date = request.GET['from_date'].split('/')
         search_parameters['creation_date__gt'] = datetime.date(int(from_date[2]), int(from_date[0]),
@@ -15164,12 +15165,13 @@ def download_grn_invoice_mapping(request, user=''):
             request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',
-                                                    'purchase_order__open_po__supplier__name', 'purchase_order__po_number').distinct().\
+                                                    'purchase_order__open_po__supplier__name', 'purchase_order__po_number',
+                                                    'purchase_order__open_po__sku__user').distinct().\
                                     annotate(invoice_date=Cast('creation_date', DateField()))
     total_file_size = 0
     master_doc_objs = OrderedDict()
     for order in order_ids:
-        master_docs = MasterDocs.objects.filter(user_id=user.id, master_id=order['purchase_order__po_number'],
+        master_docs = MasterDocs.objects.filter(user_id=order['purchase_order__open_po__sku__user'], master_id=order['purchase_order__po_number'],
                                   master_type='GRN_PO_NUMBER', extra_flag=order['receipt_number'])
         if master_docs.exists():
             master_docs = master_docs[0]

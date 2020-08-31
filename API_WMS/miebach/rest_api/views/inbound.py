@@ -7191,11 +7191,8 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         dc_date=bill_date
         bill_no=''
         bill_date=''
-    purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
-    vendorbill_url=""
-    if purchase_order_obj:
-        po_order_id = purchase_order_obj[0].order_id
-        master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id, master_type='GRN', extra_flag=data_dict["receipt_number"]).order_by('-creation_date')
+    master_docs_obj = MasterDocs.objects.filter(master_id=po_number, user=user.id, master_type='GRN_PO_NUMBER', extra_flag=data_dict["receipt_number"]).order_by('-creation_date')
+    if master_docs_obj:
         vendorbill_url= grn_params.META.get("wsgi.url_scheme")+"://"+str(grn_params.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     grn_qty=float(data_dict.get("total_received_qty",0.0))
     grn_value=float(data_dict.get("net_amount",0.0))
@@ -12415,11 +12412,6 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     po_order_id= req_data[0]["purchase_order__order_id"]
     invoice_value = request.POST.get('inv_value', 0)
     invoice_quantity = request.POST.get('inv_quantity', 0)
-    master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
-                                            master_type='GRN').order_by('-creation_date')
-    invoice_url=""
-    if master_docs_obj:
-        invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
     invoice_date = request.POST.get('inv_date', '')
     inv_receipt_date = request.POST.get('inv_receipt_date', '')
     from datetime import datetime
@@ -12429,13 +12421,17 @@ def netsuite_move_to_invoice_grn(request, req_data, invoice_number, credit_note,
     if(inv_receipt_date):
         in_r_date = datetime.strptime(inv_receipt_date, "%m/%d/%Y") if inv_receipt_date else None
         inv_receipt_date = in_r_date.isoformat()
-    if(not credit_note=="false"):
-        invoice_number=""
-        invoice_url=""
-        invoice_date=""
-        invoice_value=""
     invoice_data=[]
     for seller_po_data in seller_summary:
+        master_docs_obj = MasterDocs.objects.filter(extra_flag=seller_po_data.receipt_number, master_id=seller_po_data.purchase_order.po_number, user=user.id, master_type='GRN_PO_NUMBER').order_by('-creation_date')
+        invoice_url=""
+        if master_docs_obj:
+            invoice_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]
+        if(not credit_note=="false"):
+            invoice_number=""
+            invoice_url=""
+            invoice_date=""
+            invoice_value=""
         grn_info= {
                     "grn_number": seller_po_data.grn_number,
                     "po_number": seller_po_data.purchase_order.po_number,
@@ -15397,8 +15393,7 @@ def netsuite_save_credit_note_po_data(credit_note_req_data, credit_id , master_f
         invoice_quantity= s_po_s[0].invoice_quantity
         po_num=po_data["po_number"]
         po_order_id=s_po_s[0].purchase_order.order_id
-        master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_order_id, user=user.id,
-                                                master_type='GRN').order_by('-creation_date')
+        master_docs_obj = MasterDocs.objects.filter(extra_flag=extra_flag, master_id=po_num, user=user.id, master_type='GRN_PO_NUMBER').order_by('-creation_date')
         vendor_url=""
         if master_docs_obj:
             vendor_url=request.META.get("wsgi.url_scheme")+"://"+str(request.META['HTTP_HOST'])+"/"+master_docs_obj.values_list('uploaded_file', flat=True)[0]

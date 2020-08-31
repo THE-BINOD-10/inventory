@@ -56,6 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   */
   var vm = this;
+  vm.host = Session.host;
   vm.service = Service;
   vm.datatable = false;
 
@@ -73,7 +74,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.row_call = function(aData) {
     if (!vm.toggle_sku_wise) {
         if(aData.receipt_type == "Hosted Warehouse") {
-
           vm.title = "Stock transfer Note";
         }
         $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
@@ -112,6 +112,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           angular.copy(vm.empty_data, vm.model_data);
           vm.dtOptions = datam.dtOptions;
           vm.dtColumns = datam.dtColumns;
+
           vm.datatable = true;
           vm.dtInstance = {};
           vm.report_data['excel2'] = true;
@@ -128,7 +129,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
   vm.toggle_grn()
-
+  vm.FileDownload = function(src){
+    var mywindow = window.open(src, 'height=400,width=600');
+    mywindow.focus();
+  }
   vm.print_page = "";
   vm.dtInstance = {};
 

@@ -209,7 +209,7 @@ def print_stock_location(request, user=''):
 @get_admin_user
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_po_filter_data(search_params, user, request.user)
+    temp_data = get_po_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 

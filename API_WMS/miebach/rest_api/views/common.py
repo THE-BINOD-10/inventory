@@ -13040,3 +13040,18 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
+
+def check_receipt_number(grn_number):
+    grn_number = grn_number
+    gr_data  = SellerPOSummary.objects.filter(grn_number = grn_number)
+    if gr_data.exists():
+        sub_str = "/"
+        if (grn_number.find(sub_str) == -1):
+            receipt_number = ''
+        else:
+            receipt_number = grn_number.split("/")[-1]
+
+        return receipt_number
+
+

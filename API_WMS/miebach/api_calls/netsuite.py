@@ -614,6 +614,8 @@ def netsuite_validate_supplier(request, supplier, user=''):
                     try:
                         if value:
                             value = float(value)
+                        else:
+                            value = 0
                     except:
                         error_message = '%s is Number field' % val
                         log_err.info(str(error_message)+" Required Parameter Missing In for %s and supplier_id %s" %(str(user.username), str(supplier_id)))

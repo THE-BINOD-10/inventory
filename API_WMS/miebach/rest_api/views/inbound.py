@@ -12404,9 +12404,9 @@ def move_to_invoice(request, user=''):
             sel_obj.save()
             if cancel_flag == 'true' and group_key not in cancelled_grns:
                 cancelled_grns.append(group_key)
-                exist_master_docs = MasterDocs.objects.filter(master_id=sel_obj.purchase_order.order_id,
+                exist_master_docs = MasterDocs.objects.filter(master_id=sel_obj.purchase_order.po_number,
                                                               user=user.id,
-                                                              master_type='GRN',
+                                                              master_type='GRN_PO_NUMBER',
                                                               extra_flag=sel_obj.receipt_number)
                 if exist_master_docs:
                     for exist_master_doc in exist_master_docs:

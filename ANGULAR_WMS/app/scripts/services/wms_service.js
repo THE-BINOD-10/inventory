@@ -120,8 +120,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     vm.get_report_dt = function(filters, data) {
       var grn_report_flag = false;
+      var grn_report_names = '';
       if (Object.keys(data).includes('dt_url')) {
-        if (data['dt_url'] == 'get_po_filter') {
+        if (data['dt_url'] == 'get_po_filter' || data['dt_url'] == 'get_sku_wise_po_filter') {
+          grn_report_names = data['dt_url'];
           grn_report_flag = true;
         }
       }
@@ -139,7 +141,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
       else{
         if (grn_report_flag) {
-          send.empty_data.grn_from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
+          grn_report_names == 'get_po_filter' ? send.empty_data.grn_from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US') : send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
         } else {
           send.empty_data.from_date = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate()).toLocaleDateString('en-US');
         }

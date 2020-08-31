@@ -1458,10 +1458,7 @@ def netsuite_sku(data, user, instanceName=''):
         if sku_data_dict.get("hsn_code", None):
             hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
             if hsn_code_object.exists():
-                if hsn_code_object[0]['reference_id']:
-                    sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
-                else:
-                    sku_data_dict['hsn_code']=''
+                sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
             else:
                 sku_data_dict['hsn_code']=''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
@@ -1494,6 +1491,8 @@ def netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
         else:
             sku_data_dict.update({"product_type":"SKU"})
+            if "hsn_code" in sku_attr_dict:
+                del sku_attr_dict["hsn_code"]
             sku_data_dict.update(sku_attr_dict)
         intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         integrateUOM(user, data.sku_code)

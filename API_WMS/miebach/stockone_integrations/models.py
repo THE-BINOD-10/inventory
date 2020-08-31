@@ -15,23 +15,23 @@ class IntegrationMaster(models.Model):
     stockone_reference = models.CharField(max_length=64, default=None, null=True)
     integration_error = models.TextField()
     action_type = models.CharField(
-        max_length=6, 
+        max_length=6,
         choices=(
             ('add', 'Add'),
             ('delete', 'Delete'),
             ('upsert', 'Upsert'),
-        ), 
+        ),
         default='upsert',
     )
     integration_reference = models.CharField(max_length=64, default=None, null=True)
     status = models.NullBooleanField(default=None, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-        
+
     def __unicode__(self):
-        return '%s-%s-%s-%s' % (self.user, 
-            self.integration_type, 
-            self.stockone_reference, 
+        return '%s-%s-%s-%s' % (self.user,
+            self.integration_type,
+            self.stockone_reference,
             self.integration_reference)
 
     def natural_key(self):

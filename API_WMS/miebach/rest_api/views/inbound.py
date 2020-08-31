@@ -258,7 +258,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
 
 @csrf_exempt
 def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id}
+    filtersMap = {'purchase_type': 'PR', 'pending_pr__requested_user':request.user.id, 'quantity__gt': 0}
     status =  request.POST.get('special-key', '')
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
             'pending_pr__sku_category', 'total_qty', 'creation_date',
@@ -6261,16 +6261,17 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
         if purchase_order_obj:
             file_obj = request.FILES.get('files-0', '')
             po_order_id = purchase_order_obj[0].order_id
+            po_number = purchase_order_obj[0].po_number
             master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
                                                         master_type='PO_TEMP')
             if file_obj:
-                upload_master_file(request, user, po_order_id, 'GRN',
+                upload_master_file(request, user, po_number, 'GRN_PO_NUMBER',
                                    master_file=request.FILES['files-0'], extra_flag=receipt_no)
             elif master_docs_obj:
                 master_docs_obj = master_docs_obj[0]
-                master_docs_obj.master_id = po_order_id
+                master_docs_obj.master_id = po_number
                 master_docs_obj.extra_flag = receipt_no
-                master_docs_obj.master_type = 'GRN'
+                master_docs_obj.master_type = 'GRN_PO_NUMBER'
                 master_docs_obj.save()
             exist_master_docs = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
                                       master_type='PO_TEMP')
@@ -15159,6 +15160,8 @@ def download_grn_invoice_mapping(request, user=''):
         temp = re.findall('\d+', request.GET.get('open_po', ''))
         if temp:
             search_parameters['purchase_order__order_id'] = temp[-1]
+    if request.GET.get('po_number', ''):
+        search_parameters['purchase_order__po_number'] = request.GET.get('po_number', '')
     if request.GET.get('invoice_number', ''):
         search_parameters['invoice_number'] = request.GET['invoice_number']
     if 'supplier' in request.GET and ':' in request.GET['supplier']:
@@ -15166,13 +15169,13 @@ def download_grn_invoice_mapping(request, user=''):
             request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',
-                                                    'purchase_order__open_po__supplier__name').distinct().\
+                                                    'purchase_order__open_po__supplier__name', 'purchase_order__po_number').distinct().\
                                     annotate(invoice_date=Cast('creation_date', DateField()))
     total_file_size = 0
     master_doc_objs = OrderedDict()
     for order in order_ids:
-        master_docs = MasterDocs.objects.filter(user_id=user.id, master_id=order['purchase_order__order_id'],
-                                  master_type='GRN', extra_flag=order['receipt_number'])
+        master_docs = MasterDocs.objects.filter(user_id=user.id, master_id=order['purchase_order__po_number'],
+                                  master_type='GRN_PO_NUMBER', extra_flag=order['receipt_number'])
         if master_docs.exists():
             master_docs = master_docs[0]
             supplier_name = order['purchase_order__open_po__supplier__name']

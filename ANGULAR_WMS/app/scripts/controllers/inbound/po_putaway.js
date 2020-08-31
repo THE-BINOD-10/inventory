@@ -48,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.message = "";
+                vm.grn_number = '';
                 var data_to_send ={
                   'supplier_id': aData.DT_RowAttr["data-id"],
                   'prefix': aData['prefix'],
@@ -56,6 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                   'receipt_number': aData['receipt_number'],
                   'warehouse_id': aData['warehouse_id']
                 }
+                vm.grn_number = aData['grn_number'];
                 vm.service.apiCall('get_received_orders/', 'GET', data_to_send).then(function(data){
                   if(data.message) {
                     

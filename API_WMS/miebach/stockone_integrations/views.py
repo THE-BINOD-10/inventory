@@ -56,11 +56,11 @@ class Integrations():
     def gatherSkuData(self, skuObject):
         skuDict = skuObject.__dict__
         skuDict = self.removeUnnecessaryData(skuDict)
-        skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
-        skuAttributes = {}
-        for row in skuAttributesList:
-            skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
-        skuDict.update(skuAttributes)
+        # skuAttributesList = list(skuObject.skuattributes_set.values('attribute_name', 'attribute_value'))
+        # skuAttributes = {}
+        # for row in skuAttributesList:
+        #     skuAttributes[row.get('attribute_name')] = row.get('attribute_value')
+        # skuDict.update(skuAttributes)
         return skuDict
 
 
@@ -344,6 +344,9 @@ class Integrations():
             if not is_multiple:
                 recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
+                if action  == 'upsert':
+                    po_initialize= self.connectionObject.complete_transaction([record], True, "initialize")
+                    record= self.match_itemlist_data([record], po_initialize, is_multiple)
                 result = self.connectionObject.complete_transaction(record, is_multiple, action)
             else:
                 records = []
@@ -351,7 +354,9 @@ class Integrations():
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
-
+                if action  =='upsert':
+                    po_initialize= self.connectionObject.complete_transaction(records, True, "initialize")
+                    records= self.match_itemlist_data(records, po_initialize, is_multiple)
                 result = self.connectionObject.complete_transaction(records, is_multiple, action)
             if len(result):
                 for row in result:
@@ -394,9 +399,8 @@ class Integrations():
             integration_type=self.integration_type,
             module_type=recordType,
             action_type=action,
-            status=False,
             integration_error__in=["null","","-"]
-        )
+        ).exclude(status=True)
         data = []
         try:
             for row in rows:
@@ -422,16 +426,34 @@ class Integrations():
                 integration_type=self.integration_type,
                 module_type=recordType,
                 action_type=action,
-                stockone_reference=data.externalId,
-                status=False,
+                stockone_reference=data.externalId
             )
         status = True
         if hasattr(data, 'error'):
             resultArr.update(
-                integration_error=data.error_msg
+                integration_error=data.error_msg,
+                status = False
                 )
             status = False
         resultArr.update(
             integration_reference = data.internalId,
             status = status
         )
+
+    def match_itemlist_data(self, GRN_data, po_initialize,  is_multiple):
+        final_GRN_data=[]
+        for row in GRN_data:
+            if str(row.createdFrom.externalId) in po_initialize:
+                indx_list=[]
+                for indx, grn_line_item in enumerate(row.itemList['item']):
+                    check_sku_code=False
+                    for line_item in po_initialize[str(row.createdFrom.externalId)]:
+                        if grn_line_item["item"]["externalId"]== line_item["itemName"]:
+                            grn_line_item.update({'orderLine': line_item['orderLine']})
+                            check_sku_code=True
+                    if not check_sku_code:
+                        indx_list.append(grn_line_item)
+                for indx in indx_list:
+                    row.itemList['item'].remove(indx)
+            final_GRN_data.append(row)
+        return final_GRN_data

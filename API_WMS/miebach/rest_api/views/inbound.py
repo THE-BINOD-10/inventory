@@ -1336,7 +1336,8 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     #sku_master, sku_master_ids = get_sku_master(user, request.user)
     supplier_data = {}
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
-    po_lis = ['po_number', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
+    po_liss = ['po_number', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
+    po_lis = ['sellerposummary__creation_date', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
     st_lis = ['order_id', 'order_id', 'stpurchaseorder__open_st__warehouse__id',
               'stpurchaseorder__open_st__warehouse__username', 'order_id', 'order_id']
     rw_lis = ['order_id', 'order_id', 'rwpurchase__rwo__vendor__id', 'rwpurchase__rwo__vendor__name', 'order_id',
@@ -1351,11 +1352,12 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    purchase_order_query = build_search_term_query(po_lis, search_term)
+    purchase_order_query = build_search_term_query(po_liss, search_term)
     st_search_query = build_search_term_query(st_lis, search_term)
     rw_purchase_query = build_search_term_query(rw_lis, search_term)
     users = check_and_get_plants(request, users)
-    po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0, sellerposummary__status=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
+    po_dict =  PurchaseOrder.objects.filter(purchase_order_query,open_po__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0, sellerposummary__status=0)\
+                                    .annotate(sellerposummary__creation_date=Cast('sellerposummary__creation_date', DateField())).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])\
                                     .exclude(open_po__sku_id__in=AssetMaster.objects.all()).exclude(open_po__sku_id__in=ServiceMaster.objects.all()).exclude(open_po__sku_id__in=OtherItemsMaster.objects.all())\
                                     .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number', 'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
     po_ids = po_dict.values_list('order_id',flat = True)
@@ -1366,7 +1368,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                      .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
-    temp_data['recordsTotal'] = po_dict.count()+rwo_dict.count()+st_dict.count()
+    temp_data['recordsTotal'] = len(results)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     resultant_grns = SellerPOSummary.objects.filter(grn_number__in=resultant_grns)
     for result in results[start_index:stop_index]:

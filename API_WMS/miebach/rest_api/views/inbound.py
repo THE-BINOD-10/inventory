@@ -7173,6 +7173,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     # from api_calls.netsuite import netsuite_create_grn
     from datetime import datetime
     from pytz import timezone
+    from django.db.models import F
 
     # grn_number = data_dict.get('po_number', '')
     grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
@@ -7264,7 +7265,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
         grn_data['items'].append(item)
         received_sku_list.append(data['wms_code'])
         data_order_idx.append(data["order_idx"])
-    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(open_po__order_quantity=received_quantity, open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
+    partial_grn_skus_po_obj=PurchaseOrder.objects.filter(po_number=po_number).exclude(received_quantity=F('open_po__order_quantity'), open_po__sku__sku_code__in=received_sku_list).values("open_po__sku__sku_code","open_po__sku__sku_desc")
     if(partial_grn_skus_po_obj):
         po_line_items_length=len(partial_grn_skus_po_obj)+ len(data_order_idx)
         temp_list=[]

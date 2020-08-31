@@ -5402,7 +5402,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
             if invoice_data.exists():
                 invoice_details = invoice_data[0].uploaded_file
                 http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
-                url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
+                # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
 
         except IOError:
             pass
@@ -5453,7 +5453,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                                                 ('PO Quantity', po_total_qty),
                                                 ('GRN Qty', received_qty),
                                                 ('Discrepancy Quantity', discrepancy_quantity),
-                                                ('Invoice/DC Download', url_request),
+                                                ('Invoice/DC Download', http_data),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'),

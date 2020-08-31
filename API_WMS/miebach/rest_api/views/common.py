@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -12989,6 +12989,14 @@ def check_and_get_plants(request, req_users, users=''):
         req_users = User.objects.filter(id__in=req_users)
     return req_users
 
+
+@get_admin_all_wh
+def check_and_get_plants_depts(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
 
 def check_and_get_plants_wo_request(request_user, user, req_users):
     users = []

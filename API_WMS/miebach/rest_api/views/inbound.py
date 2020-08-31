@@ -15170,7 +15170,8 @@ def download_grn_invoice_mapping(request, user=''):
                                     annotate(invoice_date=Cast('creation_date', DateField()))
     total_file_size = 0
     master_doc_objs = OrderedDict()
-    for order in order_ids:
+    for order_id in order_ids:
+        order = copy.deepcopy(order_id)
         master_docs = MasterDocs.objects.filter(user_id=order['purchase_order__open_po__sku__user'], master_id=order['purchase_order__po_number'],
                                   master_type='GRN_PO_NUMBER', extra_flag=order['receipt_number'])
         if master_docs.exists():
@@ -15179,6 +15180,8 @@ def download_grn_invoice_mapping(request, user=''):
             invoice_date = str(order['invoice_date'])
             file_format = master_docs.uploaded_file.path.split('.')[-1]
             po_reference = invoice_date
+            if 'invoice_date' in order.keys():
+                del order['invoice_date']
             seller_po_sum = SellerPOSummary.objects.filter(**order)
             if seller_po_sum.exists():
                 po_reference = seller_po_sum[0].purchase_order.po_number + '_' + str(order['receipt_number'])

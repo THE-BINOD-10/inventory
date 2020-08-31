@@ -1,12 +1,14 @@
 <style>
   .form-control{
-    padding: 5px 4px;
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
  }
  .table > tbody > tr > td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .table > thead > tr> td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
   .sidebar-panel{
     z-index: 1000;
@@ -14,7 +16,7 @@
 </style>
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="z-index: 1049">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid grn-form" novalidate="novalidate" id="{{showCase.form}}">
-  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
+  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width" style="font-size: x-small;">
     <div class="modal-content mw100">
       <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
       <div class="modal-header">
@@ -33,6 +35,10 @@
               <div class="row" ng-if="showCase.product_type">
                 <div class="col-xs-4"><b>Product Category</b></div>
                 <div class="col-xs-8">: {{showCase.product_type}}</div>
+              </div>
+              <div class="row" ng-if="showCase.store">
+                <div class="col-xs-4"><b>Store</b></div>
+                <div class="col-xs-8">: {{showCase.store}}</div>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
@@ -84,7 +90,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="!showCase.permissions.sku_pack_config">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
-                <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
+                <textarea class="form-control" rows="2" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
               </div>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="showCase.permissions.sku_pack_config">

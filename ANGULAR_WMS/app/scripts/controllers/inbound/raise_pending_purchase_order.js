@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePendingPurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('RaisePendingPurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$rootScope', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -168,6 +168,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             "validateFlag": data.data.validateFlag,
             "total_price": 0,
             "tax": "",
+            "cess_tax": 0,
             "sub_total": "",
             "pr_delivery_date": data.data.pr_delivery_date,
             "pr_created_date": data.data.pr_created_date,
@@ -273,6 +274,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           vm.requested_user = aData['Requested User']
           vm.pending_status = aData['Validation Status']
           vm.pending_level = aData['LevelToBeApproved']
+          vm.pop_up_status = aData['Validation Status']
           if (aData['Validation Status'] == 'Approved'){
             $state.go('app.inbound.RaisePo.PurchaseOrder');
           } else if (aData['Validation Status'] == 'Saved'){
@@ -841,7 +843,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                vm.extra_width = {'width': '990px'};
+                vm.extra_width = {'width': '1150px'};
                 vm.html = $(data.data);
                 angular.element(".modal-body").html($(data.data));
                 vm.print_enable = true;
@@ -881,7 +883,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
                 }
                 vm.html = $(data.data)[0];
-                vm.extra_width = {'width': '990px'};
+                vm.extra_width = {'width': '1150px'};
                 $timeout(function() {
                   $("#page-pop .modal-body.show").html(vm.html)
                   vm.confirm_print = false;
@@ -1268,7 +1270,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.taxChange = function(data) {
 
-      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
+      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
     }
 
@@ -1278,6 +1280,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       }
       vm.model_data.total_price = 0;
       vm.model_data.sub_total = 0;
+
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * sku_data.fields.price;
         //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
@@ -1285,10 +1288,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
             vm.get_tax_value(sku_data);
         }
         if (!sku_data.fields.tax) {
-          sku_data.fields.tax = Number(sku_data.fields.cgst_tax) + Number(sku_data.fields.sgst_tax) + Number(sku_data.fields.igst_tax) + Number(sku_data.fields.cess_tax) + Number(sku_data.fields.apmc_tax) +Number(sku_data.fields.utgst_tax);
+          sku_data.fields.tax = Number(sku_data.fields.cgst_tax) + Number(sku_data.fields.sgst_tax) + Number(sku_data.fields.igst_tax) + Number(sku_data.fields.apmc_tax) +Number(sku_data.fields.utgst_tax);
         }
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + ((temp / 100) * sku_data.fields.cess_tax) + temp;
       })
     }
 
@@ -1374,7 +1377,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
     });
   }
 
-vm.checkWHSupplierExist  = function (sup_id) {
+  vm.checkWHSupplierExist  = function (sup_id) {
     console.log(sup_id);
     $http.get(Session.url + 'search_wh_supplier?', {
       params: {
@@ -1387,4 +1390,118 @@ vm.checkWHSupplierExist  = function (sup_id) {
       };
     });
   }
+  vm.sku_delivery_date = function(datam) {
+    datam['status'] = vm.pop_up_status;
+    var data = datam;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/inbound/toggle/ApprovalPendingLineItems/po_sku_delivery_date_popup.html',
+      controller: 'SkuDeliveryCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return data;
+        }
+      }
+    });
+    modalInstance.result.then(function (selectedItem) {
+      if (selectedItem['status'] == 'success') {
+        selectedItem['datum']['price_request'] = true;
+      }
+    });
+  }
 }
+
+angular.module('urbanApp').controller('SkuDeliveryCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.date = new Date();
+  vm.lineData = items.fields;
+  vm.line_id = items.pk;
+  vm.status = items.status
+  vm.model_data = {}
+  vm.service = Service;
+  vm.base = function () {
+    if (vm.status == 'Saved') {
+      vm.status = true;
+    } else {
+      vm.status = false;
+    }
+    vm.model_data['sku_code'] = vm.lineData.sku.wms_code;
+    vm.model_data['sku_desc'] = vm.lineData['description'];
+    vm.model_data['price'] = vm.lineData['price'];
+    vm.model_data['order_quantity'] = vm.lineData['order_quantity'];
+    vm.model_data['details'] = [];
+    var data_to_send = {
+      'id': vm.line_id
+    }
+    vm.service.apiCall('get_po_delivery_schedule/', 'POST', data_to_send, true).then(function(data){
+      if(data.message) {
+        if (data.data.length > 0) {
+          vm.model_data['details'] = data.data;
+        } else {
+          vm.model_data['details'].push({'delivery_date': '', 'quantity': 0});
+        }
+      }
+    });
+  }
+  vm.base();
+  vm.send_delivery_data = function() {
+    if (vm.validation_checks()) {
+      var data_to_send = {
+        'id': vm.line_id,
+        'data': JSON.stringify(vm.model_data['details'])
+      }
+      vm.service.apiCall('save_po_delivery_schedule/', 'POST', data_to_send, true).then(function(data){
+        if(data.message) {
+          vm.service.showNoty(data.data);
+          vm.cancel('');
+        }
+      });
+    }
+  }
+  vm.validation_checks = function() {
+    var status = false;
+    var temp_delivery_date = [];
+    var total_count = 0;
+    for (var i = 0; i < vm.model_data['details'].length; i++) {
+      if (vm.model_data['details'][i]['delivery_date'] && vm.model_data['details'][i]['quantity'] != 0) {
+        if (temp_delivery_date.includes(vm.model_data['details'][i]['delivery_date'])) {
+          vm.service.showNoty('Delivery Date Should Not be Same !');
+          return false;
+          break;
+        } else {
+          temp_delivery_date.push(vm.model_data['details'][i]['delivery_date']);
+          total_count = vm.model_data['details'][i]['quantity'] ? parseFloat(total_count) + parseFloat(vm.model_data['details'][i]['quantity']) : parseFloat(total_count);
+        }
+      } else {
+        vm.service.showNoty('Delivery Date (or) Quantity Should Not be Empty !');
+        return false;
+        break;
+      }
+      if (i+1 == vm.model_data['details'].length) {
+        if (parseFloat(vm.model_data['order_quantity']) == parseFloat(total_count)) {
+          return true;
+        }else {
+          vm.service.showNoty('Quantity Mismatch !');
+          return false;
+          break;
+        }
+      }
+    }
+  }
+  vm.cancel = function (data) {
+    var temp_dict = '';
+    if (data) {
+      temp_dict = data;
+    } else {
+      temp_dict = {
+            'status': 'cancel'
+          }
+    }
+    $modalInstance.close(temp_dict);
+  };
+
+});

@@ -658,7 +658,7 @@ class PendingPR(models.Model):
     pr_number = models.PositiveIntegerField() #WH Specific Inc Number
     sub_pr_number = models.PositiveIntegerField(default=0)
     prefix = models.CharField(max_length=32, default='')
-    full_pr_number = models.CharField(max_length=32, default='')
+    full_pr_number = models.CharField(max_length=32, default='', db_index=True)
     requested_user = models.ForeignKey(User, related_name='pendingPR_RequestedUser')
     wh_user = models.ForeignKey(User, related_name='pendingPRs')
     product_category = models.CharField(max_length=64, default='')
@@ -674,7 +674,7 @@ class PendingPR(models.Model):
 
     class Meta:
         db_table = 'PENDING_PR'
-
+        #index_together = (('full_pr_number',))
 
 @reversion.register()
 class PendingPO(models.Model):
@@ -711,11 +711,13 @@ class PendingLineItems(models.Model):
     sku = models.ForeignKey(SKUMaster, related_name='pendingLineItems', db_index=True)
     quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
+    discount_percent = models.FloatField(default=0)
     measurement_unit = models.CharField(max_length=32, default='')
     sgst_tax = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -745,7 +747,7 @@ class PurchaseApprovals(models.Model):  #PRApprovals
 
 
 class TableLists(models.Model):
-    name = models.CharField(max_length=64, default='')
+    name = models.CharField(max_length=64, default='', db_index=True)
 
     class Meta:
         db_table = 'TABLE_LISTS'
@@ -792,6 +794,18 @@ class PurchaseApprovalMails(models.Model):  #PRApprovalMails
 
     class Meta:
         db_table = "PURCHASE_APPROVAL_MAILS"
+
+class PurchaseDeliverySchedule(models.Model):
+    id = BigAutoField(primary_key=True)
+    po_line_item = models.ForeignKey(PendingLineItems, blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.CharField(max_length=32, default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "PURCHASE_DELIVERY_SCHEDULE"
 
 @reversion.register()
 class PurchaseOrder(models.Model):
@@ -919,6 +933,9 @@ class BatchDetail(models.Model):
     receipt_number = models.PositiveIntegerField(default=0)
     weight = models.CharField(max_length=64, default='')
     ean_number = models.CharField(max_length=64, default='')
+    puom = models.CharField(max_length=64, default='')
+    pquantity = models.FloatField(default=0)
+    pcf = models.FloatField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     batch_ref = models.CharField(max_length=100, default='')
@@ -3876,7 +3893,8 @@ class BarcodeEntities(models.Model):
 
 class UserTextFields(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, blank=True, default=None)
+    company = models.ForeignKey(CompanyMaster, blank=True, default=None)
     field_type = models.CharField(max_length=32, default='')
     text_field = models.TextField(default='', blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)

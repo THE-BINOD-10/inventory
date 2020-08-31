@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
                   "validateFlag": data.data.validateFlag,
                   "total_price": 0,
                   "tax": "",
+                  "cess_tax": 0,
                   "sub_total": "",
                   "pr_delivery_date": data.data.pr_delivery_date,
                   "pr_created_date": data.data.pr_created_date,
@@ -590,9 +591,33 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       if (supDetails) {
         sup_data.moq = supDetails.moq;
         sup_data.tax = supDetails.tax;
-        sup_data.amount = supDetails.amount;
+        sup_data.cess_tax = supDetails.cess_tax;
         sup_data.price = supDetails.price;
-        sup_data.total = supDetails.total;
+        sup_data.final_price = parseFloat(sup_data.price) - parseFloat(sup_data.price) * parseFloat((sup_data.discount/100));
+        var discount_amount = sup_data.price * sup_data.order_quantity - sup_data.final_price * sup_data.order_quantity
+        sup_data.amount = (supDetails.amount - discount_amount).toFixed(2);
+        sup_data.total = (supDetails.total - discount_amount).toFixed(2);
+        sup_data.supplier_id = supDetails.supplier_id;
+        sup_data.supplier_id_name = supplier_id_name;
+      }
+    }
+
+    vm.getFirstSupplier_preview = function(data){
+      vm.getsupBasedPriceDetails_preview(data["preferred_supplier"], data)
+      return data["preferred_supplier"];
+
+    }
+    vm.getsupBasedPriceDetails_preview = function(supplier_id_name, sup_data){
+      var supDetails = sup_data.supplierDetails[supplier_id_name];
+      if (supDetails) {
+        sup_data.moq = supDetails.moq;
+        sup_data.tax = supDetails.tax;
+        sup_data.price = supDetails.price;
+        sup_data.final_price = parseFloat(sup_data.price) - parseFloat(sup_data.price) * parseFloat((sup_data.discount/100));
+        var discount_amount = sup_data.price * sup_data.quantity - sup_data.final_price * sup_data.quantity;
+        sup_data.amount = parseFloat(supDetails.amount).toFixed(2);
+        sup_data.total = parseFloat(supDetails.total).toFixed(2);
+        sup_data.price = sup_data.final_price;
         sup_data.supplier_id = supDetails.supplier_id;
         sup_data.supplier_id_name = supplier_id_name;
       }
@@ -1241,7 +1266,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
 
     vm.taxChange = function(data) {
 
-      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.cess_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
+      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.apmc_tax) + Number(data.fields.utgst_tax);
       vm.getTotals(vm.model_data, true);
     }
 
@@ -1253,19 +1278,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       vm.model_data.sub_total = 0;
       data.fields.amount = 0
       data.fields.total = 0
-      data.fields.amount = data.fields.order_quantity * Number(data.fields.price);
+      data.fields.amount = data.fields.order_quantity * Number(parseFloat(data.fields.price) - parseFloat(data.fields.price) * parseFloat((data.fields.discount/100)));
       if (!data.fields.tax) {
           data.fields.tax = 0;
       }
-      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + data.fields.amount;
+      data.fields.total = ((data.fields.amount / 100) * data.fields.tax) + ((data.fields.amount / 100) * data.fields.cess_tax) + data.fields.amount;
       angular.forEach(vm.model_data.data, function(sku_data){
-        var temp = sku_data.fields.order_quantity * Number(sku_data.fields.price);
-        sku_data.fields.amount = sku_data.fields.order_quantity * Number(sku_data.fields.price);
+        var temp = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
+        sku_data.fields.amount = sku_data.fields.order_quantity * Number(parseFloat(sku_data.fields.price) - parseFloat(sku_data.fields.price) * parseFloat((sku_data.fields.discount/100)));
         if (!sku_data.fields.tax) {
           sku_data.fields.tax = 0;
         }
         vm.model_data.total_price = vm.model_data.total_price + temp;
-        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+        var cess_tax_amt = ((temp / 100) * sku_data.fields.cess_tax);
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp + cess_tax_amt;
       })
     }
 

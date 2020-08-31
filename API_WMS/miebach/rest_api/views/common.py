@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -11856,7 +11856,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                                                inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
-            taxes_data.append(tax_master.json())
+            tot_tax = tax_master.cgst_tax + tax_master.sgst_tax + tax_master.igst_tax
+            tax_json = copy.deepcopy(tax_master.json())
+            if supplier_master:
+                tax_json['cess_tax'] = get_kerala_cess_tax(tot_tax, supplier_master[0])
+            taxes_data.append(tax_json)
         if supplier_master:
             supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
@@ -12990,6 +12994,14 @@ def check_and_get_plants(request, req_users, users=''):
     return req_users
 
 
+@get_admin_all_wh
+def check_and_get_plants_depts(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
 def check_and_get_plants_wo_request(request_user, user, req_users):
     users = []
     company_list = get_companies_list(user, send_parent=True)
@@ -13042,16 +13054,8 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
-def check_receipt_number(grn_number):
-    grn_number = grn_number
-    gr_data  = SellerPOSummary.objects.filter(grn_number = grn_number)
-    if gr_data.exists():
-        sub_str = "/"
-        if (grn_number.find(sub_str) == -1):
-            receipt_number = ''
-        else:
-            receipt_number = grn_number.split("/")[-1]
-
-        return receipt_number
-
-
+def get_kerala_cess_tax(tax, supplier):
+    cess_tax = 0
+    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1
+    return cess_tax

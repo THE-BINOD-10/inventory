@@ -11856,7 +11856,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                                                inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
-            taxes_data.append(tax_master.json())
+            tot_tax = tax_master.cgst_tax + tax_master.sgst_tax + tax_master.igst_tax
+            tax_json = copy.deepcopy(tax_master.json())
+            if supplier_master:
+                tax_json['cess_tax'] = get_kerala_cess_tax(tot_tax, supplier_master[0])
+            taxes_data.append(tax_json)
         if supplier_master:
             supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
@@ -13048,3 +13052,9 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
+def get_kerala_cess_tax(tax, supplier):
+    cess_tax = 0
+    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1
+    return cess_tax

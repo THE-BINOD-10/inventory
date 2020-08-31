@@ -441,19 +441,23 @@ class Integrations():
         )
 
     def match_itemlist_data(self, GRN_data, po_initialize,  is_multiple):
-        final_GRN_data=[]
-        for row in GRN_data:
-            if str(row.createdFrom.externalId) in po_initialize:
-                indx_list=[]
-                for indx, grn_line_item in enumerate(row.itemList['item']):
-                    check_sku_code=False
-                    for line_item in po_initialize[str(row.createdFrom.externalId)]:
-                        if grn_line_item["item"]["externalId"]== line_item["itemName"]:
-                            grn_line_item.update({'orderLine': line_item['orderLine']})
-                            check_sku_code=True
-                    if not check_sku_code:
-                        indx_list.append(grn_line_item)
-                for indx in indx_list:
-                    row.itemList['item'].remove(indx)
-            final_GRN_data.append(row)
-        return final_GRN_data
+        try:
+            final_GRN_data=[]
+            for row in GRN_data:
+                if str(row.createdFrom.externalId) in po_initialize:
+                    indx_list=[]
+                    for indx, grn_line_item in enumerate(row.itemList['item']):
+                        check_sku_code=False
+                        for line_item in po_initialize[str(row.createdFrom.externalId)]:
+                            if grn_line_item["item"]["externalId"]== line_item["itemName"]:
+                                grn_line_item.update({'orderLine': line_item['orderLine']})
+                                check_sku_code=True
+                        if not check_sku_code:
+                            indx_list.append(grn_line_item)
+                    for indx in indx_list:
+                        row.itemList['item'].remove(indx)
+                final_GRN_data.append(row)
+            return final_GRN_data
+        except Exception as e:
+            print(e)
+            return GRN_data

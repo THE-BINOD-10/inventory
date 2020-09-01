@@ -5324,10 +5324,10 @@ def get_supplier_data(request, users=''):
             lr_number = temp_json.get('lr_number', '')
             carrier_name = temp_json.get('carrier_name', '')
             overall_discount = temp_json.get('overall_discount', '')
-            master_docs = MasterDocs.objects.filter(master_id=purchase_order.order_id, master_type='PO_TEMP')
-            if master_docs.exists():
-                uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
-                                      'file_url': '/' + master_docs[0].uploaded_file.name}
+        master_docs = MasterDocs.objects.filter(master_id=purchase_order.po_number, master_type='PO_TEMP', user_id=user.id)
+        if master_docs.exists():
+            uploaded_file_dict = {'file_name': master_docs[0].uploaded_file.name.split('/')[-1], 'id': master_docs[0].id,
+                                  'file_url': '/' + master_docs[0].uploaded_file.name}
         orders =  sorted(orders, key = lambda i: i[0]['wrong_sku'],reverse=True)
         discrepancy_reasons = ''
         if user.userprofile.industry_type == 'FMCG':
@@ -5424,10 +5424,10 @@ def update_putaway(request, user=''):
                     exist_temp_json[0].save()
         file_obj = request.FILES.get('files-0', '')
         if file_obj:
-            master_docs_obj = MasterDocs.objects.filter(master_id=po.order_id, master_type='PO_TEMP',
+            master_docs_obj = MasterDocs.objects.filter(master_id=po.po_number, master_type='PO_TEMP',
                                                         user_id=user.id)
             if not master_docs_obj:
-                upload_master_file(request, user, po.order_id, 'PO_TEMP', master_file=file_obj)
+                upload_master_file(request, user, po.po_number, 'PO_TEMP', master_file=file_obj)
             else:
                 master_docs_obj = master_docs_obj[0]
                 if os.path.exists(master_docs_obj.uploaded_file.path):
@@ -6273,24 +6273,21 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
             file_obj = request.FILES.get('files-0', '')
             po_order_id = purchase_order_obj[0].order_id
             po_number = purchase_order_obj[0].po_number
-            master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
-                                                        master_type='PO_TEMP')
-            if file_obj:
-                upload_master_file(request, user, po_number, 'GRN_PO_NUMBER',
-                                   master_file=request.FILES['files-0'], extra_flag=receipt_no)
-            elif master_docs_obj:
+            master_docs_obj = MasterDocs.objects.filter(master_id=po_number, user=user.id, master_type='PO_TEMP')
+            if master_docs_obj:
                 master_docs_obj = master_docs_obj[0]
                 master_docs_obj.master_id = po_number
                 master_docs_obj.extra_flag = receipt_no
                 master_docs_obj.master_type = 'GRN_PO_NUMBER'
                 master_docs_obj.save()
-            exist_master_docs = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
-                                      master_type='PO_TEMP')
-            if exist_master_docs:
-                for exist_master_doc in exist_master_docs:
-                    if exist_master_doc.uploaded_file and os.path.exists(exist_master_doc.uploaded_file.path):
-                        os.remove(exist_master_doc.uploaded_file.path)
-                    exist_master_doc.delete()
+            elif file_obj and not master_docs_obj:
+                upload_master_file(request, user, po_number, 'GRN_PO_NUMBER', master_file=request.FILES['files-0'], extra_flag=receipt_no)
+            # exist_master_docs = MasterDocs.objects.filter(master_id=po_number, user=user.id, master_type='PO_TEMP')
+            # if exist_master_docs:
+            #     for exist_master_doc in exist_master_docs:
+            #         if exist_master_doc.uploaded_file and os.path.exists(exist_master_doc.uploaded_file.path):
+            #             os.remove(exist_master_doc.uploaded_file.path)
+            #         exist_master_doc.delete()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -6933,10 +6930,10 @@ def send_for_approval_confirm_grn(request, confirm_returns='', user=''):
                 doa_obj.save()
             file_obj = request.FILES.get('files-0', '')
             if file_obj:
-                master_docs_obj = MasterDocs.objects.filter(master_id=po.order_id, master_type='PO_TEMP',
+                master_docs_obj = MasterDocs.objects.filter(master_id=po.po_number, master_type='PO_TEMP',
                                                             user_id=user.id)
                 if not master_docs_obj:
-                    upload_master_file(request, user, po.order_id, 'PO_TEMP', master_file=file_obj)
+                    upload_master_file(request, user, po.po_number, 'PO_TEMP', master_file=file_obj)
                 else:
                     master_docs_obj = master_docs_obj[0]
                     if os.path.exists(master_docs_obj.uploaded_file.path):
@@ -16041,3 +16038,43 @@ def validate_product_wms(request, user=''):
     if check_length != sku_id.count():
         status = 'fail'
     return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def grn_upload_preview(request, user=''):
+    from masters import upload_master_file
+    master_id = request.POST.get('data_id', '')
+    po_number = request.POST.get('id', '')
+    file_upload = request.FILES.get('pdf_file', '')
+    response = ''
+    if master_id:
+        master_docs_obj = MasterDocs.objects.get(id=master_id, master_type='PO_TEMP')
+        if os.path.exists(master_docs_obj.uploaded_file.path):
+            os.remove(master_docs_obj.uploaded_file.path)
+            MasterDocs.objects.filter(id=master_id, master_type='PO_TEMP').delete()
+        return HttpResponse('Success')
+    else:
+        if not po_number and file_upload:
+            return HttpResponse('Fields are missing.')
+        try:
+            master_docs_obj = MasterDocs.objects.filter(master_id=po_number, master_type='PO_TEMP', user_id=user.id)
+            if master_docs_obj.exists():
+                master_docs_obj = master_docs_obj[0]
+                if os.path.exists(master_docs_obj.uploaded_file.path):
+                    os.remove(master_docs_obj.uploaded_file.path)
+                master_docs_obj.uploaded_file = file_upload
+                master_docs_obj.save()
+                response='Uploaded Successfully'
+            else:
+                response = upload_master_file(request, user, po_number, 'PO_TEMP', master_file=file_upload)
+        except Exception as e:
+            log.info('Upload File is failed for user %s and params are %s and error statement is %s' % (
+                str(request.user.username), str(request.POST.dict()), str(e)))
+        if response == 'Uploaded Successfully':
+            master_docs = MasterDocs.objects.filter(master_id=po_number, master_type='PO_TEMP', user_id=user.id)
+            if master_docs.exists():
+                uploaded_file_dict = {'file_name': master_docs[0].uploaded_file.name.split('/')[-1], 'id': master_docs[0].id,
+                                      'file_url': '/' + master_docs[0].uploaded_file.name}
+            return HttpResponse(json.dumps(uploaded_file_dict))

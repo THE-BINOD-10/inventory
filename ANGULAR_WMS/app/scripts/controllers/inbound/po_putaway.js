@@ -27,12 +27,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withOption('rowCallback', rowCallback);
 
     vm.dtColumns = [
+        DTColumnBuilder.newColumn('Order Date').withTitle('GRN Date'),
+        DTColumnBuilder.newColumn('grn_number').withTitle('GRN Number'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
-        DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('Order Type').withTitle('Order Type'),
-        DTColumnBuilder.newColumn('Warehouse').withTitle('Store')
+        DTColumnBuilder.newColumn('Warehouse').withTitle('Store').notSortable()
     ];
 
     vm.dtInstance = {};
@@ -47,12 +48,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.message = "";
+                vm.grn_number = '';
                 var data_to_send ={
                   'supplier_id': aData.DT_RowAttr["data-id"],
                   'prefix': aData['prefix'],
                   'po_number': aData['PO Number'],
+                  'grn_number': aData['grn_number'],
+                  'receipt_number': aData['receipt_number'],
                   'warehouse_id': aData['warehouse_id']
                 }
+                vm.grn_number = aData['grn_number'];
                 vm.service.apiCall('get_received_orders/', 'GET', data_to_send).then(function(data){
                   if(data.message) {
                     

@@ -74,8 +74,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.row_call = function(aData) {
     if (!vm.toggle_sku_wise) {
         if(aData.receipt_type == "Hosted Warehouse") {
+
           vm.title = "Stock transfer Note";
         }
+        vm.file_url = ""
+        vm.FileDownload(aData);
         $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
             vm.print_page = $(html).clone();
@@ -116,7 +119,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.datatable = true;
           vm.dtInstance = {};
           vm.report_data['excel2'] = true;
-  		    vm.report_data['row_click'] = true;
+  		  vm.report_data['row_click'] = true;
           if (vm.toggle_sku_wise) {
               vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
           } else {
@@ -129,10 +132,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
   vm.toggle_grn()
-  vm.FileDownload = function(src){
-    var mywindow = window.open(src, 'height=400,width=600');
-    mywindow.focus();
+  vm.FileDownload = function(aData,type=''){
+    if(type && vm.file_url){
+      var src = vm.host  +vm.file_url
+      var mywindow = window.open(src, 'height=400,width=600');
+      mywindow.focus();
+      return true;
+    } else if (aData){
+      var data_dict = {
+        'receipt_no':aData.receipt_no,
+        'prefix':aData.prefix,
+        'warehouse_id':aData.warehouse_id,
+        'po_id':aData.DT_RowAttr["data-id"]
+      }
+      vm.service.apiCall('download_invoice_file/', 'GET', data_dict).then(function(data){
+        if (data.data) {
+          vm.file_url = data.data;
+        }
+      });
+    }
   }
+
   vm.print_page = "";
   vm.dtInstance = {};
 

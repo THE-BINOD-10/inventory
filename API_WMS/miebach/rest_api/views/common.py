@@ -13053,6 +13053,7 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
 
+
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0
     if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':

@@ -641,7 +641,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     vm.unmap_grn_file = function(remove_id) {
       vm.service.apiCall('grn_upload_preview/', 'POST',{'data_id': remove_id}).then(function(data){
-        console.log(data)
         if (data.data == 'Success') {
           vm.model_data.uploaded_file_dict = {}
           vm.existing_file_name = ''
@@ -678,7 +677,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       formData.append('pdf_file', files);
       formData.append('id', id);
       vm.service.apiCall('grn_upload_preview/', 'POST', formData, true, true).then(function(response){
-        debugger
         if(Object.keys(JSON.parse(response.data)).includes('file_name')) {
           vm.resultant_data_format(response.data);
         } else {

@@ -3346,7 +3346,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
     try:
         from mail_server import send_mail
         subject = ''
-        urlPath = 'http://127.0.0.1:8001'
+        urlPath = 'http://mi.stockone.in'
         desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
             Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
         filtersMap = {}#{'wh_user': user.id}
@@ -3444,7 +3444,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
                 elif subjectType == 'pr_approval_pending':
                     subject = "Action Required: Pending PR %s for %s At Level %s" %(po_reference, requestedBy, pendingLevel)
                 elif subjectType == 'remainder_pr_created':
-                    subject = "Remainder Mails - Action Required: Pending PR %s for %s" %(po_reference, requestedBy)
+                    subject = "Remainder Mail - Action Required: Pending PR %s for %s" %(po_reference, requestedBy)
 
             podetails_string = "<p> Pending %s Details </p>  \
             <p>%s Number: %s</p> \

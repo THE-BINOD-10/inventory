@@ -209,7 +209,7 @@ def print_stock_location(request, user=''):
 @get_admin_user
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_po_filter_data(search_params, user, request.user)
+    temp_data = get_po_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -1387,8 +1387,10 @@ def print_po_reports(request, user=''):
             tin_number = purchase_order.open_po.supplier.tin_number
         remarks = purchase_order.remarks
         order_id = purchase_order.order_id
-        grn_number=results.values("sellerposummary__grn_number").get()
-        grn_number=grn_number["sellerposummary__grn_number"]
+        invoice_file_user = purchase_order.open_po.sku.user
+        grn_numbers=results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number').get()
+        grn_number=grn_numbers["sellerposummary__grn_number"]
+        grn_receipt_number = grn_numbers['sellerposummary__receipt_number']
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
@@ -1420,6 +1422,20 @@ def print_po_reports(request, user=''):
     if total:
         tax_value = (total * total_tax) / (100 + total_tax)
         tax_value = ("%.2f" % tax_value)
+    try:
+        url_request, invoice_file_name = "", ""
+        invoice_data = MasterDocs.objects.filter(master_id=order_id,
+                                                 user=invoice_file_user,
+                                                 extra_flag=grn_receipt_number)
+        if invoice_data.exists():
+            invoice_details = invoice_data[0].uploaded_file
+            # import pdb;pdb.set_trace()
+            invoice_file_name = (invoice_data[0].uploaded_file.file.name).split('/')[-1]
+            http_data = "%s%s%s" % (request.META.get('HTTP_HOST'), "/", invoice_details)
+            url_request = '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload(' + http_data + ')" ">Download</button>'
+
+    except IOError:
+        pass
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
@@ -2673,3 +2689,39 @@ def get_sku_wise_cancel_grn_report(request, user=''):
     temp_data = get_sku_wise_cancel_grn_report_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_invoice_file(request, user=''):
+    receipt_type, http_data = '', ''
+    po_id = request.GET.get('po_id', '')
+    user = User.objects.get(id=request.GET['warehouse_id'])
+    po_summary_id = request.GET.get('po_summary_id', '')
+    receipt_no = request.GET.get('receipt_no', '')
+    st_grn = request.GET.get('st_grn', '')
+    po_pre = request.GET.get('prefix', '')
+    if po_id:
+        results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre)
+        if receipt_no:
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+            if results:
+                purchase_order = results[0]
+                order_id = purchase_order.order_id
+                invoice_file_user = purchase_order.open_po.sku.user
+                grn_numbers = results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number').get()
+                grn_number = grn_numbers["sellerposummary__grn_number"]
+                grn_receipt_number = grn_numbers['sellerposummary__receipt_number']
+                try:
+                    url_request, invoice_file_name = "", ""
+                    invoice_data = MasterDocs.objects.filter(master_id=order_id,
+                                                             user=invoice_file_user,
+                                                             extra_flag=grn_receipt_number)
+                    if invoice_data.exists():
+                        invoice_details = invoice_data[0].uploaded_file.url
+                        invoice_file_name = (invoice_data[0].uploaded_file.file.name).split('/')[-1]
+                        http_data = invoice_details
+
+                except IOError:
+                    pass
+    return HttpResponse(http_data)

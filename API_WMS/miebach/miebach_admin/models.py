@@ -1370,6 +1370,8 @@ class UserProfile(models.Model):
     sap_code = models.CharField(max_length=64, default='', null=True, blank=True)
     place_of_supply = models.CharField(max_length=64, default='', null=True, blank=True)
     location_code = models.CharField(max_length=64, default='', null=True, blank=True)
+    attune_id = models.IntegerField(default=None, blank=True, null=True)
+
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -4054,8 +4056,8 @@ class TestMaster(SKUMaster):
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, related_name='consumption_user')
-    machine = models.ForeignKey(MachineMaster, related_name='consumption_machine')
-    test = models.ForeignKey(TestMaster, related_name='consumption_test')
+    machine = models.ForeignKey(MachineMaster, related_name='consumption_machine', blank=True, null=True)
+    test = models.ForeignKey(TestMaster, related_name='consumption_test',blank=True, null=True)
     patient_samples = models.FloatField(default=0)
     rerun = models.FloatField(default=0)
     one_time_process = models.FloatField(default=0)

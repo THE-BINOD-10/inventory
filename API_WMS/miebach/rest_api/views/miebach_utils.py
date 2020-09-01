@@ -4502,7 +4502,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                      "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
                      "purchase_order__open_po__vendor__creation_date", "status", "credit_status",
                      "credit__credit_number",
-                     "purchase_order__po_number",
+                     "purchase_order__po_number", "quantity"
                      ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
@@ -4614,7 +4614,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__cess_tax'] = 0
         if data['cess_tax']:
             data['purchase_order__open_po__cess_tax'] = data['cess_tax']
-        amount = float('%.2f' % (float(data['total_received'] * price)))
+        amount = float('%.2f' % (float(data['quantity'] * price)))
         if data['discount_percent']:
             amount = float('%.2f' % (amount - (amount * float(data['discount_percent']) / 100)))
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
@@ -4624,10 +4624,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if data['discount_percent']:
             aft_unit_price = aft_unit_price - (aft_unit_price * float(data['discount_percent']) / 100)
 
-        post_amount = aft_unit_price * float(data['total_received'])
+        post_amount = aft_unit_price * float(data['quantity'])
         margin_price = 0
         final_price = '%.2f' % (aft_unit_price)
-        invoice_total_amount = float(final_price) * float(data['total_received'])
+        invoice_total_amount = float(final_price) * float(data['quantity'])
         hsn_code , last_updated_date= '', ''
         if data['purchase_order__open_po__sku__hsn_code']:
             hsn_code = data['purchase_order__open_po__sku__hsn_code']
@@ -4784,7 +4784,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                 ('SKU Brand', data['purchase_order__open_po__sku__sku_brand']),
                                 ('SKU Category', data['purchase_order__open_po__sku__sku_category']),
                                 ('Sub Category', data['purchase_order__open_po__sku__sub_category']),
-                                ('GRN Qty', data['total_received']),
+                                ('GRN Qty', data['quantity']),
                                 ('Unit Rate', float("%.2f" % price)), ('MRP', float("%.2f" % mrp)),
                                 ('Pre-Tax Received Value', float("%.2f" % amount)),
                                 ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
@@ -5182,7 +5182,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
     lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number', 'purchase_order__creation_date',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__expected_date', 'purchase_order__open_po__vendor__vendor_id', 'purchase_order__open_po__vendor__name',
            'purchase_order__open_po__vendor__creation_date', 'grn_number', '', '', '', '', '', 'purchase_order__open_po__sku__user',
@@ -5196,7 +5196,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id', 'supplier_name': 'purchase_order__open_po__supplier__name'}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
                      'receipt_number', 'grn_number', 'invoice_date', 'challan_date','invoice_number', 'challan_number',
-                     'purchase_order__po_number', "purchase_order__creation_date", "credit_type", "purchase_order__open_po__vendor__vendor_id",
+                     'purchase_order__po_number', "credit_type", "purchase_order__open_po__vendor__vendor_id",
                      "purchase_order__open_po__vendor__name", "credit__credit_number","purchase_order__open_po__delivery_date",
                      "purchase_order__expected_date", "purchase_order__open_po__vendor__creation_date", "status", "credit_status","purchase_order__open_po__sku__user"
                  ]
@@ -5272,7 +5272,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
         po_reference_name = result.open_po.po_name
         po_number = data['purchase_order__po_number']
-        po_date = get_local_date(user, data["purchase_order__creation_date"]).split(' ')
+        po_date = get_local_date(user, po_result[0].creation_date).split(' ')
         po_date = ' '.join(po_date[0:3])
         grn_number,grn_date="",""
         updated_user_name = user.username

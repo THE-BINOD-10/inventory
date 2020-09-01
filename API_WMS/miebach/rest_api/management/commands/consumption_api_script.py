@@ -26,36 +26,36 @@ def init_logger(log_file):
 
 log = init_logger('logs/metropolis_consumption.log')
 
-def update_consumption(consumption_obj):
+def update_consumption(consumption_obj, user):
 	if consumption_obj and consumption_obj.get('STATUS_CODE', 0) == 200:
 		status_time = consumption_obj.get('TIME', 0)
 		if consumption_obj.keys() > 2:
-			for key in consumption_obj.keys():
-				if key != 'TIME' or key != 'STATUS_CODE':
-					consumption_dict = consumption_obj[key]
-					test_code = consumption_dict.get('TCode', '')
-					test_name = consumption_dict.get('TNAME', '')
-					name = consumption_dict.get('NAME', '')
-					orgid = consumption_dict.get('OrgID', '')
-					total_test = float(consumption_dict.get('TT', 0))
-					one_time_process = float(consumption_dict.get('P1', 0))
-					two_time_process = float(consumption_dict.get('P2', 0))
-					three_time_process = float(consumption_dict.get('P3', 0))
-					n_time_process = float(consumption_dict.get('Pn', 0))
-					rerun = float(consumption_dict.get('RR', 0))
-					quality_check  = float(consumption_dict.get('Q', 0))
-					total_patients = float(consumption_dict.get('TP', 0))
-					total = float(consumption_dict.get('T', 0))
-					no_patient = float(consumption_dict.get('NP', 0))
-					qnp = float(consumption_dict.get('QNP', 0))
-					patient_samples = float(consumption_dict.get('PatientSamples', 0))
-					sum_ = one_time_process + two_time_process + three_time_process + quality_check +no_patient
-					diff = total_test - sum_
-					n_time_process_val = diff/n_time_process
-					Consumption.objects.create(**{'user':user, 'test':'', 'patient_samples':patient_samples, 'rerun': rerun,'total_test': total_test,
-						                          'one_time_process': one_time_process, 'two_time_process':two_time_process, 'three_time_process':three_time_process,
-						                          'n_time_process': n_time_process, 'quality_check': quality_check, 'total_patients': total_patients,
-						                           'total': total, 'no_patient': no_patient, 'qnp': qnp, 'n_time_process_val': n_time_process_val})
+			consumption_lis = consumption_obj.keys()
+			consumption_lis.remove('STATUS_CODE')
+			consumption_lis.remove('TIME')
+			for key in consumption_lis:
+				consumption_dict = consumption_obj[key]
+				test_code = consumption_dict.get('TCode', '')
+				test_name = consumption_dict.get('TNAME', '')
+				name = consumption_dict.get('NAME', '')
+				orgid = consumption_dict.get('OrgID', '')
+				data_dict = {'user':user}
+				number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
+				'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
+				'qnp':'QNP', 'patient_samples': 'PatientSamples'}
+				for key, value in number_dict.iteritems():
+					data_dict[key] = 0
+					if consumption_dict.get(value, 0):
+						data_dict[key] = float(consumption_dict.get(value, 0))
+				sum_ = data_dict['one_time_process'] + data_dict['two_time_process'] + data_dict['three_time_process'] + data_dict['quality_check'] +data_dict['no_patient']
+				diff = data_dict['total_test'] - sum_
+				if diff and data_dict['n_time_process']:
+					n_time_process_val = diff/data_dict['n_time_process']
+				data_dict['n_time_process_val'] = n_time_process_val
+				try:
+					Consumption.objects.create(**data_dict)
+				except:
+					log.info("Consumption creation failed for %s and data_dict was %s" % str(user.username), str(data_dict))
 
 
 class Command(BaseCommand):
@@ -70,6 +70,6 @@ class Command(BaseCommand):
     		today = datetime.date.today().strftime('%Y%m%d')
     		data = {'fromdate':today, 'todate':today, 'orgid':67}
     		consumption_obj = obj.get_consumption_data(data=data,user=user)
-    		update_consumption(consumption_obj)
+    		update_consumption(consumption_obj, user)
     	log.info("succesfull Consumption call for %s" % user.username)
     	self.stdout.write("completed Consumption call")

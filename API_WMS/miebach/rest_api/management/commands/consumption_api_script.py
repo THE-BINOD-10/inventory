@@ -35,7 +35,8 @@ def update_consumption(consumption_obj, user):
             consumption_lis.remove('TIME')
             for key in consumption_lis:
                 consumption_dict = consumption_obj[key]
-                test_code = consumption_dict.get('TCode', '')
+                data_dict = {'user':user}
+                test_code = consumption_dict.get('TCODE', '')
                 if test_code:
                     test_obj = TestMaster.objects.filter(test_code=str(test_code))
                     if test_obj.exists():
@@ -43,7 +44,6 @@ def update_consumption(consumption_obj, user):
                 test_name = consumption_dict.get('TNAME', '')
                 name = consumption_dict.get('NAME', '')
                 orgid = consumption_dict.get('OrgID', '')
-                data_dict = {'user':user}
                 number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
                 'n_time_process':'PN', 'rerun':'RR', 'quality_check':'Q', 'total_patients':'TP', 'total':'T', 'no_patient':'NP',
                 'qnp':'QNP', 'patient_samples': 'PatientSamples'}

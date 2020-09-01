@@ -10463,14 +10463,17 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user, rtv_id):
+def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None):
     for stock in stocks.iterator():
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
-            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
@@ -10478,10 +10481,13 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
             rtv_quantity = stock.quantity
-            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', rtv_quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, rtv_quantity, stock)
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=stock.quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
             stock.quantity = 0
             stock.save()
         if quantity == 0:
@@ -13087,8 +13093,69 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     if uom:
         filt_dict['uom'] = uom
     sku_uom = UOMMaster.objects.filter(**filt_dict)
+    if not sku_uom.exists() and 'uom' in filt_dict.keys():
+        del filt_dict['uom']
+        sku_uom = UOMMaster.objects.filter(**filt_dict)
     if sku_uom.exists():
         uom_dict['measurement_unit'] = sku_uom[0].uom
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
+
+def reduce_conumption_stock(consumptions=None, consumption_dict=None):
+    if not consumptions:
+        consumptions = []
+    for consumption_obj in consumptions:
+        with transaction.atomic(using='default'):
+            consumption = Consumption.objects.using('default').select_for_update().\
+                                            filter(id=consumption_obj.id, status=1)
+            consumption = consumption[0]
+            user = consumption.user
+            main_user = get_company_admin_user(user)
+            bom_check_dict = {'product_sku__user': main_user.id,
+                              'product_sku__sku_code': consumption.test.test_code}
+            if consumption.machine:
+                bom_check_dict['machine__machine_code'] = consumption.machine.machine_code
+            bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            if not bom_master.exists():
+                if 'machine__machine_code' in bom_check_dict.keys():
+                    del bom_check_dict['machine__machine_code']
+                bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            bom_dict = OrderedDict()
+            stock_found = True
+            for bom in bom_master:
+                stocks = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id,
+                                                    sku__sku_code=bom.material_sku.sku_code,
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'consumption',
+                                                 uom=bom.unit_of_measurement)
+                pcf = uom_dict['sku_conversion']
+                pcf = pcf if pcf else 0
+                consumption_qty = consumption.total_test * bom.material_quantity
+                needed_quantity = consumption_qty * pcf
+                stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                stock_quantity = stock_quantity if stock_quantity else 0
+                if needed_quantity > stock_quantity:
+                    stock_found = False
+                    break
+                bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
+                                              'needed_quantity': needed_quantity,
+                                              'stocks': stocks}
+            if not stock_found:
+                log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
+                         (str(consumption.id), str(consumption.test.test_code)))
+                continue
+            for key, value in bom_dict.items():
+                consumption_data = ConsumptionData.objects.create(
+                    consumption_id=consumption.id,
+                    sku_id=key.id,
+                    quantity=value['consumption_qty'],
+                )
+                update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data)
+            consumption.status = 0
+            consumption.save()
+    return "Success"

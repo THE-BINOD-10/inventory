@@ -4051,10 +4051,18 @@ class TestMaster(SKUMaster):
         db_table = 'TEST_MASTER'
 
 
+class StockMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    stock = models.ForeignKey(StockDetail)
+    quantity = models.FloatField(default=0)
+
+    class Meta:
+        db_table = 'STOCK_MAPPING'
+
 class Consumption(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, related_name='consumption_user')
-    machine = models.ForeignKey(MachineMaster, related_name='consumption_machine')
+    machine = models.ForeignKey(MachineMaster, related_name='consumption_machine', blank=True, null=True)
     test = models.ForeignKey(TestMaster, related_name='consumption_test')
     patient_samples = models.FloatField(default=0)
     rerun = models.FloatField(default=0)
@@ -4075,3 +4083,16 @@ class Consumption(models.Model):
 
     class Meta:
         db_table = 'CONSUMPTION'
+
+
+class ConsumptionData(models.Model):
+    id = BigAutoField(primary_key=True)
+    consumption = models.ForeignKey(Consumption, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster, related_name='consumption_sku')
+    quantity = models.FloatField(default=0)
+    stock_mapping = models.ManyToManyField(StockMapping)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CONSUMPTION_DATA'

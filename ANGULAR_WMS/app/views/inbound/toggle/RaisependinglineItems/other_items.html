@@ -12,6 +12,7 @@
           <th>UOM</th>
           <th>Base Price excluding GST</th>
           <th>Tax</th>
+          <th>Cess Tax</th>
           <th class="plus"></th>
         </tr>
       </thead>
@@ -59,10 +60,17 @@
             <input type="text" name="temp_tax" ng-model="product.fields.temp_tax" class="form-control detectTab"
               ng-class="service.get_decimal_perm()" size="12" readonly>
           </td>
+          <td class="text-center">
+            <!-- <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+            </span> -->
+            <input type="text" name="temp_cess_tax" ng-model="product.fields.temp_cess_tax" class="form-control detectTab"
+              ng-class="service.get_decimal_perm()" size="12" readonly>
+          </td>
           <td style="width: 45px !important;">
             <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(index, false)"></i>
-            <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i>\
+            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, $index)" ng-class="showCase.service.isLast($last)"></i>
+            <!-- <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i> -->
           </td>
         </tr>
       </tbody>

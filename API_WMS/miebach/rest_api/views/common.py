@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -5009,7 +5009,8 @@ def search_wms_data(request, user=''):
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
-                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax}
+                       'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
+                        "temp_cess_tax": tax_values[0]['cess_tax']}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5085,6 +5086,9 @@ def get_company_admin_user(user):
 def get_supplier_sku_prices(request, user=""):
     suppli_id = request.POST.get('suppli_id', '')
     sku_codes = request.POST.get('sku_codes', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
     log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         result_data=get_supplier_sku_price_values(suppli_id,sku_codes,user)
@@ -5260,14 +5264,17 @@ def build_search_data(user, to_data, from_data, limit):
                 sku_conversion = 0
             tax_values = TaxMaster.objects.filter(product_type=data.hsn_code, user=user.id).values()
             temp_tax=0
+            temp_cess_tax = 0
             if tax_values.exists():
                 temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
+                temp_cess_tax = tax_values[0]['cess_tax']
             data_dict = {'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                         'measurement_unit': measurement_unit,
                         'mrp': data.mrp, 'sku_class': data.sku_class,
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
-                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax}
+                        'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
+                         "temp_cess_tax": temp_cess_tax}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -5679,7 +5686,7 @@ def get_sellers_list(request, user=''):
             ))
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, 'shipment_add_names':ship_address_names, \
                                     'seller_supplier_map': seller_supplier, 'warehouse' : user_list,
-                                    'raise_po_terms_conditions' : raise_po_terms_conditions,
+                                    'raise_po_terms_conditions' : '',
                                     'shipment_addresses' : ship_address_details, 'prodcatg_map': prod_catg_map}))
 
 
@@ -6353,13 +6360,16 @@ def get_warehouse_level_data(request, user=''):
 
 
 
-def get_sku_stock_summary(stock_data, load_unit_handle, user):
+def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
+    user_ids = [user.id]
+    if user_list:
+        user_ids = user_list
     availabe_quantity = {}
     industry_type = user.userprofile.industry_type
     res_qty_dict = {}
-    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user=user.id,
+    res_qty_objs = PicklistLocation.objects.filter(picklist__order__user__in=user_ids,
                                                    stock_id__in=stock_data.values_list('id', flat=True), status=1).\
         only('stock_id', 'reserved')
     for res_qty_obj in res_qty_objs:
@@ -6368,7 +6378,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     for stock in stock_data:
         res_qty = res_qty_dict.get(stock.id, 0)
 
-        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id,
+        raw_reserved = RMLocation.objects.filter(material_picklist__jo_material__material_code__user__in=user_ids,
                                                  stock_id=stock.id, status=1).aggregate(Sum('reserved'))['reserved__sum']
 
         if not res_qty:
@@ -6379,6 +6389,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         location = stock.location.location
         zone = stock.location.zone.zone
         pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
+        pcf = 1
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
@@ -6387,6 +6398,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             mrp = batch_detail.mrp
             weight = batch_detail.weight
             buy_price = batch_detail.buy_price
+            pcf = stock.batch_detail.pcf
             if batch_detail.ean_number:
                 ean = batch_detail.ean_number
         cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
@@ -6394,7 +6406,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
                                'weight': weight, 'buy_price': buy_price})
-        zones_data[cond]['total_quantity'] += stock.quantity
+        zones_data[cond]['total_quantity'] += stock.quantity/pcf
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
         availabe_quantity[location] += (stock.quantity - res_qty)
@@ -11844,7 +11856,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                                                inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
-            taxes_data.append(tax_master.json())
+            tot_tax = tax_master.cgst_tax + tax_master.sgst_tax + tax_master.igst_tax
+            tax_json = copy.deepcopy(tax_master.json())
+            if supplier_master:
+                tax_json['cess_tax'] = get_kerala_cess_tax(tot_tax, supplier_master[0])
+            taxes_data.append(tax_json)
         if supplier_master:
             supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
@@ -12949,7 +12965,7 @@ def get_staff_plants_list(request, user=''):
     if staff_obj:
         staff_obj = staff_obj[0]
         plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
-        plants_list = dict(User.objects.filter(username__in=plants_list).values_list('first_name', 'username'))
+        plants_list = dict(User.objects.filter(username__in=plants_list).annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
         if not plants_list:
             parent_company_id = get_company_id(user)
             company_id = staff_obj.company_id
@@ -12957,7 +12973,8 @@ def get_staff_plants_list(request, user=''):
                 company_id = ''
             plant_objs = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
                                       company_id=company_id)
-            plants_list = dict(plant_objs.values_list('first_name', 'username'))
+            plants_list = dict(plant_objs.annotate(full_name=Concat('first_name', Value(':'),'userprofile__stockone_code')).values_list('full_name', 'username'))
+            # plants_list = dict(plant_objs.values_list('first_name', 'username'))
         if staff_obj.department_type.filter():
             department_type_list = {}
             dept_list = staff_obj.department_type.filter().values_list('name', flat=True)
@@ -12976,6 +12993,14 @@ def check_and_get_plants(request, req_users, users=''):
         req_users = User.objects.filter(id__in=req_users)
     return req_users
 
+
+@get_admin_all_wh
+def check_and_get_plants_depts(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
 
 def check_and_get_plants_wo_request(request_user, user, req_users):
     users = []
@@ -13027,3 +13052,9 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
+def get_kerala_cess_tax(tax, supplier):
+    cess_tax = 0
+    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1
+    return cess_tax

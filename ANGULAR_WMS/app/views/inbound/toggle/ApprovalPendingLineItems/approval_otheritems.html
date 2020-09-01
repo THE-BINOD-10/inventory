@@ -7,12 +7,13 @@
           <th>Item Code*</th>
           <th>Title</th>
           <th>HSN Code</th>
-          <th class="w10_">Quantity*</th>
+          <th>Qty*</th>
           <th>UOM</th>
           <th>Unit Rate(INR)</th>
           <th>Base Price excluding GST</th>
           <th>Amount(INR)</th>
           <th>Tax %</th>
+          <th>Cess Tax %</th>
           <th>Total(INR)</th>
           <th class="plus" ng-if="showCase.quantity_editable"></th>
         </tr>
@@ -22,7 +23,7 @@
           <td>
             <input type="text" autocomplete="off" ng-init="showCase.getFirstSupplier(product.fields);" name="supplier_id" ng-model="product.fields.supplier_id_name" placeholder="Search Supplier"
             typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?', '', '', '', showCase.model_data.store_id)" typeahead-loading="loadingLocations" class="form-control"
-            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name); showCase.checkResubmitPurchaseApprover(product.fields)"
+            typeahead-on-select="product.fields.supplier_id_name = showCase.service.change_search_value(product.fields.supplier_id_name); showCase.checkResubmitPurchaseApprover(product.fields);showCase.update_tax_details(product)"
             ng-blur="showCase.service.checkSearchValue(product.fields.supplier_id_name, 'search_supplier?', $event, 'is_parent', 'Supplier');showCase.checkResubmitPurchaseApprover(product.fields)"
             ng-disabled="!showCase.permissions.change_pendinglineitems" size="60"
             >
@@ -37,17 +38,17 @@
             <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
           </td>
           <td>
-            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+            <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="70">
           </td>
           <td>
-            <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="50">
+            <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="32">
           </td>
           <td>
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()"
-                   ng-readonly="!showCase.quantity_editable"
-                   ng-change="showCase.checkResubmit(product.fields)"
+                   ng-readonly="!showCase.quantity_editable && !showCase.permissions.change_pendinglineitems"
+                   ng-change="showCase.checkResubmit(product.fields);showCase.checkResubmitPurchaseApprover(product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
@@ -60,7 +61,7 @@
             <input id="price1" ng-model="product.fields.price" type="text" name="price"
             class="form-control detectTab"
             ng-class="service.get_decimal_perm()"
-            ng-keyup="showCase.getTotals(product)" size="12"
+            ng-keyup="showCase.getTotals(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="12"
             ng-readonly="!showCase.permissions.change_pendinglineitems">
           </td>
           <td class="text-center">
@@ -81,13 +82,20 @@
             <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->
           </td>
           <td class="text-center">
+            <input type="text" name="cess_tax" ng-model="product.fields.cess_tax"
+            class="form-control" ng-class="service.get_decimal_perm()" ng-keyup="showCase.getTotals(product)" readonly size="12">
+            <!--  ng-readonly="!showCase.permissions.change_pendinglineitems" size="12"> -->
+          </td>
+          <td class="text-center">
             <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
             </span>
             <input type="text" name="total" ng-model="product.fields.total" class="hide">
           </td>
           <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
             <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-            <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+            <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i>
+            <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i> -->
+          </td>
           </td>
         </tr>
       </tbody>

@@ -1216,6 +1216,7 @@ def print_po_reports(request, user=''):
     bill_no = ''
     bill_date = ''
     sr_number = ''
+    warehouse_store = ''
     # po_data = []
     headers = (
         'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -1281,7 +1282,14 @@ def print_po_reports(request, user=''):
                     mrp = 0
                     if user.userprofile.user_type == 'warehouse_user':
                         mrp = open_data.sku.mrp
+                    sku_batch_no, expiry_date = '', ''
                     if seller_summary_obj.batch_detail:
+                        sku_batch_no = seller_summary_obj.batch_detail.batch_no
+                        expiry_date = seller_summary_obj.batch_detail.expiry_date
+                        if expiry_date:
+                            expiry_date = datetime.datetime.strftime(expiry_date, '%d/%m/%Y')
+                        else:
+                            expiry_date = ''
                         price = seller_summary_obj.batch_detail.buy_price
                         mrp = seller_summary_obj.batch_detail.mrp
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
@@ -1311,7 +1319,7 @@ def print_po_reports(request, user=''):
                                                            'price': price, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax,
                                                            'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
                                                            'amount': 0, 'sku_desc': open_data.sku.sku_desc,
-                                                           'mrp': mrp})
+                                                           'mrp': mrp, 'batch_no': sku_batch_no, 'exp_date':expiry_date})
                     grouped_data[grouping_key]['received_quantity'] += quantity
                     grouped_data[grouping_key]['amount'] += float("%.2f" % amount)
                     total += amount
@@ -1390,27 +1398,21 @@ def print_po_reports(request, user=''):
         po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
+        grn_po_number = purchase_order.po_number
+        warehouse_store = User.objects.get(id=purchase_order.open_po.sku.user).first_name
         if receipt_no:
             po_reference = '%s/%s' % (po_reference, receipt_no)
-        order_date = datetime.datetime.strftime(purchase_order.creation_date, "%d-%m-%Y")
+        if purchase_order.sellerposummary_set.filter().exists():
+            seller_po_summary_date = purchase_order.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
+            order_date = get_local_date(request.user, seller_po_summary_date)
+        else:
+            order_date = get_local_date(request.user, purchase_order.creation_date)
+        order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address, company_address = get_purchase_company_address(user_profile)  # user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name), ('GST NO', tin_number))
-    if results and oneassist_condition == 'true':
-        purchase_order = results[0]
-        customer_data = OrderMapping.objects.filter(mapping_id=purchase_order.id, mapping_type='PO')
-        if customer_data:
-            admin_user = get_admin(user)
-            interorder_data = IntermediateOrders.objects.filter(order_id=customer_data[0].order_id,
-                                                                user_id=admin_user.id)
-            if interorder_data:
-                inter_order_id = interorder_data[0].interm_order_id
-                courtesy_sr_number = OrderFields.objects.filter(original_order_id=inter_order_id, user=admin_user.id,
-                                                                name='original_order_id')
-                if courtesy_sr_number:
-                    sr_number = courtesy_sr_number[0].value
     sku_list = po_data[po_data.keys()[0]]
     sku_slices = generate_grn_pagination(sku_list)
     table_headers = (
@@ -1430,8 +1432,8 @@ def print_po_reports(request, user=''):
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'overall_discount': overall_discount,
-                   'st_grn':st_grn,
+                   'overall_discount': overall_discount, 'grn_po_number': grn_po_number,
+                   'st_grn':st_grn, 'warehouse_store': warehouse_store,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
@@ -2047,6 +2049,36 @@ def print_stock_cover_report(request, user=''):
     return HttpResponse(html_data)
 
 
+def format_printing_datam(datum, purchase_order, wms_code, supplier_code, measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax):
+    amount = 0
+    delivery_date = ''
+    amount = float(datum.quantity) * float(purchase_order.price)
+    amount = float("%.2f" % amount)
+    total_tax_amt = (purchase_order.utgst_tax + purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.apmc_tax + purchase_order.utgst_tax) * (amount/100)
+    total_sgst = purchase_order.sgst_tax * (amount/100)
+    total_cgst = purchase_order.cgst_tax * (amount/100)
+    total_igst = purchase_order.igst_tax * (amount/100)
+    total_tax_amt = float("%.2f" % total_tax_amt)
+    total_sku_amt = total_tax_amt + amount
+    try:
+        delivery_date = datetime.datetime.strftime(datum.delivery_date, '%d-%m-%Y')
+    except Exception as e:
+        pass
+    po_temp_data = [wms_code, purchase_order.sku.hsn_code, supplier_code, purchase_order.sku.sku_desc, delivery_date, float(datum.quantity),
+                measurement_unit,
+                purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, total_sgst, purchase_order.cgst_tax, total_cgst,
+                purchase_order.igst_tax, total_igst,
+                total_sku_amt
+                ]
+    if show_cess_tax:
+        po_temp_data.insert(table_headers.index('CESS (%)'), purchase_order.cess_tax)
+    if show_apmc_tax:
+        po_temp_data.insert(table_headers.index('APMC (%)'), purchase_order.apmc_tax)
+    if display_remarks == 'true':
+        po_temp_data.append(purchase_order.remarks)
+    return po_temp_data
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2055,14 +2087,17 @@ def print_purchase_order_form(request, user=''):
     po_prefix = request.GET.get('prefix', '')
     total_qty = 0
     total = 0
+    pending_po_line_entries = ''
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
-        if pm_order.open_po.pendingpos.filter().exists():
-            pending_po_data = pm_order.open_po.pendingpos.filter()[0]
+        if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
+            pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
+            if pending_po_data.pending_polineItems.filter().exists():
+                pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
                 supplier_payment_terms = pending_po_data.supplier_payment.payment_description
             delivery_date = pending_po_data.delivery_date.strftime('%d-%m-%Y')
@@ -2079,12 +2114,12 @@ def print_purchase_order_form(request, user=''):
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
                          'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
         if user.username in MILKBASKET_USERS:
             table_headers.insert(4, 'Weight')
     else:
-        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+        table_headers = ['SKU Code', 'HSN Code', 'Supplier Code', 'Desc', 'Delivery Schedule', 'Qty', 'UOM', 'Unit Price', 'Amt',
                          'SGST (%)', 'SGST Amt', 'CGST (%)', 'CGST Amt', 'IGST (%)', 'IGST Amt', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN')
@@ -2100,45 +2135,56 @@ def print_purchase_order_form(request, user=''):
         amount = open_po.order_quantity * open_po.price
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax + open_po.apmc_tax
         total += amount + ((amount / 100) * float(tax))
-        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
-                         + open_po.utgst_tax + open_po.apmc_tax) * (amount / 100)
-        total_sgst = open_po.sgst_tax * (amount/100)
-        total_cgst = open_po.cgst_tax * (amount/100)
-        total_igst = open_po.igst_tax * (amount/100)
-        total_tax_amt = float("%.2f" % total_tax_amt)
-        total_sku_amt = total_tax_amt + amount
         if user.userprofile.industry_type == 'FMCG':
-            po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc,
+            po_temp_data = []
+            if pending_po_line_entries:
+                sku_pending_line = pending_po_line_entries.filter(sku__sku_code=open_po.sku.sku_code)
+                if sku_pending_line.exists():
+                    delivery_schedule_data = sku_pending_line[0].purchasedeliveryschedule_set.filter(status=1)
+                    for delivery_data in delivery_schedule_data:
+                        po_temp_data = format_printing_datam(delivery_data, open_po, open_po.sku.sku_code, open_po.supplier_code, open_po.measurement_unit, table_headers, display_remarks, show_cess_tax, show_apmc_tax)
+                        po_data.append(po_temp_data)
+            if not po_temp_data:
+                total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
+                         + open_po.utgst_tax + open_po.apmc_tax) * (amount / 100)
+                total_sgst = open_po.sgst_tax * (amount/100)
+                total_cgst = open_po.cgst_tax * (amount/100)
+                total_igst = open_po.igst_tax * (amount/100)
+                total_tax_amt = float("%.2f" % total_tax_amt)
+                total_sku_amt = total_tax_amt + amount
+                po_temp_data = [open_po.sku.sku_code, open_po.sku.hsn_code,open_po.supplier_code, open_po.sku.sku_desc, '',
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
                             open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
-            if user.username in MILKBASKET_USERS:
-                weight_obj = open_po.sku.skuattributes_set.filter(attribute_name='weight'). \
-                    only('attribute_value')
-                weight = ''
-                if weight_obj.exists():
-                    weight = weight_obj[0].attribute_value
-                po_temp_data.insert(4, weight)
+                po_data.append(po_temp_data)
+            
         else:
-            po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
+            total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
+                         + open_po.utgst_tax + open_po.apmc_tax) * (amount / 100)
+            total_sgst = open_po.sgst_tax * (amount/100)
+            total_cgst = open_po.cgst_tax * (amount/100)
+            total_igst = open_po.igst_tax * (amount/100)
+            total_tax_amt = float("%.2f" % total_tax_amt)
+            total_sku_amt = total_tax_amt + amount
+            po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, '',
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
                             open_po.utgst_tax, total_sku_amt]
 
-        if ean_flag:
-            ean_number = ''
-            eans = get_sku_ean_list(open_po.sku)
-            if eans:
-                ean_number = eans[0]
-            po_temp_data.insert(1, ean_number)
-        if show_cess_tax:
-            po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
-        if show_apmc_tax:
-            po_temp_data.insert(table_headers.index('APMC (%)'), open_po.apmc_tax)
-        if display_remarks == 'true':
-            po_temp_data.append(open_po.remarks)
-        # if show_cess_tax:
+            if show_cess_tax:
+                po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
+            if show_apmc_tax:
+                po_temp_data.insert(table_headers.index('APMC (%)'), open_po.apmc_tax)
+            if display_remarks == 'true':
+                po_temp_data.append(open_po.remarks)
+            po_data.append(po_temp_data)
+        # if ean_flag:
+        #     ean_number = ''
+        #     eans = get_sku_ean_list(open_po.sku)
+        #     if eans:
+        #         ean_number = eans[0]
+        #     po_temp_data.insert(1, ean_number)
+                # if show_cess_tax:
         #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
-        po_data.append(po_temp_data)
     order = purchase_orders[0]
     open_po = order.open_po
     address = open_po.supplier.address
@@ -2208,7 +2254,8 @@ def print_purchase_order_form(request, user=''):
         company_details['cin_number'] = profile.company.cin_number
         company_details['pan_number'] = profile.company.pan_number
     left_side_logo = get_po_company_logo(user, LEFT_SIDE_COMPNAY_LOGO, request)
-    tc_master = UserTextFields.objects.filter(user=user.id, field_type='terms_conditions')
+    user_company_id = get_company_id(user)
+    tc_master = UserTextFields.objects.filter(company_id=user_company_id, field_type='terms_conditions')
     if tc_master.exists():
         terms_condition = tc_master[0].text_field
     if open_po.supplier.lead_time:

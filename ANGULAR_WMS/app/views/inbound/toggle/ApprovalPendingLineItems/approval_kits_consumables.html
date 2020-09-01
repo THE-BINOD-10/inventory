@@ -1,3 +1,11 @@
+<style type="text/css">
+  .text_element{
+    font-style: italic;
+    font-size: 12px;
+    line-height: 30px;
+    font-weight: 600;
+  }
+</style>
 <div class="row">
   <table class="table">
     <thead>
@@ -7,16 +15,17 @@
         <th>WMS Code*</th>
         <th>Title</th>
         <th>HSN Code</th>
-        <th class="w10_">Quantity*</th>
+        <th>Qty*</th>
         <th>UOM</th>
         <th>No.Of Base Units</th>
         <th>Base UOM</th>
-        <th>MOQ</th>
+        <!-- <th>MOQ</th> -->
         <th>Unit Rate(INR)</th>
-        <th>Discount</th>
+        <th>Dis %</th>
         <th>Final Unit Price</th>
         <th>Amount(INR)</th>
         <th>Tax %</th>
+        <th>Cess Tax %</th>
         <th>Total(INR)</th>
         <th>OpenPR Qty</th>
         <!-- <th>Last 3M Avg Consumption</th> -->
@@ -29,7 +38,7 @@
     <tbody>
       <tr ng-repeat="product in showCase.model_data.data" id="tab_count" ng-init="innerIndex=$index">
         <td>
-          <select ui-select class="form-control" name="supplier" style="width:140px;"
+          <select ui-select class="form-control" name="supplier" style="width:110px;"
           ng-init="product.fields.supplier_id_name=showCase.getFirstSupplier(product.fields);"
           ng-model="product.fields.supplier_id_name" 
           ng-change="showCase.getsupBasedPriceDetails(product.fields.supplier_id_name, product.fields); showCase.checkResubmitPurchaseApprover(product.fields)"
@@ -45,16 +54,16 @@
           <span class="badge bg-primary" ng-click="showCase.move_to_sku_supplier(product.fields.sku.wms_code, product.fields, showCase.model_data.purchase_id)" ng-if="!product.fields.supplier_id_name && !product.fields.is_doa_sent && showCase.permissions.change_pendinglineitems" style="cursor: pointer;">+</span>
         </td> 
         <td>
-          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="35"
+          <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-readonly="product.pk > 0" size="30"
           title="{{ product.fields.sku.wms_code }}">
           <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
           <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
         </td>
         <td>
-          <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="50">
+          <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control detectTab" readonly size="120">
         </td>
         <td>
-          <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="25">
+          <input name="hsn_code" ng-model="product.fields.hsn_code" title="{{ product.fields.hsn_code }}" type="text" class="form-control detectTab" readonly size="32">
         </td>
         <td>
           <!-- <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
@@ -66,62 +75,68 @@
           <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                  ng-init="showCase.getNoOfTests(product.fields.order_quantity, product.fields);showCase.getTotals(product)"
                  ng-class="service.get_decimal_perm()" 
-                 ng-readonly="!showCase.quantity_editable"
-                 ng-change="showCase.checkResubmit(product.fields); showCase.getNoOfTests(product.fields.order_quantity, product.fields)"
+                 ng-readonly="!showCase.quantity_editable && !showCase.permissions.change_pendinglineitems"
+                 ng-change="showCase.checkResubmit(product.fields); showCase.getNoOfTests(product.fields.order_quantity, product.fields);showCase.checkResubmitPurchaseApprover(product.fields)"
                  ng-keyup="showCase.getTotals(product)"
-                 size="12">
+                 size="4">
         </td>
         <td>
-          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="12">
+          <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control detectTab" readonly size="8">
         </td>
         <td>
           <input ng-model="product.fields.conversion" type="text" name="no_of_tests"
                  class="form-control detectTab"
                  ng-class="service.get_decimal_perm()" ng-readonly="true"
-                 size="12">
+                 size="8">
         </td>
         <td>
-            <input ng-model="product.fields.base_uom" type="text" class="form-control" readonly size="12">
-          </td>
-        <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.moq}}</span> 
-          <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
+          <input type="text" class="form-control" ng-model="product.fields.base_uom" size="4" readonly>
         </td>
+        <!-- <td class="text-center"> 
+          <span class="text_element">{{product.fields.moq}}</span> 
+          <input type="text" name="moq" ng-model="product.fields.moq" class="hide">
+        </td> -->
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.price | number:2}}
+          <span class="text_element">{{product.fields.price | number:2}}
           </span>
           <input type="text" name="price" ng-model="product.fields.price" class="hide">
         </td>
-        <td><input type="text" ng-model="product.fields.discount" size="10" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
+        <td><input type="text" ng-model="product.fields.discount" size="5" title="{{ product.fields.discount }}" name="discount_percentage" class="form-control" ng-class="service.get_decimal_perm()" value="{{product.fields.discount}}" ng-change="showCase.getTotals(product, 'change');showCase.checkResubmitPurchaseApprover(product.fields)" ng-disabled="!showCase.permissions.change_pendinglineitems"></td>
 
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.final_price | number:2}}
+          <span class="text_element">{{product.fields.final_price | number:2}}
           </span>
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.amount | number:2}}
+          <span class="text_element">{{product.fields.amount | number:2}}
           </span> 
           <input type="text" name="amount" ng-model="product.fields.amount" class="hide">
         </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.tax}}
+          <span class="text_element">{{product.fields.tax}}
           </span> 
           <input type="text" name="tax" ng-model="product.fields.tax" class="hide">
         </td>
+        <td class="text-center">
+          <span class="text_element">{{product.fields.cess_tax}}
+          </span>
+          <input type="text" name="cess_tax" ng-model="product.fields.cess_tax" class="hide">
+        </td>
         <td class="text-center"> 
-          <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.total | number:2}}
+          <span class="text_element">{{product.fields.total | number:2}}
           </span> 
           <input type="text" name="total" ng-model="product.fields.total" class="hide">
         </td>
 
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.openpr_qty}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.openpr_qty}}</span> </td>
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.avg_consumption}}</span> </td> -->
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.capacity}}</span> </td>
-        <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.intransit_quantity}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.capacity}}</span> </td>
+        <td class="text-center"> <span class="text_element">{{product.fields.sku.intransit_quantity}}</span> </td>
         <td ng-if="showCase.quantity_editable" style="width: 45px !important;">
           <i class="fa fa-minus-square-o" ng-if="$last && $index != 0" ng-click="showCase.update_data(innerIndex, false)"></i>
-          <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td>
+          <i ng-click="showCase.check_sku_product_category(showCase.model_data.product_category, showCase.model_data.sku_category, product.fields.sku.wms_code, innerIndex, 'approve')" ng-class="showCase.service.isLast($last)"></i></td>
+          <!-- <i ng-click="showCase.update_data(innerIndex)" ng-class="showCase.service.isLast($last)"></i></td> -->
         </td>
         <!-- <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{product.fields.sku.suggested_pr_qty}}</span> </td> -->
       </tr>

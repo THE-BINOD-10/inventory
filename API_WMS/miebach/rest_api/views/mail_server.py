@@ -6,11 +6,15 @@ from email.MIMEBase import MIMEBase
 from email import encoders, Encoders
 
 
-def send_mail(send_to, subject, body):
+def send_mail(send_to, subject, body, extra_mail=''):
     if not send_to:
         return
-
-    fromaddr = 'noreply@mieone.com'
+    if extra_mail:
+        fromaddr = 'noreply@mieone.com'
+        password_token = 'no*reply!59'
+    else:
+        fromaddr = 'noreply@mieone.com'
+        password_token = 'no*reply!59'
     msg = MIMEMultipart()
 
     msg['From'] = fromaddr
@@ -24,7 +28,7 @@ def send_mail(send_to, subject, body):
 
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
-        server.login(fromaddr, "no*reply!59")
+        server.login(fromaddr, password_token)
         text = msg.as_string()
 
         server.sendmail(fromaddr, send_to, text)

@@ -1,12 +1,14 @@
 <style type="text/css">
 .form-control{
-    padding: 5px 4px;
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
  }
  .table > tbody > tr > td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .table > thead > tr> td{
-    padding: 6px 4px;
+    padding: 3px 3px;
  }
  .sidebar-panel{
     z-index: 1000;
@@ -20,7 +22,7 @@
   border: 1px solid #e8e8e8 !important;
 }
 </style>
-<div id="page-pop" class="modal fade in over-x">
+<div id="page-pop" class="modal fade in over-x" style="z-index: 1005;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width" style="font-size: smaller;">
       <div class="modal-content mw60">
@@ -103,8 +105,9 @@
                     <th class="w10_">SGST(%)</th>
                     <th class="w10_">CGST(%)</th>
                     <th class="w10_">IGST(%)</th>
-                    <th class="w10_">UTGST(%)</th>
-                    <th class="plus"></th>
+                    <th class="w10_">CESS(%)</th>
+                    <th class="w10_">Delivery Schedule</th>
+                    <!-- <th class="plus"></th> -->
                   </tr>
                 </thead>
                 <tbody ng-repeat="product in showCase.model_data.data">
@@ -156,8 +159,11 @@
 		                 <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
                     </td>
                     <td>
-			                  <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
-                        <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+			            <input ng-if="product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce size="12">
+                        <input ng-if="!product.fields.edit_tax" type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control detectTab" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce size="12">
+                    </td>
+                    <td align="center">
+                      <button class="btn btn-info" ng-click="showCase.sku_delivery_date(product)">View</button>
                     </td>
                   </tr>
                   <tr ng-repeat="(key, datum) in showCase.model_data['send_sku_dict'][product.fields.sku.wms_code]" style="background: #e3f1ba87;">
@@ -269,7 +275,7 @@
           <textarea rows="2" class="form-control" cols="15" name="enquiry_remarks" ng-model="showCase.model_data.enquriy_remarks" placeholder="Enter Enquiry"></textarea>
         </div>
         <div class="col-md-2 pull-left" style="margin-top: 27px;">
-          <button ng-if="(!(showCase.print_enable) && showCase.permissions.change_pendingpo) && showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
+          <button ng-if="showCase.pending_status !='Cancelled' && showCase.pending_status != 'Rejected'" type="submit" class="btn btn-info" ng-click="showCase.submit_enquiry(form, enquiry_to, enquiry_remarks)">SendEnquiry</button>  
         </div>
       </div>
       <div class="row" ng-if="showCase.model_data.enquiryRemarks">

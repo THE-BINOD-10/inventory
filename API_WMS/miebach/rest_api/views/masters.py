@@ -1458,10 +1458,7 @@ def netsuite_sku(data, user, instanceName=''):
         if sku_data_dict.get("hsn_code", None):
             hsn_code_object = TaxMaster.objects.filter(product_type=sku_data_dict["hsn_code"], user=user.id).values()
             if hsn_code_object.exists():
-                if hsn_code_object[0]['reference_id']:
-                    sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
-                else:
-                    sku_data_dict['hsn_code']=''
+                sku_data_dict["hsn_code"]= hsn_code_object[0]['reference_id']
             else:
                 sku_data_dict['hsn_code']=''
         sku_category_internal_id= get_sku_category_internal_id(sku_data_dict["sku_category"], "service_category")
@@ -1494,6 +1491,8 @@ def netsuite_sku(data, user, instanceName=''):
             sku_data_dict.update({"non_inventoryitem":True , "product_type":"OtherItem"})
         else:
             sku_data_dict.update({"product_type":"SKU"})
+            if "hsn_code" in sku_attr_dict:
+                del sku_attr_dict["hsn_code"]
             sku_data_dict.update(sku_attr_dict)
         intObj.integrateSkuMaster(sku_data_dict,"sku_code", is_multiple=False)
         integrateUOM(user, data.sku_code)
@@ -4778,9 +4777,11 @@ def insert_po_terms(request, user=''):
     message = ''
     status = 0
     data = {}
-    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', ''):
+    company_id = get_company_id(user)
+    if  terms_dict.get('get_data', '') != 'poTerms' and terms_dict.get('field_type', '') and company_id:
         terms_dict['user_id'] = user.id
-        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        terms_dict['company_id'] = company_id
+        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'], company_id=company_id)
         if tc_master.exists():
             tc_master.update(text_field=terms_dict['text_field'])
             message = 'Updated Successfully'
@@ -4790,7 +4791,7 @@ def insert_po_terms(request, user=''):
             message = 'Added Successfully'
             status = 1
     elif terms_dict.get('get_data', '') == 'poTerms':
-        tc_master = UserTextFields.objects.filter(user=user.id, field_type=terms_dict['field_type'])
+        tc_master = UserTextFields.objects.filter(field_type=terms_dict['field_type'], company_id=company_id)
         if tc_master.exists():
             message = 'Data Access'
             status = 1

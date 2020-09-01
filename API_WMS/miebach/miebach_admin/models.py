@@ -4069,6 +4069,7 @@ class Consumption(models.Model):
     qnp = models.FloatField(default=0)
     total = models.FloatField(default=0)
     total_patients = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

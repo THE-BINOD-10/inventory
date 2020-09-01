@@ -1966,7 +1966,7 @@ STATUS_TRACKING_FIELDS = {'status_id': '', 'status_type': '', 'status_value': ''
 
 BOM_TABLE_HEADERS = ['Product SKU Code', 'Product Description']
 
-BOM_UPLOAD_EXCEL_HEADERS = ['Product SKU Code', 'Material SKU Code', 'Material Quantity', 'Wastage Percentage',
+BOM_UPLOAD_EXCEL_HEADERS = ['Test Code', 'Machine Code', 'Material SKU Code', 'Material Quantity', 'Wastage Percentage',
                             'Unit of Measurement']
 
 ADD_BOM_HEADERS = OrderedDict([('Material SKU Code', 'material_sku'), ('Material Quantity', 'material_quantity'),
@@ -2156,7 +2156,7 @@ OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Descr
                                          ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                          ('HSN Code', 'hsn_code'), ('GL Code', 'gl_code'), ('Status', 'status')
                                          ))
-TEST_COMMON_MAPPING = OrderedDict((('Test Code', 'test_code'), ('Test Name', 'test_name'),
+TEST_COMMON_MAPPING = OrderedDict((('Test Code', 'wms_code'), ('Test Name', 'sku_desc'),
                                    ('Test Type', 'test_type'), ('Department Type', 'department_type'),
                                    ('Status', 'status')))
 

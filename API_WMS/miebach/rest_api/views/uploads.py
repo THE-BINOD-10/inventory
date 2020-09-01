@@ -2018,8 +2018,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if is_test:
-            data_dict['wms_code'] = str(data_dict['test_code'])
-            data_dict['sku_desc'] = str(data_dict['test_name'])
+            data_dict['test_code'] = data_dict['wms_code']
+            data_dict['test_name'] = data_dict['sku_desc']
 
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
@@ -2028,10 +2028,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-            if is_test:
-                check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
-                if check_sku_data:
-                    check_sku_data.delete()
+            # if is_test:
+            #     check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
+            #     if check_sku_data:
+            #         check_sku_data.delete()
             sku_data = instanceName(**data_dict)
             sku_data.save()
         if sku_data:
@@ -4675,19 +4675,27 @@ def validate_bom_form(open_sheet, user, bom_excel):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             cell_data = open_sheet.cell(row_idx, 0).value
-            if cell_data != 'Product SKU Code':
+            if cell_data != 'Test Code':
                 return 'Invalid File'
             continue
         for key, value in bom_excel.iteritems():
+            cell_data = open_sheet.cell(row_idx, bom_excel[key]).value
             if key == 'product_sku':
-                product_sku = open_sheet.cell(row_idx, bom_excel[key]).value
+                product_sku = cell_data
                 if isinstance(product_sku, (int, float)):
                     product_sku = int(product_sku)
                 sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % product_sku)
-            if key == 'material_sku':
-                material_sku = open_sheet.cell(row_idx, bom_excel[key]).value
+            elif key == 'machine_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    machine_obj = MachineMaster.objects.filter(user=user.id, machine_code=cell_data)
+                    if not machine_obj.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Machine Code %s' % cell_data)
+            elif key == 'material_sku':
+                material_sku = cell_data
                 if isinstance(material_sku, (int, float)):
                     material_sku = int(material_sku)
                 sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user.id)
@@ -4711,7 +4719,7 @@ def validate_bom_form(open_sheet, user, bom_excel):
                         index_status.setdefault(row_idx, set()).add('Wastage Percent Should be in between 0 and 100')
 
         if product_sku == material_sku:
-            index_status.setdefault(row_idx, set()).add('Product and Material SKU Code should not be same')
+            index_status.setdefault(row_idx, set()).add('Test Code and Material SKU Code should not be same')
             # bom = BOMMaster.objects.filter(product_sku__sku_code=product_sku, material_sku__sku_code=material_sku, product_sku__user=user)
             # if bom:
             #    index_status.setdefault(row_idx, set()).add('Product and Material Sku codes combination already exists')
@@ -4729,8 +4737,8 @@ def validate_bom_form(open_sheet, user, bom_excel):
 def bom_upload(request, user=''):
     from masters import *
     fname = request.FILES['files']
-    bom_excel = {'product_sku': 0, 'material_sku': 1, 'material_quantity': 2, 'wastage_percent': 3,
-                 'unit_of_measurement': 4}
+    bom_excel = {'product_sku': 0, 'machine_code': 1, 'material_sku': 2, 'material_quantity': 3,
+                 'wastage_percent': 4, 'unit_of_measurement': 5}
     try:
         open_book = open_workbook(filename=None, file_contents=fname.read())
         open_sheet = open_book.sheet_by_index(0)
@@ -4743,6 +4751,7 @@ def bom_upload(request, user=''):
     for row_idx in range(1, open_sheet.nrows):
         all_data = {}
         product_sku = open_sheet.cell(row_idx, bom_excel['product_sku']).value
+        machine_code = open_sheet.cell(row_idx, bom_excel['machine_code']).value
         material_sku = open_sheet.cell(row_idx, bom_excel['material_sku']).value
         material_quantity = open_sheet.cell(row_idx, bom_excel['material_quantity']).value
         uom = open_sheet.cell(row_idx, bom_excel['unit_of_measurement']).value
@@ -4751,13 +4760,15 @@ def bom_upload(request, user=''):
             product_sku = int(product_sku)
         if isinstance(material_sku, (int, float)):
             material_sku = int(material_sku)
+        if isinstance(machine_code, (int, float)):
+            material_sku = int(machine_code)
         if not material_quantity:
             material_quantity = 0
         data_id = ''
         cond = (material_sku)
         all_data.setdefault(cond, [])
         all_data[cond].append([float(material_quantity), uom, data_id, wastage_percent])
-        insert_bom(all_data, product_sku, user.id)
+        insert_bom(all_data, product_sku, user.id, machine_code)
     return HttpResponse('Success')
 
 

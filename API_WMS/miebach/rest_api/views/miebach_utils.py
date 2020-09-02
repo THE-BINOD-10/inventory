@@ -758,7 +758,7 @@ PR_DETAIL_REPORT_DICT = {
 
     'dt_headers': ['PR Number', 'PR Submitted Date', 'PR raised By ( User Name)', 'PR raised By ( User plant name)',
                    'PR raised By ( User department name)','Product Category', 'Category', 'Material Code',
-                   'Material Description', 'SKU Brand', 'SKU Category','SKU Sub-Category','SKU Group', 'SKU Class',
+                   'Material Description', 'SKU Brand', 'SKU Category','SKU Sub-Category','SKU Group', 'SKU Class','HSN Code',
                    'Quantity', 'UOM','Supplier ID','Supplier Name', 'Supplier GST', 'Priority Type', 'Total Amount',
                    'PR Status','Approver 1', 'Approver 1 Status','Approver 2','Approver 2 Status', 'Approver 3',
                    'Approver 3 Status', 'Approver 4','Approver 4 Status','Approver 5', 'Approver 5 Status',
@@ -13487,7 +13487,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
                    'pending_pr__product_category', 'pending_pr__priority_type', 'pending_pr_id', 'measurement_unit',
                    'pending_pr__sub_pr_number', 'pending_pr__prefix','sku__sku_code', 'sku__sku_desc',
                    'sku__sku_category', 'sku__sku_class', 'sku__sku_brand','sku__style_name', 'sku__price',
-                   'sku__mrp', 'sku__sub_category', 'sku__sku_group','quantity', 'price', 'id']
+                   'sku__mrp', 'sku__sub_category', 'sku__sku_group','quantity', 'price', 'sku__hsn_code']
     pending_data = PendingLineItems.objects.filter(**search_parameters).values(*values_list).distinct(). \
         annotate(total_qty=Sum('quantity')).annotate(total_amt=Sum(F('quantity') * F('price')))
     if order_term:
@@ -13827,6 +13827,7 @@ def get_pr_detail_report_data(search_params, user, sub_user):
             ('Supplier ID', pr_supplier_id),
             ('Supplier Name', pr_supplier_name),
             ('Supplier GST', pr_supplier_gst),
+            ('HSN Code', result['sku__hsn_code']),
             ('DT_RowClass', 'results')))
         count += 1
         temp_data['aaData'].append(ord_dict)

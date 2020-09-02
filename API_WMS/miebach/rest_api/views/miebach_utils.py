@@ -5394,7 +5394,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
             credit_note_status= "No"
 
         try:
-            invoice_details = ''
+            invoice_details, http_data = '', ''
             invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__order_id'],
                                                      user=data["purchase_order__open_po__sku__user"],
                                                      extra_flag=data['receipt_number'])

@@ -602,7 +602,7 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
                         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},],
             'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
-            "PR Qty", "Category", "Plant" ,"Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
+            "PR Qty", "Category", "Plant Code", "Plant" ,"Price per Unit", "Total Amt","Approved by all Approvers", "Final Approver date","PO Number","PO Date","PO Quantity",
             "PO Basic Price","Tax Amt", "PO total amt", "Expected delivery date",
             'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
             "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
@@ -658,21 +658,19 @@ SKU_WISE_GRN_DICT = {'filters': [
     {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
     {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
 ],
-    'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)","PR Category types",
-            "PR Qty", "Category",  "UOM", "Price per Unit", "Total Amt", "Plant" , "Approved by all Approvers", "Final Approver date",
-            "PO No" , "PO Date", "PO Qty", "PO Basic Price", "Tax Amt" ,"PO total amt",
-            "Expected delivery date",
-            "GRN date", "GRN Number", "GRN Done by User Name", "PO Reference Number", "Supplier ID", "Supplier Name",
-                   "Recepient",
+    'dt_headers': ["PR Number","PR date","PR raised time", "PR raised By","PR raised By(department name)",
+                   "PR Category types","PR Qty", "Category",  "UOM", "Price per Unit", "Total Amt","Plant Code",
+                   "Plant" , "Approved by all Approvers", "Final Approver date","PO No" , "PO Date", "PO Qty",
+                   "PO Basic Price", "Tax Amt" ,"PO total amt", "Expected delivery date","GRN date", "GRN Number",
+                   "GRN Done by User Name", "PO Reference Number", "Supplier ID", "Supplier Name", "Recepient",
                    "SKU Code", "SKU Description", "SKU Category", "Sub Category", "SKU Brand", "HSN Code", "SKU Class",
-                   "SKU Style Name", "SKU Brand",
-                   "SKU Category", "GRN Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
-                   "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "APMC(%)", "CGST",
-                   "SGST", "IGST", "UTGST", "CESS", "APMC", "Post-Tax Received Value", "Invoiced Unit Rate",
-                   "Overall Discount",
-                   "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
-                   "Challan Date","Credit Note applicable", "Credit Note Number", "Type of GRN", "GRN Status",  "Remarks", "Updated User", "Last Updated Date",
-                   "GST NO", "LR-NUMBER", 'MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date', 'Invoice/DC Download'],
+                   "SKU Style Name", "SKU Brand", "GRN Qty",'Purchase UOM','Purchase Quantity','Conversion', 'Base UOM ',
+                   'Base Quantity', "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)","SGST(%)", "IGST(%)",
+                   "UTGST(%)", "CESS(%)", "APMC(%)", "CGST", "SGST", "IGST", "UTGST", "CESS", "APMC",
+                   "Post-Tax Received Value", "Invoiced Unit Rate","Overall Discount","Invoiced Total Amount",
+                   "Invoice Number", "Invoice Date", "Challan Number","Challan Date","Credit Note applicable",
+                   "Credit Note Number", "Type of GRN", "GRN Status",  "Remarks", "Updated User", "Last Updated Date",
+                   "GST NO", "LR-NUMBER", 'MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date'],
     'mk_dt_headers': ["Received Date", "PO Date", "GRN Number", "Supplier ID", "Supplier Name", "Recepient",
                       "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                       "SKU Category", "Sub Category",
@@ -943,10 +941,12 @@ SKU_WISE_CANCEL_GRN_REPORT_DICT = {
         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
         {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
     ],
-    'dt_headers': ['PR Number', 'PR Date', 'PR Raised by', 'Plant', 'Department',
+    'dt_headers': ['PR Number', 'PR Date', 'PR Raised by','Plant', 'Department',
                    'Supplier ID', 'Supplier Name','GRN Number', 'GRN Date', 'PO Number','Product Category', 'Category',
                    'Supplier ID', 'Supplier Name', 'Material Code', 'Material Description', 'SKU Brand',
-                   'SKU Category', 'SKU Sub-Category', 'SKU Group', 'SKU Class', 'PO Quantity', 'GRN Quantity',
+                   'SKU Category', 'SKU Sub-Category', 'SKU Group', 'SKU Class', 'PO Quantity',
+
+                   'GRN Quantity',
                    'GRN Amount Pre Tax', 'GRN Amount with Tax', 'Type of GRN', 'DC Number','DC Date', 'Invoice Date',
                    'Invoice Number','MHL generated Delivery Challan No', 'MHL generated Delivery Challan date'],
     'dt_url': 'get_sku_wise_cancel_grn_report', 'excel_name': 'get_sku_wise_cancel_grn_report',
@@ -4438,7 +4438,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         check_and_get_plants_wo_request, \
-        get_related_users_filters,truncate_float
+        get_related_users_filters,truncate_float, get_uom_with_sku_code
     from masters import gather_uom_master_for_sku
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
@@ -4744,11 +4744,13 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
         po_total_qty, po_total_price, po_total_tax= get_sku_po_grn_price_and_taxes(po_result,"PO")
 
         unitdata = gather_uom_master_for_sku(user, data['purchase_order__open_po__sku__sku_code'])
+
         unitexid = unitdata.get('name',None)
         purchaseUOMname = None
         for row in unitdata.get('uom_items', None):
             if row.get('unit_type', '') == 'Purchase':
                 purchaseUOMname = row.get('unit_name',None)
+
         try:
             invoice_details, http_data = '', ''
             invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
@@ -4762,6 +4764,23 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
 
         except IOError:
             pass
+        uom_dict = get_uom_with_sku_code(user, data['purchase_order__open_po__sku__sku_code'], uom_type='purchase')
+        base_uom, sku_conversion, purchase_uom, base_quantity, purchase_quantity = "", "", "", '', ''
+        if uom_dict:
+            base_uom = uom_dict.get('base_uom')
+            sku_conversion = uom_dict.get('sku_conversion')
+            purchase_uom = uom_dict.get('measurement_unit')
+            purchase_quantity = data['quantity']
+            base_quantity = purchase_quantity * sku_conversion
+        sku_user = data['purchase_order__open_po__sku__user']
+        if sku_user:
+            user = User.objects.filter(id=sku_user)[0]
+        if user:
+            if user.userprofile.warehouse_type.lower() == 'dept':
+                admin_user = get_admin(user)
+                plant_code = admin_user.userprofile.stockone_code
+            else:
+                plant_code = user.userprofile.stockone_code
         ord_dict = OrderedDict((("PR Number",pr_number),('PR date', pr_date),
                                 ('PR raised time', pr_date_time),
                                 ('PR raised By', pr_raised_user),
@@ -4776,6 +4795,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('Total Amt', round(pr_Total_Amt,2)),
                                 ('Price per Unit', pr_price),
                                 ("Plant", pr_plant),
+                                ('Plant Code', plant_code),
                                 ("PO No", data["purchase_order__po_number"]),
                                 ("PR raised By(department name)",pr_department),
                                 ("Approved by all Approvers", all_approvals),
@@ -4837,7 +4857,13 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                                 ('GST NO', data[field_mapping['gst_num']]),
                                 ('MHL generated Delivery Challan No', data['challan_number']),
                                 ('MHL generated Delivery Challan Date', challan_date),
-                                ('LR-NUMBER', lr_detail_no),('Invoice/DC Download', http_data)))
+                                ('LR-NUMBER', lr_detail_no),
+                                ('Purchase UOM',purchase_uom),
+                                ('Purchase Quantity',purchase_quantity),
+                                ('Conversion',sku_conversion) ,
+                                ('Base UOM ',base_uom),
+                                ('Base Quantity', base_quantity),
+                                ('Invoice/DC Download', http_data)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
@@ -5183,7 +5209,7 @@ def get_po_grn_price_and_taxes(data, type=""):
 def get_po_filter_data(request, search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request,\
-        get_related_users_filters
+        get_related_users_filters,get_admin
     users = [user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
@@ -5284,6 +5310,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
         warehouse = User.objects.get(id=result.open_po.sku.user)
         po_total_qty, po_total_price, po_total_tax,GRN_total_qty, GRN_total_price, GRN_total_tax = [0]*6
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
+        plant_code = ""
         po_reference_name = result.open_po.po_name
         po_number = data['purchase_order__po_number']
         po_date = get_local_date(user, po_result[0].creation_date).split(' ')
@@ -5421,6 +5448,17 @@ def get_po_filter_data(request, search_params, user, sub_user):
         except IOError:
             pass
 
+        open_po_data = PurchaseOrder.objects.filter(po_number = po_number)
+        if open_po_data.exists():
+            sku_user = open_po_data[0].open_po.sku.user
+            user = User.objects.filter(id = sku_user)[0]
+        if user:
+            if user.userprofile.warehouse_type.lower() == 'dept':
+                admin_user = get_admin(pr_raised_user)
+                plant_code = admin_user.userprofile.stockone_code
+            else:
+                plant_code = user.userprofile.stockone_code
+
         temp_data['aaData'].append(OrderedDict((('GRN Number', grn_number),
                                                 ('GRN Date', grn_date),
                                                 ('PO Number', po_number),
@@ -5440,6 +5478,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
                                                 ('GRN total Value', round(GRN_total_price + GRN_total_tax,2)),
                                                 ('Total Amt', round(pr_Total_Amt,2)),
                                                 ('Price per Unit', pr_price),
+                                                ("Plant Code", plant_code),
                                                 ("Plant", pr_plant),
                                                 ('LR Number', lr_detail_no),
                                                 ('Last Updated by', updated_user_name),

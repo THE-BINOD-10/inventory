@@ -236,7 +236,7 @@ def get_grn_edit_filter(request, user=''):
 @get_admin_user
 def get_sku_wise_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
+    temp_data = get_sku_wise_po_filter_data(request, search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -1424,9 +1424,10 @@ def print_po_reports(request, user=''):
         tax_value = ("%.2f" % tax_value)
     try:
         url_request, invoice_file_name = "", ""
-        invoice_data = MasterDocs.objects.filter(master_id=order_id,
-                                                 user=invoice_file_user,
-                                                 extra_flag=grn_receipt_number)
+        invoice_data = MasterDocs.objects.filter(master_id=grn_po_number,
+                                                     user=invoice_file_user,
+                                                     extra_flag=grn_receipt_number)
+
         if invoice_data.exists():
             invoice_details = invoice_data[0].uploaded_file
             # import pdb;pdb.set_trace()
@@ -2709,17 +2710,22 @@ def download_invoice_file(request, user=''):
                 purchase_order = results[0]
                 order_id = purchase_order.order_id
                 invoice_file_user = purchase_order.open_po.sku.user
-                grn_numbers = results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number').get()
+                grn_numbers = results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number', 'purchase_order__po__number').get()
                 grn_number = grn_numbers["sellerposummary__grn_number"]
                 grn_receipt_number = grn_numbers['sellerposummary__receipt_number']
+                grn_po_number = purchase_order.po_number
                 try:
                     url_request, invoice_file_name = "", ""
                     invoice_data = MasterDocs.objects.filter(master_id=order_id,
                                                              user=invoice_file_user,
                                                              extra_flag=grn_receipt_number)
+                    if not invoice_data:
+                        invoice_data = MasterDocs.objects.filter(master_id=grn_po_number,
+                                                                 user=invoice_file_user,
+                                                                 extra_flag=grn_receipt_number)
+
                     if invoice_data.exists():
                         invoice_details = invoice_data[0].uploaded_file.url
-                        invoice_file_name = (invoice_data[0].uploaded_file.file.name).split('/')[-1]
                         http_data = invoice_details
 
                 except IOError:

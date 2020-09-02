@@ -483,16 +483,24 @@
                 <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>
                 <div ng-if="showCase.model_data.dc_level_grn && !showCase.model_data.dc_number">File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 300px;">
-                   <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" style="position: relative;overflow: hidden;cursor: pointer;"/>
-                 </span>
+                   <input class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" file-uploadd single style="position: relative;overflow: hidden;cursor: pointer;" ng-disabled="showCase.upload_enable"/>
+                 </span><br>
                 <!-- <input type="file" id="image-upload" name="files" file-upload multiple=""> -->
               </div>
-              <div class="col-md-6"></div>
-              <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
-                <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;">
-                  Download File<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
-                </a>
+              <div class="col-lg-3 col-md-3" ng-if="showCase.existing_file_name" style="background: linear-gradient(45deg, #07ddff1a, #c1c1c124);margin-top: 15px;height: 48px;padding-top: 11px;">
+                <div class="col-lg-11 col-md-11">
+                  <button type="button" class="btn btn-success btn-xs btn-outline btn-icon mr5" style="margin-left: -15px;" ng-click="showCase.grn_upload_file_download()"><i class="fa fa-cloud-download"></i><span>{{showCase.existing_file_name}}</span></button>
+                </div>
+                <div class="col-lg-1 col-md-1">
+                  <a class="btn btn-danger btn-xs btn-round" ng-click="showCase.unmap_grn_file(showCase.model_data.uploaded_file_dict.id)">X</a>
+                </div>
+                <!-- <a href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" class="btn btn-success btn-xs btn-outline"></a> -->
               </div>
+              <!-- <div class="col-md-6"></div>
+              <div class="col-md-3" ng-if="showCase.model_data.uploaded_file_dict.file_url">
+                <a class="btn btn btn-success" href="{{showCase.model_data.uploaded_file_dict.file_url}}" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;"><i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i>
+                </a>
+              </div> -->
           </div>
 
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>

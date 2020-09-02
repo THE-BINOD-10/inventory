@@ -47,8 +47,8 @@
             <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control detectTab"
                    ng-init="showCase.getTotals(product)"
                    ng-class="service.get_decimal_perm()"
-                   ng-readonly="!showCase.quantity_editable"
-                   ng-change="showCase.checkResubmit(product.fields)"
+                   ng-readonly="!showCase.quantity_editable && !showCase.permissions.change_pendinglineitems"
+                   ng-change="showCase.checkResubmit(product.fields);showCase.checkResubmitPurchaseApprover(product.fields)"
                    ng-keyup="showCase.getTotals()" size="12">
           </td>
           <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
@@ -61,7 +61,7 @@
             <input id="price1" ng-model="product.fields.price" type="text" name="price"
             class="form-control detectTab"
             ng-class="service.get_decimal_perm()"
-            ng-keyup="showCase.getTotals(product)" size="12"
+            ng-keyup="showCase.getTotals(product);showCase.checkResubmitPurchaseApprover(product.fields)" size="12"
             ng-readonly="!showCase.permissions.change_pendinglineitems">
           </td>
           <td class="text-center">

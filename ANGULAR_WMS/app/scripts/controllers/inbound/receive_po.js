@@ -185,6 +185,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
               // vm.supplier_id = aData['DT_RowId'];
               vm.round_off = false;
+                vm.upload_enable = false;
+                vm.existing_file_name = '';
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 if(aData['Order Type']) {
                   vm.selected_order_type = aData['Order Type']
@@ -246,6 +248,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.calc_total_amt(event, vm.model_data, 0, par_ind);
                     }
                     if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+                      vm.upload_enable = true;
+                      vm.existing_file_name = vm.model_data.uploaded_file_dict.file_name
                       vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
                     }
 
@@ -629,6 +633,57 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       } else {
         colFilters.showNoty("Fill Required Fields");
       }
+    }
+    vm.grn_upload_file_download = function () {
+      var mywindow = window.open(vm.model_data.uploaded_file_dict.file_url, 'height=400,width=600');
+      mywindow.focus();
+      return true;
+    }
+    vm.unmap_grn_file = function(remove_id) {
+      vm.service.apiCall('grn_upload_preview/', 'POST',{'data_id': remove_id}).then(function(data){
+        if (data.data == 'Success') {
+          vm.model_data.uploaded_file_dict = {}
+          vm.existing_file_name = ''
+          vm.upload_enable = false;   
+        }
+      })
+
+    }
+    vm.resultant_data_format = function(response){
+      // setTimeout(function(){
+        vm.model_data.uploaded_file_dict = {}
+        vm.model_data['uploaded_file_dict'] = JSON.parse(response);
+        vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url)
+        vm.existing_file_name = vm.model_data.uploaded_file_dict.file_name
+        vm.upload_enable = true;
+      // }, 3000);
+    }
+
+    vm.temp_upload_file_name = "";
+    $scope.$on("fileSelected", function (event, args) {
+      $scope.$apply(function () {
+        vm.temp_upload_file_name = args.file.name;
+        vm.uploaded_pdf_send(vm.model_data['po_reference'], args.file)
+      });
+    });
+    vm.uploaded_pdf_send = function(id, pdf_file) {
+      vm.upload_enable = false;
+      var formData = new FormData();
+      var el = $("#file-upload");
+      var files = pdf_file;
+      if(files.length == 0){
+        return false;
+      }
+      formData.append('pdf_file', files);
+      formData.append('id', id);
+      vm.service.apiCall('grn_upload_preview/', 'POST', formData, true, true).then(function(response){
+        if(Object.keys(JSON.parse(response.data)).includes('file_name')) {
+          vm.resultant_data_format(response.data);
+        } else {
+          Service.showNoty(response, 'warning');
+          vm.upload_enable = false;
+        }
+      })
     }
 
     vm.save_sku = function(){

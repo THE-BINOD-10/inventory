@@ -607,8 +607,8 @@ GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': '
             'GRN Number','GRN Date', 'GRN Qty','GRN Value without Tax','Tax Value','GRN total Value',"GRN Done by User Name", "LR Number",
             "Type of GRN", "Delivery challan no","Delivery challan Date","Invoice Number",  "Invoice Date",
             "Credit Note applicable", "Credit Note Number","GRN Status",
-            "Last Updated by", "Last Updated Date",'Supplier ID', 'Supplier Name','MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date'],
-            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity'],
+            "Last Updated by", "Last Updated Date",'Supplier ID', 'Supplier Name','MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date', 'Invoice/DC Download'],
+            'mk_dt_headers': ['GRN Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity', 'Discrepancy Quantity', 'Invoice/DC Download'],
             # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
             #                   'SKU Code',
             #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
@@ -672,7 +672,7 @@ SKU_WISE_GRN_DICT = {'filters': [
                    "Overall Discount",
                    "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
                    "Challan Date","Credit Note applicable", "Credit Note Number", "Type of GRN", "GRN Status",  "Remarks", "Updated User", "Last Updated Date",
-                   "GST NO", "LR-NUMBER", 'MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date' ],
+                   "GST NO", "LR-NUMBER", 'MHL generated Delivery Challan No', 'MHL generated Delivery Challan Date', 'Invoice/DC Download'],
     'mk_dt_headers': ["Received Date", "PO Date", "GRN Number", "Supplier ID", "Supplier Name", "Recepient",
                       "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                       "SKU Category", "Sub Category",
@@ -3247,7 +3247,8 @@ DEPARTMENT_TYPES_MAPPING = OrderedDict(
      ('ITTEC', 'Information Technology'), ('LEGAL', 'Legal Department'),
      ('SECRE', 'Secretrial Department'), ('SALES', 'Sales Department'),
      ('CLPAT', 'Clinical Pathology'), ('WELLN', 'Wellness'),
-     ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1')])
+     ('HEADW', 'Head Office - Worli'), ('MCGMP', 'MCGM - Project'), ('Tulsiani 01', 'Local ILD 1'),
+     ('RADIO', 'Radiology'), ('R&DGE', 'R&D - Genetics')])
 
 STAFF_MASTER_MAPPING = OrderedDict(
     (('Warehouse', 'warehouse'), ('Plant', 'plant'), ('Department Type', 'department_type'),
@@ -4502,7 +4503,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                      "purchase_order__open_po__vendor__vendor_id", "purchase_order__open_po__vendor__name",
                      "purchase_order__open_po__vendor__creation_date", "status", "credit_status",
                      "credit__credit_number",
-                     "purchase_order__po_number",
+                     "purchase_order__po_number", "quantity"
                      ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'purchase_order__open_po__order_quantity'
@@ -4614,7 +4615,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__cess_tax'] = 0
         if data['cess_tax']:
             data['purchase_order__open_po__cess_tax'] = data['cess_tax']
-        amount = float('%.2f' % (float(data['total_received'] * price)))
+        amount = float('%.2f' % (float(data['quantity'] * price)))
         if data['discount_percent']:
             amount = float('%.2f' % (amount - (amount * float(data['discount_percent']) / 100)))
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
@@ -4624,10 +4625,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         if data['discount_percent']:
             aft_unit_price = aft_unit_price - (aft_unit_price * float(data['discount_percent']) / 100)
 
-        post_amount = aft_unit_price * float(data['total_received'])
+        post_amount = aft_unit_price * float(data['quantity'])
         margin_price = 0
         final_price = '%.2f' % (aft_unit_price)
-        invoice_total_amount = float(final_price) * float(data['total_received'])
+        invoice_total_amount = float(final_price) * float(data['quantity'])
         hsn_code , last_updated_date= '', ''
         if data['purchase_order__open_po__sku__hsn_code']:
             hsn_code = data['purchase_order__open_po__sku__hsn_code']
@@ -4784,7 +4785,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                 ('SKU Brand', data['purchase_order__open_po__sku__sku_brand']),
                                 ('SKU Category', data['purchase_order__open_po__sku__sku_category']),
                                 ('Sub Category', data['purchase_order__open_po__sku__sub_category']),
-                                ('GRN Qty', data['total_received']),
+                                ('GRN Qty', data['quantity']),
                                 ('Unit Rate', float("%.2f" % price)), ('MRP', float("%.2f" % mrp)),
                                 ('Pre-Tax Received Value', float("%.2f" % amount)),
                                 ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
@@ -5166,7 +5167,7 @@ def get_po_grn_price_and_taxes(data, type=""):
     return total_qty, total_price, total_tax
 
 
-def get_po_filter_data(search_params, user, sub_user):
+def get_po_filter_data(request, search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, check_and_get_plants_wo_request,\
         get_related_users_filters
@@ -5182,7 +5183,7 @@ def get_po_filter_data(search_params, user, sub_user):
     lis = ['purchase_order__order_id', 'purchase_order__order_id',  'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
-           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number', 'purchase_order__creation_date',
+           'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__po_number', 'purchase_order__order_id',
            'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id', 'purchase_order__order_id',
            'purchase_order__expected_date', 'purchase_order__open_po__vendor__vendor_id', 'purchase_order__open_po__vendor__name',
            'purchase_order__open_po__vendor__creation_date', 'grn_number', '', '', '', '', '', 'purchase_order__open_po__sku__user',
@@ -5196,7 +5197,7 @@ def get_po_filter_data(search_params, user, sub_user):
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id', 'supplier_name': 'purchase_order__open_po__supplier__name'}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
                      'receipt_number', 'grn_number', 'invoice_date', 'challan_date','invoice_number', 'challan_number',
-                     'purchase_order__po_number', "purchase_order__creation_date", "credit_type", "purchase_order__open_po__vendor__vendor_id",
+                     'purchase_order__po_number', "credit_type", "purchase_order__open_po__vendor__vendor_id",
                      "purchase_order__open_po__vendor__name", "credit__credit_number","purchase_order__open_po__delivery_date",
                      "purchase_order__expected_date", "purchase_order__open_po__vendor__creation_date", "status", "credit_status","purchase_order__open_po__sku__user"
                  ]
@@ -5272,7 +5273,7 @@ def get_po_filter_data(search_params, user, sub_user):
         po_total_qty, po_total_price, po_total_tax= get_po_grn_price_and_taxes(po_result,"PO")
         po_reference_name = result.open_po.po_name
         po_number = data['purchase_order__po_number']
-        po_date = get_local_date(user, data["purchase_order__creation_date"]).split(' ')
+        po_date = get_local_date(user, po_result[0].creation_date).split(' ')
         po_date = ' '.join(po_date[0:3])
         grn_number,grn_date="",""
         updated_user_name = user.username
@@ -5380,12 +5381,6 @@ def get_po_filter_data(search_params, user, sub_user):
         if(data["purchase_order__open_po__delivery_date"]):
             Expected_delivery_date = data['purchase_order__open_po__delivery_date'].strftime("%d %b, %Y")
             # Expected_delivery_date = ' '.join(Expected_delivery_date[0:3])
-        if data['purchase_order__open_po__vendor__vendor_id']:
-            vendor_code = data['purchase_order__open_po__vendor__vendor_id']
-        if data['purchase_order__open_po__vendor__name']:
-            vendor_name = data['purchase_order__open_po__vendor__name']
-        if data['purchase_order__open_po__vendor__creation_date']:
-            vendor_dispatch_date = get_local_date(user, data['purchase_order__open_po__vendor__creation_date'])
         if data['status']==1:
             grn_status="Cancelled"
             credit_note_status= "Cancelled"
@@ -5398,6 +5393,21 @@ def get_po_filter_data(search_params, user, sub_user):
         else:
             grn_status="Completed"
             credit_note_status= "No"
+
+        try:
+            invoice_details = ''
+            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__order_id'],
+                                                     user=data["purchase_order__open_po__sku__user"],
+                                                     extra_flag=data['receipt_number'])
+            url_request = ""
+            if invoice_data.exists():
+                invoice_details = invoice_data[0].uploaded_file
+                http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
+
+        except IOError:
+            pass
+
         temp_data['aaData'].append(OrderedDict((('GRN Number', grn_number),
                                                 ('GRN Date', grn_date),
                                                 ('PO Number', po_number),
@@ -5415,10 +5425,6 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 ('GRN Value without Tax', round(GRN_total_price,2)),
                                                 ('Tax Value', round(GRN_total_tax,2)),
                                                 ('GRN total Value', round(GRN_total_price + GRN_total_tax,2)),
-                                                # ("Vendor code", vendor_code),
-                                                # ("Vendor Name", vendor_name),
-                                                # ('Vendor Dispatch Date',vendor_dispatch_date),
-                                                # ('UOM', uom),
                                                 ('Total Amt', round(pr_Total_Amt,2)),
                                                 ('Price per Unit', pr_price),
                                                 ("Plant", pr_plant),
@@ -5448,6 +5454,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                 ('PO Quantity', po_total_qty),
                                                 ('GRN Qty', received_qty),
                                                 ('Discrepancy Quantity', discrepancy_quantity),
+                                                ('Invoice/DC Download', http_data),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                                                 ('key', 'po_id'), ('receipt_type', 'Purchase Order'),

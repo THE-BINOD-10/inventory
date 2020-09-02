@@ -1441,7 +1441,7 @@ def print_po_reports(request, user=''):
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
                    'total_price': float("%.2f" % total), 'data_dict': data_dict, 'bill_no': bill_no, 'tax_value': tax_value,
                    'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
-                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
+                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'file_url':invoice_file_name,
                    'overall_discount': overall_discount, 'grn_po_number': grn_po_number,
                    'st_grn':st_grn, 'warehouse_store': warehouse_store,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),

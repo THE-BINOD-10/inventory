@@ -115,7 +115,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__sku_category', 'total_qty', 'pending_pr__creation_date',
             'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks', 'pending_pr__remarks']
@@ -5422,18 +5422,18 @@ def update_putaway(request, user=''):
                 if exist_temp_json:
                     exist_temp_json[0].model_json = json.dumps(po_data)
                     exist_temp_json[0].save()
-        file_obj = request.FILES.get('files-0', '')
-        if file_obj:
-            master_docs_obj = MasterDocs.objects.filter(master_id=po.po_number, master_type='PO_TEMP',
-                                                        user_id=user.id)
-            if not master_docs_obj:
-                upload_master_file(request, user, po.po_number, 'PO_TEMP', master_file=file_obj)
-            else:
-                master_docs_obj = master_docs_obj[0]
-                if os.path.exists(master_docs_obj.uploaded_file.path):
-                    os.remove(master_docs_obj.uploaded_file.path)
-                master_docs_obj.uploaded_file = file_obj
-                master_docs_obj.save()
+        # file_obj = request.FILES.get('files-0', '')
+        # if file_obj:
+        #     master_docs_obj = MasterDocs.objects.filter(master_id=po.po_number, master_type='PO_TEMP',
+        #                                                 user_id=user.id)
+        #     if not master_docs_obj:
+        #         upload_master_file(request, user, po.po_number, 'PO_TEMP', master_file=file_obj)
+        #     else:
+        #         master_docs_obj = master_docs_obj[0]
+        #         if os.path.exists(master_docs_obj.uploaded_file.path):
+        #             os.remove(master_docs_obj.uploaded_file.path)
+        #         master_docs_obj.uploaded_file = file_obj
+        #         master_docs_obj.save()
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             po_reference = po.po_number #get_po_reference(po)
@@ -6978,6 +6978,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
+    total_tax_value = 0
     total_price = 0
     total_tax = 0
     tax_value = 0
@@ -7031,6 +7032,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 entry_price -= (entry_price * (float(key[10])/100))
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]) + float(key[11]))
             if entry_tax:
+                total_tax_value += (float(entry_price) / 100) * entry_tax
                 entry_price += (float(entry_price) / 100) * entry_tax
             if fmcg and po_product_category not in ['Services', 'Assets', 'OtherItems']:
                 # putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
@@ -7140,11 +7142,11 @@ def confirm_grn(request, confirm_returns='', user=''):
                 overall_discount = 0
             if total_price:
                 tax_value = (total_price * total_tax)/(100 + total_tax)
-                tax_value = ("%.2f" % tax_value)
+                tax_value = float("%.2f" % total_tax_value)
                 total_price = float("%.2f" % total_price)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price, 'total_tax': int(total_tax),
+                                'total_price': total_price, 'total_tax': int(total_tax), 'total_gross_value': total_price - tax_value,
                                 'tax_value': tax_value, 'receipt_number':seller_receipt_id, 'grn_po_number': grn_po_number,
                                 'overall_discount':overall_discount, 'other_charges': float(extra_charges_amt),
                                 'net_amount': (float(total_price) + float(extra_charges_amt)) - float(overall_discount),

@@ -479,7 +479,7 @@
           </div>
           <div class="row" style="padding-top: 35px;">
               <!-- ng-show="!showCase.model_data.dc_level_grn" -->
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-3" ng-if="!showCase.existing_file_name">
                 <div ng-if="!showCase.model_data.dc_level_grn || showCase.model_data.dc_number">File Upload *</div>
                 <div ng-if="showCase.model_data.dc_level_grn && !showCase.model_data.dc_number">File Upload</div>
                  <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 300px;">

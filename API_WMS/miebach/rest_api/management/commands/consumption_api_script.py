@@ -41,7 +41,16 @@ def update_consumption(consumption_obj, user):
                     test_obj = TestMaster.objects.filter(test_code=str(test_code))
                     if test_obj.exists():
                         data_dict['test'] = test_obj[0]
+                else:
+                    test_code = ''
+                consumption_filter = {'test__test_code': str(test_code)}
                 test_name = consumption_dict.get('TNAME', '')
+                machine_code = consumption_dict.get('MCODE', '')
+                if machine_code:
+                    machine_obj = MachineMaster.objects.filter(user=user.id,machine_code=str(machine_code))
+                    if machine_obj.exists():
+                        data_dict['machine'] = machine_obj[0]
+                        consumption_filter['machine__machine_code'] = str(machine_code)
                 name = consumption_dict.get('NAME', '')
                 orgid = consumption_dict.get('OrgID', '')
                 number_dict = {'total_test':'TT', 'one_time_process':'P1', 'two_time_process':'P2','three_time_process':'P3' ,
@@ -57,9 +66,21 @@ def update_consumption(consumption_obj, user):
                     n_time_process_val = diff/data_dict['n_time_process']
                 data_dict['n_time_process_val'] = n_time_process_val
                 try:
-                    Consumption.objects.create(**data_dict)
+                    consumption_obj = Consumption.objects.filter(user=user.id, **consumption_filter)
+                    if consumption_obj.exists():
+                        exist_total_test = consumption_obj[0].total_test
+                        if exist_total_test < data_dict['total_test']:
+                            diff_test = data_dict['total_test'] - exist_total_test
+                            status = reduce_consumption_stock(consumption_obj=consumption_obj[0], total_test=diff_test)
+                            if status == 'Success':
+                                consumption_obj[0].update(**data_dict)
+                    else:
+                        consumption_obj = Consumption.objects.create(**data_dict)
+                        status = reduce_consumption_stock(consumption_obj=consumption_obj, total_test=data_dict['total_test'])
+                    if status == 'Success':
+                        log.info("Reduced consumption stock for user %s and test code %s" %  str(user.username), str(test_code))
                 except:
-                    log.info("Consumption creation failed for %s and data_dict was %s" % str(user.username), str(data_dict))
+                    log.info("Consumption creation/updation failed for %s and data_dict was %s" % str(user.username), str(data_dict))
 
 
 class Command(BaseCommand):

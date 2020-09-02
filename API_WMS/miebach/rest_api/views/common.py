@@ -13103,10 +13103,10 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
-def reduce_conumption_stock(consumptions=None, consumption_dict=None):
-    if not consumptions:
-        consumptions = []
-    for consumption_obj in consumptions:
+def reduce_consumption_stock(consumption_obj=consumption_obj, total_test=0):
+    # if not consumptions:
+    #     consumptions = []
+    if consumption_obj.exists():
         with transaction.atomic(using='default'):
             consumption = Consumption.objects.using('default').select_for_update().\
                                             filter(id=consumption_obj.id, status=1)
@@ -13133,7 +13133,7 @@ def reduce_conumption_stock(consumptions=None, consumption_dict=None):
                                                  uom=bom.unit_of_measurement)
                 pcf = uom_dict['sku_conversion']
                 pcf = pcf if pcf else 0
-                consumption_qty = consumption.total_test * bom.material_quantity
+                consumption_qty = total_test * bom.material_quantity
                 needed_quantity = consumption_qty * pcf
                 stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
                 stock_quantity = stock_quantity if stock_quantity else 0

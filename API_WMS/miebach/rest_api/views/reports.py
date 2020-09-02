@@ -2702,25 +2702,28 @@ def download_invoice_file(request, user=''):
     receipt_no = request.GET.get('receipt_no', '')
     st_grn = request.GET.get('st_grn', '')
     po_pre = request.GET.get('prefix', '')
+    po_number = request.GET.get('po_number', '')
+    warehouse_id = request.GET.get('warehouse_id', '')
     if po_id:
-        results = PurchaseOrder.objects.filter(order_id=po_id, prefix=po_pre)
+        results = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__user=user.id)
         if receipt_no:
             results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
             if results:
                 purchase_order = results[0]
                 order_id = purchase_order.order_id
                 invoice_file_user = purchase_order.open_po.sku.user
-                grn_numbers = results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number', 'purchase_order__po__number').get()
+                grn_numbers = results.values('sellerposummary__grn_number', 'sellerposummary__receipt_number', 'po_number').get()
                 grn_number = grn_numbers["sellerposummary__grn_number"]
                 grn_receipt_number = grn_numbers['sellerposummary__receipt_number']
                 grn_po_number = purchase_order.po_number
                 try:
                     url_request, invoice_file_name = "", ""
-                    invoice_data = MasterDocs.objects.filter(master_id=order_id,
+                    invoice_data = MasterDocs.objects.filter(master_id=po_number,
                                                              user=invoice_file_user,
+                                                             master_type='GRN_PO_NUMBER',
                                                              extra_flag=grn_receipt_number)
                     if not invoice_data:
-                        invoice_data = MasterDocs.objects.filter(master_id=grn_po_number,
+                        invoice_data = MasterDocs.objects.filter(master_id=po_id,
                                                                  user=invoice_file_user,
                                                                  extra_flag=grn_receipt_number)
 

@@ -14677,7 +14677,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                 final_status = pr_data['pending_po__final_status']
                 product_category = pr_data['pending_po__product_category']
                 category = pr_data['pending_po__sku_category']
-                req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
+                req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])
                 pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         prApprQs = PurchaseApprovals.objects.filter(
@@ -14759,7 +14759,6 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
     user_ids = list(users.values_list('id', flat=True))
     # sku_master, sku_master_ids = get_sku_master(user, sub_user, all_prod_catgs=True)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    # import pdb;pdb.set_trace()
     lis = ['po_number', 'order_id','creation_date','po_number', 'creation_date', 'po_number', 'po_number',
            'order_id',
            'open_po__sku__sku_category', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number',

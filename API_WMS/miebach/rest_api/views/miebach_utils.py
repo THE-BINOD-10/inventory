@@ -4434,7 +4434,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_sku_wise_po_filter_data(search_params, user, sub_user):
+def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, \
         check_and_get_plants_wo_request, \
@@ -4749,6 +4749,19 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         for row in unitdata.get('uom_items', None):
             if row.get('unit_type', '') == 'Purchase':
                 purchaseUOMname = row.get('unit_name',None)
+        try:
+            invoice_details, http_data = '', ''
+            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
+                                                         user=data["purchase_order__open_po__sku__user"],
+                                                         extra_flag=data['receipt_number'])
+            url_request = ""
+            if invoice_data.exists():
+                invoice_details = invoice_data[0].uploaded_file
+                http_data = "%s%s%s"%(request.META.get('HTTP_HOST'),"/",invoice_details)
+                # url_request =  '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload('+http_data+')" ">Download</button>'
+
+        except IOError:
+            pass
         ord_dict = OrderedDict((("PR Number",pr_number),('PR date', pr_date),
                                 ('PR raised time', pr_date_time),
                                 ('PR raised By', pr_raised_user),
@@ -4824,7 +4837,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                                 ('GST NO', data[field_mapping['gst_num']]),
                                 ('MHL generated Delivery Challan No', data['challan_number']),
                                 ('MHL generated Delivery Challan Date', challan_date),
-                                ('LR-NUMBER', lr_detail_no)))
+                                ('LR-NUMBER', lr_detail_no),('Invoice/DC Download', http_data)))
         if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
             ord_dict['Manufacturer'] = manufacturer
             ord_dict['Searchable'] = searchable
@@ -5395,10 +5408,10 @@ def get_po_filter_data(request, search_params, user, sub_user):
             credit_note_status= "No"
 
         try:
-            invoice_details = ''
-            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__order_id'],
-                                                     user=data["purchase_order__open_po__sku__user"],
-                                                     extra_flag=data['receipt_number'])
+            invoice_details, http_data = '', ''
+            invoice_data = MasterDocs.objects.filter(master_id=data['purchase_order__po_number'],
+                                                         user=data["purchase_order__open_po__sku__user"],
+                                                         extra_flag=data['receipt_number'])
             url_request = ""
             if invoice_data.exists():
                 invoice_details = invoice_data[0].uploaded_file

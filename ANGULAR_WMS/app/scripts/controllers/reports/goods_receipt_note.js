@@ -143,7 +143,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         'receipt_no':aData.receipt_no,
         'prefix':aData.prefix,
         'warehouse_id':aData.warehouse_id,
-        'po_id':aData.DT_RowAttr["data-id"]
+        'po_id':aData.DT_RowAttr["data-id"],
+        'po_number': aData['PO Number']
       }
       vm.service.apiCall('download_invoice_file/', 'GET', data_dict).then(function(data){
         if (data.data) {

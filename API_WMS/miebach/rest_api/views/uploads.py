@@ -10870,3 +10870,140 @@ def netsuite_mapping_upload(request, user=''):
     for final_data in data_list:
         NetsuiteIdMapping.objects.update_or_create(**final_data)
     return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_adjustment_form(request, user=''):
+    excel_file = request.GET['download-closing-adjustment-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(CLOSING_ADJUSTMENT_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Closing Adjustment', excel_headers)
+    return xls_to_response(wb, '%s.closing_adjustment_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(CLOSING_ADJUSTMENT_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    all_users = get_related_users_filters(user.id)
+    for row_idx in range(1, no_of_rows):
+        data_dict = {'user': None}
+        puom_list, buom_list = [], []
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'adjustment_date':
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    reqDate = datetime.datetime(year, month, day, hour, minute, second)
+                elif '-' in cell_data:
+                    reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                else:
+                    reqDate = None
+                    index_status.setdefault(row_idx, set()).add('Wrong format for Adjustment Date')
+                data_dict[key] = reqDate
+            elif key == 'warehouse':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    user_obj = all_users.filter(username=cell_data)
+                    if not user_obj:
+                        index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+                    else:
+                        data_dict['user'] = user_obj[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Warehouse is Mandatory')
+            elif key == 'sku_code':
+                if cell_data and data_dict['user']:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'location':
+                if cell_data and data_dict['user']:
+                    location_master = LocationMaster.objects.filter(zone__user=data_dict['user'].id, location=cell_data)
+                    if not location_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Location')
+                    else:
+                        data_dict['location'] = location_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Location is Mandatory')
+            elif key in ['base_uom_quantity', 'purchase_uom_quantity', 'conversion_factor', 'mrp', 'unit_price']:
+                if cell_data:
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif key in ['base_uom_quantity', 'purchase_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+            elif key == 'base_uom':
+                if cell_data:
+                    if data_dict.get('sku', ''):
+                        data_dict[key] = cell_data
+                        uom_data = get_sku_uom_list_data(data_dict['sku'], uom_type='purchase')
+                        puom_list = map(lambda x:x['uom'].lower(), uom_data)
+                        buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
+                        if not cell_data.lower() in buom_list:
+                            index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
+            elif key == 'purchase_uom':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    if not cell_data.lower() in puom_list:
+                        index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
+            else:
+                data_dict[key] = cell_data
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_adjustment_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_closing_adjustment_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    for final_data in data_list:
+        print final_data
+    return HttpResponse("Success")

@@ -48,7 +48,7 @@
                     <td><input type="text" name="wastage_percent" class="form-control" ng-model="material.wastage_percent" ng-class="service.get_decimal_perm()" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"></td>
                     <td>
                       <select name="unit_of_measurement" class="form-control" ng-model="material.Units">
-                        <option ng-repeat="unit in material.unit_list" ng-selected="material.Units == unit">{{unit}}</option>
+                        <option ng-repeat="unit in material.unit_list" ng-selected="material.Units.toLowerCase() == unit.toLowerCase()">{{unit}}</option>
                       </select>
                     </td>
                     <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>

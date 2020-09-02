@@ -3308,6 +3308,15 @@ NETSUITE_MAPPING_UPLOAD_KEYS = OrderedDict((('Type Name', 'type_name'), ('Type V
                                             ('Internal ID', 'internal_id')
                                            ))
 
+CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjustment_date'), ('Warehouse', 'warehouse'),
+                                          ('SKU Code', 'sku_code'), ('Location', 'location'),
+                                          ('Base UOM Quantity', 'base_uom_qty'), ('Base Uom', 'base_uom'),
+                                          ('Purchase UOM Quantity', 'purchase_uom_qty'),
+                                          ('Purchase UOM', 'purchase_uom'), ('Conversion Factor', 'conversion_factor'),
+                                          ('Batch Number', 'batch_number'), ('MRP', 'mrp'), ('Reason', 'reason'),
+                                          ('Unit Price', 'unit_price')
+                                          ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

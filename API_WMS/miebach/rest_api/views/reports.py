@@ -1515,7 +1515,10 @@ def excel_reports(request, user=''):
     if 'tally_report' in excel_name:
         search_params['tally_report'] = True
         tally_report =1
-    params = [search_params, user, request.user]
+    if 'goods_receipt' or 'sku_wise_goods_receipt' in excel_name:
+        params = [request, search_params, user, request.user]
+    else:
+        params = [search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
     if 'datatable=customerView' in form_data:

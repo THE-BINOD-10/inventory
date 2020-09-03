@@ -14868,7 +14868,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             pr_request_user = pr_data['pending_prs__requested_user__first_name']
             pr_number = pr_data['pending_prs__full_pr_number']
             po_created_by = pr_data['requested_user__first_name']
-            req_user = User.objects.filter(id=pr_data['pending_prs__wh_user__id'])[0]
+            req_user = User.objects.filter(id=pr_data['pending_prs__wh_user__id'])
             if req_user:
                 req_user = req_user[0]
                 pr_department, pr_plant = get_plant_and_department(req_user)

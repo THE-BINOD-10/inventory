@@ -875,7 +875,7 @@ METRO_PO_REPORT_DICT = {
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
-        # {'label': 'PO VIEW', 'name': 'po_view', 'type': 'select'},
+
 
     ],
 
@@ -896,8 +896,8 @@ METROPOLIS_PO_REPORT_DICT = {
         {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
-        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
-        # {'label': 'PO VIEW', 'name': 'po_view', 'type': 'select'},
+        # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+
 
     ],
 
@@ -923,7 +923,7 @@ METRO_PO_DETAIL_REPORT_DICT = {
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
         {'label': 'SKU-Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
-        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+        # {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
@@ -946,12 +946,11 @@ METROPOLIS_PO_DETAIL_REPORT_DICT = {
         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
         {'label': 'PO Status', 'name': 'po_status', 'type': 'select'},
         {'label': 'Department', 'name': 'sister_warehouse', 'type': 'select'},
-        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
         {'label': 'SKU-Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
-        {'label': 'Product Category', 'name': 'product_category', 'type': 'select'},
+
     ],
 
     'dt_headers': ['PR Number', 'PR Date', 'PR Plant', 'PR raised By ( User Name)', 'PR raised By ( User department name)',
@@ -14644,8 +14643,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         product_category, category, final_status= '', '', ''
         open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number']).latest('po_date')
         if open_po_data:
-            supplier_id = open_po_data.open_po.supplier.supplier_id
-            supplier_name = open_po_data.open_po.supplier.name
+            if open_po_data.open_po.supplier:
+                supplier_id = open_po_data.open_po.supplier.supplier_id
+                supplier_name = open_po_data.open_po.supplier.name
             category = open_po_data.open_po.sku.sku_category
             user_id = open_po_data.open_po.sku
             po_date = open_po_data.po_date
@@ -14655,6 +14655,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             if po_date:
                 po_date = get_local_date(user, po_date)
         po_number = result['po_number']
+        po_amount_details = po_upload_amount_and_quantity(po_number)
+        po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
+            'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         po_user = ''
         pr_values_list = ['pending_po__requested_user__username', 'pending_po__pending_prs__full_pr_number','pending_po__pending_prs__wh_user__id',
         'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__delivery_date',
@@ -14720,10 +14723,10 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('Product Category', product_category),
             ('Category', category),
             ('PO Number', po_number),
-            ('PO Quantity', result['total_qty']),
+            ('PO Quantity', po_quantity),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', round(result['total_amt'],4)),
+            ('Total Amount', round(pr_amount,4)),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),
@@ -14851,6 +14854,9 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             po_update_date = get_local_date(user, po_update_date)
         if po_date:
             po_date = get_local_date(user, po_date)
+        po_amount_details = po_upload_amount_and_quantity_sku_wise(po_number, sku_code)
+        po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
+            'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_values_list = ['full_po_number', 'creation_date', 'requested_user__username',
                        'pending_prs__full_pr_number', 'open_po', 'pending_prs__full_pr_number',
                        'pending_prs__requested_user__first_name', 'pending_prs__creation_date','pending_prs__wh_user__id',
@@ -14893,6 +14899,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('po_tax_amount', 0), pr_amount_details.get('po_total_amount', 0)
             if pr_data['delivery_date']:
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
+
         po_number = result['po_number']
         grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number)
         grn_numbers, updated_user_name= [], ''
@@ -15036,10 +15043,49 @@ def get_pr_plant_and_department(po_number):
     return pr_plant, pr_department, category, product_category
 
 
-def po_amount_and_quantity(po_number, sku_code):
+def po_upload_amount_and_quantity(po_number):
+    from miebach_admin.models import *
+    po_amount_details = {}
     po_number = po_number
-    po_data = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__sku_code=sku_code).latest('po_number')
+    po_data = PurchaseOrder.objects.filter(po_number=po_number)
+    po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
+    po_tax_amount, po_total_amount = 0, 0
     if po_data.exists():
-        po_data = po_data[0]
-        quantity = po_data.open_po.order_quantity
-        total_amount
+        for row in po_data:
+            if row.open_po:
+                po_total_qty += row.open_po.order_quantity
+                po_tmp_price = row.open_po.price * row.open_po.order_quantity
+                po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
+                po_tax_amount += (po_tmp_tax * po_tmp_price) / 100
+                po_total_amount += po_tmp_price + po_tax_amount
+
+    po_amount_details['po_total_qty'] = po_total_qty
+    po_amount_details['po_tax_amount'] = po_tax_amount
+    po_amount_details['po_total_amount'] = po_total_amount
+
+    return po_amount_details
+
+def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
+    from miebach_admin.models import *
+    po_amount_details = {}
+    po_number = po_number
+    po_data = PurchaseOrder.objects.filter(po_number=po_number, open_po__sku__sku_code=sku_code)
+    po_total_qty, po_tmp_price, po_tmp_tax, = 0, 0, 0
+    po_tax_amount, po_total_amount = 0, 0
+    if po_data.exists():
+        for row in po_data:
+            if row.open_po:
+                po_total_qty = row.open_po.order_quantity
+                po_tmp_price = row.open_po.price * row.open_po.order_quantity
+                po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
+                po_tax_amount = (po_tmp_tax * po_tmp_price) / 100
+                po_total_amount = po_tmp_price + po_tax_amount
+
+    po_amount_details['po_total_qty'] = po_total_qty
+    po_amount_details['po_tax_amount'] = po_tax_amount
+    po_amount_details['po_total_amount'] = po_total_amount
+
+    return po_amount_details
+
+
+

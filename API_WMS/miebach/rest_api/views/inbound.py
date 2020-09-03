@@ -115,7 +115,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__sku_category', 'total_qty', 'pending_pr__creation_date',
             'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks', 'pending_pr__remarks']
@@ -196,7 +196,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
             validated_by = prApprQs[0].validated_by
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                pr_user=pr_user, product_category=product_category).exclude(status='on_approved').order_by('-creation_date')
+                                pr_user=pr_user).exclude(status='on_approved').order_by('-creation_date')
                 last_updated_by = prApprQs[0].validated_by
                 last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                 last_updated_remarks = prApprQs[0].remarks
@@ -204,7 +204,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                    pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
+                                    pr_user=pr_user, status='approved').order_by('-creation_date')
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
                     last_updated_remarks = prApprQs[0].remarks
@@ -339,7 +339,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
             validated_by = prApprQs[0].validated_by
             if result['pending_pr__final_status'] not in ['pending', 'saved']:
                 prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                pr_user=pr_user, product_category=product_category).exclude(status='on_approved').order_by('-creation_date')
+                                pr_user=pr_user).exclude(status='on_approved').order_by('-creation_date')
                 if prApprQs.exists():
                     last_updated_by = prApprQs[0].validated_by
                     last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -348,7 +348,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                 if result['pending_pr__pending_level'] != 'level0':
                     prev_level = 'level' + str(int(result['pending_pr__pending_level'].replace('level', '')) - 1)
                     prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                                    pr_user=pr_user, status='approved', product_category=product_category).order_by('-creation_date')
+                                    pr_user=pr_user, status='approved').order_by('-creation_date')
                     if prApprQs.exists():
                         last_updated_by = prApprQs[0].validated_by
                         last_updated_time = datetime.datetime.strftime(prApprQs[0].updation_date, '%d-%m-%Y')
@@ -3282,7 +3282,7 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
                         'level': level,
                         'validated_by': validated_by,
                         'configName': reqConfigName,
-                        'product_category': product_category,
+                        'product_category': pendingPRObj.product_category,
                         'approval_type': approval_type,
                         'status': status
                     }

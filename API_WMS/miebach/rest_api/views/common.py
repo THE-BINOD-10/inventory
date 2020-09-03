@@ -13103,7 +13103,7 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
-def reduce_consumption_stock(consumption_obj=consumption_obj, total_test=0):
+def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
     if consumption_obj.exists():
@@ -13146,7 +13146,7 @@ def reduce_consumption_stock(consumption_obj=consumption_obj, total_test=0):
             if not stock_found:
                 log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
                          (str(consumption.id), str(consumption.test.test_code)))
-                continue
+                return
             for key, value in bom_dict.items():
                 consumption_data = ConsumptionData.objects.create(
                     consumption_id=consumption.id,

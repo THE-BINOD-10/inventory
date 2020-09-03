@@ -611,6 +611,7 @@ urlpatterns = [
     url(r'^get_pr_detail_report/$', get_pr_detail_report),
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
+    url(r'^download_invoice_file/$', download_invoice_file),
 ]
 
 # urlpatterns += patterns('rest_api.views',

@@ -249,6 +249,7 @@ urlpatterns = [
     url(r'^get_po_delivery_schedule/$', get_po_delivery_schedule),
     url(r'^check_sku_category_data/$', check_sku_category_data),
     url(r'^validate_product_wms/$', validate_product_wms),
+    url(r'^grn_upload_preview/$', grn_upload_preview),
 
 
     # Production

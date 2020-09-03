@@ -14677,8 +14677,9 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
                 final_status = pr_data['pending_po__final_status']
                 product_category = pr_data['pending_po__product_category']
                 category = pr_data['pending_po__sku_category']
-                req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__requested_user__id'])
-                pr_department, pr_plant = get_plant_and_department(req_user)
+                req_user = User.objects.filter(id=pr_data['pending_po__pending_prs__wh_user__id'])[0]
+                if req_user:
+                    pr_department, pr_plant = get_plant_and_department(req_user)
         all_approvals = []
         prApprQs = PurchaseApprovals.objects.filter(
             pending_pr__full_pr_number=pr_number)

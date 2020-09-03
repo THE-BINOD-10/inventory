@@ -14643,7 +14643,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         product_category, category, final_status= '', '', ''
         open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number']).latest('po_date')
         if open_po_data:
-            if open_po_data.open_po.supplier:
+            if open_po_data.open_po:
                 supplier_id = open_po_data.open_po.supplier.supplier_id
                 supplier_name = open_po_data.open_po.supplier.name
             category = open_po_data.open_po.sku.sku_category

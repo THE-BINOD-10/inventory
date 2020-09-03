@@ -38,7 +38,7 @@ def executeAutomatedTaskForUser(userObj, row):
     if not intObj.is_connected:
         log.info('Connection With Integration Layer Failed')
     try:
-        for action in ['add', 'delete', 'upsert']:
+        for action in ['add', 'upsert', 'delete']:
             currentData = intObj.getRelatedJson(row.get('objType'), action=action)
             print(row.get('objType'), userObj, currentData, action)
             log.info('Executing %s' % (row.get('objType')))
@@ -72,9 +72,9 @@ def executeTaskForRow(row):
     # try:
     intObj = Integrations(row.user, intType=row.integration_type, executebatch=True)
     getattr(
-        intObj, 
-        function.get('function'))([json.loads(row.integration_data)], function.get('unique_param'), 
-        is_multiple=True, 
+        intObj,
+        function.get('function'))([json.loads(row.integration_data)], function.get('unique_param'),
+        is_multiple=True,
         action=row.action_type
         )
     # except Exception as e:

@@ -14646,8 +14646,8 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             if open_po_data.open_po:
                 supplier_id = open_po_data.open_po.supplier.supplier_id
                 supplier_name = open_po_data.open_po.supplier.name
-            category = open_po_data.open_po.sku.sku_category
-            user_id = open_po_data.open_po.sku
+                category = open_po_data.open_po.sku.sku_category
+                user_id = open_po_data.open_po.sku.user
             po_date = open_po_data.po_date
             po_update_date = open_po_data.updation_date
             if po_update_date:

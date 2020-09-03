@@ -211,7 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.display_approval_button_DOA=aData["display_approval_button_DOA"]
                 }
                 vm.warehouse = aData['Warehouse']
-                vm.warehouse_id: aData['warehouse_id']
+                vm.warehouse_id = aData['warehouse_id']
                 var dataDict = {
                   'supplier_id': aData['DT_RowId'],
                   'warehouse': aData['Warehouse'] ,

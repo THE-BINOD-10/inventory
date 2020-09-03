@@ -12391,6 +12391,39 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
         master_doc.save()
     return 'Uploaded Successfully'
 
+
+def removeUnnecessaryData(skuDict):
+    result = {}
+    for key, value in skuDict.iteritems():
+        if isinstance(value, (basestring, str, int, float)):
+            result[key] = value
+        else:
+            continue
+    return result
+
+def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
+    for userId, supplier_obj in master_objs.iteritems():
+        for paymentTerm in paymentterms:
+            try:
+                payment_supplier_mapping(
+                paymentTerm.get('reference_id'),
+                paymentTerm.get('description'),
+                supplier_obj
+                )
+            except Exception as e:
+                log.info('Payment Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+        for netterm in netterms:
+            try:
+                if(netterm.get('description')):
+                    net_terms_supplier_mapping(
+                        netterm.get('reference_id'),
+                        netterm.get('description'),
+                        supplier_obj
+                    )
+            except Exception as e:
+                print(e)
+                log.info('Net Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+
 @app.task
 def sync_supplier_async(id, user_id):
     supplier = SupplierMaster.objects.get(id=id)
@@ -12858,8 +12891,8 @@ def update_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
     user_profile_dict['industry_type'] = exist_user_profile.industry_type
     for key, value in user_profile_dict.iteritems():
         setattr(uprof, key, value)
-    
-    
+
+
     uprof.save()
 
     return new_user

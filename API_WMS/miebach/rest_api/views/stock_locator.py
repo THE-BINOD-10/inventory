@@ -24,7 +24,7 @@ log = init_logger('logs/stock_locator.log')
 @fn_timer
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
@@ -999,7 +999,7 @@ def get_aging_bracket(age_days):
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
@@ -1499,7 +1499,7 @@ def get_id_cycle(request, user=''):
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     stock_ids = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code,
@@ -2585,7 +2585,7 @@ def inventory_adj_reasons(request, user=''):
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters):
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'sku__sku_category',

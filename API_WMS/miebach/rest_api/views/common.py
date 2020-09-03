@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -12994,6 +12994,14 @@ def check_and_get_plants(request, req_users, users=''):
     return req_users
 
 
+@get_admin_all_wh
+def check_and_get_plants_depts(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
 def check_and_get_plants_wo_request(request_user, user, req_users):
     users = []
     company_list = get_companies_list(user, send_parent=True)
@@ -13044,6 +13052,7 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
         uom_dict['base_uom'] = sku_uom[0].base_uom
     return uom_dict
+
 
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0

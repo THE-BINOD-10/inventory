@@ -2722,7 +2722,6 @@ def download_invoice_file(request, user=''):
                 try:
                     url_request, invoice_file_name = "", ""
                     invoice_data = MasterDocs.objects.filter(master_id=po_number,
-                                                             user=invoice_file_user,
                                                              master_type='GRN_PO_NUMBER',
                                                              extra_flag=grn_receipt_number)
                     if not invoice_data:

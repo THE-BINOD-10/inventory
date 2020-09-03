@@ -3282,7 +3282,7 @@ def createPRApproval(request, user, reqConfigName, level, pr_number, pendingPROb
                         'level': level,
                         'validated_by': validated_by,
                         'configName': reqConfigName,
-                        'product_category': product_category,
+                        'product_category': pendingPRObj.product_category,
                         'approval_type': approval_type,
                         'status': status
                     }

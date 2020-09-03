@@ -9841,7 +9841,7 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             hsn_code=""
             if _open.sku.hsn_code:
                 hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
-                if hsn_code_object.exists
+                if hsn_code_object.exists():
                     if cess_tax:
                         hsn_code=str(_open.sku.hsn_code)+"_KL"
                     else:

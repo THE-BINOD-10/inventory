@@ -115,7 +115,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         filtersMap['pending_pr_id__in'] = []
         filtersMap['pending_pr_id__in'] = list(chain(filtersMap['pending_pr_id__in'], pr_numbers))
     lis = ['pending_pr__full_pr_number', 'pending_pr__product_category', 'pending_pr__priority_type',
-            'pending_pr__sku_category', 'total_qty', 'creation_date',
+            'pending_pr__sku_category', 'total_qty', 'pending_pr__creation_date',
             'pending_pr__delivery_date', 'pending_pr__wh_user__first_name', 'pending_pr__requested_user__username',
             'pending_pr__final_status', 'pending_pr__pending_level', 'pending_pr_id',
             'pending_pr_id', 'pending_pr_id', 'pending_pr__remarks', 'pending_pr__remarks']

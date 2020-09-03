@@ -14869,7 +14869,9 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             pr_number = pr_data['pending_prs__full_pr_number']
             po_created_by = pr_data['requested_user__first_name']
             req_user = User.objects.filter(id=pr_data['pending_prs__wh_user__id'])[0]
-            pr_department, pr_plant = get_plant_and_department(req_user)
+            if req_user:
+                req_user = req_user[0]
+                pr_department, pr_plant = get_plant_and_department(req_user)
             last_approvals_date = ''
             prApprQs = PurchaseApprovals.objects.filter(pending_pr__id=pr_data['pending_prs__id'])
             all_approvals_data = list(prApprQs.exclude(status='').values_list('validated_by', "creation_date"))

@@ -9835,16 +9835,22 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             for row in unitdata.get('uom_items', None):
                 if row.get('unit_type', '') == 'Purchase':
                     purchaseUOMname = row.get('unit_name', None)
+            cess_tax=0
+            if _open.cess_tax:
+                cess_tax=_open.cess_tax
             hsn_code=""
             if _open.sku.hsn_code:
                 hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
                 if hsn_code_object.exists():
-                    hsn_code=hsn_code_object[0]["reference_id"]
+                    if cess_tax:
+                        hsn_code=str(_open.sku.hsn_code)+"_KL"
+                    else:
+                        hsn_code=hsn_code_object[0]["reference_id"]
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'hsn_code': hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,
                     'mrp':_open.mrp, 'tax_type':_open.tax_type,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax,
-                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax,
+                    'cgst_tax':_open.cgst_tax, 'utgst_tax':_open.utgst_tax, "cess_tax": cess_tax,
                     'unitypeexid': unitexid, 'uom_name': purchaseUOMname}
 
             po_data['items'].append(item)

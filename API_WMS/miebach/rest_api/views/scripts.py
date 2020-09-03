@@ -31,7 +31,7 @@ log = init_logger('logs/OPEN_PO_scripts.log')
 
 
 
-def upload_po_data(file_location):
+def upload_po_data(file_location, header_ind):
     import datetime
     import pandas as pd
     from rest_api.views.common import get_user_prefix_incremental, get_sku_ean_list
@@ -41,18 +41,20 @@ def upload_po_data(file_location):
     # SupplierMaster.objects.get(user=55, supplier_id__contains='LO2145A018').tin_number
     from pytz import timezone
     from django.forms.models import model_to_dict
-    df = pd.read_excel(file_location, header=1)
+    df = pd.read_excel(file_location, header=header_ind)
     df = df.fillna('')
     data= df.groupby('PO No.'.strip()).apply(lambda x: x.to_dict(orient='r')).to_dict()
     count=1
     failed=0
     already_complted=0
     success_count=0
+    Error_list=[]
     for key, value in data.iteritems():
         sku_code = value[0]['Material code.1'].strip()
         print(sku_code)
         user=''
         user_profile_obj=UserProfile.objects.filter(stockone_code=value[0]['STOCKONE Plant code'])
+        failed_data={}
         if user_profile_obj:
             user=user_profile_obj[0].user
         else:
@@ -60,32 +62,38 @@ def upload_po_data(file_location):
             if user_profile_obj:
                 user=user_profile_obj[0].user
             else:
+                failed_data={"PO_Number": str(key), "Resason": "plantcode is not Present" +str(value[0]['STOCKONE Plant code'])}
+                Error_list.append(failed_data)
                 print('PO Upload failed for %s and params are %s and plantcode is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
                 log.info('PO Upload failed for %s and params are %s and plant code is %s' % (str(key), str(value), str(value[0]['STOCKONE Plant code'])))
                 continue
         print("\n plant_user",user)
-        try:
-            po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
-            if inc_status:
-                continue
-        except Exception as e:
-            print('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-            log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
-            continue
         flag=True
         check_po=False
+        check_po_1=False
         utc_tz=timezone("UTC")
         po_date_time =utc_tz.localize(datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y'))
         po_obj= PurchaseOrder.objects.filter(po_number=str(key))
+        po_id=''
         if po_obj:
+            print("PO number Present")
             po_id=po_obj[0].order_id
             flag= True
-            check_po= True
+            check_po= False
+            # check_po_1=True
             po_obj.update(creation_date=po_date_time,updation_date=po_date_time, po_date= po_date_time)
             already_complted=already_complted+1
+        if not po_id:
+            try:
+                po_id, prefix, full_po_number, check_prefix, inc_status = get_user_prefix_incremental(user, 'po_prefix', sku_code)
+                if inc_status:
+                    continue
+            except Exception as e:
+                print('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                log.info('PO Upload failed for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
+                continue
         f1_sku_product="Kits&Consumables"
         product_category_test=True
-        # if "4000097443"== str(key):
         if flag:
             for index, row in enumerate(value):
                 if row['Material code.1']:
@@ -93,6 +101,8 @@ def upload_po_data(file_location):
                     if sku_id:
                         sku= sku_id[0]
                         if not sku.hsn_code:
+                            failed_data={"PO_Number": str(key), "Resason": "HSN Code is not Present" +str(row['Material code.1'])}
+                            Error_list.append(failed_data)
                             log.info('PO Upload failed hsn code is not present for %s and params are %s and PO is %s' % (str(row[    'Material code.1']), str(value), str(key)))
                             flag= False
                             break
@@ -102,6 +112,8 @@ def upload_po_data(file_location):
                                     f1_sku_product="Assets"
                                 elif f1_sku_product!="Assets":
                                     product_category_test=False
+                                    failed_data={"PO_Number": str(key), "Resason": "SKU Category is different" +str(row['Material code.1'])}
+                                    Error_list.append(failed_data)
                                     log.info('PO Upload failed SKU Category is different for %s and params are %s and PO is %s' % (str(row['Material code.1']), str(value), str(key)))
                                     break
                         except:
@@ -112,6 +124,8 @@ def upload_po_data(file_location):
                                     f1_sku_product="Services"
                                 elif f1_sku_product!="Services":
                                     product_category_test=False
+                                    failed_data={"PO_Number": str(key), "Resason": "SKU Category is different" +str(row['Material code.1'])}
+                                    Error_list.append(failed_data)
                                     log.info('PO Upload failed SKU Category is different for %s and params are %s and PO is %s' % (str(row['Material code.1']), str(value), str(key)))
                                     break
                         except:
@@ -121,22 +135,38 @@ def upload_po_data(file_location):
                                 if index==0:
                                     f1_sku_product="OtherItems"
                                 elif f1_sku_product!="OtherItems":
+                                    failed_data={"PO_Number": str(key), "Resason": "SKU Category is different" +str(row['Material code.1'])}
+                                    Error_list.append(failed_data)
                                     product_category_test=False
                                     log.info('PO Upload failed SKU Category is different for %s and params are %s and PO is %s' % (str(row['Material code.1']), str(value), str(key)))
                                     break
                         except:
                             pass
                     if not row['Pending PO Qty'] or not sku_id:
+                        if not sku_id:
+                            failed_data={"PO_Number": str(key), "Resason": "SKU code is empty" +str(row['Material code.1'])}
+                        else:
+                            failed_data={"PO_Number": str(key), "Resason": "PO Quantity is empty" +str(row['Pending PO Qty'])}
+                        Error_list.append(failed_data)
                         log.info('PO Upload failed for %s and params are %s and PO error is PO QTY or sku_code is empty' % (str(key), str(value)))
                         flag= False
                         break
                     if index >1:
                         continue
-                    supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
+                    address_id=''
+                    if row.get("Address ID", ''):
+                         address_id=row["Address ID"]
+                    if address_id:
+                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip(), address_id=address_id)
+                    else:
+                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
                     if not supplier_obj:
                         log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
                         print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str(row['Vendor Code'])))
-                        ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip())
+                        if address_id:
+                            ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip(),address_id=address_id)
+                        else:
+                            ori_sup_obj= SupplierMaster.objects.filter(user=2,  supplier_id__contains=str(row['Vendor Code']).strip())
                         if ori_sup_obj:
                             log.info("need to create vendor\n\n")
                             ori_sup=model_to_dict(ori_sup_obj[0])
@@ -153,21 +183,20 @@ def upload_po_data(file_location):
                                 payment_obj=PaymentTerms(**temp_dict)
                                 payment_obj.save()
                         else:
+                            failed_data={"PO_Number": str(key), "Resason": "Vendpr Not Present" +str(row['Vendor Code'])}
+                            Error_list.append(failed_data)
                             print('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
                             log.info('PO Upload failed Beacause MHL admin vendor is not present for %s and params are %s and error statement is %s' % (str(key), str(value), str(row['Vendor Code'])))
                             flag= False
                             break
                 else:
+                    failed_data={"PO_Number": str(key), "Resason": "SKU code Not Present" +str(row['Material code.1'])}
+                    Error_list.append(failed_data)
                     log.info('PO Upload failed for %s and params are %s and PO error is StockOne SKU Code or StockOne Plant ID is empty' % (str(key), str(value)))
                     flag= False
                     break
         po_data = {'open_po_id': '', 'status': '', 'received_quantity': 0}
         product_category=f1_sku_product
-        # check_po=False
-        # po_obj= PurchaseOrder.objects.filter(po_number=str(key))
-        # if po_obj:
-        #     po_id=po_obj[0].order_id
-        #     check_po=True
         print(flag,"key",key, "f1_sku_product", f1_sku_product)
         if flag:
             log.info("PO upload started for PO_number %s and data %s" % (str(key),str(value)))
@@ -183,7 +212,12 @@ def upload_po_data(file_location):
                     if eans:
                         ean_number = eans[0]
                 if not check_po:
-                    supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
+                    if row.get("Address ID", ''):
+                         address_id=row["Address ID"]
+                    if address_id:
+                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip(), address_id=address_id)
+                    else:
+                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
                     if supplier_obj:
                         supplier=supplier_obj[0]
                     price= 0
@@ -211,6 +245,9 @@ def upload_po_data(file_location):
                     if row.get("IGST",0):
                         if not row.get("IGST",0)=="nan":
                             po_suggestions['igst_tax'] = row['IGST']
+                    if row.get("Kerala Flood Cess",0):
+                        if not row.get("Kerala Flood Cess",0)=="nan":
+                            po_suggestions['cess_tax'] = row['Kerala Flood Cess']
                     data1 = OpenPO(**po_suggestions)
                     data1.save()
                     data1.creation_date= po_date_time
@@ -231,31 +268,41 @@ def upload_po_data(file_location):
                     order.save()
                     log.info("PO created Success stockone  PO Number= %s" % (str(key)))
                 else:
-                    break
+                    failed_data={"PO_Number": str(key), "Resason": "PO already Present"+str(row['Material code.1'])}
+                    Error_list.append(failed_data)
+                    print("PO already present in stockone PO Number= %s" % (str(key)))
                     log.info("PO already present in stockone PO Number= %s" % (str(key)))
+                    break
             success_count= success_count+1
         else:
             failed=failed+1
-        #print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
-        #count=count+1
-        #continue
+        po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
+        delivery_date= po_date_time.strftime('%d-%m-%Y')
+        data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
         if not check_po:
-            po_date_time =datetime.datetime.strptime(value[0]["PO Date"], '%d.%m.%Y')
-            delivery_date= po_date_time.strftime('%d-%m-%Y')
-            data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
             try:
                 netsuite_po(int(po_id), user, "open_po", data_dict, str(key), product_category, None, "")
             except Exception as e:
                 log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
                 pass
+        # break
+        # else:
+        #     data_dict.update({"line_items": value })
+        #     try:
+        #         netsuite_po_update(int(po_id), user, "open_po", data_dict, str(key), product_category, None, "")
+        #     except Exception as e:
+        #         log.info("PO netsuite_exception =%s and error statement is  = %s" % str(key),str(e))
+        #         pass
         print("total_count",len(data), "completed= ", count, "failed=",failed, "success_count=", success_count, "already_complted=", already_complted)
         count=count+1
+    return Error_list
+
 
 def zone_location_script():
     from rest_api.views.common import get_related_users_filters
     main_user = User.objects.get(username='mhl_admin')
-    # dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
-    dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
+    dept_users = get_related_users_filters(main_user.id, warehouse_types=['STORE', 'SUB_STORE', 'ST_HUB', 'DEPT'])
+    # dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'])
     zones_list_obj= ZoneMaster.objects.filter(user=main_user.id)
     for user in dept_users:
         for zone_row in zones_list_obj:
@@ -489,16 +536,16 @@ def inventory_upload(file_location):
             SKUDetailStats_obj=SKUDetailStats(**sku_details_data)
             SKUDetailStats_obj.save()
 
-            cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-            #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-            if not cycle_count:
-                cycle_id = 1
-            else:
-                cycle_id = cycle_count + 1
+            # cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+            # #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+            # if not cycle_count:
+            #     cycle_id = 1
+            # else:
+            #     cycle_id = cycle_count + 1
             reason = "Initial Inventory Upload"
             # netsuite_inventory_upload(cycle_id, sku_obj.wms_code, pquantity, reason, str(batch_no), mrp, weight, unit_price , row['Expiry Date(YYYY-MM-DD)'],plant_user)
             completed_count+=1
-            print("completed_count",completed_count, "failed_count ",failed_count)
+            print("total=", total_count, "completed_count",completed_count, "failed_count ",failed_count)
             # break
         except Exception as e:
             failed_count+=1
@@ -565,6 +612,8 @@ def upload_po_data_to_netsuite(file_location):
     count=1
     failed=0
     success=0
+    data_list= []
+    ind=0
     for key, value in data.iteritems():
         sku_code = value[0]['Material code.1'].strip()
         print(sku_code)
@@ -573,7 +622,7 @@ def upload_po_data_to_netsuite(file_location):
         if user_profile_obj:
             user=user_profile_obj[0].user
         else:
-            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['StockOne Plant ID']))
+            user_profile_obj=UserProfile.objects.filter(stockone_code="0"+str(value[0]['STOCKONE Plant code']))
             if user_profile_obj:
                 user=user_profile_obj[0].user
             else:
@@ -589,7 +638,7 @@ def upload_po_data_to_netsuite(file_location):
                         flag= False
                         break
                     try:
-                        supplier_obj = SupplierMaster.objects.filter(user=user.id, supplier_id__contains=str(row['Vendor Code']).strip())
+                        supplier_obj = SupplierMaster.objects.filter(user=2, supplier_id__contains=str(row['Vendor Code']).strip())
                         if not supplier_obj:
                             log.info('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str("e")))
                             print('PO Upload failed Beacause Vendor not present for %s and PO is %s and params are %s and error statement is %s' % (user.username, str(key), str(value), str("e")))
@@ -617,10 +666,6 @@ def upload_po_data_to_netsuite(file_location):
                                 flag= False
                                 break
                         else:
-                            if(supplier_obj[0].reference_id in ['13733','14827']):
-                                flag=True
-                            else:
-                                flag=False
                             break
                     except Exception as e:
                         log.info('PO Upload failed Beacause vendor error for %s and params are %s and error statement is %s' % (str(key), str(value), str(e)))
@@ -646,18 +691,19 @@ def upload_po_data_to_netsuite(file_location):
             failed+=1
         print("total_count= ", len(data), "completed= ", count, "Failed= ", failed, "Success= ", success)
         count=count+1
+        break
 
 
 def add_new_sku_code_to_netsuite():
-    po_number="4000097229"
+    po_number="4000097938"
     stockone_code ="33004"
-    PO_Date ="23.07.2020"
-    Material_code ="CON001412"
-    quantity = 300
-    price = 210
-    sgst_tax = 9
-    cgst_tax = 9
-    igst_tax = 0
+    PO_Date ="08.08.2020"
+    Material_code ="CON001411"
+    quantity = 500
+    price = 1
+    sgst_tax = 0
+    cgst_tax = 0
+    igst_tax = 18
     product_category = "Kits&Consumables"  #Assets Services OtherItems
     po_data = {'open_po_id': '', 'status': '', 'received_quantity': 0}
     po_suggestions={'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'order_type': 'SR', 'price': 0,
@@ -711,14 +757,14 @@ def add_new_sku_code_to_netsuite():
         po_date_time =datetime.datetime.strptime(PO_Date, '%d.%m.%Y')
         delivery_date= po_date_time.strftime('%d-%m-%Y')
         data_dict={'terms_condition': '',"delivery_date": delivery_date, 'ship_to_address':""}
-        netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "", False)
+        netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "")
         # netsuite_po(int(po_id), user, "open_po", data_dict, str(po_number), product_category, None, "")
 
 def update_po_price():
-    po_number="6500001664"
-    old_sku_code="REG000747"
-    new_sku_code = "REG001949"
-    stockone_code ="27018"
+    po_number="4000097991"
+    old_sku_code="ACC000322"
+    new_sku_code = "ACC000364"
+    stockone_code ="33004"
     price = 8674
     sgst = 0
     cgst = 0
@@ -729,5 +775,5 @@ def update_po_price():
     sku_id = SKUMaster.objects.filter(wms_code=new_sku_code, user=user.id)
     if sku_id:
         OpenPO.objects.filter(id=po_1.open_po.id).update(price=price, sku_id=sku_id[0].id)
-    # if po_1:
-    #     OpenPO.objects.filter(id=po_1.open_po.id).update(sgst_tax=sgst, cgst_tax= cgst)
+        # if po_1:
+        #     OpenPO.objects.filter(id=po_1.open_po.id).update(sgst_tax=sgst, cgst_tax= cgst)

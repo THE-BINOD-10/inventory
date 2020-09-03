@@ -16049,6 +16049,8 @@ def grn_upload_preview(request, user=''):
     from masters import upload_master_file
     master_id = request.POST.get('data_id', '')
     po_number = request.POST.get('id', '')
+    warehouse_id = request.POST.get('warehouse_id', '')
+    user = User.objects.get(id=warehouse_id)
     file_upload = request.FILES.get('pdf_file', '')
     response = ''
     if master_id:

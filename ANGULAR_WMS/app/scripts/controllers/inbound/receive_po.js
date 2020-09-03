@@ -211,6 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.display_approval_button_DOA=aData["display_approval_button_DOA"]
                 }
                 vm.warehouse = aData['Warehouse']
+                vm.warehouse_id: aData['warehouse_id']
                 var dataDict = {
                   'supplier_id': aData['DT_RowId'],
                   'warehouse': aData['Warehouse'] ,
@@ -676,6 +677,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       formData.append('pdf_file', files);
       formData.append('id', id);
+      formData.append('warehouse_id', vm.warehouse_id);
       vm.service.apiCall('grn_upload_preview/', 'POST', formData, true, true).then(function(response){
         if(Object.keys(JSON.parse(response.data)).includes('file_name')) {
           vm.resultant_data_format(response.data);

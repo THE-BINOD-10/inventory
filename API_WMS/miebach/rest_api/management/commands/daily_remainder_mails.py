@@ -31,7 +31,7 @@ class Command(BaseCommand):
         time_to_check = datetime.datetime.now() - datetime.timedelta(days=1)
         all_pending_approval_details = PurchaseApprovals.objects.filter(creation_date__lt=time_to_check, status='', purchase_type='PR').exclude(status__in=['approved', 'on_approved', 'resubmitted', 'rejected'])
         if all_pending_approval_details.exists():
-            for record in all_pending_approval_details[:2]:
+            for record in all_pending_approval_details:
                 pending_pr, user, baseLevel = ['']*3
                 pending_pr = record.pending_pr
                 user = record.pending_pr.wh_user

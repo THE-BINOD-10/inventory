@@ -34,16 +34,17 @@ class Command(BaseCommand):
             for record in all_pending_approval_details:
                 pending_pr, user, baseLevel = ['']*3
                 pending_pr = record.pending_pr
-                user = record.pending_pr.wh_user
-                baseLevel = record.level
-                mails_to_send = record.purchaseapprovalmails_set.filter(status='')
-                if mails_to_send.exists():
-                    for mail_rec in mails_to_send:
-                        eachMail = ''
-                        eachMail = mail_rec.email
-                        hash_code = mail_rec.hash_code
-                        print pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, is_resubmitted
-                        print '------------------------------------------------------------------------------'
-                        sendMailforPendingPO(pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False, is_resubmitted=is_resubmitted)
-                        log.info("sending PR ::%s%s" %(pending_pr.id, str(time_to_check)))
+                if pending_pr.final_status not in ['pr_converted_to_po', 'cancelled', 'rejected']:
+                    user = record.pending_pr.wh_user
+                    baseLevel = record.level
+                    mails_to_send = record.purchaseapprovalmails_set.filter(status='')
+                    if mails_to_send.exists():
+                        for mail_rec in mails_to_send:
+                            eachMail = ''
+                            eachMail = mail_rec.email
+                            hash_code = mail_rec.hash_code
+                            print pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, is_resubmitted
+                            print '------------------------------------------------------------------------------'
+                            sendMailforPendingPO(pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False, is_resubmitted=is_resubmitted)
+                            log.info("sending PR ::%s%s" %(pending_pr.id, str(time_to_check)))
         self.stdout.write("Updation Completed")

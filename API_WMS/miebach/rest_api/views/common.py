@@ -10463,13 +10463,25 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None):
-    for stock in stocks.iterator():
+def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec'):
+    for stock in stocks:
+        stock.refresh_from_db()
+        if inc_type == 'inc':
+            stock.quantity += quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, inc_type)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
+            stock.save()
+            break
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
-                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, inc_type)
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
                 mapping_obj.stock_mapping.add(stock_mapping)
@@ -10484,7 +10496,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
             save_sku_stats(user, stock.sku.id, rtv_id, transact_type, rtv_quantity, stock)
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
-                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, inc_type)
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=stock.quantity)
                 mapping_obj.stock_mapping.add(stock_mapping)

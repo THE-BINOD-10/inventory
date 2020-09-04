@@ -1669,6 +1669,17 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
     'print_url': 'print_credit_note_form_report',
 }
 
+CONSUMPTION_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Date', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
+    'print_url': 'get_sku_wise_consumption_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
@@ -1716,6 +1727,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'metro_po_detail_report': METRO_PO_DETAIL_REPORT_DICT,
                      'cancel_grn_report': CANCEL_GRN_REPORT_DICT,
                      'sku_wise_cancel_grn_report': SKU_WISE_CANCEL_GRN_REPORT_DICT,
+                     'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2416,6 +2428,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_pr_detail_report': 'get_pr_detail_report_data',
                         'get_cancel_grn_report': 'get_cancel_grn_report_data',
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
+                        'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -14629,4 +14642,74 @@ def get_pr_plant_and_department(po_number):
                     product_category = category_data[0].product_category
     return pr_plant, pr_department, category, product_category
 
+
+def get_sku_wise_consumption_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+            'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+                    'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
+                        annotate(Sum('stock_mapping__quantity'))
+
+    if order_term:
+        results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        test_code, mfg_date, exp_date = [''] * 3
+        if result['consumption__test__test_code']:
+            test_code = result['consumption__test__test_code']
+        if result['stock_mapping__stock__batch_detail__manufactured_date']:
+            mfg_date = str(result['stock_mapping__stock__batch_detail__manufactured_date'])
+        if result['stock_mapping__stock__batch_detail__expiry_date']:
+            exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
+        ord_dict = OrderedDict((
+            ('Date', get_local_date(user, result['creation_date'])),
+            ('Test Code', test_code),
+            ('SKU Code', result['sku__sku_code']),
+            ('SKU Description', result['sku__sku_desc']),
+            ('Location', result['stock_mapping__stock__location__location']),
+            ('Quantity', result['stock_mapping__quantity__sum']),
+            ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
+            ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
+            ('Manufactured Date', mfg_date),
+            ('Expiry Date', exp_date)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
 

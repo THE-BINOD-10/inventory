@@ -42,8 +42,8 @@ class Command(BaseCommand):
                         eachMail = ''
                         eachMail = mail_rec.email
                         hash_code = mail_rec.hash_code
-                        # print pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, is_resubmitted
-                        # print '------------------------------------------------------------------------------'
+                        print pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, is_resubmitted
+                        print '------------------------------------------------------------------------------'
                         sendMailforPendingPO(pending_pr.id, user, baseLevel, mailSub, eachMail, urlPath, hash_code, poFor=False, is_resubmitted=is_resubmitted)
                         log.info("sending PR ::%s%s" %(pending_pr.id, str(time_to_check)))
         self.stdout.write("Updation Completed")

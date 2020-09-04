@@ -10992,6 +10992,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
 @login_required
 @get_admin_user
 def closing_adjustment_upload(request, user=''):
+    from dateutil.relativedelta import relativedelta
     fname = request.FILES['files']
     try:
         fname = request.FILES['files']
@@ -11005,5 +11006,50 @@ def closing_adjustment_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
     for final_data in data_list:
-        print final_data
+        user = final_data['user']
+        sku = final_data['sku']
+        base_quantity = final_data['base_uom_qty']
+        location = final_data['location']
+        first_date = final_data['adjustment_date'].replace(day=1)
+        first_date = get_utc_start_date(first_date)
+        last_date = first_date + relativedelta(months=1)
+        sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').\
+                                        filter(sku_id=sku.id, location_id=location.id, quantity__gt=0).\
+                                        order_by('batch_detail__expiry_date', 'receipt_date')
+        if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
+            stocks = StockDetail.objects.filter(sku_id=sku.id, receipt_number=9999999)
+            opening_stock = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            opening_stock = opening_stock if opening_stock else 0
+        else:
+            first_day = final_data['adjustment_date'].replace(day=1).date()
+            stock_stats = StockStats.objects.filter(sku_id=sku.id, stock_detail__location_id=location.id,
+                                                    creation_date__regex=str(first_day))
+            opening_stock = stock_stats[0].opening_stock if stock_stats.exists() else 0
+        stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
+                                        values_list('transact_type').distinct().annotate(Sum('quantity')))
+        putaway_pending_qty = POLocation.objects.filter(purchase_order__open_po__sku_id=sku.id, quantity__gt=0, status=1).\
+                                        aggregate(Sum('quantity'))['quantity__sum']
+        putaway_pending_qty = putaway_pending_qty if putaway_pending_qty else 0
+        putaway_pending_qty = putaway_pending_qty * final_data['conversion_factor']
+        receipt_qty = stats.get('PO', 0) + stats.get('po', 0)
+        picklist_qty = stats.get('picklist', 0)
+        adjusted_qty = stats.get('inventory-adjustment', 0)
+        return_qty = stats.get('return', 0)
+        cancelled_qty = stats.get('cancelled_location', 0)
+        rm_picklist_qty = stats.get('rm_picklist', 0)
+        jo_qty = stats.get('jo', 0)
+        rtv_qty = stats.get('rtv', 0)
+        cancel_grn_qty = stats.get('cancel_grn', 0)
+        consumption_qty = stats.get('consumption', 0)
+        closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty + putaway_pending_qty) - \
+                        (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
+        closing_adj = closing_qty - base_quantity
+        if closing_adj > 0:
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku.id,
+                quantity=closing_adj,
+            )
+            update_stock_detail(sku_stocks, closing_adj, user,
+                                '', transact_type='consumption',
+                                mapping_obj=consumption_data)
     return HttpResponse("Success")

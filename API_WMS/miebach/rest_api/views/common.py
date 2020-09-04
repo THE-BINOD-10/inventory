@@ -13125,7 +13125,7 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             bom_dict = OrderedDict()
             stock_found = True
             for bom in bom_master:
-                stocks = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id,
+                stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
                                                     sku__sku_code=bom.material_sku.sku_code,
                                                     quantity__gt=0).\
                     order_by('batch_detail__expiry_date', 'receipt_date')

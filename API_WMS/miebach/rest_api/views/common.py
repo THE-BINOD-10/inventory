@@ -10474,6 +10474,8 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
                 mapping_obj.stock_mapping.add(stock_mapping)
+            if transact_type == 'consumption':
+                quantity = -1 * quantity
             save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
             stock.save()
             break

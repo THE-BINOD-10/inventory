@@ -10463,7 +10463,20 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec'):
+def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec', stock_dict=None):
+    if inc_type == 'inc' and not stocks and stock_dict:
+        batch_dict = stock_dict.get('batch_dict', '')
+        if batch_dict:
+            batch_obj = BatchDetail.objects.create(**batch_dict)
+            del stock_dict['batch_dict']
+            stock = StockDetail.objects.create(**stock_dict)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            if transact_type == 'consumption':
+                quantity = -1 * quantity
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
+            return
     for stock in stocks:
         stock.refresh_from_db()
         if inc_type == 'inc':

@@ -1675,7 +1675,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -14670,7 +14670,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    values_list = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+    values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
     model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
@@ -14692,6 +14692,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
     count = 0
     for result in results:
         test_code, mfg_date, exp_date = [''] * 3
+        first_name = User.objects.get(id=result['sku__user']).first_name
         if result['consumption__test__test_code']:
             test_code = result['consumption__test__test_code']
         if result['stock_mapping__stock__batch_detail__manufactured_date']:
@@ -14700,6 +14701,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
         ord_dict = OrderedDict((
             ('Date', get_local_date(user, result['creation_date'])),
+            ('Warehouse', first_name),
             ('Test Code', test_code),
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),

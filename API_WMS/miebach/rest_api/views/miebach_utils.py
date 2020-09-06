@@ -14640,6 +14640,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     for result in results:
         pr_plant, pr_department, pr_number, pr_date, pr_user = '', '', '', '', ''
         product_category, category, final_status= '', '', ''
+        pr_quantity = ''
         open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number']).latest('po_date')
         if open_po_data:
             if open_po_data.open_po:
@@ -14725,7 +14726,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('PO Quantity', po_quantity),
             ('PO Raised Date', po_date),
             ('PR Quantity', pr_quantity),
-            ('Total Amount', round(pr_amount,4)),
+            ('Total Amount', round(po_amount,4)),
             ('Approved by all Approvers', all_approvals[0:-1]),
             ('PO Status', final_status.title()),
             ('Final Approver date', last_approvals_date),

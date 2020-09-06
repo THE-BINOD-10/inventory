@@ -14791,7 +14791,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
     if 'sku_code' in search_params:
-        search_parameters['sku__sku_code'] = search_params['sku_code']
+        search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
     if 'supplier' in search_params:
         search_parameters['open_po__supplier__supplier_id__iexact'] = search_params['supplier'].split(':')[0]
     if 'po_number' in search_params:
@@ -14948,7 +14948,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_tax_amount+po_amount,4))),
+            ('PO Amount with Tax', (round(po_amount-po_tax_amount,4))),
             ('PO Created by', po_created_by),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),

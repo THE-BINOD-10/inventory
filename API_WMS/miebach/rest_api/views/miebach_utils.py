@@ -14948,7 +14948,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_amount-po_tax_amount,4))),
+            ('PO Amount with Tax', (round(po_amount,4))),
             ('PO Created by', po_created_by),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),
@@ -15081,7 +15081,7 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
                 po_tmp_price = row.open_po.price * row.open_po.order_quantity
                 po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
                 po_tax_amount = (po_tmp_tax * po_tmp_price) / 100
-                po_total_amount = po_tmp_price + po_tax_amount
+                po_total_amount = po_tmp_price
 
     po_amount_details['po_total_qty'] = po_total_qty
     po_amount_details['po_tax_amount'] = po_tax_amount

@@ -15081,7 +15081,7 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
                 po_tmp_price = row.open_po.price * row.open_po.order_quantity
                 po_tmp_tax = row.open_po.sgst_tax + row.open_po.cgst_tax + row.open_po.igst_tax
                 po_tax_amount = (po_tmp_tax * po_tmp_price) / 100
-                po_total_amount = po_tmp_price
+                po_total_amount = po_tmp_price +po_tax_amount
 
     po_amount_details['po_total_qty'] = po_total_qty
     po_amount_details['po_tax_amount'] = po_tax_amount

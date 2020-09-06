@@ -14629,7 +14629,6 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['po_number', 'creation_date','expected_date']
-    # import pdb;pdb.set_trace()
     model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().annotate(total_qty=Sum('open_po__order_quantity')).annotate(total_amt=Sum(F('open_po__order_quantity') * F('open_po__price')))
 
     temp_data['recordsTotal'] = model_data.count()
@@ -14736,7 +14735,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             ('GRN Numbers', grn_numbers),
             ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
-            ('PO Amount with Tax', (round(po_amount + po_tax_amount, 4))),
+            ('PO Amount with Tax', (round(po_amount, 4))),
             ('PO Created by', po_user),
             ('Last Updated by', updated_user_name),
             ('Last Updated Date', po_update_date),

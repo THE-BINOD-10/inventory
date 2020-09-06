@@ -120,8 +120,8 @@ function sideNavigation() {
 
         if ($scope.app.layout.isSmallSidebar || $scope.app.layout.isStaticSidebar || $scope.app.layout.isBoxed && psTarg.hasClass('ps-container')) {
           $scope.destroyScrollbars();
-          $('.settings').width('50px');
-          $('.page-layout').css('left', '50px');
+          // $('.settings').width('50px');
+          // $('.page-layout').css('left', '50px');
         }
         else {
           if (psTarg.hasClass('ps-container')) {

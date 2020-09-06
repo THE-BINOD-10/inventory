@@ -14597,6 +14597,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data
     temp_data = copy.deepcopy(AJAX_DATA)
+    # import pdb;pdb.set_trace()
     search_parameters = {}
     lis = ['order_id', 'creation_date', 'order_id', 'order_id', 'order_id', 'open_po__sku__sku_category', 'order_id',
            'order_id', 'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',
@@ -14629,6 +14630,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     values_list = ['po_number', 'creation_date','expected_date']
+
     model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().annotate(total_qty=Sum('open_po__order_quantity')).annotate(total_amt=Sum(F('open_po__order_quantity') * F('open_po__price')))
 
     temp_data['recordsTotal'] = model_data.count()
@@ -14944,7 +14946,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             ('UOM', measurement_unit),
             ('Order Quantity', po_quantity),
             ('GRN Numbers', grn_numbers),
-            ('PO Amount Pre Tax', round(po_amount, 4)),
+            ('PO Amount Pre Tax', round(po_amount - po_tax_amount, 4)),
             ('Tax Amount', round(po_tax_amount, 4)),
             ('PO Amount with Tax', (round(po_tax_amount+po_amount,4))),
             ('PO Created by', po_created_by),

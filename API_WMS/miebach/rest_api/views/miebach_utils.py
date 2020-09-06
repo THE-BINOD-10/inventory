@@ -14798,11 +14798,11 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         po_number = search_params['po_number']
         search_parameters['po_number'] = po_number
     if 'sku_category' in search_params:
-        search_parameters['sku__sku_category'] = search_params['sku_category']
+        search_parameters['open_po__sku__sku_category'] = search_params['sku_category']
     if 'sub_category' in search_params:
-        search_parameters['sku__sub_category'] = search_params['sub_category']
+        search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
-        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+        search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 

@@ -1231,6 +1231,7 @@ def print_po_reports(request, user=''):
     total = 0
     total_qty = 0
     total_tax = 0
+    total_tax_value = 0
     tax_value = 0
     overall_discount = 0
     for data in results:
@@ -1303,6 +1304,7 @@ def print_po_reports(request, user=''):
                     if discount:
                         amount = amount - (amount * float(discount) / 100)
                     if gst_tax:
+                        total_tax_value += (amount / 100) * gst_tax
                         amount += (amount / 100) * gst_tax
                     if not st_grn:
                         measurement_unit = open_data.measurement_unit
@@ -1325,6 +1327,7 @@ def print_po_reports(request, user=''):
                 amount = float(quantity) * float(data.open_po.price)
                 gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax + open_data.apmc_tax
                 if gst_tax:
+                    total_tax_value += (amount / 100) * gst_tax
                     amount += (amount / 100) * gst_tax
                 mrp = open_data.mrp
                 if user.userprofile.user_type == 'warehouse_user':
@@ -1351,6 +1354,7 @@ def print_po_reports(request, user=''):
             amount = float(data.quantity) * float(open_data.price)
             gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
             if gst_tax:
+                total_tax_value += (amount / 100) * gst_tax
                 amount += (amount / 100) * gst_tax
             mrp = open_data.mrp
             if user.userprofile.user_type == 'warehouse_user':
@@ -1421,7 +1425,7 @@ def print_po_reports(request, user=''):
     net_amount = total - overall_discount
     if total:
         tax_value = (total * total_tax) / (100 + total_tax)
-        tax_value = ("%.2f" % tax_value)
+        tax_value = float("%.2f" % total_tax_value)
     try:
         url_request, invoice_file_name = "", ""
         invoice_data = MasterDocs.objects.filter(master_id=grn_po_number,
@@ -1430,7 +1434,6 @@ def print_po_reports(request, user=''):
 
         if invoice_data.exists():
             invoice_details = invoice_data[0].uploaded_file
-            # import pdb;pdb.set_trace()
             invoice_file_name = (invoice_data[0].uploaded_file.file.name).split('/')[-1]
             http_data = "%s%s%s" % (request.META.get('HTTP_HOST'), "/", invoice_details)
             url_request = '<button type="button" class="btn btn-success" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="showCase.FileDownload(' + http_data + ')" ">Download</button>'
@@ -1444,7 +1447,7 @@ def print_po_reports(request, user=''):
                    'po_number': grn_number, 'company_address': w_address, 'company_name': user_profile.company.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'file_url':invoice_file_name,
                    'overall_discount': overall_discount, 'grn_po_number': grn_po_number,
-                   'st_grn':st_grn, 'warehouse_store': warehouse_store,
+                   'st_grn':st_grn, 'warehouse_store': warehouse_store, 'total_gross_value': float("%.2f" % total) - tax_value,
                    'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': int(total_tax),
                    'net_amount': float("%.2f" % net_amount),
                    'company_address': company_address, 'sr_number': sr_number, 'lr_number': lr_number,
@@ -1515,10 +1518,11 @@ def excel_reports(request, user=''):
     if 'tally_report' in excel_name:
         search_params['tally_report'] = True
         tally_report =1
-    if 'goods_receipt' or 'sku_wise_goods_receipt' in excel_name:
+    params = [search_params, user, request.user]
+    if 'excel_name=goods_receipt' in excel_name:
         params = [request, search_params, user, request.user]
-    else:
-        params = [search_params, user, request.user]
+    if 'excel_name=sku_wise_goods_receipt' in excel_name:
+        params = [request, search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
     if 'datatable=customerView' in form_data:
@@ -2722,7 +2726,6 @@ def download_invoice_file(request, user=''):
                 try:
                     url_request, invoice_file_name = "", ""
                     invoice_data = MasterDocs.objects.filter(master_id=po_number,
-                                                             user=invoice_file_user,
                                                              master_type='GRN_PO_NUMBER',
                                                              extra_flag=grn_receipt_number)
                     if not invoice_data:

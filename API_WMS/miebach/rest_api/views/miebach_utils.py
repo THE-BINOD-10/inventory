@@ -14803,6 +14803,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
         search_parameters['open_po__sku__sub_category'] = search_params['sub_category']
     if 'sku_brand' in search_params:
         search_parameters['open_po__sku__sku_brand'] = search_params['sku_brand']
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -14896,9 +14897,9 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             all_approvals = all_approvals[0:-1]
             if po_updation_date:
                 po_update_date = get_local_date(user, po_updation_date)
-            po_amount_details, pr_amount_details = get_po_price_and_tax_amount(pr_data['full_po_number'], pr_data['pending_prs__full_pr_number'])
-            po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty',0), po_amount_details.get('po_tax_amount',0), po_amount_details.get('po_total_amount', 0)
-            pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get('po_tax_amount', 0), pr_amount_details.get('po_total_amount', 0)
+            total_pr_quantity, total_pr_amount, total_pr_tax_amount,po_total_qty,po_tax_amount, po_total_amount = get_sku_wise_po_amount_and_quantity(pr_data['full_po_number'], pr_data['pending_prs__full_pr_number'], sku_code)
+            po_quantity, po_tax_amount, po_amount = po_total_qty, po_tax_amount, po_total_amount
+            pr_quantity, pr_tax_amount, pr_amount = total_pr_quantity, total_pr_tax_amount, total_pr_amount
             if pr_data['delivery_date']:
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
 
@@ -15088,6 +15089,5 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     po_amount_details['po_total_amount'] = po_total_amount
 
     return po_amount_details
-
 
 

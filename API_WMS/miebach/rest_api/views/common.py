@@ -9698,7 +9698,7 @@ def get_price_field(user):
 
 
 def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None, stock_stats_objs=None,
-                   bulk_insert=False):
+                   bulk_insert=False, transact_date=None):
     try:
         stats_dict = {'sku_id': sku_id, 'transact_id': transact_id, 'transact_type': transact_type,
                                   'quantity': quantity, 'creation_date': datetime.datetime.now(),
@@ -9707,7 +9707,9 @@ def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_det
             stock_stats_objs.append(SKUDetailStats(**stats_dict))
             return stock_stats_objs
         else:
-            SKUDetailStats.objects.create(**stats_dict)
+            sku_stat = SKUDetailStats.objects.create(**stats_dict)
+            if transact_date:
+                SKUDetailStats.objects.filter(id=sku_stat.id).update(creation_date=transact_date)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -10463,7 +10465,8 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec', stock_dict=None):
+def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec', stock_dict=None,
+                        transact_date=None):
     if inc_type == 'inc' and not stocks and stock_dict:
         batch_dict = stock_dict.get('batch_dict', '')
         if batch_dict:
@@ -10475,7 +10478,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
                 mapping_obj.stock_mapping.add(stock_mapping)
             if transact_type == 'consumption':
                 quantity = -1 * quantity
-            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
             return
     for stock in stocks:
         stock.refresh_from_db()
@@ -10489,7 +10492,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
                 mapping_obj.stock_mapping.add(stock_mapping)
             if transact_type == 'consumption':
                 quantity = -1 * quantity
-            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
             stock.save()
             break
         if stock.quantity > quantity:
@@ -10500,7 +10503,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
             if mapping_obj:
                 stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
                 mapping_obj.stock_mapping.add(stock_mapping)
-            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
@@ -10508,7 +10511,7 @@ def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', map
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
             rtv_quantity = stock.quantity
-            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, rtv_quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, rtv_quantity, stock, transact_date=transact_date)
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
                 change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, inc_type)

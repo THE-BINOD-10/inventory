@@ -4098,3 +4098,17 @@ class ConsumptionData(models.Model):
 
     class Meta:
         db_table = 'CONSUMPTION_DATA'
+
+class AdjustmentData(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, related_name='adjustment_sku')
+    batch_no = models.CharField(max_length=64, default='')
+    base_quantity = models.FloatField(default=0)
+    pquantity = models.FloatField(default=0)
+    puom = models.CharField(max_length=64)
+    pcf = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ADJUSTMENT_DATA'

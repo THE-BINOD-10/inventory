@@ -677,7 +677,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
                 try:
-                  sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
+                  sync_supplier_async.apply_async(queue='queueB', args=[master_objs[user.id].id, user.id])
                 except Exception as e:
                   print(e)
 

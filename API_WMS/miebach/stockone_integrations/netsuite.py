@@ -408,7 +408,11 @@ class netsuiteIntegration(object):
                     if(po_data.get('full_pr_number',None)):
                         item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
                     if(data.get('hsn_code',None)):
-                        item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                        temp_hsn =str(data["hsn_code"]).split("_")[-1]
+                        if temp_hsn=="KL":
+                            item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=data['hsn_code'])))
+                        else:
+                            item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
                         item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
                     if (data.get("document_number", None)):
                         item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_grn_document_number', value=data["document_number"]))
@@ -430,7 +434,7 @@ class netsuiteIntegration(object):
                         if internId:
                             line_item.update({'units': ns.RecordRef(internalId=internId)})
                     item.append(line_item)
-                item_list= { 'item': item }
+                item_list= { 'item': item, 'replaceAll': False}
                 if po_data.get('replaceAll', ''):
                     if po_data['replaceAll'] == 'replaceAll_False':
                         item_list.update({'replaceAll': False})

@@ -14597,7 +14597,6 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, truncate_float, \
         get_warehouse_user_from_sub_user, get_plant_subsidary_and_department, get_plant_and_department,get_all_department_data
     temp_data = copy.deepcopy(AJAX_DATA)
-    # import pdb;pdb.set_trace()
     search_parameters = {}
     lis = ['order_id', 'creation_date', 'order_id', 'order_id', 'order_id', 'open_po__sku__sku_category', 'order_id',
            'order_id', 'order_id', 'status', 'po_date', 'po_number', 'open_po__order_quantity', 'creation_date',

@@ -18,14 +18,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.report_data = {};
   vm.reports = {}
   vm.title = "Metropolis PO Report";
-  vm.toogle_po = function() {
-    console.log("ok")
-  }
   vm.toggle_view = function() {
     var send = {};
     var name ='';
     vm.report_data = {};
-
   	if (vm.toggle_pending_view && vm.toggle_detail) {
         name = 'metro_po_detail_report';
      } else if(vm.toggle_pending_view && !vm.toggle_detail) {
@@ -48,69 +44,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
              vm.empty_data = datam.empty_data;
              angular.copy(vm.empty_data, vm.model_data);
-//            vm.empty_data = datam.empty_data;
-//            angular.copy(vm.empty_data, vm.filters_dt_data)
             vm.dtOptions = datam.dtOptions;
             vm.dtColumns = datam.dtColumns;
             vm.datatable = true;
             vm.dtInstance = {};
     		vm.report_data['row_click'] = true;
-//    		if (name =="metro_po_detail_report")
-//    		{
-//            vm.report_data['excel_name'] = 'get_metro_po_detail_report'
-//            }
-//            else{
-//            vm.report_data['excel_name'] = 'get_metro_po_report'
-//            }
           })
         }
     	}
     	$state.go('app.reports.MetroPOReport');
   	})
-
-
-   }
+  }
   vm.toggle_po = function() {
-//    var send = {};
-//    var name ='';
-//    vm.report_data = {};
-//  	if(vm.toggle_detail && vm.toggle_pending_view) {
-//  	    vm.toggle_pending_view =false;
-//        name = 'metro_po_detail_report';
-//     }else if(!vm.toggle_detail && vm.toggle_pending_view) {
-//        name = 'metropolis_po_detail_report';
-//      }
-//    vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
-//    	if (data.message) {
-//    	  if ($.isEmptyObject(data.data.data)) {
-//    		  vm.datatable = false;
-//    		  vm.dtInstance = {};
-//    	  } else {
-//      	  vm.reports[name] = data.data.data;
-//      	  angular.copy(data.data.data, vm.report_data)
-//          vm.report_data["row_call"] = vm.row_call;
-//          vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
-//             vm.empty_data = datam.empty_data;
-//             angular.copy(vm.empty_data, vm.model_data);
-////            vm.empty_data = datam.empty_data;
-////            angular.copy(vm.empty_data, vm.filters_dt_data)
-//            vm.dtOptions = datam.dtOptions;
-//            vm.dtColumns = datam.dtColumns;
-//            vm.datatable = true;
-//            vm.dtInstance = {};
-//    		vm.report_data['row_click'] = true;
-//    		if (name =="metro_po_detail_report")
-//    		{
-//            vm.report_data['excel_name'] = 'get_metro_po_detail_report'
-//            }
-//            else{
-//            vm.report_data['excel_name'] = 'get_metro_po_report'
-//            }
-//          })
-//        }
-//    	}
-//    	$state.go('app.reports.MetroPOReport');
-//  	})
    var send = {};
     var name ='';
     vm.report_data = {};
@@ -135,22 +80,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       	  angular.copy(data.data.data, vm.report_data)
           vm.report_data["row_call"] = vm.row_call;
           vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
-             vm.empty_data = datam.empty_data;
-             angular.copy(vm.empty_data, vm.model_data);
-//            vm.empty_data = datam.empty_data;
-//            angular.copy(vm.empty_data, vm.filters_dt_data)
-            vm.dtOptions = datam.dtOptions;
-            vm.dtColumns = datam.dtColumns;
-            vm.datatable = true;
-            vm.dtInstance = {};
-    		vm.report_data['row_click'] = true;
-//    		if (name =="metro_po_detail_report")
-//    		{
-//            vm.report_data['excel_name'] = 'get_metro_po_detail_report'
-//            }
-//            else{
-//            vm.report_data['excel_name'] = 'get_metro_po_report'
-//            }
+          vm.empty_data = datam.empty_data;
+          angular.copy(vm.empty_data, vm.model_data);
+          vm.dtOptions = datam.dtOptions;
+          vm.dtColumns = datam.dtColumns;
+          vm.datatable = true;
+          vm.dtInstance = {};
+    	  vm.report_data['row_click'] = true;
           })
         }
     	}
@@ -172,9 +108,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                   };
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
-
-//  vm.filters_dt_data = {};
-//  angular.copy(vm.empty_data, vm.filters_dt_data);
 
   vm.close = close;
   function close() {

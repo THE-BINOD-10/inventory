@@ -249,6 +249,7 @@ urlpatterns = [
     url(r'^get_po_delivery_schedule/$', get_po_delivery_schedule),
     url(r'^check_sku_category_data/$', check_sku_category_data),
     url(r'^validate_product_wms/$', validate_product_wms),
+    url(r'^grn_upload_preview/$', grn_upload_preview),
 
 
     # Production
@@ -546,6 +547,8 @@ urlpatterns = [
     url(r'^get_po_report/$', get_po_report),
     url(r'^get_metro_po_report/$', get_metro_po_report),
     url(r'^get_metro_po_detail_report/$', get_metro_po_detail_report),
+    url(r'^get_metropolis_po_report/$', get_metropolis_po_report),
+    url(r'^get_metropolis_po_detail_report/$', get_metropolis_po_detail_report),
     url(r'^get_open_order_report/$', get_open_order_report),
     url(r'^print_shipment_report/$', print_shipment_report),
     url(r'^print_po_report/$', print_po_report),

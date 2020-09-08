@@ -10967,9 +10967,12 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                 else:
                     index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
-                if data_dict.get('sku', ''):
+                if data_dict.get('sku', '') and final_data.get('adjustment_date', ''):
+                    first_date = final_data['adjustment_date'].replace(day=1)
+                    first_date = get_utc_start_date(first_date)
+                    last_date = first_date + relativedelta(months=1)
                     stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').\
-                                                        filter(sku_id=data_dict['sku'].id, quantity__gt=0).\
+                                                        filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lte=last_date).\
                                                         order_by('batch_detail__expiry_date')
                     if cell_data:
                         stocks = stocks.filter(batch_detail__batch_no=cell_data)
@@ -11054,6 +11057,7 @@ def closing_adjustment_upload(request, user=''):
             first_date = get_utc_start_date(first_date)
             last_date = first_date + relativedelta(months=1)
             sku_stocks = final_data['stocks']
+            batch_no = final_data.get('batch_number', '')
             if sku_stocks.values_list('location_id').distinct().count() > 1:
                 temp_location_id = sku_stocks[0].location_id
                 sku_stocks.update(location_id=temp_location_id)
@@ -11070,7 +11074,7 @@ def closing_adjustment_upload(request, user=''):
                     del batch_dict['updation_date']
                 else:
                     batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
-                                    'pcf': final_data['conversion_factor'], 'batch_no': final_data.get('batch_number', '')}
+                                    'pcf': final_data['conversion_factor'], 'batch_no': batch_no}
                 stock_dict['batch_dict'] = batch_dict
             if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
                 open_stock_filter = {'sku_id': sku.id, 'receipt_number': 9999999}
@@ -11080,11 +11084,22 @@ def closing_adjustment_upload(request, user=''):
                 opening_stock = sum(list(opening_stock.values_list('quantity', flat=True)))
             else:
                 last_month = last_date-relativedelta(months=1)
-                prev_month_data = AdjustmentData.objects.filter(sku_id=sku.id, creation_date__month=last_month.month, creation_date__year=last_month.year)
+                prev_month_dict = {'sku_id': sku.id, 'creation_date__month': last_month.month,
+                                    'creation_date__year': last_month.year}
+                if batch_no:
+                    prev_month_dict['batch_no'] = batch_no
+                prev_month_data = AdjustmentData.objects.filter(**prev_month_dict)
                 opening_stock = prev_month_data[0].base_quantity if prev_month_data else 0
+            stats_filter_dict = {'sku_id': sku.id, 'creation_date__range': [first_date, last_date]}
+            if batch_no:
+                stats_filter_dict['batch_no'] = batch_no
             stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
                                             values_list('transact_type').distinct().annotate(Sum('quantity')))
-            putaway_pending_qty = POLocation.objects.filter(purchase_order__open_po__sku_id=sku.id, quantity__gt=0, status=1).\
+            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1}
+            if batch_no:
+                pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
+                                                        values_list('transact_id', flat=True)
+            putaway_pending_qty = POLocation.objects.filter(**pp_dict).\
                                             aggregate(Sum('quantity'))['quantity__sum']
             putaway_pending_qty = putaway_pending_qty if putaway_pending_qty else 0
             putaway_pending_qty = putaway_pending_qty * final_data['conversion_factor']

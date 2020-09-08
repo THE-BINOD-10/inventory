@@ -599,7 +599,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
 		                 'pincode':'pincode','city':'city','state':'state','pan_number':'panno','tin_number':'gstno','status':'status',
                          'payment':'paymentterms', "netterms": "netterms",'subsidiary':'subsidiary', 'place_of_supply':'placeofsupply', 'address_id': 'addressid'
 		                }
-        number_field = {'credit_period':0, 'lead_time':0, 'account_number':"0", 'po_exp_duration':0}
+        number_field = {'credit_period':0, 'lead_time':0, 'po_exp_duration':0}
         data_dict = {}
         supplier_count = 0
         gst_check = []
@@ -612,7 +612,10 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 if key in number_field.keys():
                     value = supplier.get(val, 0)
                     try:
-                        value = float(value)
+                        if value:
+                            value = float(value)
+                        else:
+                            value = 0
                     except:
                         error_message = '%s is Number field' % val
                         log_err.info(str(error_message)+" Required Parameter Missing In for %s and supplier_id %s" %(str(user.username), str(supplier_id)))
@@ -674,7 +677,7 @@ def netsuite_validate_supplier(request, supplier, user=''):
                 master_objs = sync_supplier_master(request, user, data_dict, filter_dict, secondary_email_id=secondary_email_id)
                 createPaymentTermsForSuppliers(master_objs, payment_term_arr, net_term_arr)
                 try:
-                  sync_supplier_async.apply_async(args=[master_objs[user.id].id, user.id])
+                  sync_supplier_async.apply_async(queue='queueB', args=[master_objs[user.id].id, user.id])
                 except Exception as e:
                   print(e)
 

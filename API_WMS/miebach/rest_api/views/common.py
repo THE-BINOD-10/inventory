@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
-from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_process_status, get_admin_all_wh
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
@@ -11925,7 +11925,11 @@ def get_supplier_sku_price_values(suppli_id, sku_codes,user):
                                                inter_state=inter_state, max_amt__gte=data.price, min_amt__lte=data.price)
         taxes_data = []
         for tax_master in tax_masters:
-            taxes_data.append(tax_master.json())
+            tot_tax = tax_master.cgst_tax + tax_master.sgst_tax + tax_master.igst_tax
+            tax_json = copy.deepcopy(tax_master.json())
+            if supplier_master:
+                tax_json['cess_tax'] = get_kerala_cess_tax(tot_tax, supplier_master[0])
+            taxes_data.append(tax_json)
         if supplier_master:
             supplier_sku = SKUSupplier.objects.filter(sku_id=data.id, supplier_id=supplier_master[0].id)
         mandate_sku_supplier = get_misc_value('mandate_sku_supplier', user.id)
@@ -12456,6 +12460,39 @@ def upload_master_file(request, user, master_id, master_type, master_file=None, 
         master_doc.save()
     return 'Uploaded Successfully'
 
+
+def removeUnnecessaryData(skuDict):
+    result = {}
+    for key, value in skuDict.iteritems():
+        if isinstance(value, (basestring, str, int, float)):
+            result[key] = value
+        else:
+            continue
+    return result
+
+def createPaymentTermsForSuppliers(master_objs, paymentterms, netterms):
+    for userId, supplier_obj in master_objs.iteritems():
+        for paymentTerm in paymentterms:
+            try:
+                payment_supplier_mapping(
+                paymentTerm.get('reference_id'),
+                paymentTerm.get('description'),
+                supplier_obj
+                )
+            except Exception as e:
+                log.info('Payment Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+        for netterm in netterms:
+            try:
+                if(netterm.get('description')):
+                    net_terms_supplier_mapping(
+                        netterm.get('reference_id'),
+                        netterm.get('description'),
+                        supplier_obj
+                    )
+            except Exception as e:
+                print(e)
+                log.info('Net Term Not Updated For User::%s, Suplier:: %s, Error:: %s' % (str(userId), str(supplier_obj.supplier_id), str(e)))
+
 @app.task
 def sync_supplier_async(id, user_id):
     supplier = SupplierMaster.objects.get(id=id)
@@ -12923,8 +12960,8 @@ def update_user_wh(user, user_dict, user_profile_dict, exist_user_profile, custo
     user_profile_dict['industry_type'] = exist_user_profile.industry_type
     for key, value in user_profile_dict.iteritems():
         setattr(uprof, key, value)
-    
-    
+
+
     uprof.save()
 
     return new_user
@@ -13059,6 +13096,14 @@ def check_and_get_plants(request, req_users, users=''):
     return req_users
 
 
+@get_admin_all_wh
+def check_and_get_plants_depts(request, req_users, users=''):
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
 def check_and_get_plants_wo_request(request_user, user, req_users):
     users = []
     company_list = get_companies_list(user, send_parent=True)
@@ -13189,3 +13234,11 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
             consumption.status = 0
             consumption.save()
     return "Success"
+
+
+def get_kerala_cess_tax(tax, supplier):
+    cess_tax = 0
+    if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
+        cess_tax = 1
+    return cess_tax
+

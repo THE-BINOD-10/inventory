@@ -3661,12 +3661,16 @@ def approve_pr(request, user=''):
                 quantity = ''
             total = float(myDict['total'][i])
             unit_price = myDict['price'][i]
+            try:
+                unit_price = float(unit_price)
+            except:
+                unit_price = 0
             if myDict.has_key('moq'):
                 moq = myDict['moq'][i]
             else:
                 moq = 0
             supplier_id = myDict['supplier_id'][i]
-            if not supplier_id and validation_type == 'approved':
+            if not supplier_id and validation_type == 'approved' and quantity:
                 return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
                 'supplier_id': supplier_id,

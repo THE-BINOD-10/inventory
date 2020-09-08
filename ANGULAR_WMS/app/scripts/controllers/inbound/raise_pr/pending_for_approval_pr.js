@@ -549,29 +549,55 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
           elem.push({name:'is_actual_pr', value:true})
         }
         var keepGoing = true;
-        if (vm.permissions.change_pendinglineitems) {
-          angular.forEach(elem, function(key, index) {
-            if (key.name == 'supplier_id') {
-              if (!key.value) {
-                keepGoing = false;
-                Service.showNoty('Supplier Should be provided by Purchase');
-                return;
-              }
-            } else if (key.name == 'price') {
-              if (key.value == '') {
-                keepGoing = false;
-                Service.showNoty('Price Should be provided by Purchase');
-                return;
-              }
-            } else if (key.name == 'order_quantity') {
-              if (key.value == '' || parseInt(key.value) < 0) {
-                keepGoing = false;
-                Service.showNoty('Order Quantity cant be empty or negative');
-                return; 
-              }
+        if(vm.permissions.change_pendinglineitems){
+          angular.forEach(vm.model_data.data, function(row_data){
+            var order_quantity = row_data.fields.order_quantity;
+            if(order_quantity == ''){
+              order_quantity = 0;
+            }
+            order_quantity = parseInt(order_quantity)
+            if(!row_data.fields.supplier_id_name && validation_type !='rejected' && order_quantity) {
+              Service.showNoty('Supplier Should be provided by Purchase');
+              return;
+            }
+            if (row_data.fields.price='') {
+              keepGoing = false;
+              Service.showNoty('Price Should be provided by Purchase');
+              return;
+            }
+            if (order_quantity < 0) {
+              keepGoing = false;
+              Service.showNoty('Order Quantity cant be empty or negative');
+              return;
             }
           });
         }
+//        var keepGoing = true;
+//        if (vm.permissions.change_pendinglineitems) {
+//          debugger;
+//          angular.forEach(elem, function(key, index) {
+//            var order_quantity = parseInt(order_quantity);
+//            if (key.name == 'supplier_id' && validation_type !='rejected' && order_quantity) {
+//              if (!key.value) {
+//                keepGoing = false;
+//                Service.showNoty('Supplier Should be provided by Purchase');
+//                return;
+//              }
+//            } else if (key.name == 'price') {
+//              if (key.value == '') {
+//                keepGoing = false;
+//                Service.showNoty('Price Should be provided by Purchase');
+//                return;
+//              }
+//            } else if (key.name == 'order_quantity') {
+//              if (key.value == '' || parseInt(key.value) < 0) {
+//                keepGoing = false;
+//                Service.showNoty('Order Quantity cant be empty or negative');
+//                return;
+//              }
+//            }
+//          });
+//        }
         if (vm.validated_by){
           elem.push({name:'validated_by', value:vm.validated_by})
         }

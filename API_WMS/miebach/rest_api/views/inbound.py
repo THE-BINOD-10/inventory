@@ -179,7 +179,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         department = department_mapping.get(department_code, '')
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
+                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date').exclude(status="resubmitted")
         approval_type = ''
         if prApprQs:
             approval_type = prApprQs[0].approval_type
@@ -322,7 +322,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         department = department_mapping.get(department_code, '')
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
+                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date').exclude(status='resubmitted')
         approval_type = ''
         if prApprQs:
             approval_type = prApprQs[0].approval_type
@@ -407,7 +407,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                 level=currentUserLevel,
                                 purchase_type='PO',
                                 status='').distinct().values_list('pending_po_id', flat=True))
-
+                #pr_numbers = [pa_mail.pr_approval.pending_po_id]
                 filtersMap.setdefault('pending_po_id__in', [])
                 filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         # memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
@@ -426,7 +426,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         #     filtersMap.setdefault('pending_po__po_number__in', [])
         #     filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         #if not pa_mails.exists(): # Creator Sub Users
-        if not pr_numbers:
+        if not filtersMap.get('pending_po_id__in', ''):
             filtersMap['pending_po__requested_user'] = request.user.id
             if filtersMap.has_key('pending_po_id__in'):
                 del filtersMap['pending_po_id__in']

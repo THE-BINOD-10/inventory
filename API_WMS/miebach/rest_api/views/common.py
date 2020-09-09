@@ -560,6 +560,8 @@ def get_search_params(request, user=''):
                       'search6': 'search_6', 'search7': 'search_7',
                       'search8': 'search_8', 'search9': 'search_9',
                       'search10': 'search_10', 'search11': 'search_11',
+                      'search12': 'search_12', 'search13': 'search_13',
+                      'search14': 'search_14',
                       'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
@@ -754,6 +756,8 @@ def get_filtered_params(filters, data_list):
     filter_params = {}
     for key, value in filters.iteritems():
         col_num = int(key.split('_')[-1])
+        if col_num >= len(data_list):
+            continue
         if value:
             filter_params[data_list[col_num] + '__icontains'] = value
     return filter_params

@@ -10676,7 +10676,7 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
         department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
         plants_list = []
-        department_type_list = []
+        department_type_list = {}
         if staff_obj:
             staff_obj = staff_obj[0]
             plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
@@ -10690,9 +10690,9 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                                           company_id=company_id)
                 plants_list = plant_objs.values_list('first_name', flat=True)
             if staff_obj.department_type.filter():
-		department_type_names = data.department_type.filter().values_list('name', flat=True)
+		department_type_names = staff_obj.department_type.filter().values_list('name', flat=True)
             	for department_type_name in department_type_names:
-                	department_type_list.append({department_type_name: department_type_mapping.get(department_type_name, '')})
+                    department_type_list.update({department_type_name: department_type_mapping.get(department_type_name, '')})
             else:
                 department_type_list = department_type_mapping
 

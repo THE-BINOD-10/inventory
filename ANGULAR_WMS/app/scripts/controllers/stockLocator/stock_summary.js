@@ -20,7 +20,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': vm.g_data.view, 'size_name': vm.g_data.size_type, 'search0':'', 'search1':'', 'search2':'', 'search3':''},
+              data: {'datatable': vm.g_data.view, 'size_name': vm.g_data.size_type, 'search0':'', 'search1':'', 'search2':'', 'search3':'',
+                     'search4': '', 'search5': '', 'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '',
+                     'search11': '', 'search12': '', 'search13': '', 'search14': ''},
               xhrFields: {
                 withCredentials: true
               },

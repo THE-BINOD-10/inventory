@@ -36,7 +36,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var empty_data = {"Product_sku":"",
                       "data": [
-                        {"Material_sku":"", "Material_Quantity":"", "Units":"KGS", "BOM_ID":"", "wastage_percent":""}
+                        {"Material_sku":"", "Material_Quantity":"", "Units":"", "BOM_ID":"", "wastage_percent":"",
+                         "unit_list": []}
                       ]
                      };
     vm.model_data = {};
@@ -92,7 +93,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE", "FEET", "SHEETS", "NUMBERS"];
+    vm.units = []//["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE", "FEET", "SHEETS", "NUMBERS"];
+    vm.get_uom_list = function(row_data) {
+      console.log(row_data);
+      var req_data = {'uom_type': 'consumption', 'sku_code': row_data.Material_sku}
+      vm.service.apiCall("get_sku_uom_list/", "GET", req_data).then(function(data) {
+        if(data.message) {
+          row_data.unit_list = [];
+          angular.forEach(data.data.data, function(uom_data){
+            row_data.unit_list.push(uom_data.uom);
+          });
+          if(row_data.unit_list && row_data.Units== ''){
+            row_data.Units = row_data.unit_list[0];
+          }
+        }
+      });
+    }
+
     vm.base = function() {
 
       vm.title = "Add BOM";

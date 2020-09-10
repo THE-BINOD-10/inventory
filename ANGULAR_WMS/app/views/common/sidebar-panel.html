@@ -138,7 +138,7 @@
             <span>Customer-SKU Mapping</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_bommaster') && show_tab('production_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_bommaster')">
           <a ui-sref="app.masters.BOMMaster">
             <span>BOM Master</span>
           </a>
@@ -814,6 +814,11 @@
         <li ui-sref-active="active" ng-if="user.parent.parent_username == user.userName">
           <a ui-sref="app.reports.ApprovalPOReport">
             <span>Approval PO Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="show_tab('view_consumption')">
+          <a ui-sref="app.reports.ConsumptionReport">
+            <span>Consumption Report</span>
           </a>
         </li>
       </ul>

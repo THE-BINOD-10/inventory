@@ -2885,8 +2885,11 @@ def search_supplier(request, user=''):
         user = User.objects.get(id=warehouse_id)
     if arg_type == 'is_parent':
         user = get_admin(user)
-    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id, user=user.id) |
-                                        Q(name__icontains=data_id, user=user.id)).only('supplier_id', 'name')
+    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
+                                        Q(name__icontains=data_id), user=user.id).only('supplier_id', 'name')
+    #data1 = SupplierMaster.objects.filter(supplier_id__icontains=data_id, user=user.id).only('supplier_id', 'name')
+    #data2 = SupplierMaster.objects.filter(name__icontains=data_id, user=user.id).only('supplier_id', 'name')
+    #data = data1 | data2
     suppliers = []
     if data.exists():
         for supplier in data[:15]:

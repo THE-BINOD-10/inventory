@@ -3584,14 +3584,21 @@ def approve_pr(request, user=''):
         prev_approval_type = approval_type
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
+    pr_user = pendingPRObj.wh_user
     if 'total' in myDict.keys():
         totalAmt = 0
         for i in range(0, len(myDict['wms_code'])):
             try:
                 totalAmt += float(myDict['total'][i])
             except:
-                continue
-    pr_user = pendingPRObj.wh_user
+                pass
+            if is_purchase_approver:
+                supplier_id = myDict['supplier_id'][i]
+                store_user = get_admin(pr_user)
+                supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
+                if not supp_obj.exists():
+                    return HttpResponse("Invalid Supplier found %s" % supplier_id)
+
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
                                 approval_type=approval_type, sku_category=sku_category)
@@ -3646,7 +3653,10 @@ def approve_pr(request, user=''):
                 discount_percentage = float(myDict['discount_percentage'][i])
                 lineItems.filter(sku__sku_code=myDict['wms_code'][i]).update(discount_percent=discount_percentage)
             eachSku = myDict['wms_code'][i]
-            amount = float(myDict['amount'][i])
+            try:
+                amount = float(myDict['amount'][i])
+            except:
+                amount = 0
             if myDict['tax'][i]:
                 tax = float(myDict['tax'][i])
             else:
@@ -3659,14 +3669,21 @@ def approve_pr(request, user=''):
                 quantity = float(myDict['order_quantity'][i])
             except:
                 quantity = ''
-            total = float(myDict['total'][i])
+            try:
+                total = float(myDict['total'][i])
+            except:
+                total = 0
             unit_price = myDict['price'][i]
+            try:
+                unit_price = float(unit_price)
+            except:
+                unit_price = 0
             if myDict.has_key('moq'):
                 moq = myDict['moq'][i]
             else:
                 moq = 0
             supplier_id = myDict['supplier_id'][i]
-            if not supplier_id and validation_type == 'approved':
+            if not supplier_id and validation_type == 'approved' and quantity:
                 return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
                 'supplier_id': supplier_id,

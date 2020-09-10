@@ -342,6 +342,13 @@ class Integrations():
         else:
             result = []
             if not is_multiple:
+                if action  == 'upsert':
+                    if grnData.get('items',[]):
+                        if int(grnData["grn_date"].split('-')[1])==9:
+                            grnData.update({"grn_date": '2020-08-31T19:33:52+05:30'})
+                        recordDict_items = self.remove_duplicate_dictionary(grnData.get('items',[]))
+                        if recordDict_items:
+                            grnData.update({"items": recordDict_items})
                 recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
                 if action  == 'upsert':
@@ -351,6 +358,14 @@ class Integrations():
             else:
                 records = []
                 for row in grnData:
+                    if action  =='upsert':
+                        if row.get('items',[]):
+                            if int(row["grn_date"].split('-')[1])==9:
+                                print("Sept",'2020-08-31T19:33:52+05:30')
+                                row.update({"grn_date": '2020-08-31T19:33:52+05:30'})
+                            recordDict_items = self.remove_duplicate_dictionary(row.get('items',[]))
+                            if recordDict_items:
+                                row.update({"items": recordDict_items})
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
@@ -461,3 +476,14 @@ class Integrations():
         except Exception as e:
             print(e)
             return GRN_data
+    def remove_duplicate_dictionary(self, lst):
+        res_list=[]
+        seen = set()
+        for dic in lst:
+            key = (dic['sku_code'])
+            if key in seen:
+                continue
+            res_list.append(dic)
+            seen.add(key)
+        return res_list
+

@@ -625,6 +625,7 @@ class netsuiteIntegration(object):
                  'item': ns.RecordRef(externalId=data['sku_code']),
                  'adjustQtyBy':data['adjust_qty_by'],
                  'location': ns.RecordRef(internalId=327),
+                 'unitCost': data['price'],
                  #"customFieldList": ns.CustomFieldList(inv_adj_custom_field_list)
                 }
                 if data.get('uom_name', None) and data.get('unitypeexid', None):

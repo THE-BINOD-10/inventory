@@ -810,6 +810,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $rootScope, $compil
       });
     }
 
+    vm.validateSupplier = function(product) {
+      vm.update_tax_details(product)
+    }
+
     vm.barcode = function() {
 
       vm.barcode_title = 'Barcode Generation';

@@ -15172,7 +15172,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
 
     values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
-                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
+                    'quantity']
     model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
                         annotate(Sum('stock_mapping__quantity'))
 
@@ -15206,7 +15207,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('SKU Code', result['sku__sku_code']),
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
-            ('Quantity', result['stock_mapping__quantity__sum']),
+            ('Quantity', result['quantity']),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),

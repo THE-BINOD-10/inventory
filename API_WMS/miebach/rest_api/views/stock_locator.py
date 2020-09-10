@@ -31,6 +31,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     main_user = get_company_admin_user(user)
+    user_ids.append(main_user.id)
     sku_master = SKUMaster.objects.filter(user__in=user_ids, servicemaster__isnull=True, assetmaster__isnull=True,
                                             otheritemsmaster__isnull=True, testmaster__isnull=True)
     sku_codes = list(sku_master.filter(user=main_user.id).values_list('sku_code', flat=True))
@@ -63,8 +64,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         del search_params['plant_code__icontains']
         del search_params1['plant_code__icontains']
         del search_params2['plant_code__icontains']
-        plant_users = users.filter(userprofile__stockone_code__icontains=plant_code,
-                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True)
+        plant_users = list(users.filter(userprofile__stockone_code__icontains=plant_code,
+                                    userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).values_list('username', flat=True))
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
@@ -74,8 +75,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         del search_params['plant_name__icontains']
         del search_params1['plant_name__icontains']
         del search_params2['plant_name__icontains']
-        plant_users = users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
-                        values_list('username', flat=True)
+        plant_users = list(users.filter(first_name__icontains=plant_name, userprofile__warehouse_type__in=['STORE', 'SUB_STORE']).\
+                        values_list('username', flat=True))
         if plant_users:
             users = get_related_users_filters(user.id, warehouse_types=['DEPT'], warehouse=plant_users, send_parent=True)
         else:
@@ -145,7 +146,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                           'product_code__sku_brand',
                                           'product_code__user').distinct()
         quantity_master_data = master_data.aggregate(Sum('total'))
-        master_data = list(chain(master_data, master_data1))
+        #master_data = list(chain(master_data, master_data1))
     else:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
@@ -162,7 +163,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list(
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand','product_code__user').distinct()
-        master_data = list(chain(master_data, master_data1))
+        #master_data = list(chain(master_data, master_data1))
     if 'stock_value__icontains' in search_params1.keys():
         del search_params1['stock_value__icontains']
     #zero_quantity = sku_master.exclude(sku_code__in=wms_codes).filter(user__in=user_ids)

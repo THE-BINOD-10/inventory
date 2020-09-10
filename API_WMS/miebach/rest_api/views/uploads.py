@@ -10967,14 +10967,16 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
                 else:
                     index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
             elif key == 'batch_number':
-                if data_dict.get('sku', '') and final_data.get('adjustment_date', ''):
-                    first_date = final_data['adjustment_date'].replace(day=1)
+                if data_dict.get('sku', '') and data_dict.get('adjustment_date', ''):
+                    first_date = data_dict['adjustment_date'].replace(day=1)
                     first_date = get_utc_start_date(first_date)
                     last_date = first_date + relativedelta(months=1)
                     stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').\
                                                         filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lte=last_date).\
                                                         order_by('batch_detail__expiry_date')
                     if cell_data:
+                        if isinstance(cell_data, (int,float)):
+                            cell_data = str(int(cell_data))
                         stocks = stocks.filter(batch_detail__batch_no=cell_data)
                         if not stocks.exists():
                             index_status.setdefault(row_idx, set()).add('Invalid Batch Number')
@@ -11115,7 +11117,7 @@ def closing_adjustment_upload(request, user=''):
             consumption_qty = stats.get('consumption', 0)
             closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty) - \
                             (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
-            rem_base_quantity = base_quantity-putaway_pending_qty
+            rem_base_quantity = base_quantity - putaway_pending_qty
             closing_adj = closing_qty - rem_base_quantity
             last_change_date = last_date - datetime.timedelta(hours=1)
             adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],

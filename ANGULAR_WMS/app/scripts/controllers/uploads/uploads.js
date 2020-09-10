@@ -522,6 +522,15 @@ function uploads($scope, Session, $http, $rootScope, Service, $modal) {
                    value: "",
                    show: Session.user_profile.warehouse_level==0,
                    perm: "add_netsuiteidmapping",
+                 }, {
+                   title: "Closing Adjustment Download/ Upload",
+                   download: "Download Closing Adjustment Form",
+                   upload: "Upload Closing Adjustment Form",
+                   durl: "closing_adjustment_form/",
+                   uurl: "closing_adjustment_upload/",
+                   dparam: "download-closing-adjustment-file",
+                   value: "",
+                   show: Session.user_profile.warehouse_level==0,
                  }
                 ]
 

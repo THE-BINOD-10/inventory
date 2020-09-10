@@ -23,6 +23,7 @@ from dateutil.relativedelta import *
 from django.db.models.functions import ExtractHour, ExtractMinute
 import unicodedata
 from miebach_admin.custom_decorators import get_admin_multi_user
+from django.db import transaction
 
 # from inbound import *
 
@@ -1720,6 +1721,17 @@ CREDIT_NOTE_FORM_REPORT_DICT = {
     'print_url': 'print_credit_note_form_report',
 }
 
+CONSUMPTION_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
+    'print_url': 'get_sku_wise_consumption_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'st_grn_report': STOCK_TRANSFER_GRN_DICT, 'sku_wise_st_grn_report': SKU_WISE_ST_GRN_DICT,
@@ -1769,6 +1781,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'metropolis_po_detail_report': METROPOLIS_PO_DETAIL_REPORT_DICT,
                      'cancel_grn_report': CANCEL_GRN_REPORT_DICT,
                      'sku_wise_cancel_grn_report': SKU_WISE_CANCEL_GRN_REPORT_DICT,
+                     'sku_wise_consumption_report': CONSUMPTION_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -2020,7 +2033,7 @@ STATUS_TRACKING_FIELDS = {'status_id': '', 'status_type': '', 'status_value': ''
 
 BOM_TABLE_HEADERS = ['Product SKU Code', 'Product Description']
 
-BOM_UPLOAD_EXCEL_HEADERS = ['Product SKU Code', 'Material SKU Code', 'Material Quantity', 'Wastage Percentage',
+BOM_UPLOAD_EXCEL_HEADERS = ['Test Code', 'Machine Code', 'Material SKU Code', 'Material Quantity', 'Wastage Percentage',
                             'Unit of Measurement']
 
 ADD_BOM_HEADERS = OrderedDict([('Material SKU Code', 'material_sku'), ('Material Quantity', 'material_quantity'),
@@ -2210,7 +2223,7 @@ OTHERITEMS_COMMON_MAPPING = OrderedDict((('Item Code', 'wms_code'), ('Item Descr
                                          ('Image Url', 'image_url'), ('EAN Number', 'ean_number'),
                                          ('HSN Code', 'hsn_code'), ('GL Code', 'gl_code'), ('Status', 'status')
                                          ))
-TEST_COMMON_MAPPING = OrderedDict((('Test Code', 'test_code'), ('Test Name', 'test_name'),
+TEST_COMMON_MAPPING = OrderedDict((('Test Code', 'wms_code'), ('Test Name', 'sku_desc'),
                                    ('Test Type', 'test_type'), ('Department Type', 'department_type'),
                                    ('Status', 'status')))
 
@@ -2471,6 +2484,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_pr_detail_report': 'get_pr_detail_report_data',
                         'get_cancel_grn_report': 'get_cancel_grn_report_data',
                         'get_sku_wise_cancel_grn_report': 'get_sku_wise_cancel_grn_report_data',
+                        'get_sku_wise_consumption_report': 'get_sku_wise_consumption_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -3365,6 +3379,15 @@ USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Wareho
 NETSUITE_MAPPING_UPLOAD_KEYS = OrderedDict((('Type Name', 'type_name'), ('Type Value', 'type_value'),
                                             ('Internal ID', 'internal_id')
                                            ))
+
+CLOSING_ADJUSTMENT_MAPPING = OrderedDict((('Adjustment Date(YYYY-MM-DD)', 'adjustment_date'), ('Warehouse', 'warehouse'),
+                                          ('SKU Code', 'sku_code'), ('Location', 'location'),
+                                          ('Base UOM Quantity', 'base_uom_qty'), ('Base Uom', 'base_uom'),
+                                          ('Purchase UOM Quantity', 'purchase_uom_qty'),
+                                          ('Purchase UOM', 'purchase_uom'), ('Conversion Factor', 'conversion_factor'),
+                                          ('Batch Number', 'batch_number'), ('MRP', 'mrp'), ('Reason', 'reason'),
+                                          ('Unit Price', 'unit_price')
+                                          ))
 
 def fn_timer(function):
     @wraps(function)
@@ -15120,6 +15143,80 @@ def get_pr_plant_and_department(po_number):
     return pr_plant, pr_department, category, product_category
 
 
+def get_sku_wise_consumption_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_warehouse_user_from_sub_user, get_warehouses_data,get_plant_and_department
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    lis = ['creation_date', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+            'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+            'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date']
+
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term')
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__wms_code'] = search_params['sku_code']
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    values_list = ['creation_date', 'sku__user', 'consumption__test__test_code', 'sku__sku_code', 'sku__sku_desc', 'stock_mapping__stock__location__location',
+                    'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
+                    'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
+                    'quantity']
+    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
+                        annotate(Sum('stock_mapping__quantity'))
+
+    if order_term:
+        results = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = model_data.count()
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    if stop_index:
+        results = model_data[start_index:stop_index]
+    else:
+        results = model_data
+    count = 0
+    for result in results:
+        test_code, mfg_date, exp_date = [''] * 3
+        first_name = User.objects.get(id=result['sku__user']).first_name
+        if result['consumption__test__test_code']:
+            test_code = result['consumption__test__test_code']
+        if result['stock_mapping__stock__batch_detail__manufactured_date']:
+            mfg_date = str(result['stock_mapping__stock__batch_detail__manufactured_date'])
+        if result['stock_mapping__stock__batch_detail__expiry_date']:
+            exp_date = str(result['stock_mapping__stock__batch_detail__expiry_date'])
+        ord_dict = OrderedDict((
+            ('Date', get_local_date(user, result['creation_date'])),
+            ('Warehouse', first_name),
+            ('Test Code', test_code),
+            ('SKU Code', result['sku__sku_code']),
+            ('SKU Description', result['sku__sku_desc']),
+            ('Location', result['stock_mapping__stock__location__location']),
+            ('Quantity', result['quantity']),
+            ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
+            ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
+            ('Manufactured Date', mfg_date),
+            ('Expiry Date', exp_date)))
+        temp_data['aaData'].append(ord_dict)
+
+    return temp_data
+
+
 def po_upload_amount_and_quantity(po_number):
     from miebach_admin.models import *
     po_amount_details = {}
@@ -15163,5 +15260,4 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     po_amount_details['po_total_amount'] = po_total_amount
 
     return po_amount_details
-
 

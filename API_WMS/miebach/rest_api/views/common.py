@@ -560,6 +560,8 @@ def get_search_params(request, user=''):
                       'search6': 'search_6', 'search7': 'search_7',
                       'search8': 'search_8', 'search9': 'search_9',
                       'search10': 'search_10', 'search11': 'search_11',
+                      'search12': 'search_12', 'search13': 'search_13',
+                      'search14': 'search_14',
                       'cancel_invoice':'cancel_invoice', }
     request_data = request.POST
     if not request_data:
@@ -754,6 +756,8 @@ def get_filtered_params(filters, data_list):
     filter_params = {}
     for key, value in filters.iteritems():
         col_num = int(key.split('_')[-1])
+        if col_num >= len(data_list):
+            continue
         if value:
             filter_params[data_list[col_num] + '__icontains'] = value
     return filter_params
@@ -3236,9 +3240,12 @@ def save_config_extra_fields(request, user=''):
 @login_required
 @get_admin_user
 def search_wms_codes(request, user=''):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
+    instanceName = SKUMaster
+    if sku_type == 'Test':
+        instanceName = TestMaster
+    sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     extra_filter = {}
     data_exact = sku_master.filter(Q(wms_code__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
         'wms_code')
@@ -3273,6 +3280,35 @@ def search_wms_codes(request, user=''):
     # wms_codes = list(set(wms_codes))
 
     return HttpResponse(json.dumps(wms_codes))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_machine_codes(request, user=''):
+    data_id = request.GET.get('q', '')
+    extra_filter = {}
+    data_exact = MachineMaster.objects.filter(Q(machine_code__iexact=data_id) | Q(machine_name__iexact=data_id), user=user.id).order_by(
+        'machine_code')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = MachineMaster.objects.filter(user=user.id).exclude(id__in=exact_ids).filter(Q(machine_code__icontains=data_id) | Q(machine_name__icontains=data_id),
+                                                       user=user.id).order_by('machine_code')
+    machine_codes = []
+    data = list(chain(data_exact, data))
+    count = 0
+    if data:
+        for machine in data:
+            machine_codes.append(str(machine.machine_code))
+            #if not sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
+            #elif wms.sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
+            if len(machine_codes) >= 10:
+                break
+
+    # wms_codes = list(set(wms_codes))
+
+    return HttpResponse(json.dumps(machine_codes))
 
 @csrf_exempt
 @login_required
@@ -5389,7 +5425,8 @@ def get_sku_master(user, sub_user, is_list='', instanceName=SKUMaster, all_prod_
     if instanceName.__name__ == 'SKUMaster' and not all_prod_catgs:
         sku_master = sku_master.exclude(id__in=AssetMaster.objects.all()). \
                         exclude(id__in=ServiceMaster.objects.all()). \
-                        exclude(id__in=OtherItemsMaster.objects.all())
+                        exclude(id__in=OtherItemsMaster.objects.all()). \
+                        exclude(id__in=TestMaster.objects.all())
     sku_master_ids = sku_master.values_list('id', flat=True)
     if not sub_user.is_staff:
         if is_list:
@@ -9665,7 +9702,7 @@ def get_price_field(user):
 
 
 def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_detail=None, stock_stats_objs=None,
-                   bulk_insert=False):
+                   bulk_insert=False, transact_date=None):
     try:
         stats_dict = {'sku_id': sku_id, 'transact_id': transact_id, 'transact_type': transact_type,
                                   'quantity': quantity, 'creation_date': datetime.datetime.now(),
@@ -9674,7 +9711,9 @@ def save_sku_stats(user, sku_id, transact_id, transact_type, quantity, stock_det
             stock_stats_objs.append(SKUDetailStats(**stats_dict))
             return stock_stats_objs
         else:
-            SKUDetailStats.objects.create(**stats_dict)
+            sku_stat = SKUDetailStats.objects.create(**stats_dict)
+            if transact_date:
+                SKUDetailStats.objects.filter(id=sku_stat.id).update(creation_date=transact_date)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -10430,14 +10469,45 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
 
-def update_stock_detail(stocks, quantity, user, rtv_id):
-    for stock in stocks.iterator():
+def update_stock_detail(stocks, quantity, user, rtv_id, transact_type='rtv', mapping_obj=None, inc_type='dec', stock_dict=None,
+                        transact_date=None):
+    if inc_type == 'inc' and not stocks and stock_dict:
+        batch_dict = stock_dict.get('batch_dict', '')
+        if batch_dict:
+            batch_obj = BatchDetail.objects.create(**batch_dict)
+            del stock_dict['batch_dict']
+            stock = StockDetail.objects.create(**stock_dict)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            if transact_type == 'consumption':
+                quantity = -1 * quantity
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
+            return
+    for stock in stocks:
+        stock.refresh_from_db()
+        if inc_type == 'inc':
+            stock.quantity += quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, inc_type)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            if transact_type == 'consumption':
+                quantity = -1 * quantity
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
+            stock.save()
+            break
         if stock.quantity > quantity:
             stock.quantity -= quantity
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
-                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
-            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', quantity, stock)
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, inc_type)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, quantity, stock, transact_date=transact_date)
             quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
@@ -10445,10 +10515,13 @@ def update_stock_detail(stocks, quantity, user, rtv_id):
         elif stock.quantity <= quantity:
             quantity -= stock.quantity
             rtv_quantity = stock.quantity
-            save_sku_stats(user, stock.sku.id, rtv_id, 'rtv', rtv_quantity, stock)
+            save_sku_stats(user, stock.sku.id, rtv_id, transact_type, rtv_quantity, stock, transact_date=transact_date)
             seller_stock = stock.sellerstock_set.filter()
             if seller_stock.exists():
-                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, inc_type)
+            if mapping_obj:
+                stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=stock.quantity)
+                mapping_obj.stock_mapping.add(stock_mapping)
             stock.quantity = 0
             stock.save()
         if quantity == 0:
@@ -13071,6 +13144,25 @@ def get_netsuite_mapping_list(type_name_list):
                          values_list('type_value', flat=True).distinct())
     return type_val_list
 
+def get_sku_uom_list_data(sku, uom_type=''):
+    user = User.objects.get(id=sku.user)
+    company_id = get_company_id(user)
+    uom_objs = UOMMaster.objects.filter(company_id=company_id, sku_code=sku.sku_code, uom_type=uom_type).\
+                                values('name', 'base_uom', 'uom_type', 'uom', 'conversion')
+    return list(uom_objs)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_uom_list(request, user=''):
+    sku_code = request.GET['sku_code']
+    uom_type = request.GET.get('uom_type', '')
+    uom_data = []
+    sku = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+    if sku.exists():
+        uom_data = get_sku_uom_list_data(sku[0], uom_type=uom_type)
+    return HttpResponse(json.dumps({'data': uom_data}))
 
 def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     base_uom = ''
@@ -13080,6 +13172,9 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     if uom:
         filt_dict['uom'] = uom
     sku_uom = UOMMaster.objects.filter(**filt_dict)
+    if not sku_uom.exists() and 'uom' in filt_dict.keys():
+        del filt_dict['uom']
+        sku_uom = UOMMaster.objects.filter(**filt_dict)
     if sku_uom.exists():
         uom_dict['measurement_unit'] = sku_uom[0].uom
         uom_dict['sku_conversion'] = float(sku_uom[0].conversion)
@@ -13087,8 +13182,67 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
     return uom_dict
 
 
+def reduce_consumption_stock(consumption_obj, total_test=0):
+    # if not consumptions:
+    #     consumptions = []
+    if consumption_obj.exists():
+        with transaction.atomic(using='default'):
+            consumption = Consumption.objects.using('default').select_for_update().\
+                                            filter(id=consumption_obj.id, status=1)
+            consumption = consumption[0]
+            user = consumption.user
+            main_user = get_company_admin_user(user)
+            bom_check_dict = {'product_sku__user': main_user.id,
+                              'product_sku__sku_code': consumption.test.test_code}
+            if consumption.machine:
+                bom_check_dict['machine__machine_code'] = consumption.machine.machine_code
+            bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            if not bom_master.exists():
+                if 'machine__machine_code' in bom_check_dict.keys():
+                    del bom_check_dict['machine__machine_code']
+                bom_master = BOMMaster.objects.filter(**bom_check_dict)
+            bom_dict = OrderedDict()
+            stock_found = True
+            for bom in bom_master:
+                stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id,
+                                                    sku__sku_code=bom.material_sku.sku_code,
+                                                    quantity__gt=0).\
+                    order_by('batch_detail__expiry_date', 'receipt_date')
+                uom_dict = get_uom_with_sku_code(user, bom.material_sku.sku_code, 'consumption',
+                                                 uom=bom.unit_of_measurement)
+                pcf = uom_dict['sku_conversion']
+                pcf = pcf if pcf else 0
+                consumption_qty = total_test * bom.material_quantity
+                needed_quantity = consumption_qty * pcf
+                stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                stock_quantity = stock_quantity if stock_quantity else 0
+                if needed_quantity > stock_quantity:
+                    stock_found = False
+                    break
+                bom_dict[bom.material_sku] = {'consumption_qty': consumption_qty,
+                                              'needed_quantity': needed_quantity,
+                                              'stocks': stocks}
+            if not stock_found:
+                log.info("Stock Not Sufficient for Consumption id %s and Test %s" %
+                         (str(consumption.id), str(consumption.test.test_code)))
+                return
+            for key, value in bom_dict.items():
+                consumption_data = ConsumptionData.objects.create(
+                    consumption_id=consumption.id,
+                    sku_id=key.id,
+                    quantity=value['consumption_qty'],
+                )
+                update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data)
+            consumption.status = 0
+            consumption.save()
+    return "Success"
+
+
 def get_kerala_cess_tax(tax, supplier):
     cess_tax = 0
     if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
         cess_tax = 1
     return cess_tax
+

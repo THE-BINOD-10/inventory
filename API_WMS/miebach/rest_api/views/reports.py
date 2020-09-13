@@ -2756,15 +2756,19 @@ def download_invoice_file(request, user=''):
                     url_request, invoice_file_name = "", ""
                     invoice_data = MasterDocs.objects.filter(master_id=po_number,
                                                              master_type='GRN_PO_NUMBER',
-                                                             extra_flag=grn_receipt_number)
+                                                             extra_flag=grn_receipt_number).order_by('-creation_date')
                     if not invoice_data:
                         invoice_data = MasterDocs.objects.filter(master_id=po_id,
                                                                  user=invoice_file_user,
-                                                                 extra_flag=grn_receipt_number)
+                                                                 extra_flag=grn_receipt_number).order_by('-creation_date')
 
                     if invoice_data.exists():
-                        invoice_details = invoice_data[0].uploaded_file.url
-                        http_data = invoice_details
+                        if len(invoice_data) > 1:
+                            files_list=list(invoice_data.values_list('uploaded_file', flat=True))
+                            http_data = json.dumps(files_list)
+                        else:
+                            invoice_details = invoice_data[0].uploaded_file.url
+                            http_data = invoice_details
 
                 except IOError:
                     pass

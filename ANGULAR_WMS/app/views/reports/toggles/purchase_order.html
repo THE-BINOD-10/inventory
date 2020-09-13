@@ -7,7 +7,8 @@
       <!-- body-->
       <div class="modal-body"></div>
       <div class="modal-footer">
-        <button type="button" class="pull-left btn pop pop-primary" ng-if="showCase.file_url" ng-click="showCase.FileDownload('', 'download')">Invoice File Download</button>
+        <button type="button" class="pull-left btn pop btn-primary" ng-if="showCase.file_url" ng-click="showCase.FileDownload('', 'download')">GRN File Download</button>
+        <button type="button" class="pull-left btn pop pop-primary" ng-if="showCase.consolated_file_url" ng-click="showCase.FileDownload('', 'Mdownload')">Invoice File Download</button>
         <button type="button" class="pull-right btn pop pop-green" ng-click="showCase.print()">Print</button>
       </div>
     </div>

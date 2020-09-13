@@ -77,7 +77,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
           vm.title = "Stock transfer Note";
         }
-        vm.file_url = ""
+        vm.file_url = "";
+        vm.consolated_file_url = "";
         vm.FileDownload(aData);
         $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no+'&prefix='+aData.prefix+'&warehouse_id='+aData.warehouse_id, {withCredential: true}).success(function(data, status, headers, config) {
             var html = $(data);
@@ -133,8 +134,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.toggle_grn()
   vm.FileDownload = function(aData,type=''){
-    if(type && vm.file_url){
-      var src = vm.host  +vm.file_url
+    if(type){
+      var src = (type == 'download') ? vm.host+vm.file_url : vm.host+vm.consolated_file_url;
       var mywindow = window.open(src, 'height=400,width=600');
       mywindow.focus();
       return true;
@@ -146,9 +147,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         'po_id':aData.DT_RowAttr["data-id"],
         'po_number': aData['PO Number']
       }
-      vm.service.apiCall('download_invoice_file/', 'GET', data_dict).then(function(data){
+      vm.service.apiCall('download_invoice_file/', 'GET', data_dict).then(function(data) {
         if (data.data) {
-          vm.file_url = data.data;
+          if (typeof(data.data) == "string") {
+            vm.file_url = data.data;
+          } else if (typeof(data.data) == "object") {
+            vm.consolated_file_url = data.data[0];
+            vm.file_url = data.data[1];
+          } else {
+            vm.file_url = data.data;
+          }
         }
       });
     }

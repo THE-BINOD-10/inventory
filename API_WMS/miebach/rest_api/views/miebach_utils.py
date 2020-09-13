@@ -4595,19 +4595,19 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
+    # if 'from_date' in search_params:
+    #     search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'from_date' in search_params:
-        search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
-    if 'grn_from_date' in search_params:
-        search_parameters['creation_date__gte'] = search_params['grn_from_date']
+        search_parameters['creation_date__gte'] = search_params['from_date']
         if field_mapping['from_date'] + '__gte' in search_parameters.keys():
             del search_parameters[field_mapping['from_date'] + '__gte']
-    if 'to_date' in search_params:
-        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
-                                                             datetime.time())
-        search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+    # if 'to_date' in search_params:
+    #     search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+    #                                                          datetime.time())
+    #     search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
 
-    if 'grn_to_date' in search_params:
-        search_params['grn_to_date'] = datetime.datetime.combine(search_params['grn_to_date'] + datetime.timedelta(1),
+    if 'to_date' in search_params:
+        search_params['grn_to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                                  datetime.time())
         search_parameters['creation_date__lte'] = search_params['grn_to_date']
         if field_mapping['to_date'] + '__lte' in search_parameters.keys():

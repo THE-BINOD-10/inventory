@@ -597,7 +597,8 @@ class netsuiteIntegration(object):
             # else:
             #     product_list_id = 3
             ia.adjLocation = ns.RecordRef(internalId=327) # Prod Internal Id
-
+            if ia_data.get('location_id',None):
+                ia.adjLocation = ns.RecordRef(internalId=ia_data["location_id"])
             if (ia_data.get('subsidiary',None)):
                 ia.subsidiary = ns.ListOrRecordRef(internalId=ia_data['subsidiary'])
             if (ia_data.get('department',None)):
@@ -628,6 +629,8 @@ class netsuiteIntegration(object):
                  'unitCost': data['price'],
                  #"customFieldList": ns.CustomFieldList(inv_adj_custom_field_list)
                 }
+                if ia_data.get('location_id',None):
+                    line_item.update({"location":ns.RecordRef(internalId=ia_data["location_id"])})
                 if data.get('uom_name', None) and data.get('unitypeexid', None):
                     internId = self.netsuite_get_uom(data['uom_name'], data['unitypeexid'])
                     if internId:

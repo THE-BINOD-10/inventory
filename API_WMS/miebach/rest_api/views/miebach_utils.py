@@ -3333,9 +3333,9 @@ STAFF_MASTER_MAPPING = OrderedDict(
 GRN_MAPPING = OrderedDict(
                   (
                       ('Plant Id', 'plant_id'),
-                      ('SKU Code', 'sku_code'), 
+                      ('SKU Code', 'sku_code'),
                       ('Quantity', 'quantity'),
-                      ('GRN Number', 'grn_number'), 
+                      ('GRN Number', 'grn_number'),
                       ('Batch No', 'batch_no'),
                       ('Manufacturing Date - MM/DD/YYYY', 'mfg_date'),
                       ('Expiry Date - MM/DD/YYYY', 'exp_date'),
@@ -3344,7 +3344,7 @@ GRN_MAPPING = OrderedDict(
                       ('Invoice Number', 'invoice_number'),
                       ('Invoice Date - MM/DD/YYYY', 'invoice_date'),
                       ('Invoice Value', 'invoice_value'),
-                      ('Invoice Quantity', 'invoice_quantity'), 
+                      ('Invoice Quantity', 'invoice_quantity'),
                   )
               )
 
@@ -3363,12 +3363,12 @@ UOM_MASTER_MAPPING = OrderedDict((('SKU Code', 'sku_code'), ('Base UOM', 'base_u
 
 TAX_MASTER_MAPPING = OrderedDict((('HSN Code', 'hsn_code'), ('Tax Type(inter state / intra state)', 'tax_type'), ('Min Amount', 'min_amt'),
                                   ('Max Amount', 'max_amt'), ('SGST Tax', 'sgst_tax'),('CGST Tax', 'cgst_tax'),('IGST Tax', 'igst_tax'),
-                                  ('CESS Tax', 'cess_tax'),('APMC Tax', 'apmc_tax')
+                                  ('CESS Tax', 'cess_tax'),('APMC Tax', 'apmc_tax'),('Netsuite Id', 'reference_id')
                                   ))
 
 
 USER_MASTER_MAPPING = OrderedDict(( ('CompanyId', 'company_id'), ('Parent Warehouse Username', 'parent_wh_username'), ('Warehouse Type', 'warehouse_type'),
-                                    ('Stockone Code', 'stockone_code'), ('Location Code', 'location_code'), ('SAP Code', 'sap_code'), 
+                                    ('Stockone Code', 'stockone_code'), ('Location Code', 'location_code'), ('SAP Code', 'sap_code'),
                                     ('Netsuite Id', 'reference_id'),
                                     ('Username', 'username'), ('First Name', 'first_name'), ('Last Name', 'last_name'),
                                     ('Phone Number', 'phone_number'), ('Email', 'email'), ('Password', 'password'),
@@ -14340,7 +14340,7 @@ def get_po_price_and_tax_amount(po_number, pr_number):
 
 
     pr_data = PendingLineItems.objects.filter(pending_pr__full_pr_number=pr_number)
-      
+
     pr_total_qty, pr_tmp_price, pr_tmp_tax, = 0, 0, 0
     pr_tax_amount, pr_total_amount = 0, 0
     if pr_data.exists():
@@ -15260,4 +15260,3 @@ def po_upload_amount_and_quantity_sku_wise(po_number, sku_code):
     po_amount_details['po_total_amount'] = po_total_amount
 
     return po_amount_details
-

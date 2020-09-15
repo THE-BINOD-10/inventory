@@ -10898,6 +10898,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
     for row_idx in range(1, no_of_rows):
         data_dict = {'user': None, 'row_index': row_idx}
         puom_list, buom_list = [], []
+        first_date, last_date = '',''
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'adjustment_date':
@@ -11007,8 +11008,10 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
         all_data[cond]['location'][data_dict['location'].location] += data_dict['base_uom_qty']
         all_data[cond]['indexes'].append(data_dict['row_index'])
     for group_key, valid_data in all_data.items():
-        putaway_pending_qty = POLocation.objects.filter(purchase_order__open_po__sku_id=valid_data['sku'].id, quantity__gt=0, status=1).\
-                                                        aggregate(Sum('quantity'))['quantity__sum']
+        putaway_pending_dict = {'purchase_order__open_po__sku_id': valid_data['sku'].id, 'quantity__gt': 0, 'status': 1}
+        if last_date:
+            putaway_pending_dict['creation_date__lte'] = last_date
+        putaway_pending_qty = POLocation.objects.filter(**putaway_pending_dict).aggregate(Sum('quantity'))['quantity__sum']
         putaway_pending_qty = putaway_pending_qty*valid_data['conversion_factor'] if putaway_pending_qty else 0
         if valid_data['base_uom_qty'] < putaway_pending_qty:
             for row_idx in valid_data['indexes']:
@@ -11097,7 +11100,7 @@ def closing_adjustment_upload(request, user=''):
                 stats_filter_dict['batch_no'] = batch_no
             stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
                                             values_list('transact_type').distinct().annotate(Sum('quantity')))
-            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1}
+            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1, 'creation_date__lte': last_date}
             if batch_no:
                 pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
                                                         values_list('transact_id', flat=True)

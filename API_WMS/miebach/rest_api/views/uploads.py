@@ -1550,15 +1550,15 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             if key == 'test_name' and is_test:
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Test Name missing')
-            elif key == 'test_type' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Test Type missing')
-            elif key == 'department_type' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Department Type missing')
-            elif key == 'status' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('status missing')
+            #elif key == 'test_type' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('Test Type missing')
+            #elif key == 'department_type' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('Department Type missing')
+            #elif key == 'status' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('status missing')
 
             elif key == 'sku_group':
                 if cell_data:

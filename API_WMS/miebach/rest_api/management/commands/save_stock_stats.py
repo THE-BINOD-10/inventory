@@ -48,7 +48,7 @@ class Command(BaseCommand):
             users_list.append(username)
             for user_obj in user_objs:
                 users_list.append(user_obj.user.username)
-        users = User.objects.filter(is_staff=True, username__in=users_list).order_by('-last_login')
+        users = User.objects.filter(is_staff=True).order_by('-last_login')
         for user in users:
             print user
             userprofile = UserProfile.objects.filter(user_id=user.id)

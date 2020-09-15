@@ -163,6 +163,7 @@ urlpatterns = [
     url(r'^search_wh_supplier/$', search_wh_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_machine_codes/$', search_machine_codes),
     url(r'^search_sku_brands/$', search_sku_brands),
     url(r'^search_sku_categorys/$', search_sku_categorys),
     url(r'^search_corporate_names/$', search_corporate_names),
@@ -548,6 +549,8 @@ urlpatterns = [
     url(r'^get_po_report/$', get_po_report),
     url(r'^get_metro_po_report/$', get_metro_po_report),
     url(r'^get_metro_po_detail_report/$', get_metro_po_detail_report),
+    url(r'^get_metropolis_po_report/$', get_metropolis_po_report),
+    url(r'^get_metropolis_po_detail_report/$', get_metropolis_po_detail_report),
     url(r'^get_open_order_report/$', get_open_order_report),
     url(r'^print_shipment_report/$', print_shipment_report),
     url(r'^print_po_report/$', print_po_report),
@@ -613,6 +616,7 @@ urlpatterns = [
     url(r'^get_pr_detail_report/$', get_pr_detail_report),
     url(r'^get_cancel_grn_report/$', get_cancel_grn_report),
     url(r'^get_sku_wise_cancel_grn_report/$', get_sku_wise_cancel_grn_report),
+    url(r'^get_sku_wise_consumption_report/$', get_sku_wise_consumption_report),
     url(r'^download_invoice_file/$', download_invoice_file),
 ]
 
@@ -723,6 +727,8 @@ urlpatterns += [
     url(r'^netsuite_mapping_upload/$', netsuite_mapping_upload),
     url(r'^tax_master_download/$', tax_master_download),
     url(r'^tax_master_upload/$', tax_master_upload),
+    url(r'^closing_adjustment_form/$', closing_adjustment_form),
+    url(r'^closing_adjustment_upload/$', closing_adjustment_upload),
 
 
     # configurations
@@ -797,6 +803,8 @@ urlpatterns += [
     url(r'^get_sku_category_list/$', get_sku_category_list),
     url(r'^get_user_groups_list/$', get_user_groups_list),
     url(r'^get_staff_plants_list/$', get_staff_plants_list),
+    url(r'^get_sku_uom_list/$', get_sku_uom_list),
+
 
 
     # Retailone

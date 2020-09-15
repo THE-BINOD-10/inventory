@@ -2018,8 +2018,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
         if is_test:
-            data_dict['wms_code'] = str(data_dict['test_code'])
-            data_dict['sku_desc'] = str(data_dict['test_name'])
+            data_dict['test_code'] = data_dict['wms_code']
+            data_dict['test_name'] = data_dict['sku_desc']
 
         if instanceName.__name__ in ['AssetMaster', 'ServiceMaster', 'OtherItemsMaster', 'TestMaster'] and not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
@@ -2028,10 +2028,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 for k, v in data_dict.items():
                     if k not in respFields:
                         data_dict.pop(k)
-            if is_test:
-                check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
-                if check_sku_data:
-                    check_sku_data.delete()
+            # if is_test:
+            #     check_sku_data = SKUMaster.objects.get(sku_code=data_dict['wms_code'])
+            #     if check_sku_data:
+            #         check_sku_data.delete()
             sku_data = instanceName(**data_dict)
             sku_data.save()
         if sku_data:
@@ -4675,19 +4675,27 @@ def validate_bom_form(open_sheet, user, bom_excel):
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             cell_data = open_sheet.cell(row_idx, 0).value
-            if cell_data != 'Product SKU Code':
+            if cell_data != 'Test Code':
                 return 'Invalid File'
             continue
         for key, value in bom_excel.iteritems():
+            cell_data = open_sheet.cell(row_idx, bom_excel[key]).value
             if key == 'product_sku':
-                product_sku = open_sheet.cell(row_idx, bom_excel[key]).value
+                product_sku = cell_data
                 if isinstance(product_sku, (int, float)):
                     product_sku = int(product_sku)
                 sku_code = SKUMaster.objects.filter(sku_code=product_sku, user=user.id)
                 if not sku_code:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU Code %s' % product_sku)
-            if key == 'material_sku':
-                material_sku = open_sheet.cell(row_idx, bom_excel[key]).value
+            elif key == 'machine_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    machine_obj = MachineMaster.objects.filter(user=user.id, machine_code=cell_data)
+                    if not machine_obj.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Machine Code %s' % cell_data)
+            elif key == 'material_sku':
+                material_sku = cell_data
                 if isinstance(material_sku, (int, float)):
                     material_sku = int(material_sku)
                 sku_code = SKUMaster.objects.filter(sku_code=material_sku, user=user.id)
@@ -4711,7 +4719,7 @@ def validate_bom_form(open_sheet, user, bom_excel):
                         index_status.setdefault(row_idx, set()).add('Wastage Percent Should be in between 0 and 100')
 
         if product_sku == material_sku:
-            index_status.setdefault(row_idx, set()).add('Product and Material SKU Code should not be same')
+            index_status.setdefault(row_idx, set()).add('Test Code and Material SKU Code should not be same')
             # bom = BOMMaster.objects.filter(product_sku__sku_code=product_sku, material_sku__sku_code=material_sku, product_sku__user=user)
             # if bom:
             #    index_status.setdefault(row_idx, set()).add('Product and Material Sku codes combination already exists')
@@ -4729,8 +4737,8 @@ def validate_bom_form(open_sheet, user, bom_excel):
 def bom_upload(request, user=''):
     from masters import *
     fname = request.FILES['files']
-    bom_excel = {'product_sku': 0, 'material_sku': 1, 'material_quantity': 2, 'wastage_percent': 3,
-                 'unit_of_measurement': 4}
+    bom_excel = {'product_sku': 0, 'machine_code': 1, 'material_sku': 2, 'material_quantity': 3,
+                 'wastage_percent': 4, 'unit_of_measurement': 5}
     try:
         open_book = open_workbook(filename=None, file_contents=fname.read())
         open_sheet = open_book.sheet_by_index(0)
@@ -4743,6 +4751,7 @@ def bom_upload(request, user=''):
     for row_idx in range(1, open_sheet.nrows):
         all_data = {}
         product_sku = open_sheet.cell(row_idx, bom_excel['product_sku']).value
+        machine_code = open_sheet.cell(row_idx, bom_excel['machine_code']).value
         material_sku = open_sheet.cell(row_idx, bom_excel['material_sku']).value
         material_quantity = open_sheet.cell(row_idx, bom_excel['material_quantity']).value
         uom = open_sheet.cell(row_idx, bom_excel['unit_of_measurement']).value
@@ -4751,13 +4760,15 @@ def bom_upload(request, user=''):
             product_sku = int(product_sku)
         if isinstance(material_sku, (int, float)):
             material_sku = int(material_sku)
+        if isinstance(machine_code, (int, float)):
+            material_sku = int(machine_code)
         if not material_quantity:
             material_quantity = 0
         data_id = ''
         cond = (material_sku)
         all_data.setdefault(cond, [])
         all_data[cond].append([float(material_quantity), uom, data_id, wastage_percent])
-        insert_bom(all_data, product_sku, user.id)
+        insert_bom(all_data, product_sku, user.id, machine_code)
     return HttpResponse('Success')
 
 
@@ -9953,6 +9964,13 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         data_dict['product_type'] = cell_data
                     else:
                         index_status.setdefault(row_idx, set()).add('HSN Code is Mandatory')
+                if key == 'reference_id':
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            cell_data = str(int(cell_data))
+                        data_dict['reference_id'] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Reference ID is Mandatory')
                 elif key == 'tax_type':
                     if cell_data:
                         if cell_data.lower() not in ['inter state','intra state']:
@@ -10085,7 +10103,7 @@ def user_master_upload(request, user=''):
                 user_profile_dict,
                 exist_user_profile
             )
-        else:       
+        else:
             newuser = create_user_wh(
                 final_data.get('parent_wh_username'),
                 user_dict,
@@ -10686,7 +10704,7 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
         department_type_mapping = copy.deepcopy(DEPARTMENT_TYPES_MAPPING)
         staff_obj = StaffMaster.objects.filter(company_id__in=company_list, email_id=request.user.username)
         plants_list = []
-        department_type_list = []
+        department_type_list = {}
         if staff_obj:
             staff_obj = staff_obj[0]
             plants_list = list(staff_obj.plant.all().values_list('name', flat=True))
@@ -10700,9 +10718,9 @@ def validate_pending_pr_form(request, reader, user, no_of_rows, no_of_cols, fnam
                                           company_id=company_id)
                 plants_list = plant_objs.values_list('first_name', flat=True)
             if staff_obj.department_type.filter():
-		department_type_names = data.department_type.filter().values_list('name', flat=True)
+		department_type_names = staff_obj.department_type.filter().values_list('name', flat=True)
             	for department_type_name in department_type_names:
-                	department_type_list.append({department_type_name: department_type_mapping.get(department_type_name, '')})
+                    department_type_list.update({department_type_name: department_type_mapping.get(department_type_name, '')})
             else:
                 department_type_list = department_type_mapping
 
@@ -10879,4 +10897,291 @@ def netsuite_mapping_upload(request, user=''):
         return HttpResponse(status)
     for final_data in data_list:
         NetsuiteIdMapping.objects.update_or_create(**final_data)
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_adjustment_form(request, user=''):
+    excel_file = request.GET['download-closing-adjustment-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_mapping = copy.deepcopy(CLOSING_ADJUSTMENT_MAPPING)
+    excel_headers = excel_mapping.keys()
+    wb, ws = get_work_sheet('Closing Adjustment', excel_headers)
+    return xls_to_response(wb, '%s.closing_adjustment_form.xls' % str(user.username))
+
+
+@csrf_exempt
+def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    index_status = {}
+    data_list = []
+    inv_mapping = copy.deepcopy(CLOSING_ADJUSTMENT_MAPPING)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+
+    all_users = get_related_users_filters(user.id)
+    for row_idx in range(1, no_of_rows):
+        data_dict = {'user': None, 'row_index': row_idx}
+        puom_list, buom_list = [], []
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'adjustment_date':
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    reqDate = datetime.datetime(year, month, day, hour, minute, second)
+                elif '-' in cell_data:
+                    reqDate = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                else:
+                    reqDate = None
+                    index_status.setdefault(row_idx, set()).add('Wrong format for Adjustment Date')
+                data_dict[key] = reqDate
+            elif key == 'warehouse':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    user_obj = all_users.filter(username=cell_data)
+                    if not user_obj:
+                        index_status.setdefault(row_idx, set()).add('Invalid Warehouse')
+                    else:
+                        data_dict['user'] = user_obj[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Warehouse is Mandatory')
+            elif key == 'sku_code':
+                if cell_data and data_dict['user']:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    sku_master = SKUMaster.objects.filter(user=data_dict['user'].id, sku_code=cell_data)
+                    if not sku_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        data_dict['sku'] = sku_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code is Mandatory')
+            elif key == 'location':
+                if cell_data and data_dict['user']:
+                    location_master = LocationMaster.objects.filter(zone__user=data_dict['user'].id, location=cell_data)
+                    if not location_master.exists():
+                        index_status.setdefault(row_idx, set()).add('Invalid Location')
+                    else:
+                        data_dict['location'] = location_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Location is Mandatory')
+            elif key in ['base_uom_quantity', 'purchase_uom_quantity', 'conversion_factor', 'mrp', 'unit_price']:
+                if cell_data:
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif key in ['base_uom_quantity', 'purchase_uom_quantity']:
+                    index_status.setdefault(row_idx, set()).add('%s is Mandatory' % inv_res[key])
+            elif key == 'base_uom':
+                if cell_data:
+                    if data_dict.get('sku', ''):
+                        data_dict[key] = cell_data
+                        uom_data = get_sku_uom_list_data(data_dict['sku'], uom_type='purchase')
+                        puom_list = map(lambda x:x['uom'].lower(), uom_data)
+                        buom_list = map(lambda x: x['base_uom'].lower(), uom_data)
+                        if not cell_data.lower() in buom_list:
+                            index_status.setdefault(row_idx, set()).add('Invalid Base UOM')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Base UOM is Mandatory')
+            elif key == 'purchase_uom':
+                if cell_data:
+                    data_dict[key] = cell_data
+                    if not cell_data.lower() in puom_list:
+                        index_status.setdefault(row_idx, set()).add('Invalid Purchase UOM')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Purchase UOM is Mandatory')
+            elif key == 'batch_number':
+                if data_dict.get('sku', '') and data_dict.get('adjustment_date', ''):
+                    first_date = data_dict['adjustment_date'].replace(day=1)
+                    first_date = get_utc_start_date(first_date)
+                    last_date = first_date + relativedelta(months=1)
+                    stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE').\
+                                                        filter(sku_id=data_dict['sku'].id, quantity__gt=0, creation_date__lte=last_date).\
+                                                        order_by('batch_detail__expiry_date')
+                    if cell_data:
+                        if isinstance(cell_data, (int,float)):
+                            cell_data = str(int(cell_data))
+                        stocks = stocks.filter(batch_detail__batch_no=cell_data)
+                        if not stocks.exists():
+                            index_status.setdefault(row_idx, set()).add('Invalid Batch Number')
+                    else:
+                        empty_batch = stocks.filter(batch_detail__batch_no='').order_by('batch_detail__expiry_date')
+                        batch_stock = stocks.exclude(batch_detail__batch_no='').order_by('batch_detail__expiry_date')
+                        stocks = empty_batch | batch_stock
+                    data_dict['stocks'] = stocks
+                    data_dict[key] = cell_data
+            else:
+                data_dict[key] = cell_data
+        data_list.append(data_dict)
+
+    all_data = OrderedDict()
+    for data_dict in data_list:
+        batch_id = ''
+        stocks = data_dict['stocks']
+        cond = (data_dict['user'].id, data_dict['sku'].sku_code, data_dict['batch_number'])
+        all_data.setdefault(cond, {'stocks': StockDetail.objects.none(), 'sku': data_dict['sku'], 'location': {},
+                                    'conversion_factor': data_dict['conversion_factor'],
+                                    'batch_id': batch_id, 'adjustment_date': data_dict['adjustment_date'],
+                                    'user': data_dict['user'], 'base_uom_qty': 0, 'purchase_uom': data_dict['purchase_uom'],
+                                    'purchase_uom_qty': 0, 'location_obj': data_dict['location'], 'indexes': []})
+        all_data[cond]['base_uom_qty'] += data_dict['base_uom_qty']
+        all_data[cond]['purchase_uom_qty'] += data_dict['purchase_uom_qty']
+        all_data[cond]['stocks'] = all_data[cond]['stocks'] | stocks
+        all_data[cond]['location'].setdefault(data_dict['location'].location, 0)
+        all_data[cond]['location'][data_dict['location'].location] += data_dict['base_uom_qty']
+        all_data[cond]['indexes'].append(data_dict['row_index'])
+    for group_key, valid_data in all_data.items():
+        putaway_pending_qty = POLocation.objects.filter(purchase_order__open_po__sku_id=valid_data['sku'].id, quantity__gt=0, status=1).\
+                                                        aggregate(Sum('quantity'))['quantity__sum']
+        putaway_pending_qty = putaway_pending_qty*valid_data['conversion_factor'] if putaway_pending_qty else 0
+        if valid_data['base_uom_qty'] < putaway_pending_qty:
+            for row_idx in valid_data['indexes']:
+                index_status.setdefault(row_idx, set()).add('Base Uom Quantity is less than putaway pending quantity')
+
+    if not index_status:
+        return 'Success', all_data
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def closing_adjustment_upload(request, user=''):
+    from dateutil.relativedelta import relativedelta
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_closing_adjustment_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    try:
+        for group_key, final_data in data_list.items():
+            user = final_data['user']
+            sku = final_data['sku']
+            base_quantity = final_data['base_uom_qty']
+            location = final_data['location'].keys()[0]
+            first_date = final_data['adjustment_date'].replace(day=1)
+            first_date = get_utc_start_date(first_date)
+            last_date = first_date + relativedelta(months=1)
+            sku_stocks = final_data['stocks']
+            batch_no = final_data.get('batch_number', '')
+            if sku_stocks.values_list('location_id').distinct().count() > 1:
+                temp_location_id = sku_stocks[0].location_id
+                sku_stocks.update(location_id=temp_location_id)
+            #sku_stocks = sku_stocks.filter()
+            stock_dict = {}
+            if not sku_stocks:
+                stock_dict = {'sku_id': final_data['sku'].id, 'location_id': final_data['location_obj'].id,
+                            'quantity': final_data['base_uom_qty'], 'receipt_date': final_data['adjustment_date'].date(),
+                            'receipt_number': get_stock_receipt_number(user)}
+                if 'batch_id' in final_data.get('batch_id', ''):
+                    batch_dict = copy.deepcopy(BatchDetail.objects.filter(id=final_data['batch_id']).values()[0])
+                    del batch_dict['id']
+                    del batch_dict['creation_date']
+                    del batch_dict['updation_date']
+                else:
+                    batch_dict = {'pquantity': final_data['purchase_uom_qty'], 'puom': final_data['purchase_uom'],
+                                    'pcf': final_data['conversion_factor'], 'batch_no': batch_no}
+                stock_dict['batch_dict'] = batch_dict
+            if final_data['adjustment_date'].month == 8 and final_data['adjustment_date'].year == 2020:
+                open_stock_filter = {'sku_id': sku.id, 'receipt_number': 9999999}
+                if sku_stocks.filter(batch_detail__isnull=False):
+                    open_stock_filter['batch_detail_id__in'] = sku_stocks.values_list('batch_detail_id', flat=True)
+                opening_stock = StockDetail.objects.filter(**open_stock_filter)
+                opening_stock = sum(list(opening_stock.values_list('quantity', flat=True)))
+            else:
+                last_month = last_date-relativedelta(months=1)
+                prev_month_dict = {'sku_id': sku.id, 'creation_date__month': last_month.month,
+                                    'creation_date__year': last_month.year}
+                if batch_no:
+                    prev_month_dict['batch_no'] = batch_no
+                prev_month_data = AdjustmentData.objects.filter(**prev_month_dict)
+                opening_stock = prev_month_data[0].base_quantity if prev_month_data else 0
+            stats_filter_dict = {'sku_id': sku.id, 'creation_date__range': [first_date, last_date]}
+            if batch_no:
+                stats_filter_dict['batch_no'] = batch_no
+            stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
+                                            values_list('transact_type').distinct().annotate(Sum('quantity')))
+            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1}
+            if batch_no:
+                pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
+                                                        values_list('transact_id', flat=True)
+            putaway_pending_qty = POLocation.objects.filter(**pp_dict).\
+                                            aggregate(Sum('quantity'))['quantity__sum']
+            putaway_pending_qty = putaway_pending_qty if putaway_pending_qty else 0
+            putaway_pending_qty = putaway_pending_qty * final_data['conversion_factor']
+            receipt_qty = stats.get('PO', 0) + stats.get('po', 0) + stats.get('st_po', 0)
+            picklist_qty = stats.get('picklist', 0) + stats.get('st_picklist', 0)
+            adjusted_qty = stats.get('inventory-adjustment', 0)
+            return_qty = stats.get('return', 0)
+            cancelled_qty = stats.get('cancelled_location', 0)
+            rm_picklist_qty = stats.get('rm_picklist', 0)
+            jo_qty = stats.get('jo', 0)
+            rtv_qty = stats.get('rtv', 0)
+            cancel_grn_qty = stats.get('cancel_grn', 0)
+            consumption_qty = stats.get('consumption', 0)
+            closing_qty = (opening_stock + receipt_qty + adjusted_qty + cancelled_qty + jo_qty + return_qty) - \
+                            (picklist_qty + rm_picklist_qty + rtv_qty + cancel_grn_qty + consumption_qty)
+            rem_base_quantity = base_quantity - putaway_pending_qty
+            closing_adj = closing_qty - rem_base_quantity
+            last_change_date = last_date - datetime.timedelta(hours=1)
+            adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
+                        'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
+            adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
+            if adj_created:
+                AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
+            if not closing_adj:continue
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku.id,
+                quantity=closing_adj,
+            )
+            ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
+            if closing_adj > 0:
+                update_stock_detail(sku_stocks, closing_adj, user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='dec',
+                                    transact_date=last_change_date)
+            else:
+                update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                    consumption_data.id, transact_type='consumption',
+                                    mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict,
+                                    transact_date=last_change_date)
+            sku_stocks = sku_stocks.filter()
+            if sku_stocks:
+                source_loc = sku_stocks[0].location.location
+                total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                for location_name, move_loc_qty in final_data['location'].items():
+                    if source_loc.lower() == location_name.lower():
+                        continue
+                    if total_stock >= move_loc_qty:
+                        move_qty = move_loc_qty
+                        move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Closing Adjustment Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse("Success")

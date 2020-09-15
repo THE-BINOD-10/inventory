@@ -222,7 +222,7 @@ def get_admin_all_wh(f):
                     company_id = ''
                 dept_users = get_related_users_filters(user.id, warehouse_types=['DEPT'],
                                                        company_id=company_id)
-            kwargs['users'] = plant_users.union(dept_users)
+            kwargs['users'] = plant_users | dept_users
         else:
             kwargs['users'] = User.objects.filter(id=user.id)
         return f(request, *args, **kwargs)

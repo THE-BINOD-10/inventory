@@ -95,7 +95,8 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(sister_wh.values_list('user__username', flat=True))
 
     elif report_name in ['pr_report', 'pr_detail_report','metro_po_report', 'metro_po_detail_report', 'rtv_report',
-                         'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report']:
+                         'sku_wise_rtv_report', 'cancel_grn_report', 'sku_wise_cancel_grn_report', 'metropolis_po_report',
+                         'metropolis_po_detail_report']:
         if 'sister_warehouse' in filter_keys:
             if user.userprofile.warehouse_type == 'ADMIN':
                 user_data = get_all_department_data(user)
@@ -132,6 +133,11 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'product_category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = PRODUCT_CATEGORIES
+
+        if 'po_view' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'po_view' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = PO_REPORT_VIEW
 
 
     elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
@@ -2675,9 +2681,25 @@ def get_metro_po_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_metropolis_po_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metropolis_po_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_metro_po_detail_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_metro_po_detail_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_metropolis_po_detail_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_metropolis_po_detail_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -2701,6 +2723,13 @@ def get_sku_wise_cancel_grn_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_sku_wise_consumption_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_consumption_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
 def download_invoice_file(request, user=''):
     receipt_type, http_data = '', ''
     po_id = request.GET.get('po_id', '')
@@ -2727,15 +2756,19 @@ def download_invoice_file(request, user=''):
                     url_request, invoice_file_name = "", ""
                     invoice_data = MasterDocs.objects.filter(master_id=po_number,
                                                              master_type='GRN_PO_NUMBER',
-                                                             extra_flag=grn_receipt_number)
+                                                             extra_flag=grn_receipt_number).order_by('-creation_date')
                     if not invoice_data:
                         invoice_data = MasterDocs.objects.filter(master_id=po_id,
                                                                  user=invoice_file_user,
-                                                                 extra_flag=grn_receipt_number)
+                                                                 extra_flag=grn_receipt_number).order_by('-creation_date')
 
                     if invoice_data.exists():
-                        invoice_details = invoice_data[0].uploaded_file.url
-                        http_data = invoice_details
+                        if len(invoice_data) > 1:
+                            files_list=list(invoice_data.values_list('uploaded_file', flat=True))
+                            http_data = json.dumps(files_list)
+                        else:
+                            invoice_details = invoice_data[0].uploaded_file.url
+                            http_data = invoice_details
 
                 except IOError:
                     pass

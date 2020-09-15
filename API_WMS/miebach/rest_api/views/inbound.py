@@ -179,7 +179,7 @@ def get_pending_for_approval_pr_suggestions(start_index, stop_index, temp_data, 
         department = department_mapping.get(department_code, '')
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
+                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date').exclude(status="resubmitted")
         approval_type = ''
         if prApprQs:
             approval_type = prApprQs[0].approval_type
@@ -322,7 +322,7 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
         department = department_mapping.get(department_code, '')
         mailsList = []
         prApprQs = PurchaseApprovals.objects.filter(pending_pr__full_pr_number=result['pending_pr__full_pr_number'],
-                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date')
+                        pr_user=pr_user, level=result['pending_pr__pending_level']).order_by('-creation_date').exclude(status='resubmitted')
         approval_type = ''
         if prApprQs:
             approval_type = prApprQs[0].approval_type
@@ -407,7 +407,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
                                 level=currentUserLevel,
                                 purchase_type='PO',
                                 status='').distinct().values_list('pending_po_id', flat=True))
-
+                #pr_numbers = [pa_mail.pr_approval.pending_po_id]
                 filtersMap.setdefault('pending_po_id__in', [])
                 filtersMap['pending_po_id__in'] = list(chain(filtersMap['pending_po_id__in'], pr_numbers))
         # memQs = MasterEmailMapping.objects.filter(user=user, master_type='pr_approvals_conf_data', email_id=currentUserEmailId)
@@ -426,7 +426,7 @@ def get_pending_po_suggestions(start_index, stop_index, temp_data, search_term, 
         #     filtersMap.setdefault('pending_po__po_number__in', [])
         #     filtersMap['pending_po__po_number__in'] = list(chain(filtersMap['pending_po__po_number__in'], pr_numbers))
         #if not pa_mails.exists(): # Creator Sub Users
-        if not pr_numbers:
+        if not filtersMap.get('pending_po_id__in', ''):
             filtersMap['pending_po__requested_user'] = request.user.id
             if filtersMap.has_key('pending_po_id__in'):
                 del filtersMap['pending_po_id__in']
@@ -2885,8 +2885,11 @@ def search_supplier(request, user=''):
         user = User.objects.get(id=warehouse_id)
     if arg_type == 'is_parent':
         user = get_admin(user)
-    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id, user=user.id) |
-                                        Q(name__icontains=data_id, user=user.id)).only('supplier_id', 'name')
+    data = SupplierMaster.objects.filter(Q(supplier_id__icontains=data_id) |
+                                        Q(name__icontains=data_id), user=user.id).only('supplier_id', 'name')
+    #data1 = SupplierMaster.objects.filter(supplier_id__icontains=data_id, user=user.id).only('supplier_id', 'name')
+    #data2 = SupplierMaster.objects.filter(name__icontains=data_id, user=user.id).only('supplier_id', 'name')
+    #data = data1 | data2
     suppliers = []
     if data.exists():
         for supplier in data[:15]:
@@ -3584,14 +3587,21 @@ def approve_pr(request, user=''):
         prev_approval_type = approval_type
         if approval_type == 'default' and (myDict.has_key('supplier_id') and myDict['supplier_id'][0]):
             approval_type = 'ranges'
+    pr_user = pendingPRObj.wh_user
     if 'total' in myDict.keys():
         totalAmt = 0
         for i in range(0, len(myDict['wms_code'])):
             try:
                 totalAmt += float(myDict['total'][i])
             except:
-                continue
-    pr_user = pendingPRObj.wh_user
+                pass
+            if is_purchase_approver:
+                supplier_id = myDict['supplier_id'][i]
+                store_user = get_admin(pr_user)
+                supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
+                if not supp_obj.exists():
+                    return HttpResponse("Invalid Supplier found %s" % supplier_id)
+
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,
                                 approval_type=approval_type, sku_category=sku_category)
@@ -3646,7 +3656,10 @@ def approve_pr(request, user=''):
                 discount_percentage = float(myDict['discount_percentage'][i])
                 lineItems.filter(sku__sku_code=myDict['wms_code'][i]).update(discount_percent=discount_percentage)
             eachSku = myDict['wms_code'][i]
-            amount = float(myDict['amount'][i])
+            try:
+                amount = float(myDict['amount'][i])
+            except:
+                amount = 0
             if myDict['tax'][i]:
                 tax = float(myDict['tax'][i])
             else:
@@ -3659,14 +3672,21 @@ def approve_pr(request, user=''):
                 quantity = float(myDict['order_quantity'][i])
             except:
                 quantity = ''
-            total = float(myDict['total'][i])
+            try:
+                total = float(myDict['total'][i])
+            except:
+                total = 0
             unit_price = myDict['price'][i]
+            try:
+                unit_price = float(unit_price)
+            except:
+                unit_price = 0
             if myDict.has_key('moq'):
                 moq = myDict['moq'][i]
             else:
                 moq = 0
             supplier_id = myDict['supplier_id'][i]
-            if not supplier_id and validation_type == 'approved':
+            if not supplier_id and validation_type == 'approved' and quantity:
                 return HttpResponse("Provide Supplier Details")
             pr_approver_data = {
                 'supplier_id': supplier_id,

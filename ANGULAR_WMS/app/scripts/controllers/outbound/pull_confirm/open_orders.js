@@ -41,11 +41,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
+        DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse').notSortable(),
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
         DTColumnBuilder.newColumn('project_name').withTitle('Project Name'),
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('shipment_date').withTitle('Exp Delivery Date'),
+        DTColumnBuilder.newColumn('order_type').withTitle('Order Type').notSortable(),
         DTColumnBuilder.newColumn('date').withTitle('Date'),
     ];
     if (vm.permissions.generate_delivery_challan_before_pullConfiramation){
@@ -110,8 +112,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             $scope.$apply(function() {
 
   var data = {data_id: aData.DT_RowAttr["data-id"]};
-
   var mod_data = {data: data};
+  mod_data['source'] = aData['source_wh'];
+  mod_data['order_typ'] = aData['order_type'];
   mod_data['url'] = "view_picklist/";
   mod_data['method'] = "GET";
   mod_data['page'] = "PullConfirmation";

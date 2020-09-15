@@ -56,6 +56,12 @@
                 <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
               </div>
             </div>
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Source Warehouse</label>
+                <input class="form-control" type="text" name="source" value="{{pop.current_source}}" disabled>
+              </div>
+            </div>
             <div class="col-md-3 col-sm-4 col-xs-6" ng-show="pop.model_data.single_order!='' &&
               pop.model_data.data && pop.model_data.data[0].original_order_id">
               <div class="form-group">
@@ -140,6 +146,8 @@
                   <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
                   <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">
                   <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
+                  <input type="hidden" name="source" value="{{pop.current_source}}">
+                  <input type="hidden" name="order_typ" value="{{pop.order_typ}}">
                   <input type="hidden" name="labels_{{data.id}}" value="{{record.labels.join(',')}}">
                   <input type="hidden" name="picklist_status_{{data.id}}" value="{{pop.model_data.order_status}}">
                   <input type="hidden" name="passed_serial_number_{{data.id}}" value="{{record.passed_serial_number}}">

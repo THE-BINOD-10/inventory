@@ -193,6 +193,7 @@ urlpatterns = [
     url(r'^batch_transfer_order/$', batch_transfer_order),
     url(r'^generate_picklist/$', generate_picklist),
     url(r'^st_generate_picklist/$', st_generate_picklist),
+    url(r'^mr_generate_picklist/$', mr_generate_picklist),
     url(r'^confirm_vendor_received/$', confirm_vendor_received),
     url(r'^track_orders/$', track_orders),
     url(r'^cancelled_putaway_data/$', cancelled_putaway_data),

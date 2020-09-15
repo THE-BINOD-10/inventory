@@ -8,6 +8,13 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.permissions = Session.roles.permissions;
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
+  vm.current_source = items['source'];
+  vm.order_typ = 'SO';
+  if (items['order_typ'] == 'Material Request') {
+    vm.order_typ = 'MR'
+  } else if (items['order_typ'] == 'Stock Transfer') {
+    vm.order_typ = 'ST'
+  }
   vm.record_serial_data = [];
   vm.record_serial_dict= {}
   vm.record_qcitems_data = [];
@@ -486,6 +493,7 @@ function view_orders() {
           elem.push(elem_dict)
         }
       }
+      debugger
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data) {
         if(data.message) {
           vm.qty_validation = {};

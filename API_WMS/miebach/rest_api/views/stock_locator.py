@@ -190,9 +190,12 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             if stock_batch.exists():
                 measurement_type = stock_batch[0].batch_detail.puom
             wms_code_obj_unit_price = wms_code_obj.only('quantity', 'unit_price')
-            total_wms_qty_unit_price = sum(
+            try:
+                total_wms_qty_unit_price = sum(
                 wms_code_obj_unit_price.annotate(stock_value=Sum((F('quantity')/F('batch_detail__pcf')) * F('unit_price'))).values_list(
                     'stock_value', flat=True))
+            except Exception as e:
+                total_wms_qty_unit_price = 0
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             # total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
             total_stock_value = total_wms_qty_unit_price  # + total_wms_qty_sku_unit_price
@@ -215,8 +218,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict((('SKU Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('sku_packs', sku_packs),
-                                                ('Available Quantity', quantity),
-                                                ('Reserved Quantity', reserved), ('Total Quantity', total),
+                                                ('Available Quantity', round(quantity, 2)),
+                                                ('Reserved Quantity', round(reserved, 2)), ('Total Quantity', round(total, 2)),
                                                 ('Open Order Quantity', open_order_qty),
                                                 ('Unit of Measurement', measurement_type),
                                                 ('Stock Value', '%.2f' % total_stock_value),
@@ -1047,8 +1050,8 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         if data.batch_detail:
             conv_value = data.batch_detail.pcf
         #conv_name, conv_value = get_uom_conversion_value(data.sku, 'storage')
-        stock_quantity = data.quantity / conv_value
-        stock_quantity = get_decimal_limit(user.id, stock_quantity)
+        stock_quantity = float(data.quantity / conv_value)
+        # stock_quantity = get_decimal_limit(user.id, stock_quantity)
         taken_unit_price = data.unit_price
         # if pallet_switch == 'true':
         #     pallet_code = ''
@@ -1081,7 +1084,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                  ('Product Description', data.sku.sku_desc),
                                  ('Zone', data.location.zone.zone),
                                  ('Location', data.location.location),
-                                 ('Quantity', stock_quantity),
+                                 ('Quantity', round(stock_quantity, 2)),
                                  ('Receipt Type', data.receipt_type),
                                  ('Stock Value', '%.2f' % (taken_unit_price * stock_quantity)),
                                  ('Plant Code', plant_code),

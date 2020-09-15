@@ -16098,3 +16098,52 @@ def grn_upload_preview(request, user=''):
                 uploaded_file_dict = {'file_name': master_docs[0].uploaded_file.name.split('/')[-1], 'id': master_docs[0].id,
                                       'file_url': '/' + master_docs[0].uploaded_file.name}
             return HttpResponse(json.dumps(uploaded_file_dict))
+
+@csrf_exempt
+def get_material_request_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis = ['id', 'st_po__open_st__warehouse__username', 'order_id', 'sku__sku_code','creation_date', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        lis.insert(3, 'st_seller__seller_id')
+        lis.insert(4, 'st_seller__name')
+        lis.insert(5, 'st_po__open_st__mrp')
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        if user.username == 'Met_Admin':
+            master_data = StockTransfer.objects.filter(status=1, st_type='MR').order_by(order_data)
+        else:
+            master_data = StockTransfer.objects.filter(sku__user=user.id, status=1, st_type='MR').order_by(order_data)
+    if search_term:
+        if user.username == 'Met_Admin':
+            master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
+                                                   Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                                   Q(sku__sku_code__icontains=search_term) |
+                                                   Q(st_seller__seller_id__icontains=search_term) |
+                                                   Q(st_seller__name__icontains=search_term),
+                                                   status=1).order_by(order_data)
+        else:
+            master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
+                                                   Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                                   Q(sku__sku_code__icontains=search_term) |
+                                                   Q(st_seller__seller_id__icontains=search_term) |
+                                                   Q(st_seller__name__icontains=search_term),
+                                                   sku__user=user.id,
+                                                   status=1).order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
+        w_user = User.objects.get(id=data.st_po.open_st.sku.user)
+        data_dict = {'': checkbox, 'source_wh': data.st_po.open_st.warehouse.username, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
+                                    'SKU Code': data.sku.sku_code, 'Quantity': round(float(data.quantity-data.picked_quantity), 2), 'DT_RowClass': 'results',
+                                    'Creation Date':data.creation_date.strftime("%d %b, %Y"),
+                                    'Seller ID': '', 'Seller Name': '', 'MRP':'',
+                                    'DT_RowAttr': {'id': data.id}, 'id': count}
+        if user.userprofile.user_type == 'marketplace_user' and data.st_seller:
+            data_dict['Seller ID'] = data.st_seller.seller_id
+            data_dict['Seller Name'] = data.st_seller.name
+            data_dict['MRP'] = data.st_po.open_st.mrp
+        temp_data['aaData'].append(data_dict)
+        count = count + 1

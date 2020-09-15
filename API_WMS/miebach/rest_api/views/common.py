@@ -632,6 +632,7 @@ data_datatable = {  # masters
     'PendingPOEnquiries': 'get_approval_pending_enquiry_results',
     'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
+    'MaterialRequestOrders': 'get_material_request_orders',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -7082,7 +7083,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
-        mrp = 0
+        mrp = open_data.mrp
         order_type = ''
         supplier_code = ''
         cgst_tax = open_data.cgst_tax
@@ -11148,6 +11149,7 @@ def get_company_sub_users(user, company_id=''):
 
 def insert_st_gst(all_data, user):
     for key, value in all_data.iteritems():
+        user = User.objects.get(id=key[1])
         for val_idx, val in enumerate(value):
             print val_idx
             if val[7]:
@@ -11215,6 +11217,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id
+            st_dict['st_type'] = str(val[9])
             if user.userprofile.user_type == 'marketplace_user':
                 st_dict['st_seller_id'] = key[2].id
             stock_transfer = StockTransfer(**st_dict)
@@ -11433,7 +11436,7 @@ def get_warehouses_list_states(user):
     return user_states
 
 
-def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
+def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ=''):
     try:
         st_po = stock_transfer.st_po
         temp_json = copy.deepcopy(PO_TEMP_JSON_DEF)
@@ -11443,8 +11446,10 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked):
             if po and po.status not in ['confirmed-putaway']:
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
-                if inbound_automate == 'true':
-                    auto_receive(destination_warehouse, po, 'st', update_picked)
+                if order_typ == 'MR':
+                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
+                elif inbound_automate == 'true' and order_typ == 'ST':
+                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 if po.status == 'stock-transfer':
                     po.status = ''
                     po.save()
@@ -12156,9 +12161,19 @@ def get_stocktransfer_picknumber(user , picklist):
     else:
         return 1
 
-def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number):
+def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, receipt_number, batch_detail=''):
     from inbound import create_default_zones, get_purchaseorder_locations, get_remaining_capacity
     NOW = datetime.datetime.now()
+    conv_value = ''
+    batch_dict = {}
+    if batch_detail:
+        conv_value = batch_detail.pcf
+        if not conv_value:
+            uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
+            conv_value = uom_dict.get('sku_conversion', 1)
+    if not conv_value:
+        conv_value = 1
+    quantity = quantity * conv_value
     put_zone = purchase_data['zone']
     if not put_zone:
         put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)
@@ -12171,6 +12186,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
     temp_dict = {'received_quantity': float(quantity), 'user': warehouse.id, 'data': po_data, 'pallet_number': '', 'pallet_data': ''}
     locations = get_purchaseorder_locations(put_zone, temp_dict)
     for loc in locations:
+        created_batch = ''
         processed_qty = 0
         location_quantity, received_quantity = get_remaining_capacity(loc, quantity-processed_qty, put_zone, temp_dict['pallet_number'], warehouse.id)
         if not location_quantity:
@@ -12180,6 +12196,26 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
                                 'location_id': loc.id, 'purchase_order_id': po_data.id, 'updation_date':NOW}
         po_location = POLocation(**po_location_dict)
         po_location.save()
+        if batch_detail and po_location:
+            uom_dict = get_uom_with_sku_code(warehouse, purchase_data['sku_code'], uom_type='purchase')
+            total_tax = float(purchase_data['sgst_tax']) + float(purchase_data['cgst_tax']) + float(purchase_data['igst_tax']) + float(purchase_data['cess_tax'])
+            batch_dict = {
+                'transact_type': 'po_loc',
+                'transact_id': po_location.id,
+                'receipt_number': receipt_number,
+                'batch_no': batch_detail.batch_no,
+                'expiry_date': batch_detail.expiry_date,
+                'manufactured_date': batch_detail.manufactured_date,
+                'tax_percent': total_tax,
+                'mrp': batch_detail.mrp,
+                'buy_price': batch_detail.buy_price,
+                'weight': batch_detail.weight,
+                'batch_ref': batch_detail.batch_ref,
+                'puom': batch_detail.puom,
+                'pquantity': location_quantity,
+                'pcf': batch_detail.pcf
+            }
+            created_batch = BatchDetail.objects.create(**batch_dict)
         seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order_id=po_data.id, status=0)
         full_grn_number = ''
         if seller_po_summary_obj.exists():
@@ -12188,7 +12224,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
         if not grn_price:
             grn_price = purchase_data['price']
         stock_check_params = {'location_id': loc.id, 'receipt_number':po_data.order_id,
-                            'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id,
+                            'sku_id': purchase_data['sku_id'], 'sku__user': warehouse.id, 'batch_detail_id':created_batch.id,
                             'unit_price': grn_price, 'receipt_type': receipt_type, 'grn_number':full_grn_number}
         stock_dict = StockDetail.objects.filter(**stock_check_params)
         if stock_dict:
@@ -12198,20 +12234,30 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
             stock_dict.save()
         else:
             stock_dict = StockDetail.objects.create(receipt_number=po_data.order_id, receipt_date=NOW, quantity=location_quantity,
-                                                    status=1, location_id=loc.id, grn_number=full_grn_number,
+                                                    status=1, location_id=loc.id, grn_number=full_grn_number, batch_detail_id=created_batch.id,
                                                     sku_id=purchase_data['sku_id'], unit_price = purchase_data['price'],
                                                     receipt_type=receipt_type, creation_date=NOW, updation_date=NOW)
-        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, 'PO', location_quantity, stock_dict)
+        if receipt_type == 'stock transfer':
+            transact_type = 'st_po'
+        else:
+            transact_type = 'PO'
+        save_sku_stats(warehouse, stock_dict.sku_id, po_data.id, transact_type, location_quantity, stock_dict)
         if int(quantity) == int(processed_qty):
             break
 
-def auto_receive(warehouse, po_data, po_type, quantity, data=""):
+def auto_receive(warehouse, po_data, po_type, quantity, data="", order_typ=""):
     from inbound import get_st_seller_receipt_id, get_seller_receipt_id
+    batch_data = ''
+    if data.batch_detail:
+        batch_data = data.batch_detail
     NOW = datetime.datetime.now()
     purchase_data = get_purchase_order_data(po_data)
     if po_type == 'st':
         seller_receipt_id = get_st_seller_receipt_id(po_data)
-        receipt_type = 'stock transfer'
+        if order_typ == 'MR':
+            receipt_type = 'material request'
+        else:
+            receipt_type = 'stock transfer'
     elif po_type == 'po':
         seller_receipt_id = get_seller_receipt_id(po_data)
         receipt_type = 'purchase order'
@@ -12221,7 +12267,7 @@ def auto_receive(warehouse, po_data, po_type, quantity, data=""):
                                                                        purchase_order_id=po_data.id,
                                                                        creation_date=NOW,
                                                                        price=purchase_data['price'])
-    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id)
+    auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, receipt_type, seller_receipt_id, batch_detail=batch_data)
     po_data.received_quantity += quantity
     if int(purchase_data['order_quantity']) == int(po_data.received_quantity):
         po_data.status = 'confirmed-putaway'

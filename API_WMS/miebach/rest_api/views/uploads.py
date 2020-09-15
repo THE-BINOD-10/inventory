@@ -7811,6 +7811,18 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         if not order_mapping:
             break
         count += 1
+        if order_mapping.has_key('source_warehouse'):
+            source_warehouse = str(get_cell_data(row_idx, order_mapping['source_warehouse'], reader, file_type))
+            try:
+                user = User.objects.get(username=source_warehouse)
+            except Exception as e:
+                index_status.setdefault(count, set()).add('Invalid Source warehouse')
+        else:
+            continue
+        if order_mapping.has_key('st_type'):
+            tmp_st_type = str(get_cell_data(row_idx, order_mapping['st_type'], reader, file_type))
+            if not tmp_st_type or tmp_st_type not in ['MR', 'ST']:
+                index_status.setdefault(count, set()).add('Invalid Type')
         if order_mapping.has_key('warehouse_name') :
             try:
                 warehouse_name = str(int(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)))
@@ -7820,14 +7832,15 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 index_status.setdefault(count, set()).add('Invalid warehouse')
             else:
                 try:
-                    admin_user = get_admin(user)
-                    sister_wh = get_sister_warehouse(admin_user)
-                    if (admin_user.username).lower() == str(warehouse_name).lower():
-                        user_obj = admin_user
-                    else:
-                        user_obj = sister_wh.filter(user__username=warehouse_name)
-                        if user_obj:
-                            user_obj = user_obj[0].user
+                    user_obj = User.objects.get(username=warehouse_name)
+                    # admin_user = get_admin(user)
+                    # sister_wh = get_sister_warehouse(admin_user)
+                    # if (admin_user.username).lower() == str(warehouse_name).lower():
+                    #     user_obj = admin_user
+                    # else:
+                    #     user_obj = sister_wh.filter(user__username=warehouse_name)
+                    #     if user_obj:
+                    #         user_obj = user_obj[0].user
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -7893,7 +7906,16 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
         mrp =0
+        st_type = 'ST'
         for key, value in order_mapping.iteritems():
+            if key == 'source_warehouse':
+                source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    user = User.objects.get(username=source_warehouse)
+                except Exception as e:
+                    print e
+            if key == 'st_type':
+                st_type = str(get_cell_data(row_idx, value, reader, file_type))
             if key == 'warehouse_name':
                 try:
                     warehouse = str(int(get_cell_data(row_idx, value, reader, file_type)))
@@ -7905,7 +7927,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                 except:
                     wms_code = str(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'quantity':
-                 quantity = int(get_cell_data(row_idx, value, reader, file_type))
+                 quantity = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'price':
                 try:
                     price = float(get_cell_data(row_idx, value, reader, file_type))
@@ -7944,11 +7966,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     cess_tax = str(get_cell_data(row_idx, value, reader, file_type))
                 if cess_tax == '':
                     cess_tax = 0
-
         warehouse = User.objects.get(username=warehouse)
         cond = (user.username, warehouse.id, source_seller, dest_seller)
         all_data.setdefault(cond, [])
-        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp])
+        all_data[cond].append([wms_code, quantity, price,cgst_tax,sgst_tax,igst_tax,cess_tax, 0, mrp, st_type])
     all_data = insert_st_gst(all_data, warehouse)
     status = confirm_stock_transfer_gst(all_data, user.username)
 

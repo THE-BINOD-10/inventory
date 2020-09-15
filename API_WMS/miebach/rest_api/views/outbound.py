@@ -319,22 +319,22 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = StockTransfer.objects.filter(sku__user=user.id, status=1).order_by(order_data)
+        master_data = StockTransfer.objects.filter(sku__user=user.id, status=1, st_type='ST').order_by(order_data)
     if search_term:
         master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
-                                                   Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
-                                                   Q(sku__sku_code__icontains=search_term) |
-                                                   Q(st_seller__seller_id__icontains=search_term) |
-                                                   Q(st_seller__name__icontains=search_term),
-                                                   sku__user=user.id,
-                                                   status=1).order_by(order_data)
+                                               Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(st_seller__seller_id__icontains=search_term) |
+                                               Q(st_seller__name__icontains=search_term),
+                                               sku__user=user.id,
+                                               status=1, st_type='ST').order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
-        data_dict = {'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
+        data_dict = {'': checkbox, 'source_wh': data.st_po.open_st.warehouse.username, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
                                     'Seller ID': '', 'Seller Name': '', 'MRP':'',
@@ -423,6 +423,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         prepare_str = ''
         shipment_date = ''
         project_name = ''
+        source_wh = ''
+        order_type = 'Sales Order'
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -447,6 +449,14 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             if not prepare_str:
                 st_order = STOrder.objects.filter(picklist_id=picklist_obj[0].id)
                 if st_order:
+                    if st_order[0].stock_transfer.st_type == 'MR':
+                        order_type = 'Material Request'
+                    elif st_order[0].stock_transfer.st_type == 'ST':
+                        order_type = 'Stock Transfer'
+                    try:
+                        source_wh = st_order[0].stock_transfer.st_po.open_st.warehouse.username
+                    except Exception as e:
+                        source_wh = ''
                     user_id = st_order[0].stock_transfer.st_po.open_st.sku.user
                     user_profile = User.objects.get(id=user_id)
                     if user_profile:
@@ -490,8 +500,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 if time_slot:
                     shipment_date = shipment_date + ', ' + time_slot
         result_data = OrderedDict((('DT_RowAttr', {'data-id': picklist_id}), ('picklist_note', remarks),
-                                   ('reserved_quantity', reserved_quantity_sum_value),
-                                   ('picked_quantity', picked_quantity_sum_value),
+                                   ('reserved_quantity', reserved_quantity_sum_value), ('order_type', order_type),
+                                   ('picked_quantity', picked_quantity_sum_value), ('source_wh', source_wh),
                                    ('customer', prepare_str), ('shipment_date', shipment_date),
                                    ('date', create_date_value),('dc_number', dc_num), ('id', count), ('DT_RowClass', 'results'),
                                    ('od_id', od_id), ('od_order_id', od_order_id), ('project_name', project_name)))
@@ -1937,7 +1947,6 @@ def validate_picklist_combos(data, all_picklists, picks_all):
         for i in range(0, len(value)):
             if value[i]['picked_quantity']:
                 count += float(value[i]['picked_quantity'])
-
         final_data_list.append({'picklist': picklist, 'picklist_batch': picklist_batch,
                                 'count': count, 'picklist_order_id': picklist_order_id,
                                 'value': value, 'key': key})
@@ -1987,6 +1996,9 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def picklist_confirmation(request, user=''):
+    if request.POST.get('source'):
+        cur_user = request.POST.get('source')
+        user = User.objects.get(username=cur_user)
     reversion.set_user(request.user)
     reversion.set_comment("picklist_confirmation")
     st_time = datetime.datetime.now()
@@ -1999,12 +2011,13 @@ def picklist_confirmation(request, user=''):
     status = ''
     seller_id = ''
     for key, value in request.POST.iterlists():
-        name, picklist_id = key.rsplit('_', 1)
-        data.setdefault(picklist_id, [])
-        for index, val in enumerate(value):
-            if len(data[picklist_id]) < index + 1:
-                data[picklist_id].append({})
-            data[picklist_id][index][name] = val
+        if key not in ['source', 'order_typ']:
+            name, picklist_id = key.rsplit('_', 1)
+            data.setdefault(picklist_id, [])
+            for index, val in enumerate(value):
+                if len(data[picklist_id]) < index + 1:
+                    data[picklist_id].append({})
+                data[picklist_id][index][name] = val
     passed_serial_number = request.POST.get('passed_serial_number', {})
     failed_serial_number = request.POST.get('failed_serial_number', {})
     imei_qc_details = request.POST.get('imei_qc_details', '')
@@ -2054,17 +2067,23 @@ def picklist_confirmation(request, user=''):
                                             'sku_codes': combo_status, 'status': 0}))
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
+            if picklist.storder_set.filter():
+                transact_type = 'st_picklist'
+            else:
+                transact_type = 'picklist'
             picklist_batch = picklist_dict['picklist_batch']
             count = picklist_dict['count']
             picklist_order_id = picklist_dict['picklist_order_id']
             value = picklist_dict['value']
             key = picklist_dict['key']
+            # import pdb; pdb.set_trace()
             for val in value:
+                print '------first---------'
                 if not val['picked_quantity']:
                     continue
                 else:
                     count = float(val['picked_quantity'])
-
+                # import pdb; pdb.set_trace()
                 if picklist_order_id:
                     picklist_batch = list(set([picklist]))
                 if not val['location'] == 'NO STOCK':
@@ -2100,6 +2119,7 @@ def picklist_confirmation(request, user=''):
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data).distinct()
+                    # import pdb; pdb.set_trace()
                     if 'imei' in val.keys() and val['imei'] and picklist.order and val['imei'] != '[]':
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -2145,7 +2165,7 @@ def picklist_confirmation(request, user=''):
 
                     seller_stock_objs = []
                     for stock in total_stock:
-
+                        # import pdb; pdb.set_trace()
                         update_picked = 0
                         if user.userprofile.user_type == 'marketplace_user':
                             if picklist.order:
@@ -2165,7 +2185,15 @@ def picklist_confirmation(request, user=''):
                         pre_stock = float(stock_quantity)
                         if picking_count == 0:
                             break
-
+                        # new Code
+                        print picking_count
+                        conv_value = 1
+                        if stock.batch_detail:
+                            conv_value = stock.batch_detail.pcf
+                            if not conv_value:
+                                uom_dict = get_uom_with_sku_code(user, stock.sku.sku_code, uom_type='purchase')
+                                conv_value = uom_dict.get('sku_conversion', 1)
+                        # new Code
                         if picking_count > stock_quantity:
                             update_picked = float(stock_quantity)
                             picking_count -= stock_quantity
@@ -2177,7 +2205,6 @@ def picklist_confirmation(request, user=''):
                             stock.quantity -= picking_count
                             picklist.reserved_quantity -= picking_count
                             picking_count = 0
-
                         update_picked = truncate_float(update_picked, decimal_limit)
                         picklist.reserved_quantity = truncate_float(picklist.reserved_quantity, decimal_limit)
                         stock.quantity = truncate_float(stock.quantity, decimal_limit)
@@ -2186,9 +2213,12 @@ def picklist_confirmation(request, user=''):
                             location_fill_capacity = truncate_float(location_fill_capacity, decimal_limit)
                             setattr(stock.location, 'filled_capacity', location_fill_capacity)
                             stock.location.save()
-
+                        if picklist.storder_set.filter():
+                            transact_type = 'st_picklist'
+                        else:
+                            transact_type = 'picklist'
                         # SKU Stats
-                        save_sku_stats(user, stock.sku_id, picklist.id, 'picklist', update_picked, stock)
+                        save_sku_stats(user, stock.sku_id, picklist.id, transact_type, update_picked, stock)
                         pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id, status=1)
                         # update_picked = picking_count1
@@ -2200,7 +2230,8 @@ def picklist_confirmation(request, user=''):
                                 change_seller_stock(stock_transfer.st_seller_id, stock, user, update_picked, 'dec')
                             stock_transfer.save()
                             #if user_profile.industry_type == 'FMCG':
-                            update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked)
+                            order_typ = request.POST.get('order_typ', '')
+                            update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, order_typ = order_typ)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:
@@ -2217,6 +2248,8 @@ def picklist_confirmation(request, user=''):
                         dec_quantity = pre_stock - float(stock.quantity)
                         if stock.pallet_detail:
                             update_picklist_pallet(stock, update_picked)
+                        # import pdb; pdb.set_trace()
+                        print '------------'
                         stock.save()
                         seller_stock_objs.append(stock)
                         mod_locations.append(stock.location.location)
@@ -2340,64 +2373,69 @@ def netsuite_picklist_confirmation(final_data_list, user):
     department= ""
     items=[]
     reason = ""
-    for picklist_dict in final_data_list:
-        value = picklist_dict['value']
-        key = picklist_dict['key']
-        for item in value:
-            #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
-           # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
-           # price= open_st.price
-           # order_quantity= open_st.order_quantity
-           # cgst_tax= open_st.cgst_tax
-           # sgst_tax= open_st.sgst_tax
-           # igst_tax= open_st.igst_tax
-           # cess_tax= open_st.cess_tax
-           # mrp= open_st.mrp
-            mfg_date,exp_date="",""
-            print(item.get("manufactured_date",None), item.get("expiry_date",None) )
-            if(item.get("manufactured_date",None)):
-                mfg_date = datetime.strptime(item["manufactured_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
-                m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
-                mfg_date= m_date.isoformat()
-            if(item.get("expiry_date",None)):
-                exp_date = datetime.strptime(item["expiry_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
-                e_date=datetime.strptime(exp_date, '%d-%m-%Y')
-                exp_date= e_date.isoformat()
-            print(mfg_date, exp_date)
-            unitdata = gather_uom_master_for_sku(user, item.get("wms_code"))
-            unitexid = unitdata.get('name', None)
-            purchaseUOMname = None
-            for row in unitdata.get('uom_items', None):
-                if row.get('unit_type', '') == 'Purchase':
-                    purchaseUOMname = row.get('unit_name', None)
-            items.append({ "adjust_qty_by": item.get("picked_quantity",0),
-                        "sku_code": item.get("wms_code"),
-                        "batchno": item.get("batchno",""),
-                        "mrp" : item.get("mrp",0),
-                        "exp_date": exp_date,
-                        "mfg_date": mfg_date,
-                        'unitypeexid': unitexid,
-                        'uom_name': purchaseUOMname,
-                        #"price": price,
-                        #"order_quantity":order_quantity,
-                        #"cgst_tax":cgst_tax,
-                        #"sgst_tax":sgst_tax,
-                        #"igst_tax":igst_tax,
-                        #"cess_tax": cess_tax,
-                        #"mrp":mrp
-                    })
-    stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
-        'department': department,
-        "subsidiary": subsidary,
-        "location_int_id": location_int_id,
-        "plant": plant,
-        'items': items,
-        "it_date": it_date,
-        "remarks": reason
-    }
-    from stockone_integrations.views import Integrations
-    intObj = Integrations(user, 'netsuiteIntegration')
-    intObj.IntegrateInventoryTransfer(stock_transfer, "it_number", is_multiple=False)
+    try:
+        for picklist_dict in final_data_list:
+            value = picklist_dict['value']
+            key = picklist_dict['key']
+            for item in value:
+                #st_transfer= StockTransfer.objects.get(order_id=picklist_dict["picklist"].picklist_number, sku_id=picklist_dict["picklist"]._stock_cache.sku_id)
+               # open_st= OpenST.objects.get(id=st_transfer.st_po_id)
+               # price= open_st.price
+               # order_quantity= open_st.order_quantity
+               # cgst_tax= open_st.cgst_tax
+               # sgst_tax= open_st.sgst_tax
+               # igst_tax= open_st.igst_tax
+               # cess_tax= open_st.cess_tax
+               # mrp= open_st.mrp
+                mfg_date,exp_date="",""
+                print(item.get("manufactured_date",None), item.get("expiry_date",None) )
+                if(item.get("manufactured_date",None)):
+                    mfg_date = datetime.strptime(item["manufactured_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
+                    m_date= datetime.strptime(mfg_date, '%d-%m-%Y')
+                    mfg_date= m_date.isoformat()
+                if(item.get("expiry_date",None)):
+                    exp_date = datetime.strptime(item["expiry_date"], '%d/%m/%Y').strftime('%d-%m-%Y')
+                    e_date=datetime.strptime(exp_date, '%d-%m-%Y')
+                    exp_date= e_date.isoformat()
+                print(mfg_date, exp_date)
+                unitdata = gather_uom_master_for_sku(user, item.get("wms_code"))
+                unitexid = unitdata.get('name', None)
+                purchaseUOMname = None
+                for row in unitdata.get('uom_items', None):
+                    if row.get('unit_type', '') == 'Purchase':
+                        purchaseUOMname = row.get('unit_name', None)
+                items.append({ "adjust_qty_by": item.get("picked_quantity",0),
+                            "sku_code": item.get("wms_code"),
+                            "batchno": item.get("batchno",""),
+                            "mrp" : item.get("mrp",0),
+                            "exp_date": exp_date,
+                            "mfg_date": mfg_date,
+                            'unitypeexid': unitexid,
+                            'uom_name': purchaseUOMname,
+                            #"price": price,
+                            #"order_quantity":order_quantity,
+                            #"cgst_tax":cgst_tax,
+                            #"sgst_tax":sgst_tax,
+                            #"igst_tax":igst_tax,
+                            #"cess_tax": cess_tax,
+                            #"mrp":mrp
+                        })
+        stock_transfer = { 'it_number': "stock_transfer_" + str(final_data_list[0]["picklist"].picklist_number),
+            'department': department,
+            "subsidiary": subsidary,
+            "location_int_id": location_int_id,
+            "plant": plant,
+            'items': items,
+            "it_date": it_date,
+            "remarks": reason
+        }
+        from stockone_integrations.views import Integrations
+        intObj = Integrations(user, 'netsuiteIntegration')
+        intObj.IntegrateInventoryTransfer(stock_transfer, "it_number", is_multiple=False)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('failed In Integration Module %s' % (str(e)))
 
 def serial_order_mapping(picklist, user):
     try:
@@ -3654,6 +3692,90 @@ def confirm_transfer(request, user=''):
 
     return HttpResponse('Order Transferred Successfully')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def mr_generate_picklist(request, user=''):
+    user_picknumber_dict = {}
+    out_of_stock = []
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+    for key, value in request.POST.iteritems():
+        if key =='enable_damaged_stock':
+            continue
+        order_data = StockTransfer.objects.filter(id=key)
+        user = order_data[0].st_po.open_st.warehouse
+        # new code
+        if user.username in user_picknumber_dict.keys():
+            picklist_number = user_picknumber_dict[user.username]
+        else:
+            picklist_number = get_picklist_number(user)
+        print picklist_number
+        picklist_exclude_zones = get_exclude_zones(user)
+        sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+        if enable_damaged_stock == 'true':
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
+                                                                                    location__zone__zone__in=[
+                                                                                        'DAMAGED_ZONE'])
+        else:
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0).\
+                                        exclude(location__zone__zone__in=picklist_exclude_zones)
+
+        switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                       'fifo_switch': get_misc_value('fifo_switch', user.id),
+                       'no_stock_switch': get_misc_value('no_stock_switch', user.id),
+                       'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
+                       'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
+        if switch_vals['fifo_switch'] == 'true':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
+                'receipt_date')
+            #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+            stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+        else:
+            stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
+                'location_id__pick_sequence')
+            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+        all_sku_stocks = stock_detail1 | stock_detail2
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
+        # new code End
+
+        if order_data and order_data[0].st_seller:
+            sku_stocks = all_sku_stocks
+            seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(order_data[0].st_seller_id),
+                                       seller_stocks)
+            if seller_stock_dict:
+                sell_stock_ids = map(lambda person: person['stock_id'], seller_stock_dict)
+                sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+            else:
+                sku_stocks = sku_stocks.filter(id=0)
+            #seller_stock_ids = list(SellerStock.objects.filter(seller_id=order_data[0].st_seller_id,
+            #                        stock_id__in=sku_stocks.values_list('id', flat=True), quantity__gt=0).values_list('stock_id', flat=True))
+            #sku_stocks = sku_stocks.filter(id__in=seller_stock_ids).distinct()
+        stock_status, picklist_number = picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
+                                                            sku_combos, sku_stocks, switch_vals)
+        user_picknumber_dict[user.username] = picklist_number+1
+        if stock_status:
+            out_of_stock = out_of_stock + stock_status
+    if len(user_picknumber_dict.keys()) == 1:
+        order_typ = 'MR'
+        current_user = user_picknumber_dict.keys()[0]
+        if out_of_stock:
+            stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+        else:
+            stock_status = ''
+        check_picklist_number_created(user, picklist_number + 1)
+        order_status = ''
+        data, sku_total_quantities, courier_name = get_picklist_data(picklist_number + 1, user.id)
+        if data:
+            order_status = data[0]['status']
+    else:
+        data = []
+        stock_status , order_status = '', ''
+        picklist_number = 0
+        order_typ = ''
+        current_user = ''
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
+                                    'order_status': order_status, 'current_user': current_user, 'order_typ': order_typ}))
+
 
 @csrf_exempt
 @login_required
@@ -3730,7 +3852,7 @@ def st_generate_picklist(request, user=''):
         order_status = data[0]['status']
 
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status}))
+                                    'order_status': order_status, 'current_user': '', 'order_typ': 'ST'}))
 
 
 @csrf_exempt
@@ -5677,6 +5799,7 @@ def get_warehouses_list(request, user=''):
 @get_admin_user
 def create_stock_transfer(request, user=''):
     all_data = {}
+    order_typ = request.POST.get('order_typ', 'ST')
     warehouse_name = request.POST.get('warehouse_name', '')
     source_seller_id = request.POST.get('source_seller_id', '')
     dest_seller_id = request.POST.get('dest_seller_id', '')
@@ -5703,7 +5826,7 @@ def create_stock_transfer(request, user=''):
         all_data.setdefault(cond, [])
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],data_dict['cgst'][i],
-             data_dict['sgst'][i],data_dict['igst'][i], data_dict['cess'][i],data_id, mrp])
+             data_dict['sgst'][i],data_dict['igst'][i], data_dict['cess'][i],data_id, mrp, order_typ])
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
     if not status:
@@ -14926,9 +15049,9 @@ def create_orders_check_ean(request, user=''):
 def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only','tsum']
     stock_transfer_objs = StockTransfer.objects.filter(sku__user=user.id, status=1).\
-                                            values('st_po__open_st__sku__user', 'order_id').\
-                                            distinct().annotate(tsum=Sum('quantity'),
-                                            date_only=Cast('creation_date', DateField()))
+                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username').\
+                                        distinct().annotate(tsum=Sum('quantity'),
+                                        date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -14944,12 +15067,13 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     count = 0
 
     for data in master_data[start_index:stop_index]:
+        # import pdb; pdb.set_trace()
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
                                     'Stock Transfer ID': data['order_id'],
                                     'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
-                                    'DT_RowClass': 'results',
+                                    'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1
 
@@ -15073,6 +15197,7 @@ def update_stock_transfer_data(request, user=""):
 @reversion.create_revision(atomic=False, using='reversion')
 def stock_transfer_generate_picklist(request, user=''):
     reversion.set_user(request.user)
+    # import pdb; pdb.set_trace()
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)

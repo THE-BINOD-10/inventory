@@ -949,6 +949,28 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/masters/toggles/machine_update.html'
           })
       // Inbound routes
+      .state('app.inbound.MaterialRequest', {
+        url: '/MaterialRequest',
+        templateUrl: 'views/inbound/main_material_request.html',
+        resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/material_request.js'
+                ]).then( function() {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/material_request_orders.js'
+                  ])
+              })
+            }]
+        },
+        data: {
+          title: 'Material Request ( Plant - Dept )',
+        }
+      })
+      .state('app.inbound.MaterialRequest.Picklist', {
+        url: '/Picklist',
+        templateUrl: 'views/outbound/toggle/batch_tg.html'
+      })
       .state('app.inbound', {
           template: '<div ui-view></div>',
           abstract: true,

@@ -5189,6 +5189,9 @@ def get_order_sku_price(customer_master, data, user):
 @login_required
 @get_admin_user
 def get_customer_sku_prices(request, user=""):
+    if request.POST.get('source', ''):
+        cur_user = request.POST.get('source', '')
+        user = User.objects.get(username=cur_user)
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')
     tax_type = request.POST.get('tax_type', '')
@@ -6299,6 +6302,9 @@ def findIfContractedSupplier(user, sku_code):
 @get_admin_user
 def get_sku_stock_check(request, user='', includeStoreStock=False):
     ''' Check and return sku level stock'''
+    if request.GET.get('source', ''):
+        cur_user = request.GET.get('source', '')
+        user = User.objects.get(username=cur_user)
     sku_code = request.GET.get('sku_code')
     includeStoreStock = request.GET.get('includeStoreStock', '')
     search_params = {'sku__user': user.id}

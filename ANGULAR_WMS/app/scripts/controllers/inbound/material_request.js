@@ -37,6 +37,43 @@ vm.get_sku_details = function (data){
     }
   });
 }
+
+vm.plants_list = {};
+vm.department_type_list = {};
+vm.department_type_mapping = {};
+vm.get_staff_plants_list = get_staff_plants_list;
+function get_staff_plants_list() {
+  vm.service.apiCall("get_staff_plants_list/", "GET", {}).then(function(data) {
+    if(data.message) {
+      // vm.plants_list = data.data.plants_list;
+      angular.forEach(Object.keys(data.data.plants_list).sort(), function(dat){
+        vm.plants_list[dat] = data.data.plants_list[dat];
+      })
+      vm.department_type_list = data.data.department_type_list;
+      vm.department_type_mapping = data.data.department_type_list;
+    }
+  });
+}
+vm.get_staff_plants_list();
+
+vm.department_list = [];
+vm.get_warehouse_department_list = get_warehouse_department_list;
+function get_warehouse_department_list() {
+  var wh_data = {};
+  vm.department_type_list = {};
+  wh_data['warehouse'] = vm.model_data.plant;
+  wh_data['warehouse_type'] = 'DEPT';
+  vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+    if(data.message) {
+      angular.forEach(data.data.warehouse_list, function(dat){
+        if(vm.department_type_mapping[dat.stockone_code]) {
+          vm.department_type_list[dat.username] = vm.department_type_mapping[dat.stockone_code];
+        }
+      });
+    }
+  });
+}
+
 vm.changeUnitPrice = function(data){
   data.total_price = (data.order_quantity * data.price)
   var cgst_percentage = 0;
@@ -106,7 +143,7 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.sku_id, location: ""}
+     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.plant}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
@@ -121,46 +158,47 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.get_sku_data = function(record, item, index) {
+    record.conversion = item.conversion;
+    record.base_uom = item.base_uom;
+    record.measurement_unit = item.measurement_unit;
     record.sku_id = item.wms_code;
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
-
-    vm.get_customer_sku_prices(item.wms_code).then(function(data){
-      if(data.length > 0) {
-        data = data[0]
-        record.mrp = data.mrp;
-        // record["price"] = data.mrp;
-          if(!(record.order_quantity)) {
-            record.order_quantity = 1
-          }
-          if(!(record.price)) {
-            record.price = data.cost_price;
-          }
-          if(vm.igst_enable){
-            if(data.igst_tax){
-            record.igst = data.igst_tax;
-            }else{
-            record.igst = data.sgst_tax+data.cgst_tax;
+    if (vm.model_data.plant && vm.model_data.department_type) {
+      vm.get_customer_sku_prices(item.wms_code, vm.model_data.plant).then(function(data){
+        if(data.length > 0) {
+          data = data[0]
+          record.mrp = data.mrp;
+          // record["price"] = data.mrp;
+            if(!(record.order_quantity)) {
+              record.order_quantity = 1
             }
-          }else {
-           if(data.igst_tax){
-            record.sgst_tax = data.igst_tax / 2;
-            record.cgst_tax = data.igst_tax / 2 ;
-            }else{
-            record.sgst_tax = data.sgst_tax;
-            record.cgst_tax = data.cgst_tax;
+            if(!(record.price)) {
+              record.price = data.cost_price;
             }
-
-          }
-
-
-        record.invoice_amount = Number(record.price)*Number(record.quantity);
-        vm.update_availabe_stock(record)
-//        vm.change_brand(data)
-
-      }
-    })
+            if(vm.igst_enable){
+              if(data.igst_tax){
+              record.igst = data.igst_tax;
+              }else{
+              record.igst = data.sgst_tax+data.cgst_tax;
+              }
+            }else {
+             if(data.igst_tax){
+              record.sgst_tax = data.igst_tax / 2;
+              record.cgst_tax = data.igst_tax / 2 ;
+              }else{
+              record.sgst_tax = data.sgst_tax;
+              record.cgst_tax = data.cgst_tax;
+              }
+            }
+          record.invoice_amount = Number(record.price)*Number(record.quantity);
+          vm.update_availabe_stock(record)
+        }
+      })
+    } else {
+      colFilters.showNoty("Please select Plant and Department");
+    }
   }
   vm.verifyTax = function() {
     var temp_ware_name = '';
@@ -198,10 +236,12 @@ vm.changeUnitPrice = function(data){
     });
   }
 
-  vm.get_customer_sku_prices = function(sku) {
-
+  vm.get_customer_sku_prices = function(sku, source='') {
     var d = $q.defer();
     var data = {sku_codes: sku}
+    if (source) {
+      data['source'] = source;
+    }
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
       if(data.message) {
         d.resolve(data.data);

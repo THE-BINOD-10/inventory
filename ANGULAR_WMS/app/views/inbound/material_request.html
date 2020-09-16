@@ -4,12 +4,34 @@
       <div class="row">
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
+            <label class="control-label">Source Plant *</label>
+            <select class="form-control" name="source_plant"
+            ng-model="showCase.model_data.plant"  ng-change="showCase.get_warehouse_department_list()" required>
+              <option ng-repeat="(plant_name, plant_code) in showCase.plants_list"
+                      value="{{plant_code}}">{{plant_name}}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-3 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Destination Department *</label>
+            <select class="form-control" name="warehouse_name"
+            ng-model="showCase.model_data.department_type" required>
+              <option ng-repeat="(dept_code, dept_name) in showCase.department_type_list"
+                      value="{{showCase.model_data.department_type = dept_code}}">{{dept_name}}
+              </option>
+            </select>
+          </div>
+        </div>
+        <!-- <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
             <label class="control-label"> Warehouse Name </label>
             <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.selected" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
               <option ng-repeat="wh in showCase.warehouse_list" value="{{wh}}">{{wh}}</option>
             </select>
           </div>
-        </div>
+        </div> -->
         <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
           <div class="form-group">
             <label class="control-label"> Source Warehouse Seller * </label>
@@ -93,6 +115,8 @@
       </div>
     </div>
     <div class="col-md-12 form-group clearfix" style="padding-bottom:0px;">
+      <!-- {{showCase.model_data.data}} -->
+      <!-- {{showCase.department_type_list}} -->
       <button type="submit" class="btn btn-primary" id="st-create-order" ng-disabled="showCase.bt_disable" style="margin: auto;display: block;" ng-click="showCase.insert_order_data(form)">Send Material Request </button>
     </div>
   </form>

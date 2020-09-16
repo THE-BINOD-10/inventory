@@ -2327,7 +2327,13 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
-        netsuite_picklist_confirmation(final_data_list, user)
+        try:
+            netsuite_picklist_confirmation(final_data_list, user)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmed')
 
 def netsuite_picklist_confirmation(final_data_list, user):
@@ -5658,18 +5664,24 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs, continue_fla
 @get_admin_user
 def get_warehouses_list(request, user=''):
     user_list = []
+    warehouse_mapping = {}
     user_states = {}
     admin_user = UserGroups.objects.filter(
         Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
         values_list('admin_user_id', flat=True)
     user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
-                                                                                 'admin_user__username', 'user__userprofile__state')
+                                                                                 'admin_user__username', 'user__userprofile__state',
+                                                                                 'user__first_name')
     for users in user_groups:
-        for key, value in users.iteritems():
-            if user.username != value and value not in user_list and key not in ['user__userprofile__state']:
-                user_list.append(value)
-                user_states[value] = users['user__userprofile__state']
-    return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states}))
+        #for key, value in users.iteritems():
+        #    if user.username != value and value not in user_list and key not in ['user__userprofile__state']:
+        #        user_list.append(value)
+        #        warehouse_mapping
+        #        user_states[value] = users['user__userprofile__state']
+        user_list.append(users['user__username'])
+        warehouse_mapping[users['user__username']] = users['user__first_name']
+        user_states[users['user__username']] = users['user__userprofile__state']
+    return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states, 'warehouse_mapping': warehouse_mapping}))
 
 
 @csrf_exempt

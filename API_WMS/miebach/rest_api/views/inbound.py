@@ -1134,9 +1134,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 receive_status = 'Pending from PR Requester'
                 send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
-        if productType == '' and supplier.open_po.sku.sku_code:
+        if productType == '' and order_data['sku'].sku_code:
             productType = 'Kits&Consumables'
-            sku_id = SKUMaster.objects.filter(wms_code=supplier.open_po.sku.sku_code, user=user.id)
+            sku_id = SKUMaster.objects.filter(wms_code=order_data['sku'].sku_code, user=user.id)
             if sku_id:
                 sku= sku_id[0]
                 try:

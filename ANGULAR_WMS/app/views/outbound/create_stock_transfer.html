@@ -16,7 +16,7 @@
               <div class="form-group">
                 <label class="control-label"> Warehouse Name </label>
                 <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.selected" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
-                  <option ng-repeat="wh in showCase.warehouse_list" value="{{wh}}">{{wh}}</option>
+                  <option ng-repeat="(wh_username, wh_firstname) in showCase.warehouse_dict" value="{{wh_username}}">{{wh_firstname}}</option>
                 </select>
               </div>
             </div>

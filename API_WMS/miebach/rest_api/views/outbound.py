@@ -5798,6 +5798,10 @@ def get_warehouses_list(request, user=''):
 @login_required
 @get_admin_user
 def create_stock_transfer(request, user=''):
+    if request.POST.get('source_plant', ''):
+        import pdb; pdb.set_trace()
+        cur_user = request.POST.get('source_plant', '')
+        user = User.objects.get(username=cur_user)
     all_data = {}
     order_typ = request.POST.get('order_typ', 'ST')
     warehouse_name = request.POST.get('warehouse_name', '')

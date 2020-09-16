@@ -16141,7 +16141,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
                                                    Q(sku__sku_code__icontains=search_term) |
                                                    Q(st_seller__seller_id__icontains=search_term) |
                                                    Q(st_seller__name__icontains=search_term),
-                                                   status=1).order_by(order_data)
+                                                   status=1, st_type='MR').order_by(order_data)
         else:
             master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
                                                    Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
@@ -16149,7 +16149,7 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
                                                    Q(st_seller__seller_id__icontains=search_term) |
                                                    Q(st_seller__name__icontains=search_term),
                                                    sku__user=user.id,
-                                                   status=1).order_by(order_data)
+                                                   status=1, st_type='MR').order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0

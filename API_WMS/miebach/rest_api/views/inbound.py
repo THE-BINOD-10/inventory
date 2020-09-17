@@ -3595,7 +3595,7 @@ def approve_pr(request, user=''):
                 totalAmt += float(myDict['total'][i])
             except:
                 pass
-            if is_purchase_approver:
+            if is_purchase_approver and validation_type != 'rejected':
                 supplier_id = myDict['supplier_id'][i]
                 store_user = get_admin(pr_user)
                 supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)

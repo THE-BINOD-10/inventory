@@ -9943,6 +9943,13 @@ def validate_tax_master_form(request, reader, user, no_of_rows, no_of_cols, fnam
                         data_dict['product_type'] = cell_data
                     else:
                         index_status.setdefault(row_idx, set()).add('HSN Code is Mandatory')
+                if key == 'reference_id':
+                    if cell_data:
+                        if isinstance(cell_data, float):
+                            cell_data = str(int(cell_data))
+                        data_dict['reference_id'] = cell_data
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Reference ID is Mandatory')
                 elif key == 'tax_type':
                     if cell_data:
                         if cell_data.lower() not in ['inter state','intra state']:
@@ -10075,7 +10082,7 @@ def user_master_upload(request, user=''):
                 user_profile_dict,
                 exist_user_profile
             )
-        else:       
+        else:
             newuser = create_user_wh(
                 final_data.get('parent_wh_username'),
                 user_dict,

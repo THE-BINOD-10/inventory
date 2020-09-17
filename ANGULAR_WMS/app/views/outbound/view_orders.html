@@ -171,12 +171,30 @@
           </div>
         </div>
       </tab>
-      <tab heading="Custom Orders">
+      <tab heading="Material Request Orders">
+        <div class="panel" ng-controller="MaterialRequestOrders as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+          </div>
+        </div>
+      </tab>
+      <!-- <tab heading="Custom Orders">
         <div ng-include="'views/outbound/view_orders/custom_orders.html'"></div>
       </tab>
       <tab heading="Central Orders" ng-if="show_tab(permissions.central_order_mgmt == 'true')">
         <div ng-include="'views/outbound/view_orders/central_orders.html'"></div>
-      </tab>
+      </tab> -->
       <!--<tab heading="Create Central Orders" ng-if="show_tab(showCase.permissions.central_order_mgmt == true)">
         <div ng-include="'views/outbound/view_orders/create_central_orders.html'"></div>
       </tab>-->

@@ -107,7 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }).notSortable(),
             DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
-            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destibnation Warehouse'),
+            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destination Warehouse'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
@@ -410,6 +410,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
+                                                         batchno: vm.model_data.data[i].batchno,
                                                          picked_quantity: value});
                   }
             $state.go('app.outbound.ViewOrders.Picklist');

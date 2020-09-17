@@ -953,23 +953,15 @@ var app = angular.module('urbanApp')
         url: '/MaterialRequest',
         templateUrl: 'views/inbound/main_material_request.html',
         resolve: {
-            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                  'scripts/controllers/inbound/material_request.js'
-                ]).then( function() {
-                return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/material_request_orders.js'
-                  ])
-              })
-            }]
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/inbound/material_request.js'
+              ])
+          }]
         },
         data: {
           title: 'Material Request ( Plant - Dept )',
         }
-      })
-      .state('app.inbound.MaterialRequest.Picklist', {
-        url: '/Picklist',
-        templateUrl: 'views/outbound/toggle/batch_tg.html'
       })
       .state('app.inbound', {
           template: '<div ui-view></div>',
@@ -1809,6 +1801,8 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/inbound/material_request_orders.js');
               }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               }).then(function () {

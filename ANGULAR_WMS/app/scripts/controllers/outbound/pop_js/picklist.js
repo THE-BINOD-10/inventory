@@ -38,9 +38,9 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
          for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
                     var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
-                    if(Session.user_profile.user_type == "marketplace_user") {
-                      value = vm.model_data.data[i].picked_quantity;
-                    }
+                    // if(Session.user_profile.user_type == "marketplace_user") {
+                    value = vm.model_data.data[i].picked_quantity;
+                    // }
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
@@ -493,7 +493,6 @@ function view_orders() {
           elem.push(elem_dict)
         }
       }
-      debugger
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data) {
         if(data.message) {
           vm.qty_validation = {};

@@ -1,7 +1,24 @@
+<style type="text/css">
+  .form-control {
+    padding: 2px 2px;
+    font-size: x-small;
+    font-weight: 600;
+  }
+  .table > tbody > tr > td{
+    padding: 3px 3px;
+  }
+  .table > thead > tr> td{
+    padding: 3px 3px;
+  }
+  .table > tbody > tr > td {
+    border-color: #ffffff !important;
+    border-top: #fff !important;
+  }
+</style>
 <div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="modal-confirmation" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
   <!-- Modal -->
   <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg" style="width: 1200px; font-size: smaller;">
       <div class="modal-content model-custom">
         <div ng-include="'views/common/loader.html'"></div> 
         <div class="modal-header">
@@ -47,9 +64,9 @@
                   <th> Title </th>
                   <th> Zone </th>
                   <th> Location </th>
-                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> Batch No </th>
-                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> Manufactured Date </th>
-                  <th ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'"> MRP </th>
+                  <th> Batch No </th>
+                  <th> Manufactured Date </th>
+                  <th> MRP </th>
                   <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                   <th> Reserved Quantity </th>
                   <th> Picked Quantity </th>
@@ -74,17 +91,16 @@
                   <td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
 
-                  <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                  <td>
                     <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno" typeahead="address.batchno for address in showCase.service.getSearchValues($viewValue, 'search_batches',record)" ng-model="record.batchno" ng-blur="showCase.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" required>
                  </td>
                  <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
-                 <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                 <td>
                     <input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly>
                  </td>
-                 <td ng-if="showCase.industry_type=='FMCG' && showCase.user_type=='marketplace_user'">
+                 <td>
                     <input ng-model="data.mrp" class="form-control" type="text" readonly>
                  </td>
-
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
                   <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.permissions.scan_picklist_option != 'scan_sku_location' && showCase.permissions.scan_picklist_option != 'scan_sku' && showCase.permissions.scan_picklist_option != 'scan_none'" ng-class="service.get_decimal_perm()"></td>

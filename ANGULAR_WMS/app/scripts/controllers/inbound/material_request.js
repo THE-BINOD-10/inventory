@@ -12,8 +12,8 @@ function MaterialStockOrders($scope, $http, $q, $state, Session, colFilters, Ser
   vm.model_data = {};
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type = Session.user_profile.user_type;
-  var empty_data = {data: [{wms_code: "", order_quantity: "", price: "", capacity:0, tax_type: ""}], warehouse_name: "",
-                            source_seller_id:"", dest_seller_id: ""};
+  var empty_data = {data: [{wms_code: "", order_quantity: 0, price: "", capacity:0, tax_type: ""}], warehouse_name: "",
+                            source_seller_id:"", dest_seller_id: "", total_qty: 0};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -21,11 +21,29 @@ function MaterialStockOrders($scope, $http, $q, $state, Session, colFilters, Ser
       return cssClass
     }
 
+  vm.check_sku_dup = check_sku_dup;
+  function check_sku_dup(index, data, last) {
+    var status = true;
+    var temp_skus = []
+    angular.forEach(data, function(dat, indexs){
+      if(temp_skus.includes(dat['sku_id'])){
+        status = false;
+        data.splice(indexs, 1)
+      } else {
+        temp_skus.push(dat['sku_id'])
+      }
+    })
+    if (status) {
+      vm.update_data(index, data, last);
+    } else {
+      colFilters.showNoty("Duplicate Sku Code !!");
+    }
+  }
+
   vm.update_data = update_data;
   function update_data(index, data, last) {
-    console.log(data);
     if (last) {
-      vm.model_data.data.push({wms_code: "", order_quantity: "", price: ""});
+      vm.model_data.data.push({wms_code: "", order_quantity: 0, price: ""});
     } else {
       vm.model_data.data.splice(index,1);
     }
@@ -75,10 +93,17 @@ function get_warehouse_department_list() {
 }
 
 vm.changeUnitPrice = function(data){
+  if (parseFloat(data.order_quantity) > 0) {
+    data.total_qty = parseFloat(data.order_quantity) * parseFloat(data.conversion);
+  }
+  if (parseFloat(data.capacity) < parseFloat(data.total_qty)) {
+    data.total_qty = 0;
+    data.order_quantity = 0;
+    colFilters.showNoty("Total Qty Should be less then available Quantity");
+  }
   data.total_price = (data.order_quantity * data.price)
   var cgst_percentage = 0;
   var sgst_percentage = 0;
-
   if(data.cgst)
   {
       cgst_percentage = (data.total_price * parseFloat(data.cgst)) / 100
@@ -103,6 +128,7 @@ vm.changeUnitPrice = function(data){
   }
   data.total_price = (data.total_price).toFixed(3).slice(0,-1);
 }
+
   vm.warehouse_list = [];
   vm.service.apiCall('get_warehouses_list/').then(function(data){
     if(data.message) {
@@ -158,21 +184,20 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.get_sku_data = function(record, item, index) {
-    record.conversion = item.conversion;
-    record.base_uom = item.base_uom;
-    record.measurement_unit = item.measurement_unit;
-    record.sku_id = item.wms_code;
     angular.copy(empty_data.data[0], record);
-    record.sku_id = item.wms_code;
-    record["description"] = item.sku_desc;
     if (vm.model_data.plant && vm.model_data.department_type) {
+      record.sku_id = item.wms_code;
+      record["description"] = item.sku_desc;
+      record.conversion = item.conversion;
+      record.base_uom = item.base_uom;
+      record.measurement_unit = item.measurement_unit;
       vm.get_customer_sku_prices(item.wms_code, vm.model_data.plant).then(function(data){
         if(data.length > 0) {
           data = data[0]
           record.mrp = data.mrp;
           // record["price"] = data.mrp;
             if(!(record.order_quantity)) {
-              record.order_quantity = 1
+              record.order_quantity = 0
             }
             if(!(record.price)) {
               record.price = data.cost_price;
@@ -194,6 +219,7 @@ vm.changeUnitPrice = function(data){
             }
           record.invoice_amount = Number(record.price)*Number(record.quantity);
           vm.update_availabe_stock(record)
+          console.log(record);
         }
       })
     } else {

@@ -1550,15 +1550,15 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
             if key == 'test_name' and is_test:
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Test Name missing')
-            elif key == 'test_type' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Test Type missing')
-            elif key == 'department_type' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('Department Type missing')
-            elif key == 'status' and is_test:
-                if not cell_data:
-                    index_status.setdefault(row_idx, set()).add('status missing')
+            #elif key == 'test_type' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('Test Type missing')
+            #elif key == 'department_type' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('Department Type missing')
+            #elif key == 'status' and is_test:
+            #    if not cell_data:
+            #        index_status.setdefault(row_idx, set()).add('status missing')
 
             elif key == 'sku_group':
                 if cell_data:
@@ -10926,6 +10926,7 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
     for row_idx in range(1, no_of_rows):
         data_dict = {'user': None, 'row_index': row_idx}
         puom_list, buom_list = [], []
+        first_date, last_date = '',''
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key == 'adjustment_date':
@@ -11035,8 +11036,10 @@ def validate_closing_adjustment_form(request, reader, user, no_of_rows, no_of_co
         all_data[cond]['location'][data_dict['location'].location] += data_dict['base_uom_qty']
         all_data[cond]['indexes'].append(data_dict['row_index'])
     for group_key, valid_data in all_data.items():
-        putaway_pending_qty = POLocation.objects.filter(purchase_order__open_po__sku_id=valid_data['sku'].id, quantity__gt=0, status=1).\
-                                                        aggregate(Sum('quantity'))['quantity__sum']
+        putaway_pending_dict = {'purchase_order__open_po__sku_id': valid_data['sku'].id, 'quantity__gt': 0, 'status': 1}
+        if last_date:
+            putaway_pending_dict['creation_date__lte'] = last_date
+        putaway_pending_qty = POLocation.objects.filter(**putaway_pending_dict).aggregate(Sum('quantity'))['quantity__sum']
         putaway_pending_qty = putaway_pending_qty*valid_data['conversion_factor'] if putaway_pending_qty else 0
         if valid_data['base_uom_qty'] < putaway_pending_qty:
             for row_idx in valid_data['indexes']:
@@ -11125,7 +11128,7 @@ def closing_adjustment_upload(request, user=''):
                 stats_filter_dict['batch_no'] = batch_no
             stats = dict(SKUDetailStats.objects.filter(sku_id=sku.id, creation_date__range=[first_date, last_date]).\
                                             values_list('transact_type').distinct().annotate(Sum('quantity')))
-            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1}
+            pp_dict = {'purchase_order__open_po__sku_id': sku.id, 'quantity__gt': 0, 'status': 1, 'creation_date__lte': last_date}
             if batch_no:
                 pp_dict['id__in'] = BatchDetail.objects.filter(batch_no=batch_no, transact_type='po_loc').\
                                                         values_list('transact_id', flat=True)
@@ -11150,35 +11153,38 @@ def closing_adjustment_upload(request, user=''):
             last_change_date = last_date - datetime.timedelta(hours=1)
             adj_dict = {'base_quantity': base_quantity, 'puom': final_data['purchase_uom'], 'pquantity': final_data['purchase_uom_qty'],
                         'pcf': final_data['conversion_factor'], 'creation_date': final_data['adjustment_date']}
-            adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
-            if adj_created:
-                AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
-            if not closing_adj:continue
-            consumption_data = ConsumptionData.objects.create(
-                sku_id=sku.id,
-                quantity=closing_adj,
-            )
-            ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
-            if closing_adj > 0:
-                update_stock_detail(sku_stocks, closing_adj, user,
-                                    consumption_data.id, transact_type='consumption',
-                                    mapping_obj=consumption_data, inc_type='dec',
-                                    transact_date=last_change_date)
-            else:
-                update_stock_detail(sku_stocks, abs(closing_adj), user,
-                                    consumption_data.id, transact_type='consumption',
-                                    mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict,
-                                    transact_date=last_change_date)
-            sku_stocks = sku_stocks.filter()
-            if sku_stocks:
-                source_loc = sku_stocks[0].location.location
-                total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
-                for location_name, move_loc_qty in final_data['location'].items():
-                    if source_loc.lower() == location_name.lower():
-                        continue
-                    if total_stock >= move_loc_qty:
-                        move_qty = move_loc_qty
-                        move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user)
+            with transaction.atomic('default'):
+                adj_obj, adj_created = AdjustmentData.objects.update_or_create(sku_id=sku.id, batch_no=final_data.get('batch_number', ''), defaults=adj_dict)
+                if adj_created:
+                    AdjustmentData.objects.filter(id=adj_obj.id).update(creation_date=last_change_date)
+                if not closing_adj:continue
+                consumption_data = ConsumptionData.objects.create(
+                    sku_id=sku.id,
+                    quantity=closing_adj,
+                )
+                ConsumptionData.objects.filter(id=consumption_data.id).update(creation_date=last_change_date)
+                if closing_adj > 0:
+                    update_stock_detail(sku_stocks, closing_adj, user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='dec',
+                                        transact_date=last_change_date)
+                else:
+                    update_stock_detail(sku_stocks, abs(closing_adj), user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='inc', stock_dict=stock_dict,
+                                        transact_date=last_change_date)
+                sku_stocks = sku_stocks.filter()
+                if sku_stocks:
+                    source_loc = sku_stocks[0].location.location
+                    total_stock = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                    for location_name, move_loc_qty in final_data['location'].items():
+                        if source_loc.lower() == location_name.lower():
+                            continue
+                        if total_stock >= move_loc_qty:
+                            move_qty = move_loc_qty
+                            receipt_number = get_stock_receipt_number(user)
+                            move_stock_location(sku.sku_code, source_loc, location_name, move_qty, user, receipt_type='closing stock',
+                            receipt_number=receipt_number)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

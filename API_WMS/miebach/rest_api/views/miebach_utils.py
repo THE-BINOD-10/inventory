@@ -14728,7 +14728,11 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
 
     values_list = ['po_number', 'creation_date','expected_date']
 
-    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().annotate(total_qty=Sum('open_po__order_quantity')).annotate(total_amt=Sum(F('open_po__order_quantity') * F('open_po__price')))
+    model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct()
+                                        #annotate(total_qty=Sum('open_po__order_quantity'),
+                                    #total_temp_amt=Sum(F('open_po__order_quantity') * F('open_po__price')),
+                                    #annotate(total_tax_amount=Sum((F('open_po__order_quantity') * F('open_po__price')/100)*(F('open_po__cgst_tax')+F('open_po__sgst_tax')+F('open_po__igst_tax'))),
+                                    #total_amount=Sum((F('total_temp_amt')/100)*F('total_tax')+F('total_temp_amt')))
 
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = model_data.count()
@@ -14740,8 +14744,30 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         pr_plant, pr_department, pr_number, pr_date, pr_user = '', '', '', '', ''
         product_category, category, final_status= '', '', ''
         pr_quantity = ''
-        open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number']).latest('po_date')
-        if open_po_data:
+        open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).\
+                                            values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
+                                            'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
+                                            'open_po__supplier__name', 'open_po__sku__sku_category', 'po_date',
+                                            'open_po__sku__user', 'updation_date')
+        po_quantity,po_tax_amount, po_amount = 0,0,0
+        for open_po in open_po_data:
+            po_quantity += open_po['open_po__order_quantity']
+            temp_tax = open_po['open_po__cgst_tax'] + open_po['open_po__sgst_tax'] + open_po['open_po__igst_tax']
+            temp_amt = (open_po['open_po__order_quantity']*open_po['open_po__price'])
+            po_tax_amount += (temp_amt/100) * temp_tax
+            po_amount += po_tax_amount + temp_amt
+            supplier_id = open_po['open_po__supplier__supplier_id']
+            supplier_name = open_po['open_po__supplier__name']
+            category = open_po['open_po__sku__sku_category']
+            user_id = open_po['open_po__sku__user']
+            po_date = open_po['po_date']
+            po_update_date = open_po['updation_date']
+            if po_update_date:
+                po_update_date = get_local_date(user, po_update_date)
+            if po_date:
+                po_date = get_local_date(user, po_date)
+
+        '''if open_po_data:
             if open_po_data.open_po:
                 supplier_id = open_po_data.open_po.supplier.supplier_id
                 supplier_name = open_po_data.open_po.supplier.name
@@ -14752,11 +14778,11 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             if po_update_date:
                 po_update_date = get_local_date(user, po_update_date)
             if po_date:
-                po_date = get_local_date(user, po_date)
+                po_date = get_local_date(user, po_date)'''
         po_number = result['po_number']
-        po_amount_details = po_upload_amount_and_quantity(po_number)
-        po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
-            'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
+        #po_amount_details = po_upload_amount_and_quantity(po_number)
+        #po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
+        #    'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         po_user = ''
         pr_values_list = ['pending_po__requested_user__username', 'pending_po__pending_prs__full_pr_number','pending_po__pending_prs__wh_user__id',
         'pending_po__pending_prs__requested_user__first_name', 'pending_po__pending_prs__creation_date','pending_po__delivery_date',
@@ -14794,12 +14820,12 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             last_approvals_date = get_local_date(user, all_approvals_data[-1][1]).split(' ')
             last_approvals_date = ' '.join(last_approvals_date[0:3])
         po_amount_details, pr_amount_details = get_po_price_and_tax_amount(po_number, pr_number)
-        po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
-            'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
+        #po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
+        #    'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_quantity, pr_tax_amount, pr_amount = pr_amount_details.get('pr_total_qty', 0), pr_amount_details.get(
             'pr_tax_amount', 0), pr_amount_details.get('pr_total_amount', 0)
 
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number)
+        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, )
         grn_numbers, updated_user_name, delivery_date = [], '', ''
         if grn_data.exists():
             for g_data in grn_data:
@@ -14908,7 +14934,8 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                    'open_po__sku__sku_desc', 'open_po__sku__hsn_code', 'open_po__delivery_date', 'updation_date',
                    'open_po__sku__sku_group', 'open_po__sku__style_name', 'open_po__sku__sku_brand','open_po__measurement_unit',
                    'open_po__supplier__supplier_id', 'open_po__supplier__name', 'open_po__delivery_date','po_date',
-                   'open_po__sku__sub_category', 'updation_date', 'creation_date']
+                   'open_po__sku__sub_category', 'updation_date', 'creation_date', 'open_po__order_quantity',
+                   'open_po__cgst_tax', 'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__price', 'id']
 
     model_data = PurchaseOrder.objects.filter(**search_parameters).values(*values_list).distinct().order_by(order_data)
     if order_term:
@@ -14954,9 +14981,14 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
             po_update_date = get_local_date(user, po_update_date)
         if po_date:
             po_date = get_local_date(user, po_date)
-        po_amount_details = po_upload_amount_and_quantity_sku_wise(po_number, sku_code)
-        po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
-            'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
+        #po_amount_details = po_upload_amount_and_quantity_sku_wise(po_number, sku_code)
+        po_quantity = result['open_po__order_quantity']
+        po_tmp_tax = result['open_po__cgst_tax'] + result['open_po__sgst_tax'] + result['open_po__igst_tax']
+        po_amt = result['open_po__order_quantity'] * result['open_po__price']
+        po_tax_amount = (po_amt/100) * po_tmp_tax
+        po_amount = po_tax_amount + po_amt
+        #po_quantity, po_tax_amount, po_amount = po_amount_details.get('po_total_qty', 0), po_amount_details.get(
+        #    'po_tax_amount', 0), po_amount_details.get('po_total_amount', 0)
         pr_values_list = ['full_po_number', 'creation_date', 'requested_user__username',
                        'pending_prs__full_pr_number', 'open_po', 'pending_prs__full_pr_number',
                        'pending_prs__requested_user__first_name', 'pending_prs__creation_date','pending_prs__wh_user__id',
@@ -15001,7 +15033,7 @@ def get_metropolis_po_detail_report_data(search_params, user, sub_user):
                 delivery_date = pr_data['delivery_date'].strftime("%d-%b-%y")
 
         po_number = result['po_number']
-        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number)
+        grn_data = SellerPOSummary.objects.filter(purchase_order__po_number=po_number, purchase_order_id=result['id'])
         grn_numbers, updated_user_name= [], ''
         if grn_data.exists():
             for g_data in grn_data:

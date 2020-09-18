@@ -1430,6 +1430,25 @@ STOCK_TRANSFER_REPORT_DICT = {
     'print_url': 'print_stock_transfer_report',
 }
 
+MATERIAL_REQUEST_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+    ],
+    'dt_headers': ['Date', 'Order ID', 'Invoice Number', 'Source Plant', 'Destination Department', 'SKU Code',
+                   'SKU Description', 'Order Quantity', 'Invoice Quantity', 'HSN Code', 'Status'],
+    'mk_dt_headers': ['Date', 'Order ID', 'Invoice Number', 'Source Plant', 'Destination Department', 'SKU Code',
+                      'SKU Description', 'Order Quantity', 'Unit Price', 'Order Amount(w/o tax)', 'Order Tax Amount',
+                      'Total Order Amount', 'Tax Percentage', 'Invoice Quantity', 'Invoice Amount(w/o tax)',
+                      'Total Invoice Amount', 'HSN Code', 'Status',
+                      'Batch Number', 'Manufactured Date', 'Expiry Date'],
+    'dt_url': 'get_material_request_report', 'excel_name': 'get_material_request_report',
+    'print_url': 'print_stock_transfer_report',
+}
+
 MARGIN_REPORT_DICT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -1763,6 +1782,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'inventory_value_report': INVENTORY_VALUE_REPORT_DICT,
                      'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      'stock_transfer_report': STOCK_TRANSFER_REPORT_DICT,
+                     'material_request_report': MATERIAL_REQUEST_REPORT_DICT,
                      'stock_reconsiliation_report': STOCK_RECONCILIATION_REPORT_DICT,
                      'margin_report': MARGIN_REPORT_DICT,
                      'stock_cover_report': STOCK_COVER_REPORT_DICT,
@@ -10592,6 +10612,165 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
+def get_material_request_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
+    from miebach_admin.models import *
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
+           'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
+           'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
+           'st_po__open_st__sgst_tax',
+           'st_po__open_st__igst_tax', 'st_po__open_st__cgst_tax', 'st_po__open_st__sgst_tax',
+           'st_po__open_st__igst_tax',
+           'st_po__open_st__price', 'status', 'st_po__open_st__igst_tax', 'st_po__open_st__price', 'status']
+
+    status_map = ['Pick List Generated', 'Pending', 'Accepted']
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    col_num = search_params.get('order_index', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term != 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
+    if 'order_id' in search_params:
+        search_parameters['order_id'] = search_params['order_id']
+    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+        if 'manufacturer' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
+        if 'searchable' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
+        if 'bundle' in search_params:
+            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
+
+    search_parameters['sku_id__in'] = sku_master_ids
+    search_parameters['sku__user'] = user.id
+    search_parameters['st_type'] = 'MR'
+    stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
+        order_by(order_data).select_related('sku', 'st_po__open_st__sku')
+    # import pdb; pdb.set_trace()
+    temp_data['recordsTotal'] = stock_transfer_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = str(datetime.datetime.now())
+    attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
+    for data in (stock_transfer_data[start_index:stop_index]):
+        date = get_local_date(user, data.creation_date)
+        destination = User.objects.get(id=data.st_po.open_st.sku.user)
+        status = status_map[data.status]
+        destination = destination.username
+        cgst = data.st_po.open_st.cgst_tax
+        sgst = data.st_po.open_st.sgst_tax
+        igst = data.st_po.open_st.igst_tax
+        price = data.st_po.open_st.price
+        quantity = data.quantity
+        net_value = quantity * price
+        cgst_value = (net_value * cgst) / 100
+        sgst_value = (net_value * sgst) / 100
+        igst_value = (net_value * igst) / 100
+        order_wo_amount = quantity * price
+        order_tax_amount = cgst_value + sgst_value + igst_value
+        total_order_amount = order_wo_amount + order_tax_amount
+        tax_percentage = cgst + sgst + igst
+
+        manufacturer, searchable, bundle = '', '', ''
+        if data.stocktransfersummary_set.filter():
+            for invoice_no in data.stocktransfersummary_set.filter():
+                invoice_number = invoice_no.full_invoice_number
+                invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
+                                                                   stock_transfer__sku__sku_code=data.sku.sku_code).values(
+                    'quantity')
+                if invoice_data.exists():
+                    invoice_quantity = invoice_data[0]['quantity']
+                    invoice_wo_tax_amount = invoice_quantity * price
+                    invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
+                    invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
+                if user.userprofile.industry_type == 'FMCG':
+                    batch_number = ''
+                    expiry_date = ''
+                    manufactured_date = ''
+                    batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                                                        stock_transfer=data.id).values(
+                        'picklist__stock__batch_detail__batch_no',
+                        'picklist__stock__batch_detail__manufactured_date',
+                        'picklist__stock__batch_detail__expiry_date')
+                    if batch_data.exists():
+                        batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
+                        expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
+                            "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                        manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
+                            "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+
+                    ord_dict = OrderedDict(
+                        (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                         ('Source Plant', user.username), ('Destination Department', destination),
+                         ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                         ('Order Quantity', quantity),
+                         ('Invoice Quantity', invoice_quantity),
+                         ('HSN Code', data.sku.hsn_code), ('Status', status),
+                         ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                         ('Expiry Date', expiry_date)))
+                else:
+                    ord_dict = OrderedDict(
+                        (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                         ('Source Plant', user.username), ('Destination Department', destination),
+                         ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                         ('Order Quantity', quantity),
+                         ('Invoice Quantity', invoice_quantity),
+                         ('HSN Code', data.sku.hsn_code), ('Status', status)))
+                if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                    ord_dict['Manufacturer'] = manufacturer
+                    ord_dict['Searchable'] = searchable
+                    ord_dict['Bundle'] = bundle
+                temp_data['aaData'].append(ord_dict)
+        else:
+            invoice_number = ''
+            invoice_quantity = ''
+            invoice_wo_tax_amount = ''
+            invoice_tax_amount = ''
+            invoice_total_amount = ''
+            if user.userprofile.industry_type == 'FMCG':
+                batch_number = ''
+                expiry_date = ''
+                manufactured_date = ''
+                batch_data = STOrder.objects.filter(stock_transfer__sku__user=user.id,
+                                                    stock_transfer=data.id).values(
+                    'picklist__stock__batch_detail__batch_no',
+                    'picklist__stock__batch_detail__manufactured_date', 'picklist__stock__batch_detail__expiry_date')
+                if batch_data.exists():
+                    batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
+                    expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime("%d %b, %Y")
+                    manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
+                        "%d %b, %Y")
+                ord_dict = OrderedDict(
+                    (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
+                     ('Source Plant', user.username), ('Destination Department', destination),
+                     ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                     ('Order Quantity', quantity),
+                     ('Invoice Quantity', invoice_quantity),
+                     ('HSN Code', data.sku.hsn_code), ('Status', status),
+                     ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
+                     ('Expiry Date', expiry_date)))
+            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
+                ord_dict['Manufacturer'] = manufacturer
+                ord_dict['Searchable'] = searchable
+                ord_dict['Bundle'] = bundle
+            temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+
 def get_stock_transfer_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
     from miebach_admin.models import *
@@ -10638,6 +10817,7 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
 
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user'] = user.id
+    search_parameters['st_type'] = 'ST'
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
     temp_data['recordsTotal'] = stock_transfer_data.count()

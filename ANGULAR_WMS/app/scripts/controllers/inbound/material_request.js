@@ -94,9 +94,9 @@ function get_warehouse_department_list() {
 
 vm.changeUnitPrice = function(data){
   if (parseFloat(data.order_quantity) > 0) {
-    data.total_qty = parseFloat(data.order_quantity) * parseFloat(data.conversion);
+    data.conversion = parseFloat(data.order_quantity) * parseFloat(data.temp_conversion);
   }
-  if (parseFloat(data.capacity) < parseFloat(data.total_qty)) {
+  if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
     data.total_qty = 0;
     data.order_quantity = 0;
     colFilters.showNoty("Total Qty Should be less then available Quantity");
@@ -189,6 +189,7 @@ vm.changeUnitPrice = function(data){
       record.sku_id = item.wms_code;
       record["description"] = item.sku_desc;
       record.conversion = item.conversion;
+      record.temp_conversion = item.conversion;
       record.base_uom = item.base_uom;
       record.measurement_unit = item.measurement_unit;
       vm.get_customer_sku_prices(item.wms_code, vm.model_data.plant).then(function(data){

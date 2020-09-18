@@ -1134,9 +1134,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                 receive_status = 'Pending from PR Requester'
                 send_to = User.objects.get(id=doaQs[0].wh_user_id).email
                 display_approval_button_DOA=True
-        if productType == '' and supplier.open_po.sku.sku_code:
+        if productType == '' and order_data['sku'].sku_code:
             productType = 'Kits&Consumables'
-            sku_id = SKUMaster.objects.filter(wms_code=supplier.open_po.sku.sku_code, user=user.id)
+            sku_id = SKUMaster.objects.filter(wms_code=order_data['sku'].sku_code, user=user.id)
             if sku_id:
                 sku= sku_id[0]
                 try:
@@ -1373,8 +1373,12 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     resultant_grns = list(po_dict.values_list('sellerposummary__grn_number',flat = True))
     rwo_dict = PurchaseOrder.objects.filter(rw_purchase_query, rwpurchase__rwo__vendor__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).exclude(order_id__in=po_ids)\
                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
-    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,polocation__quantity__gt=0).exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'],order_id__in = po_ids).exclude(order_id__in=po_ids)\
-                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
+    st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,
+                                            polocation__quantity__gt=0).\
+                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'],order_id__in = po_ids).\
+                                    exclude(order_id__in=po_ids)\
+                                     .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
+                                     'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
     temp_data['recordsTotal'] = len(results)
@@ -3595,7 +3599,7 @@ def approve_pr(request, user=''):
                 totalAmt += float(myDict['total'][i])
             except:
                 pass
-            if is_purchase_approver:
+            if is_purchase_approver and validation_type != 'rejected':
                 supplier_id = myDict['supplier_id'][i]
                 store_user = get_admin(pr_user)
                 supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
@@ -7121,7 +7125,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             remarks = purchase_data['remarks']
             order_id = data.order_id
             grn_po_number = data.po_number
-            warehouse_store = User.objects.get(id=data.open_po.sku.user).first_name
+            warehouse_store = User.objects.get(id=warehouse_id).first_name
             if data.sellerposummary_set.filter().exists():
                 seller_po_summary_date = data.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
                 order_date = get_local_date(request.user, seller_po_summary_date)

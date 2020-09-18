@@ -5071,6 +5071,7 @@ def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, 
     from pytz import timezone
     ia_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     import time
+    account= ""
     unixtime = int(round(time.time() * 1000))
     plant = user.userprofile.reference_id
     subsidary= user.userprofile.company.reference_id
@@ -5087,7 +5088,8 @@ def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, 
     inventory_data = { 'ia_number': str(user.userprofile.stockone_code)+ "_"+ str(wmscode)+"_"+str(unixtime),
         'department': department,
         "subsidiary": subsidary,
-        "account": location_int_id,
+        "location_id": location_int_id,
+        "account": account,
         "plant": plant,
         'items':[{"sku_code": wmscode,
             "adjust_qty_by": quantity,
@@ -9867,13 +9869,14 @@ def netsuite_po(order_id, user, open_po, data_dict, po_number, product_category,
             if _open.cess_tax:
                 cess_tax=_open.cess_tax
             hsn_code=""
-            if _open.sku.hsn_code:
-                hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
-                if hsn_code_object.exists():
-                    if cess_tax:
-                        hsn_code=str(_open.sku.hsn_code)+"_KL"
-                    else:
-                        hsn_code=hsn_code_object[0]["reference_id"]
+            if supplier_gstin:
+                if _open.sku.hsn_code:
+                    hsn_code_object = TaxMaster.objects.filter(product_type= _open.sku.hsn_code, user=user.id).values()
+                    if hsn_code_object.exists():
+                        if cess_tax:
+                            hsn_code=str(_open.sku.hsn_code)+"_KL"
+                        else:
+                            hsn_code=hsn_code_object[0]["reference_id"]
             item = {'sku_code':_open.sku.sku_code, 'sku_desc':_open.sku.sku_desc,
                     'hsn_code': hsn_code,
                     'quantity':_open.order_quantity, 'unit_price':_open.price,

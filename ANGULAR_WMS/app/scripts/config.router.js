@@ -2032,7 +2032,8 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                    'scripts/controllers/outbound/stock_transfer/intra_st.js',
+                    'scripts/controllers/outbound/stock_transfer/inter_st.js',
                   ])
               }]
           },

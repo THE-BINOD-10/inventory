@@ -6284,8 +6284,10 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
         load_unit_handle = stock_data[0].sku.load_unit_handle
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
-
-    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data
+    total_sum = sum(map(lambda x:x['total_amount'],zones_data.values()))
+    avg_price = total_sum/avail_qty
+    return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data,\
+           avg_price
 
 
 def findIfContractedSupplier(user, sku_code):
@@ -6325,7 +6327,7 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
     stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, \
-        skuPack_quantity, sku_pack_config, zones_data = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
+        skuPack_quantity, sku_pack_config, zones_data, avg_price = get_pr_related_stock(user, sku_code, search_params, includeStoreStock)
     is_contracted_supplier = findIfContractedSupplier(user, sku_code)
     if not stock_data:
         if sku_pack_config:
@@ -6336,7 +6338,8 @@ def get_sku_stock_check(request, user='', includeStoreStock=False):
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty+st_avail_qty,
                                     'intransit_quantity': intransitQty, 'skuPack_quantity': skuPack_quantity,
-                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier}))
+                                    'openpr_qty': openpr_qty, 'is_contracted_supplier': is_contracted_supplier,
+                                    'avg_price': avg_price}))
 
 
 def sku_level_stock_data(request, user):
@@ -6419,6 +6422,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
     for res_qty_obj in res_qty_objs:
         res_qty_dict.setdefault(res_qty_obj.stock_id, 0)
         res_qty_dict[res_qty_obj.stock_id] += res_qty_obj.reserved
+    avg_price = 0
     for stock in stock_data:
         res_qty = res_qty_dict.get(stock.id, 0)
 
@@ -6432,7 +6436,8 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
 
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number, batch, mrp, ean, weight, buy_price = ['']*6
+        pallet_number, batch, mrp, ean, weight = ['']*5
+        buy_price = 0
         pcf = 1
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
@@ -6449,12 +6454,13 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user, user_list = ''):
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
                                'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
-                               'weight': weight, 'buy_price': buy_price})
-        zones_data[cond]['total_quantity'] += stock.quantity/pcf
+                               'weight': weight, 'buy_price': buy_price, 'total_amount': 0})
+        stock_quantity = stock.quantity/pcf
+        zones_data[cond]['total_quantity'] += stock_quantity
         zones_data[cond]['reserved_quantity'] += res_qty
+        zones_data[cond]['total_amount'] += stock_quantity * buy_price
         availabe_quantity.setdefault(location, 0)
-        availabe_quantity[location] += (stock.quantity - res_qty)
-
+        availabe_quantity[location] += (stock_quantity - res_qty)
     return zones_data, availabe_quantity
 
 

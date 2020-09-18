@@ -15,6 +15,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.record_serial_data = []
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
+    vm.alt_view = true;
+    //vm.changeDtFields(vm.alt_view);
   
     function getOS() {
       var userAgent = window.navigator.userAgent,
@@ -169,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-    vm.changeDtFields(false);
+    vm.changeDtFields(true);
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -244,7 +246,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         $scope.$apply(function() {
 
-          var data = {order_id: aData['Stock Transfer ID']};
+          var data = {order_id: aData['Stock Transfer ID'], warehouse_id: aData['warehouse_id']};
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
 
           vm.get_order_data(data);
@@ -391,9 +393,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(vm.generate_data.length > 0) {
         console.log(vm.generate_data);
         var data = {};
+        //data['warehouse_id'] = vm.generate_data[0]['warehouse_id'];
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
-          data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
+          data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i]['warehouse_id'];
         }
         data["enable_damaged_stock"] = vm.enable_damaged_stock;
         var url = 'st_generate_picklist/';

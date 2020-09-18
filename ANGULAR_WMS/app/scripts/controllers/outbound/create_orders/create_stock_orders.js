@@ -38,7 +38,16 @@ vm.get_sku_details = function (data){
     }
   });
 }
+
 vm.changeUnitPrice = function(data){
+  if (parseFloat(data.order_quantity) > 0) {
+    data.total_qty = parseFloat(data.order_quantity) * parseFloat(data.conversion);
+  }
+  if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
+    data.total_qty = 0;
+    data.order_quantity = 0;
+    colFilters.showNoty("Total Qty Should be less then available Quantity");
+  }
   var order_quantity = data.order_quantity;
   var price = data.price;
   if(!order_quantity) {
@@ -53,13 +62,14 @@ vm.changeUnitPrice = function(data){
 
   if(data.cgst)
   {
-      cgst_percentage = (data.total_price * parseFloat(data.cgst)) / 100
+      cgst_percentage = (data.total_price * parseFloat(data.cgst)) / 100;
+      data.total_price += cgst_percentage;
   }
   if(data.sgst)
   {
-     sgst_percentage = (data.total_price * parseFloat(data.sgst)) / 100
+     sgst_percentage = (data.total_price * parseFloat(data.sgst)) / 100;
+     data.total_price += sgst_percentage;
   }
-
   if(data.igst)
   {
     var igst_percentage = (data.total_price * parseFloat(data.igst)) / 100
@@ -76,12 +86,13 @@ vm.changeUnitPrice = function(data){
   data.total_price = (data.total_price).toFixed(3).slice(0,-1);
 }
   vm.warehouse_dict = {};
-  vm.service.apiCall('get_warehouses_list/').then(function(data){
+  var wh_filter = {'warehouse_type': 'STORE'};
+  vm.service.apiCall('get_warehouses_list/', 'GET',wh_filter).then(function(data){
     if(data.message) {
       vm.warehouse_dict = data.data.warehouse_mapping;
       vm.warehouse_list_states = data.data.states;
     }
-  })
+  });
 
   vm.sellers_list = [];
   vm.service.apiCall('get_sellers_list/').then(function(data){
@@ -97,7 +108,7 @@ vm.changeUnitPrice = function(data){
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;
-      var elem = angular.element(form);
+      var elem = angular.element($('form#add_st_intra'));
       elem = $(elem).serializeArray();
       vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
         if(data.message) {
@@ -114,26 +125,35 @@ vm.changeUnitPrice = function(data){
   }
 
   vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.sku_id, location: ""}
+     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.selected}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
           sku_data["capacity"] = data.data.available_quantity;
+          sku_data['price'] = data.data.avg_price;
+          vm.changeUnitPrice(sku_data);
         }
-        if (vm.industry_type == 'FMCG') {
-          sku_data['price'] = data.data.data[Object.keys(data.data.data)[0]]['buy_price'];
-        }
+//        if (vm.industry_type == 'FMCG') {
+//          sku_data['price'] = data.data.data[Object.keys(data.data.data)[0]]['buy_price'];
+//        }
       }
     });
   }
 
   vm.get_sku_data = function(record, item, index) {
+    if (!vm.model_data.selected || !vm.model_data.warehouse_name) {
+      record.sku_id ='';
+      colFilters.showNoty("Please select Source and Destination Plant");
+      return
+    }
     record.sku_id = item.wms_code;
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
-    vm.changeUnitPrice(record);
+    record.conversion = item.conversion;
+    record.base_uom = item.base_uom;
+    record.measurement_unit = item.measurement_unit;
     vm.get_customer_sku_prices(item.wms_code).then(function(data){
       if(data.length > 0) {
         data = data[0]
@@ -152,19 +172,16 @@ vm.changeUnitPrice = function(data){
             record.igst = data.sgst_tax+data.cgst_tax;
             }
           }else {
-           if(data.igst_tax){
-            record.sgst_tax = data.igst_tax / 2;
-            record.cgst_tax = data.igst_tax / 2 ;
+           if(data.igst){
+            record.sgst = data.igst_tax / 2;
+            record.cgst = data.igst_tax / 2 ;
             }else{
-            record.sgst_tax = data.sgst_tax;
-            record.cgst_tax = data.cgst_tax;
+            record.sgst = data.sgst_tax;
+            record.cgst = data.cgst_tax;
             }
-
           }
-
-
         record.invoice_amount = Number(record.price)*Number(record.quantity);
-        vm.update_availabe_stock(record)
+        vm.update_availabe_stock(record);
 //        vm.change_brand(data)
 
       }
@@ -172,24 +189,22 @@ vm.changeUnitPrice = function(data){
   }
   vm.verifyTax = function() {
     var temp_ware_name = '';
-    if (vm.warehouse_list_states[vm.model_data.selected] && vm.warehouse_list_states[vm.model_data.selected]){
-      if (vm.warehouse_list_states[vm.model_data.selected] == vm.current_user[Object.keys(vm.current_user)[0]]) {
+    if (vm.warehouse_list_states[vm.model_data.selected] && vm.warehouse_list_states[vm.model_data.warehouse_name]){
+      if (vm.warehouse_list_states[vm.model_data.selected] == vm.warehouse_list_states[vm.model_data.warehouse_name]) {
         vm.tax_cg_sg = true;
         vm.igst_enable = false;
       } else {
         vm.tax_cg_sg = false;
         vm.igst_enable = true;
       }
-    } else {
-      if (!vm.warehouse_list_states[vm.model_data.selected]){
+    } else if (!vm.warehouse_list_states[vm.model_data.selected]){
         temp_ware_name = vm.model_data.selected;
         vm.model_data.selected = '';
-        colFilters.showNoty(temp_ware_name +" - Please update state in Warehouse Mater");
-      }
-      if (!vm.current_user[Object.keys(vm.current_user)[0]]){
+        colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
+    } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
+        temp_ware_name = vm.model_data.warehouse_name;
         vm.model_data.selected = '';
-        colFilters.showNoty(Object.keys(vm.current_user)[0]+" - Please update state in Warehouse Mater");
-      }
+        colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
     }
   }
 
@@ -206,10 +221,36 @@ vm.changeUnitPrice = function(data){
     });
   }
 
+  vm.changeDestWarehouse = function() {
+    console.log(vm.model_data);
+    angular.forEach(vm.warehouse_dict, function(wh){
+      console.log(wh);
+      if(wh.username == vm.model_data.selected){
+        vm.model_data.company_id = wh['userprofile__company_id'];
+      }
+    });
+    if(vm.model_data.company_id){
+      var wh_data = {};
+      vm.dest_wh_list = {};
+      wh_data['company_id'] = vm.model_data.company_id;
+      wh_data['warehouse_type'] = 'STORE,SUB_STORE';
+      vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+        if(data.message) {
+        vm.dest_wh_list = data.data.warehouse_list;
+      }
+    });
+    }
+  }
+
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
-    var data = {sku_codes: sku}
+    var data = {sku_codes: sku, source: vm.model_data.selected}
+    if(vm.igst_enable){
+      data['tax_type'] = 'inter_state';
+    } else if (vm.tax_cg_sg) {
+      data['tax_type'] = 'inter_state';
+    }
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
       if(data.message) {
         d.resolve(data.data);

@@ -15,6 +15,8 @@ from stockone_integrations.models import IntegrationMaster
 import json,os
 from miebach_admin.models import Integrations as integmodel
 # Create your views here.
+from rest_api.views.inbound_common_operations import *
+log_err = init_logger('logs/netsuite_integration_View_errors.log')
 
 actual_date=["14-24032-000000043","14-24032-000000045","14-28050-000000016","14-29009-000000073","14-29009-000000074","14-29009-000000075","14-33004-000000261","14-33004-000000262","14-33004-000000263","14-33004-000000264","14-33004-000000265","14-33004-000000266","14-33004-000000267","14-33004-000000268","14-33004-000000269","14-33004-000000270","14-33004-000000271","14-33004-000000272","14-33004-000000273","14-33004-000000274","14-33004-000000275","14-33004-000000276","14-33004-000000277","14-33004-000000278","14-33004-000000279","14-33004-000000280","14-33004-000000281","14-33004-000000282","14-33004-000000283","14-33004-000000284","14-33033-000000007","14-33033-000000008","14-33033-000000009","14-33036-000000014","14-33036-000000015","14-33061-000000015","14-33061-000000016","14-33066-000000010","14-33066-000000011","14-33066-000000012","14-33091-000000014","14-33091-000000015","14-33091-000000016","14-36053-000000015","14-36053-000000016","14-36053-000000017","14-36053-000000018","14-37064-000000010","17-33004-000000001","43-29005-000000113","43-29005-000000114","43-29005-000000115","43-29005-000000116","43-29005-000000117","43-29005-000000118","43-29005-000000119","43-29005-000000120","43-29005-000000121","43-29005-000000122","43-29005-000000123","43-29005-000000124","43-29005-000000125","43-29005-000000126","43-29005-000000127","43-29005-000000128","43-29005-000000129","43-29005-000000130","43-29005-000000131","43-29005-000000132","43-29005-000000133","43-29005-000000134","43-29005-000000135","43-29005-000000136","43-29005-000000137"]
 
@@ -413,11 +415,6 @@ class Integrations():
             integration_type=self.integration_type,
             module_type=recordType,
             action_type=action,
-            #creation_date__gte="2020-09-09",
-            #creation_date__lte="2020-09-08 18:30:00.000",
-            #creation_date__gte="2020-09-18 12:49:00.000",
-            #creation_date__lte="2020-09-18 12:52:00.000",
-            #status=False,
             integration_error__in=["null","","-"]
         ).exclude(status=True)
         data = []
@@ -466,7 +463,6 @@ class Integrations():
                 try:
                     if str(row.createdFrom.externalId) in po_initialize:
                         indx_list=[]
-                        #import pdb;pdb.set_trace()
                         total_item_length=0
                         price_mismatch_ckeck=0
                         for line_item in po_initialize[str(row.createdFrom.externalId)]:
@@ -476,7 +472,6 @@ class Integrations():
                                 for indx, grn_line_item in enumerate(row.itemList['item']):
                                     if grn_line_item["item"]["externalId"]== line_item["itemName"] and grn_line_item["itemReceive"]:
                                         if not grn_line_item.get("flag_duplicate",False):
-                                        #import pdb;pdb.set_trace()
                                         #if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]) and float(grn_line_item["rate"])==float(line_item["rate"]):
                                             if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]):
                                                 grn_line_item.update({'orderLine': line_item['orderLine'], "flag_duplicate":True})
@@ -486,34 +481,24 @@ class Integrations():
                                             else:
                                                 print("price or quantity mismatch", "GRN",float(grn_line_item["quantity"]), "Initialigelist", float(line_item["quantityRemaining"]))
                                 if not check_sku_code:
-                                    row.itemList['item'].append(
-                                        {
-                                        'item': {
-                                        'name': None,
-                                        'internalId': None,
-                                        'externalId': line_item["itemName"],
-                                        'type': None
-                                        },
-                                        'orderLine': line_item['orderLine'],
-                                        'itemReceive': False
-                                        }
-                                )
+                                    row.itemList['item'].append({
+                                                                'item': {
+                                                                'name': None,
+                                                                'internalId': None,
+                                                                'externalId': line_item["itemName"],
+                                                                'type': None
+                                                        },
+                                                        'orderLine': line_item['orderLine'],
+                                                        'itemReceive': False
+                                                })
                     final_GRN_data.append(row)
-                    print("GRN Number", row.externalId ,len(row.itemList.get('item',[])),"GRN_after length", len(po_initialize[str(row.createdFrom.externalId)]))
                 except Exception as e:
-                    print(e)
-                    pass
+                    import traceback
+                    log_err.debug(traceback.format_exc())
+                    log_err.info('po_initialize GRN data failed for %s and error was %s' % (str(row), str(e)))
             return final_GRN_data
         except Exception as e:
-            print("error_grn", e)
+            import traceback
+            log_err.debug(traceback.format_exc())
+            log_err.info('po_initialize GRN data failed for %s and error was %s' % (str(GRN_data), str(e)))
             return GRN_data
-    def remove_duplicate_dictionary(self, lst):
-        res_list=[]
-        seen = set()
-        for dic in lst:
-            key = (dic['sku_code'])
-            if key in seen:
-                continue
-            res_list.append(dic)
-            seen.add(key)
-        return res_list

@@ -364,7 +364,6 @@ class Integrations():
                     if action  =='upsert' and row.get("grn_number",'') not in actual_date:
                         if row.get('items',[]):
                             if int(row["grn_date"].split('-')[1])==9:
-                                print("Sept",'2020-08-31T19:33:52+05:30')
                                 row.update({"grn_date": '2020-08-31T19:33:52+05:30'})
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
@@ -518,4 +517,3 @@ class Integrations():
             res_list.append(dic)
             seen.add(key)
         return res_list
-

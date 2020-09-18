@@ -1,0 +1,110 @@
+    <div class="panel">
+      <div class="panel-body">
+      <form id="add_st" name="form" role="form">
+        <div class="form-group clearfix mr10 ml10">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Source Plant </label>
+                <select name="source_plant" class="form-control" ng-model="showCase.model_data.selected" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
+                  <option ng-repeat="(wh_username, wh_firstname) in showCase.warehouse_dict" value="{{wh_username}}">{{wh_firstname}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Destination Plant </label>
+                <select name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-change="[showCase.verifyTax(), showCase.changeDestSeller()]">
+                  <option ng-repeat="(wh_username, wh_firstname) in showCase.warehouse_dict" value="{{wh_username}}">{{wh_firstname}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Source Warehouse Seller * </label>
+                <select name="source_seller_id" class="form-control" ng-model="showCase.model_data.source_seller_id">
+                  <option ng-selected="showCase.model_data.source_seller_id==seller.id" ng-repeat="seller in showCase.sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Destination Warehouse Seller * </label>
+                <select name="dest_seller_id" class="form-control" ng-model="showCase.model_data.dest_seller_id">
+                  <option ng-selected="showCase.model_data.dest_seller_id==seller.id" ng-repeat="seller in showCase.dest_sellers_list" value="{{seller.id}}">{{seller.id + ' : ' + seller.name}}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <div class="clearfix">
+          <div class="row over-x" style="margin: 0px;">
+              <table  class="table mw45">
+                <thead>
+                  <tr>
+                    <th>SKU Code*</th>
+                    <th>Description </th>
+                    <th>Available Quantity*</th>
+                    <th>Quantity*</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th>Price*</th>
+                    <th>CGST (%)</th>
+                    <th>SGST (%)</th>
+                    <th>IGST(%)</th>
+                    <th>CESS(%)</th>
+                    <th>Total Price</th>
+                    <th class="plus">
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="data in showCase.model_data.data">
+                    <td>
+                      <!--<input id="wms1" type="text" name="wms_code" class="form-control" ng-model="data.wms_code" ng-required="$first">-->
+                      <!-- <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-requvail_qty}))ired="$first" typeahead-on-select="[data.wms_code = $item.wms_code,showCase.get_sku_details(data)];"> -->
+                      <input type="text" autocomplete="off" name="wms_code" class="form-control detectTab" placeholder="Search SKU Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)" ng-keyup="showCase.key_event($event, data, $item, $index)">
+                    </td>
+                    <td>
+                      <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
+                    </td>
+                    <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
+                    <td>
+                      <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp"  decimal-number>
+                    </td>
+                    <td>
+                      <input type="text" name="price" class="form-control" ng-model="data.price"  ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
+                       <input type="hidden" name="id" value="">
+                    </td>
+                    <td>
+                      <input type="text" name="cgst" class="form-control" size="2" ng-model="data.cgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
+                    </td>
+                    <td>
+                      <input type="text" name="sgst" class="form-control" size="2" ng-model="data.sgst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.igst_enable">
+                    </td>
+                    <td>
+                      <input type="text" name="igst" class="form-control" size="2" ng-model="data.igst" ng-keyup="showCase.changeUnitPrice(data)" decimal-number ng-readonly="showCase.tax_cg_sg">
+                    </td>
+                    <td>
+                      <input type="text" name="cess" class="form-control" size="2" ng-model="data.cess" ng-keyup="showCase.changeUnitPrice(data)" decimal-number >
+                    </td>
+                    <td>
+                      <input type="text" name="total_price" class="form-control" ng-model="data.total_price" decimal-number>
+                    </td>
+
+                    <td>
+                      <i style="font-size: 20px;padding-top: 5px;cursor: pointer;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+          </div>
+        </div>
+        <div class="col-md-12 form-group clearfix" style="padding-bottom:0px;">
+          <button type="submit" class="btn btn-primary" id="st-create-order" ng-disabled="showCase.bt_disable" style="margin: auto;display: block;" ng-click="showCase.insert_order_data(form)">Create Transfer Order </button>
+        </div>
+      </form>
+      </div>
+    </div>

@@ -311,6 +311,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
 @csrf_exempt
 def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis = ['id', 'st_po__open_st__warehouse__username', 'order_id', 'sku__sku_code','creation_date', 'quantity']
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     if user.userprofile.user_type == 'marketplace_user':
         lis.insert(3, 'st_seller__seller_id')
         lis.insert(4, 'st_seller__name')
@@ -319,14 +322,14 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = StockTransfer.objects.filter(sku__user=user.id, status=1, st_type='ST').order_by(order_data)
+        master_data = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='ST').order_by(order_data)
     if search_term:
         master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
                                                Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
                                                Q(sku__sku_code__icontains=search_term) |
                                                Q(st_seller__seller_id__icontains=search_term) |
                                                Q(st_seller__name__icontains=search_term),
-                                               sku__user=user.id,
+                                               sku__user__in=user_ids,
                                                status=1, st_type='ST').order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -338,6 +341,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity-data.picked_quantity, 'DT_RowClass': 'results',
                                     'Creation Date':data.creation_date.strftime("%d %b, %Y"),
                                     'Seller ID': '', 'Seller Name': '', 'MRP':'',
+                                    'warehouse_id': data.sku.user,
                                     'DT_RowAttr': {'id': data.id}, 'id': count}
         if user.userprofile.user_type == 'marketplace_user' and data.st_seller:
             data_dict['Seller ID'] = data.st_seller.seller_id
@@ -2354,7 +2358,13 @@ def picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
     else:
-        netsuite_picklist_confirmation(final_data_list, user)
+        try:
+            netsuite_picklist_confirmation(final_data_list, user)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Netsuite Picklist Confirmation pushing failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmed')
 
 def netsuite_picklist_confirmation(final_data_list, user):
@@ -5775,34 +5785,56 @@ def check_stocks(order_sku, user, enable_damaged_stock, order_objs, continue_fla
 @get_admin_user
 def get_warehouses_list(request, user=''):
     user_list = []
+    warehouse_type = request.GET.get('warehouse_type', '')
     user_states = {}
+    users = [user.id]
+    if warehouse_type == 'STORE':
+        users = check_and_get_plants(request, users)
+    elif warehouse_type == 'STORE_DEPTS':
+        users = check_and_get_plants_depts(request, users)
+    else:
+        admin_user = UserGroups.objects.filter(
+            Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+            values_list('admin_user_id', flat=True)
+        user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values_list('user_id', flat=True)
+        users = User.objects.filter(id__in=user_groups)
+    #user_ids = list(users.values_list('id', flat=True))
     admin_user = UserGroups.objects.filter(
         Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
         values_list('admin_user_id', flat=True)
-    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
-                                                                                 'admin_user__username', 'user__userprofile__state')
+    user_groups = users.values('username', 'userprofile__state', 'first_name', 'userprofile__company_id',
+                               'userprofile__stockone_code')
     for users in user_groups:
-        for key, value in users.iteritems():
-            if user.username != value and value not in user_list and key not in ['user__userprofile__state']:
-                user_list.append(value)
-                user_states[value] = users['user__userprofile__state']
-    return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states}))
+        #for key, value in users.iteritems():
+        #    if user.username != value and value not in user_list and key not in ['user__userprofile__state']:
+        #        user_list.append(value)
+        #        warehouse_mapping
+        #        user_states[value] = users['user__userprofile__state']
+        user_list.append(users['username'])
+        user_states[users['username']] = users['userprofile__state']
+    return HttpResponse(json.dumps({'warehouses': user_list, 'states': user_states,
+                                    'warehouse_mapping': list(user_groups)}))
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def create_stock_transfer(request, user=''):
+    warehouse_name = request.POST.get('warehouse_name', '')
     if request.POST.get('source_plant', ''):
         cur_user = request.POST.get('source_plant', '')
         user = User.objects.get(username=cur_user)
+        if cur_user == warehouse_name:
+            return HttpResponse("Source and Destination should be different")
     all_data = {}
     order_typ = request.POST.get('order_typ', 'ST')
-    warehouse_name = request.POST.get('warehouse_name', '')
     source_seller_id = request.POST.get('source_seller_id', '')
     dest_seller_id = request.POST.get('dest_seller_id', '')
     data_dict = dict(request.POST.iterlists())
-    warehouse = User.objects.get(username=warehouse_name)
+    warehouse = User.objects.filter(username=warehouse_name)
+    if not warehouse:
+        return HttpResponse("Invalid Destination Plant")
+    warehouse = warehouse[0]
     status, source_seller = validate_st_seller(user, source_seller_id, error_name='Source')
     if status:
         return HttpResponse(status)
@@ -15046,8 +15078,12 @@ def create_orders_check_ean(request, user=''):
 @csrf_exempt
 def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only','tsum']
-    stock_transfer_objs = StockTransfer.objects.filter(sku__user=user.id, status=1).\
-                                        values('st_po__open_st__sku__user', 'order_id', 'st_po__open_st__warehouse__username').\
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1).\
+                                        values('st_po__open_st__sku__user', 'order_id',
+                                               'st_po__open_st__warehouse__username', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),
                                         date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
@@ -15071,6 +15107,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
                                     'Stock Transfer ID': data['order_id'],
                                     'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],
+                                    'warehouse_id': data['sku__user'],
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1
 
@@ -15084,6 +15121,8 @@ def get_stock_transfer_order_details(request, user=''):
     from_date = request.GET.get('from_date', '')
     to_date = request.GET.get('to_date', '')
     search_params = {'quantity__gt': 0}
+    warehouse_id = request.GET['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     stock_params = {}
     if from_date:
         from_date = from_date.split('/')
@@ -15199,32 +15238,34 @@ def stock_transfer_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    if enable_damaged_stock == 'true':
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
-                                                                                location__zone__zone__in=[
-                                                                                    'DAMAGED_ZONE'])
-    else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-                                    location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
-
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id),
                    'combo_allocate_stock': get_misc_value('combo_allocate_stock', user.id),
                    'allow_partial_picklist': get_misc_value('allow_partial_picklist', user.id)}
-    if switch_vals['fifo_switch'] == 'true':
-        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
-            'receipt_date')
-        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
-    else:
-        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
-            'location_id__pick_sequence')
-        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-    sku_stocks = stock_detail1 | stock_detail2
     seller_stocks = SellerStock.objects.filter(seller__user=user.id, stock__quantity__gt=0).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
         if key == 'enable_damaged_stock':
             continue
+        user = User.objects.get(id=value)
+        if enable_damaged_stock == 'true':
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id,
+                                                                                        quantity__gt=0,
+                                                                                        location__zone__zone__in=[
+                                                                                            'DAMAGED_ZONE'])
+        else:
+            sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+                location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
+        if switch_vals['fifo_switch'] == 'true':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').order_by(
+                'receipt_date')
+            stock_detail2 = sku_stocks.order_by('receipt_date')
+        else:
+            stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).order_by(
+                'location_id__pick_sequence')
+            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).order_by(
+                'receipt_date')
+        sku_stocks = stock_detail1 | stock_detail2
         orders_data = StockTransfer.objects.filter(order_id=key, status=1, sku__user=user.id)
         if orders_data and orders_data[0].st_seller:
             seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(orders_data[0].st_seller_id),

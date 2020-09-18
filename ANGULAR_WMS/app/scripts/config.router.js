@@ -2860,6 +2860,18 @@ var app = angular.module('urbanApp')
             title: 'Enquiry Status Report',
           }
         })
+        .state('app.reports.MaterialRequestReport', {
+          url: '/MaterialRequestReport',
+          templateUrl: 'views/reports/material_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/material_report.js');
+              }]
+          },
+          data: {
+            title: 'Material Request Report',
+          }
+        })
         .state('app.reports.StockTransferReport', {
           url: '/StockTransferReport',
           templateUrl: 'views/reports/stock_transfer_report.html',

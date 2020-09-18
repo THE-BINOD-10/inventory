@@ -1935,6 +1935,14 @@ def get_enquiry_status_report(request, user=''):
     temp_data = get_enquiry_status_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_material_request_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_material_request_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
 
 @csrf_exempt
 @login_required

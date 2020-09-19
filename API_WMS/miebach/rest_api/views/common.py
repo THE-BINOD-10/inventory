@@ -13185,7 +13185,7 @@ def get_uom_with_sku_code(user, sku_code, uom_type, uom=''):
 def reduce_consumption_stock(consumption_obj, total_test=0):
     # if not consumptions:
     #     consumptions = []
-    if consumption_obj.exists():
+    if consumption_obj:
         with transaction.atomic(using='default'):
             consumption = Consumption.objects.using('default').select_for_update().\
                                             filter(id=consumption_obj.id, status=1)
@@ -13227,15 +13227,17 @@ def reduce_consumption_stock(consumption_obj, total_test=0):
                          (str(consumption.id), str(consumption.test.test_code)))
                 return
             for key, value in bom_dict.items():
+                sku = SKUMaster.objects.get(user=user.id, sku_code=key.sku_code)
                 consumption_data = ConsumptionData.objects.create(
                     consumption_id=consumption.id,
-                    sku_id=key.id,
+                    sku_id=sku.id,
                     quantity=value['consumption_qty'],
                 )
                 update_stock_detail(value['stocks'], float(value['needed_quantity']), user,
                                     consumption_data.id, transact_type='consumption',
                                     mapping_obj=consumption_data)
-            consumption.status = 0
+            if bom_master:
+                consumption.status = 0
             consumption.save()
     return "Success"
 

@@ -14,7 +14,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from itertools import chain
 from miebach_admin.models import *
-from rest_api.views.common import reduce_conumption_stock
+from rest_api.views.common import reduce_consumption_stock
 # from rest_api.views.common import get_exclude_zones, get_misc_value, get_picklist_number, \
 #     get_sku_stock, get_stock_count, save_sku_stats, change_seller_stock, check_picklist_number_created, \
 #     update_stocks_data, get_max_seller_transfer_id, get_financial_year, get_stock_receipt_number
@@ -45,6 +45,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Started Updating")
         consumptions = Consumption.objects.filter(status=1)
-        reduce_conumption_stock(consumptions)
+        for consumption in consumptions:
+            reduce_consumption_stock(consumption, total_test=consumption.total_test)
         log.info('Sale Cron Completed for at {}'.format(str(datetime.datetime.now())))
         self.stdout.write("Updating Completed")

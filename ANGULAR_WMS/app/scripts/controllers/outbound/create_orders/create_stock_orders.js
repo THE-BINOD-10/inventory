@@ -39,7 +39,15 @@ vm.get_sku_details = function (data){
   });
 }
 vm.changeUnitPrice = function(data){
-  data.total_price = (data.order_quantity * data.price)
+  var order_quantity = data.order_quantity;
+  var price = data.price;
+  if(!order_quantity) {
+    order_quantity = 0
+  }
+  if(!price) {
+    price = 0
+  }
+  data.total_price = (order_quantity * price)
   var cgst_percentage = 0;
   var sgst_percentage = 0;
 
@@ -67,10 +75,10 @@ vm.changeUnitPrice = function(data){
   }
   data.total_price = (data.total_price).toFixed(3).slice(0,-1);
 }
-  vm.warehouse_list = [];
+  vm.warehouse_dict = {};
   vm.service.apiCall('get_warehouses_list/').then(function(data){
     if(data.message) {
-      vm.warehouse_list = data.data.warehouses;
+      vm.warehouse_dict = data.data.warehouse_mapping;
       vm.warehouse_list_states = data.data.states;
     }
   })
@@ -125,7 +133,7 @@ vm.changeUnitPrice = function(data){
     angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
-
+    vm.changeUnitPrice(record);
     vm.get_customer_sku_prices(item.wms_code).then(function(data){
       if(data.length > 0) {
         data = data[0]

@@ -6286,7 +6286,9 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     total_sum = sum(map(lambda x:x['total_amount'],zones_data.values()))
-    avg_price = total_sum/avail_qty
+    avg_price = 0
+    if avail_qty:
+        avg_price = total_sum/avail_qty
     return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data,\
            avg_price
 
@@ -8595,10 +8597,11 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
+        uom_dict = get_uom_with_sku_code(user, order.sku.sku_code, uom_type='purchase')
         if not seller_order:
-            order_check_quantity = float(order.quantity)
+            order_check_quantity = float(order.quantity) * uom_dict.get('sku_conversion', 1)
         else:
-            order_check_quantity = float(seller_order.quantity)
+            order_check_quantity = float(seller_order.quantity) * uom_dict.get('sku_conversion', 1)
         members = {order.sku: order_check_quantity}
         combo_stock_check_dict = OrderedDict()
         if order.sku.relation_type == 'combo' and not combo_allocate_stock:
@@ -12404,7 +12407,7 @@ def get_related_user_objs(user_id, level=0, ):
     users = User.objects.filter(id__in=user_ids)
     return users
 
-def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False):
+def get_related_users_filters(user_id, warehouse_types='', warehouse='', company_id='', send_parent=False, exclude_company=''):
     """ this function generates all users related to a user with filters"""
     user = User.objects.get(id=user_id)
     main_company_id = get_company_id(user)
@@ -12422,7 +12425,10 @@ def get_related_users_filters(user_id, warehouse_types='', warehouse='', company
     all_users = list(set(user_list1 + user_list2))
     all_user_objs = User.objects.filter(id__in=all_users)
     if company_id:
-        all_user_objs = all_user_objs.filter(userprofile__company_id=company_id)
+        if exclude_company == 'true':
+            all_user_objs = all_user_objs.exclude(userprofile__company_id=company_id)
+        else:
+            all_user_objs = all_user_objs.filter(userprofile__company_id=company_id)
     return all_user_objs
 
 
@@ -12735,6 +12741,7 @@ def get_company_warehouses(request, user=''):
     warehouse_types = request.GET.get('warehouse_type', '')
     warehouse_types = warehouse_types.split(',')
     warehouse = request.GET.get('warehouse', '')
+    exclude_company = request.GET.get('exclude_company', '')
     if warehouse:
         warehouse = warehouse.split(',')
     else:
@@ -12743,7 +12750,7 @@ def get_company_warehouses(request, user=''):
     if str(parent_company_id) == str(company_id):
         company_id = ''
     wh_objs = get_related_users_filters(user.id, warehouse_types=warehouse_types, warehouse=warehouse,
-                                        company_id=company_id, send_parent=False)
+                                        company_id=company_id, send_parent=False, exclude_company=exclude_company)
     warehouse_list = []
     wh_list = wh_objs.values('id', 'username', 'userprofile__stockone_code', 'first_name', 'last_name')
     for wh in wh_list:

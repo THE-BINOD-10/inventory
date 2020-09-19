@@ -353,9 +353,12 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
 
 @csrf_exempt
 def open_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status=''):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    #sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
+    users = [user.id]
+    users = check_and_get_plants_depts(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     isprava_permission = get_misc_value('order_exceed_stock', user.id)
     delivery_challana = get_misc_value('generate_delivery_challan_before_pullConfiramation', user.id)
     lis = ['picklist_number', 'order__customer_name', 'remarks','picklist_number',
@@ -386,21 +389,20 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     else:
         header = OPEN_PICK_LIST_HEADERS
     all_picks = Picklist.objects.select_related('order', 'stock').\
-                                filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
+                                filter(Q(order__sku__user__in=user_ids) | Q(stock__sku__user__in=user_ids), **filter_params)
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(lis, search_term)
-        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).filter(search_query)
+        master_data = all_picks.filter(search_query)
     elif order_term:
         # col_num = col_num - 1
         order_data = header.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
 
-        master_data = all_picks.filter(
-            Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).order_by(order_data)
+        master_data = all_picks.order_by(order_data)
     else:
-        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids))
+        master_data = all_picks
 
     total_reserved_quantity = master_data.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
     total_picked_quantity = master_data.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
@@ -438,6 +440,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         if not picked_quantity_sum_value:
             picked_quantity_sum_value = 0
         if picklist_obj:
+            warehouse_id = picklist_obj[0].stock.sku.user if picklist_obj[0].stock else picklist_obj[0].order.sku.user
             order_marketplace = list(
                 picklist_obj.exclude(order__marketplace__in='').filter(order_id__isnull=False).values_list(
                     'order__marketplace', flat=True))
@@ -458,13 +461,13 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                     elif st_order[0].stock_transfer.st_type == 'ST':
                         order_type = 'Stock Transfer'
                     try:
-                        source_wh = st_order[0].stock_transfer.st_po.open_st.warehouse.username
+                        source_wh = st_order[0].stock_transfer.st_po.open_st.warehouse.first_name
                     except Exception as e:
                         source_wh = ''
                     user_id = st_order[0].stock_transfer.st_po.open_st.sku.user
                     user_profile = User.objects.get(id=user_id)
                     if user_profile:
-                        prepare_str = user_profile.username
+                        prepare_str = user_profile.first_name
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
                 if admin_user.username == 'isprava_admin':
@@ -477,7 +480,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                         user_id = order_fields[0].user
                         user_profile = UserProfile.objects.get(user_id=user_id)
                         if user_profile:
-                            prepare_str = user_profile.user.username
+                            prepare_str = user_profile.user.first_name
             create_date_value = ""
             if picklist_obj[0].creation_date:
                 create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
@@ -508,7 +511,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                                    ('picked_quantity', picked_quantity_sum_value), ('source_wh', source_wh),
                                    ('customer', prepare_str), ('shipment_date', shipment_date),
                                    ('date', create_date_value),('dc_number', dc_num), ('id', count), ('DT_RowClass', 'results'),
-                                   ('od_id', od_id), ('od_order_id', od_order_id), ('project_name', project_name)))
+                                   ('od_id', od_id), ('od_order_id', od_order_id), ('project_name', project_name),
+                                   ('warehouse_id', warehouse_id)))
         dat = 'picklist_id'
         count += 1
         if status == 'batch_picked':
@@ -1924,7 +1928,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     final_data_list = []
     combo_exists = False
     for key, value in data.iteritems():
-        if key in ('name', 'number', 'order', 'sku', 'invoice'):
+        if key in ('name', 'number', 'order', 'sku', 'invoice', 'warehouse_id', ''):
             continue
         picklist_batch = ''
         picklist_order_id = value[0]['order_id']
@@ -2000,6 +2004,9 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 @get_admin_user
 @reversion.create_revision(atomic=False, using='reversion')
 def picklist_confirmation(request, user=''):
+    warehouse_id = request.POST.get('warehouse_id_', '')
+    if warehouse_id:
+        user = User.objects.get(id=warehouse_id)
     if request.POST.get('source'):
         cur_user = request.POST.get('source')
         user = User.objects.get(username=cur_user)
@@ -2861,6 +2868,8 @@ def view_picklist(request, user=''):
     show_image = 'false'
     use_imei = 'false'
     data_id = request.GET['data_id']
+    warehouse_id = request.GET['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     single_order = ''
     order_status = ''
     headers = list(PRINT_OUTBOUND_PICKLIST_HEADERS)
@@ -2894,7 +2903,7 @@ def view_picklist(request, user=''):
                                     'order_status': order_status, 'user': request.user.id,
                                     'single_order': single_order,
                                     'sku_total_quantities': sku_total_quantities, 'courier_name' : courier_name,
-                                    'qc_items': qc_items}))
+                                    'qc_items': qc_items, 'warehouse_id': warehouse_id}))
 
 
 @csrf_exempt

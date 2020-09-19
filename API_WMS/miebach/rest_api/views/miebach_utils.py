@@ -10648,13 +10648,6 @@ def get_material_request_report_data(search_params, user, sub_user):
         search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
-    if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-        if 'manufacturer' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['manufacturer']
-        if 'searchable' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['searchable']
-        if 'bundle' in search_params:
-            search_parameters['sku__skuattributes__attribute_value__iexact'] = search_params['bundle']
 
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user'] = user.id
@@ -10689,14 +10682,14 @@ def get_material_request_report_data(search_params, user, sub_user):
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
                 invoice_number = invoice_no.full_invoice_number
-                invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
-                                                                   stock_transfer__sku__sku_code=data.sku.sku_code).values(
-                    'quantity')
-                if invoice_data.exists():
-                    invoice_quantity = invoice_data[0]['quantity']
-                    invoice_wo_tax_amount = invoice_quantity * price
-                    invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
-                    invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
+                # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
+                #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
+                #     'quantity')
+                # if invoice_data.exists():
+                invoice_quantity = invoice_no.quantity
+                invoice_wo_tax_amount = invoice_quantity * price
+                invoice_tax_amount = (invoice_wo_tax_amount * tax_percentage) / 100
+                invoice_total_amount = invoice_wo_tax_amount + invoice_tax_amount
                 if user.userprofile.industry_type == 'FMCG':
                     batch_number = ''
                     expiry_date = ''
@@ -10730,11 +10723,6 @@ def get_material_request_report_data(search_params, user, sub_user):
                          ('Order Quantity', quantity),
                          ('Invoice Quantity', invoice_quantity),
                          ('HSN Code', data.sku.hsn_code), ('Status', status)))
-                if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                    ord_dict['Manufacturer'] = manufacturer
-                    ord_dict['Searchable'] = searchable
-                    ord_dict['Bundle'] = bundle
-                temp_data['aaData'].append(ord_dict)
         else:
             invoice_number = ''
             invoice_quantity = ''
@@ -10763,10 +10751,6 @@ def get_material_request_report_data(search_params, user, sub_user):
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                      ('Expiry Date', expiry_date)))
-            if user.userprofile.industry_type == 'FMCG' and user.userprofile.user_type == 'marketplace_user':
-                ord_dict['Manufacturer'] = manufacturer
-                ord_dict['Searchable'] = searchable
-                ord_dict['Bundle'] = bundle
             temp_data['aaData'].append(ord_dict)
     return temp_data
 

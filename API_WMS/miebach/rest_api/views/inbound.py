@@ -7235,6 +7235,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
     from datetime import datetime
     from pytz import timezone
     from django.db.models import F
+    import dateutil.parser as DP
     grn_date = datetime.now(timezone("Asia/Kolkata")).replace(microsecond=0).isoformat()
     s_po_s= SellerPOSummary.objects.filter(grn_number=grn_number)
     if s_po_s:
@@ -7265,7 +7266,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             invoice_value= float(invoice_value)
             if((invoice_quantity==grn_qty and invoice_value > grn_value) or  (invoice_quantity >grn_qty)):
                 vendorbill_url= ""
-                invoice_no= ""
+                bill_no= ""
                 invoice_date= ""
                 invoice_value= ""
             prQs = PendingPO.objects.filter(full_po_number=po_number)

@@ -272,7 +272,7 @@ class netsuiteIntegration(object):
                             grn_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
 
                         line_item = {
-                        'sku_unitprice': data['unit_price'],
+                        'sku_PO_quantity': data['quantity'],
                         'item': ns.RecordRef(externalId=data['sku_code']),
                         # 'quantity': data['received_quantity'],
                         'description': data['sku_desc'],

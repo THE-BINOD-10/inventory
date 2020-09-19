@@ -456,10 +456,10 @@ class Integrations():
                                 item_length=len(row.itemList['item'])
                                 for indx, grn_line_item in enumerate(row.itemList['item']):
                                     if grn_line_item["item"]["externalId"]== line_item["itemName"] and grn_line_item["itemReceive"]:
-                                        if not grn_line_item.get("flag_duplicate",False):
+                                        if not grn_line_item.get("duplicate_sku_flag",False):
                                         #if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]) and float(grn_line_item["rate"])==float(line_item["rate"]):
-                                            if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]):
-                                                grn_line_item.update({'orderLine': line_item['orderLine'], "flag_duplicate":True})
+                                            if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"] and float(grn_line_item["sku_PO_quantity"])==float(line_item["quantity"]):
+                                                grn_line_item.update({'orderLine': line_item['orderLine'], "duplicate_sku_flag":True})
                                                 check_sku_code=True
                                                 price_mismatch_ckeck+=1
                                                 break

@@ -221,25 +221,41 @@ vm.changeUnitPrice = function(data){
     });
   }
 
-  vm.changeDestWarehouse = function() {
+  vm.company_list = [];
+  vm.get_company_list = function() {
+    vm.company_list = [];
+    vm.service.apiCall("get_company_list/", "GET", {'send_parent': false}).then(function(data) {
+      if(data.message) {
+        //vm.company_list = data.data.company_list;
+        angular.forEach(data.data.company_list, function(company){
+          if(company.id!=vm.model_data.company_id){
+            vm.company_list.push(company)
+          }
+        });
+      }
+    });
+  }
+
+  vm.changeDestCompany = function() {
     console.log(vm.model_data);
     angular.forEach(vm.warehouse_dict, function(wh){
-      console.log(wh);
       if(wh.username == vm.model_data.selected){
         vm.model_data.company_id = wh['userprofile__company_id'];
       }
     });
-    if(vm.model_data.company_id){
+    vm.get_company_list();
+  }
+
+  vm.changeDestWarehouse = function(){
       var wh_data = {};
       vm.dest_wh_list = {};
-      wh_data['company_id'] = vm.model_data.company_id;
+      wh_data['company_id'] = vm.model_data.dest_company_id;
       wh_data['warehouse_type'] = 'STORE,SUB_STORE';
       vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
         if(data.message) {
         vm.dest_wh_list = data.data.warehouse_list;
       }
     });
-    }
   }
 
   vm.get_customer_sku_prices = function(sku) {

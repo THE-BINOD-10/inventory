@@ -11305,7 +11305,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
         get_user_prefix_incremental_st(warehouse, 'st_prefix', dest_code=user.userprofile.stockone_code)
         if inc_status:
             return HttpResponse("Prefix not defined")
-        st_po_id = get_st_purchase_order_id(user)
+        st_po_id = po_id#get_st_purchase_order_id(user)
         prefix = get_misc_value('st_po_prefix', user.id)
         if prefix == 'false':
             prefix = 'STPO'
@@ -11322,7 +11322,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
             user_profile = UserProfile.objects.filter(user_id=user.id)
             po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+                       'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now(),
+                       'po_number': full_po_number}
             po_order = PurchaseOrder(**po_dict)
             po_order.po_number = get_po_reference(po_order)
             po_order.save()

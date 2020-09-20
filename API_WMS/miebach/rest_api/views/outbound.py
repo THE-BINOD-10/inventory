@@ -9564,6 +9564,8 @@ def picklist_delete(request, user=""):
     """ This code will delete the picklist selected"""
     reversion.set_user(request.user)
     st_time = datetime.datetime.now()
+    warehouse_id = request.GET['warehouse_id']
+    user = User.objects.get(id=warehouse_id)
     log.info("deletion of picklist process started")
     stock_transfer_order = False
     order_ids =[]
@@ -15316,6 +15318,7 @@ def stock_transfer_generate_picklist(request, user=''):
     for key, value in request.POST.iteritems():
         if key == 'enable_damaged_stock':
             continue
+        warehouse_id = value
         user = User.objects.get(id=value)
         if enable_damaged_stock == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id,
@@ -15362,7 +15365,7 @@ def stock_transfer_generate_picklist(request, user=''):
         order_status = data[0]['status']
 
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status}))
+                                    'order_status': order_status, 'warehouse_id': warehouse_id}))
 
 
 """

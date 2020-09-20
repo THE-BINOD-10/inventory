@@ -969,7 +969,8 @@ function pull_confirmation() {
     },
     function(isConfirm){
       if (isConfirm) {
-        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}, true).then(function(data){
+        var temp_data_cancel = {key: 'process', picklist_id: pick_id, warehouse_id: vm.model_data.warehouse_id}
+        vm.service.apiCall('picklist_delete/','GET',temp_data_cancel, true).then(function(data){
           if (data.message) {
              vm.ok("done");
           }
@@ -989,7 +990,8 @@ function pull_confirmation() {
        },
        function(isConfirm){
          if (isConfirm) {
-           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
+           var temp_data_cancel = {key: 'process', picklist_id: pick_id, warehouse_id: vm.model_data.warehouse_id};
+           vm.service.apiCall('picklist_delete/','GET', temp_data_cancel, true).then(function(data){
                 swal("", data.data, "success");
            });
            vm.ok("done");

@@ -9565,7 +9565,7 @@ def validate_user_prefixes_form(request, reader, user, no_of_rows, no_of_cols, f
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
     if not set(['warehouse', 'product_category', 'sku_category', 'pr_prefix', 'po_prefix',
-                'grn_prefix', 'invoice_prefix']).issubset(excel_mapping.keys()):
+                'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix']).issubset(excel_mapping.keys()):
         return 'Invalid File'
 
     category_list = list(SKUMaster.objects.filter(user=user.id).exclude(sku_category=''). \
@@ -9594,17 +9594,17 @@ def validate_user_prefixes_form(request, reader, user, no_of_rows, no_of_cols, f
                         index_status.setdefault(row_idx, set()).add('Invalid Product Category')
                     else:
                         data_dict['product_category'] = cell_data
-                else:
-                    index_status.setdefault(row_idx, set()).add('Product Category is Mandatory')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Product Category is Mandatory')
             elif key == 'sku_category':
                 if cell_data:
                     if cell_data not in category_list and not cell_data.lower() == 'default':
                         index_status.setdefault(row_idx, set()).add('Invalid Category')
                     else:
                         data_dict['sku_category'] = cell_data
-                else:
-                    index_status.setdefault(row_idx, set()).add('Category is Mandatory')
-            elif key in ['pr_prefix', 'po_prefix', 'grn_prefix', 'invoice_prefix']:
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Category is Mandatory')
+            elif key in ['pr_prefix', 'po_prefix', 'grn_prefix', 'invoice_prefix', 'st_prefix', 'mr_prefix']:
                 if cell_data:
                     if isinstance(cell_data, float):
                         cell_data = int(cell_data)
@@ -9633,8 +9633,8 @@ def save_user_prefixes(data_list):
     final_data = copy.deepcopy(data_list)
     for data in final_data:
         user = data['user']
-        product_category = data['product_category']
-        sku_category = data['sku_category']
+        product_category = data.get('product_category', '')
+        sku_category = data.get('sku_category', '')
         for key, val in data.items():
             if 'prefix' in key:
                 prefix_dict = {'user_id': user.id, 'product_category': product_category,

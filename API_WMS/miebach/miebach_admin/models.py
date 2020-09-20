@@ -1836,7 +1836,7 @@ class STPurchaseOrder(models.Model):
 
 class StockTransfer(models.Model):
     id = BigAutoField(primary_key=True)
-    order_id = models.BigIntegerField()
+    order_id = models.CharField(max_length=32, default='')#models.BigIntegerField()
     st_po = models.ForeignKey(STPurchaseOrder)
     st_seller = models.ForeignKey(SellerMaster, null=True, blank=True, default=None, related_name='st_seller')
     sku = models.ForeignKey(SKUMaster)

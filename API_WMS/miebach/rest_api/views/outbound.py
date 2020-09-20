@@ -15150,7 +15150,7 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1).\
+    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='ST').\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),

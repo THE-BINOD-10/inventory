@@ -15147,12 +15147,12 @@ def create_orders_check_ean(request, user=''):
 
 
 @csrf_exempt
-def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, st_type=''):
     lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only','tsum']
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
-    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='ST').\
+    stock_transfer_objs = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type=st_type).\
                                         values('st_po__open_st__sku__user', 'order_id',
                                                'st_po__open_st__warehouse__username', 'sku__user').\
                                         distinct().annotate(tsum=Sum('quantity'),

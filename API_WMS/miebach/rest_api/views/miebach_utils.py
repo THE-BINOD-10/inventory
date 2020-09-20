@@ -3314,7 +3314,8 @@ CURRENCY_CODES = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG',
 USER_PREFIXES_MAPPING = OrderedDict((('Warehouse', 'warehouse'), ('Product Category', 'product_category'),
                                      ('Category', 'sku_category'), ('PR Prefix', 'pr_prefix'),
                                      ('PO Prefix', 'po_prefix'), ('GRN prefix', 'grn_prefix'),
-                                     ('Invoice Prefix', 'invoice_prefix')
+                                     ('Invoice Prefix', 'invoice_prefix'), ('Stock Transfer Prefix', 'st_prefix'),
+                                     ('Material Request Prefix', 'mr_prefix')
                                      ))
 
 PRODUCT_CATEGORIES = ['Kits&Consumables', 'Services', 'Assets', 'OtherItems']

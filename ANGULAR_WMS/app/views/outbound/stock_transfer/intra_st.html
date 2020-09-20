@@ -78,7 +78,7 @@
                     </td>
                     <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
                     <td>
-                      <input id="quant1" type="text" name="quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
+                      <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
                     </td>
                     <td>
                       <input type="text" class="form-control" ng-model="data.measurement_unit" readonly>
@@ -90,7 +90,7 @@
                       <input type="text" class="form-control" ng-model="data.conversion" readonly>
                     </td>
                     <td>
-                      <input type="text" name="order_quantity" class="form-control" ng-model="data.total_qty" readonly>
+                      <input type="text" name="quantity" class="form-control" ng-model="data.total_qty" readonly>
                     </td>
 <!--                    <td ng-if="showCase.industry_type=='FMCG'">-->
 <!--                      <input type="text" name="mrp" class="form-control" ng-model="data.mrp"  decimal-number>-->

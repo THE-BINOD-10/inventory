@@ -10311,6 +10311,31 @@ def get_product_category_from_sku(user, sku_code):
     return sku, product_category
 
 
+def get_user_prefix_incremental_st(user, type_name, dest_code=''):
+    count = 0
+    prefix = ''
+    full_prefix = ''
+    full_number = ''
+    inc_status = ''
+    incr_type_name = ''
+    user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name)
+    if not user_prefix:
+        user_prefix = UserPrefixes.objects.filter(user=user.id, type_name=type_name)
+    if not user_prefix:
+        inc_status = 'Prefix not defined'
+    else:
+        user_prefix = user_prefix[0]
+        prefix = user_prefix.prefix
+        full_prefix = prefix
+        incr_type_name = '%s_%s' % (str(type_name), str(prefix))
+        count = get_incremental(user, incr_type_name, default_val=1)
+        userprofile = user.userprofile
+        source_code = userprofile.stockone_code
+        full_prefix = '%s-%s-%s' % (prefix, source_code, dest_code)
+        full_number = '%s%s' % (full_prefix, str(count).zfill(5))
+    return count, full_prefix, full_number, incr_type_name, inc_status
+
+
 def get_user_prefix_incremental(user, type_name, sku_code, dept_code=''):
     count = 0
     prefix = ''
@@ -11276,15 +11301,20 @@ def confirm_stock_transfer_gst(all_data, warehouse_name):
     warehouse = User.objects.get(username__iexact=warehouse_name)
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
+        po_id, prefix, full_po_number, check_prefix, inc_status = \
+        get_user_prefix_incremental_st(warehouse, 'st_prefix', dest_code=user.userprofile.stockone_code)
+        if inc_status:
+            return HttpResponse("Prefix not defined")
         st_po_id = get_st_purchase_order_id(user)
         prefix = get_misc_value('st_po_prefix', user.id)
         if prefix == 'false':
             prefix = 'STPO'
-        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
-        if stock_transfer_obj:
-            order_id = int(stock_transfer_obj[0].order_id) + 1
-        else:
-            order_id = 1001
+        order_id = full_po_number
+        # stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
+        # if stock_transfer_obj:
+        #     order_id = int(stock_transfer_obj[0].order_id) + 1
+        # else:
+        #     order_id = 1001
         for val_idx, val in enumerate(value):
             print 'Confirming: %s' % val_idx
             open_st = OpenST.objects.get(id=val[7])

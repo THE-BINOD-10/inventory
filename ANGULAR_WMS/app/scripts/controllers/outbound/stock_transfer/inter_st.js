@@ -108,7 +108,7 @@ vm.changeUnitPrice = function(data){
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;
-      var elem = angular.element($('form#add_st_intra'));
+      var elem = angular.element($('form#add_st_inter'));
       elem = $(elem).serializeArray();
       vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
         if(data.message) {

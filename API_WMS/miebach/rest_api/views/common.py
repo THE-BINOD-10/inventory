@@ -565,7 +565,7 @@ def get_search_params(request, user=''):
                       'search14': 'search_14', 'search15': 'search_15',
                       'search16': 'search_16', 'search17': 'search_17',
                       'search18': 'search_18', 'search19': 'search_19',
-                      'cancel_invoice':'cancel_invoice', }
+                      'cancel_invoice':'cancel_invoice', 'single_warehouse': 'single_warehouse'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -9875,12 +9875,15 @@ def get_supplier_info(request):
     supplier_user = ''
     supplier = ''
     supplier_parent = ''
-    profile = UserProfile.objects.get(user=request.user)
-    if profile.user_type == 'supplier':
-        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
-        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
-        supplier_parent = User.objects.get(id = supplier.user)
-        return True, supplier_data, supplier, supplier_parent
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        if profile.user_type == 'supplier':
+            supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
+            supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
+            supplier_parent = User.objects.get(id = supplier.user)
+            return True, supplier_data, supplier, supplier_parent
+    except Exception as e:
+        return False, supplier_user, supplier, supplier_parent
     return False, supplier_user, supplier, supplier_parent
 
 def create_new_supplier(user, supp_id, supplier_dict=None):

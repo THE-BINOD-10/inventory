@@ -164,7 +164,7 @@ GRAPPELLI_ADMIN_TITLE = 'MIEBACH Admin'
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
-MEDIA_URL = ''
+MEDIA_URL = '/media/'
 
 LOGIN_URL = '/login/'
 

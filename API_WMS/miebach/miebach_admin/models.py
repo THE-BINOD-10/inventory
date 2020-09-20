@@ -4151,3 +4151,49 @@ class AdjustmentData(models.Model):
 
     class Meta:
         db_table = 'ADJUSTMENT_DATA'
+
+
+class FileLocationMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    reference_key = models.IntegerField(null=False, blank=False)
+    reference_text = models.CharField(null=False, max_length=225)
+    document = models.FileField(upload_to='uploaded_data/')
+
+class GateIn(models.Model):
+    STATUS_DROPDOWN = (
+        ('default','None'),
+        ('Pending','Pending for Approval'),
+        ('Approved','Approved'),
+    )
+    TRUCK_TYPE_CHOICES =(
+        ('7', '7'), 
+        ('9', '9'), 
+        ('16', '16'), 
+        ('22', '22'),
+    )
+    REASON_TYPES = (
+        ('Inbound','Inbound'),
+        ('Outbound', 'Outbound'),
+        ('Returns','Returns'),
+        ('StockTransferIn', 'StockTransferIn'),
+        ('StockTransferOut','StockTransferOut')
+    )
+    id = BigAutoField(primary_key=True)
+    po_number = models.CharField(null=True, max_length=225, blank=True)
+    party = models.CharField(null=True, max_length=225, blank=True)
+    invoice_number = models.CharField(max_length=20, null=True, blank=True)
+    transport_company = models.CharField(max_length=20, null=True, blank=True)
+    truck_type = models.CharField(max_length=50, choices=TRUCK_TYPE_CHOICES, null=True, blank=True)
+    driver_name = models.CharField(max_length=50, default='', blank=True)
+    driver_number = models.CharField(blank=True, null=True, max_length=12)
+    reason = models.CharField(max_length=50, choices=REASON_TYPES, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_DROPDOWN, default='Pending', null=True, blank=True)
+    no_of_boxes = models.IntegerField(null=True, blank=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # dock_number = models.ForeignKey(DockDoorMaster, on_delete=models.CASCADE, null=True, blank=True)
+    in_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GATE_IN'
+        ordering    = ['-in_date']

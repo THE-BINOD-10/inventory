@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
 GroupBrand, GroupStages, OrderDetail, BarcodeSettings, CompanyMaster, Integrations, PaymentTerms, SupplierMaster, CompanyRoles, UserPrefixes, UOMMaster, NetsuiteIdMapping
-from models import PurchaseOrder
+from models import PurchaseOrder, GateIn, FileLocationMapping, StaffMaster
 # Register your models here.
 
 
@@ -58,12 +58,27 @@ class UOMMasterAdmin(admin.ModelAdmin):
     list_display = ('company', 'name', 'sku_code', 'base_uom', 'uom_type', 'uom', 'conversion')
     list_filter = ('company',)
 
+@admin.register(GateIn)
+class GateInAdmin(admin.ModelAdmin):
+    search_fields = ['truck_number', 'truck_type', 'party']
+    list_display = ('in_date', 'party', 'reason', 'status')
+
+@admin.register(FileLocationMapping)
+class FileLocationMappingAdmin(admin.ModelAdmin):
+    search_fields = ['reference_key', 'reference_text', 'document']
+    list_display = ['reference_key', 'reference_text', 'document']
 
 @admin.register(NetsuiteIdMapping)
 class NetsuiteIdMappingAdmin(admin.ModelAdmin):
     search_fields = ['type_name', 'type_value']
     list_display = ('type_name', 'type_value', 'internal_id')
     list_filter = ('type_name',)
+
+
+@admin.register(StaffMaster)
+class StaffMasterAdmin(admin.ModelAdmin):
+    search_fields = ['staff_name', 'staff_code', 'company__company_name']
+    list_display = ['staff_name', 'staff_code', 'company']
 
 # admin.site.register(UOMMaster)
 admin.site.register(Integrations)

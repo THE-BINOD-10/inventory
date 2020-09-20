@@ -858,7 +858,7 @@ def get_receive_po_datatable_filters(user, filters, request):
     search_params = {}
     search_params1 = {}
     search_params2 = {}
-    if filters['search_0']:
+    if filters.get('search_0', None):
         col_val = filters['search_0']
         '''cols = re.findall('\d+', filters['search_0'])
         string = re.findall('\D+', filters['search_0'])
@@ -902,27 +902,27 @@ def get_receive_po_datatable_filters(user, filters, request):
             values_list('purchase_order_id', flat=True).distinct()
         search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
         search_params1['po_id__in'] = search_params['id__in']
-    if filters['search_1']:
+
+    if filters.get('search_1', None):
         search_params['open_po__po_name__icontains'] = filters['search_1']
         search_params1['po__open_po__po_name__icontains'] = filters['search_1']
         search_params2['purchase_order__open_po__po_name__icontains'] = filters['search_1']
-    if filters['search_3']:
+    if filters.get('search_3', None):
         search_params['creation_date__regex'] = filters['search_3']
     if request.POST.get('style_view', '') == 'true':
         supplier_search = 'search_10'
     else:
-        supplier_search = 'search_10'
-    if filters['search_10']:
-        supplier_search = 'search_10'
-    if filters['search_9']:
+        supplier_search = 'search_9'
+    if filters.get('search_9', None):
         plant_filter_ids = list(User.objects.filter(first_name__icontains=filters['search_9']).values_list('id', flat=True))
         if plant_filter_ids:
             search_params['open_po__sku__user__in'] = plant_filter_ids
-    if filters[supplier_search]:
+
+    if filters.get(supplier_search, None):
         search_params['open_po__supplier__supplier_id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
         search_params2['rwo__vendor__id__icontains'] = filters[supplier_search]
-    if filters['search_3']:
+    if filters.get('search_3', None):
         search_params['open_po__supplier__name__icontains'] = filters['search_3']
         search_params1['open_st__warehouse__username__icontains'] = filters['search_3']
         search_params2['rwo__vendor__name__icontains'] = filters['search_3']
@@ -1040,7 +1040,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     po_reference_no = ''
     sr_number = ''
     users = [user.id]
-    users = check_and_get_plants(request, users)
+    if filters.get('single_warehouse', None) is None:
+        users = check_and_get_plants(request, users)
     parent_po_prefix = ''
     parent_user = get_admin(user)
     parent_user_profile = UserProfile.objects.filter(user_id=parent_user.id)
@@ -1166,6 +1167,20 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                         productType="OtherItems"
                 except:
                     pass
+
+        gateIns = GateIn.objects.filter(po_number=po_reference).order_by('-in_date')
+        inv_number = None
+        if gateIns.exists():
+            gatein = gateIns[0]
+            inv_number = gatein.invoice_number
+        images = None
+        if inv_number:
+            fm = FileLocationMapping.objects.filter(reference_key=gatein.id, reference_text='invoice_image')
+            if fm.exists():
+                fm = fm[0]
+                images = request.build_absolute_uri('/').rstrip('/') + fm.document.url
+
+
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
                                       ('display_approval_button_DOA', display_approval_button_DOA),
                                       ('PO Reference', po_reference_no), ('Order Date', _date),
@@ -1176,7 +1191,9 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                       ('Receive Status', receive_status), ('Customer Name', customer_name),
                                       ('Discrepancy Qty', discrepency_qty), ('Product Category', productType),
                                       ('Style Name', ''), ('SR Number', sr_number), ('prefix', result['prefix']),
-                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), ('service_doa', services_doa)
+                                      ('warehouse_id', warehouse.id), ('status', ''), ('send_to', send_to), 
+                                      ('service_doa', services_doa), ('invoice_number', inv_number),
+                                      ('invoice_image', images)
                                       )))
     temp_data['aaData'] = data_list
 

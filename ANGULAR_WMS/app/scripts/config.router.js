@@ -2081,6 +2081,10 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/customer_invoices_main.js'
                         ]).then( function() {
                   return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/material_request_challan.js',
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
                     'scripts/controllers/outbound/stock_transfer_invoice.js',
                   ])
                 }).then( function() {

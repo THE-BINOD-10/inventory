@@ -471,6 +471,7 @@ urlpatterns = [
     url(r'^get_order_extra_options/$', get_order_extra_options),
     url(r'^get_picklist_delivery_challan/$', get_picklist_delivery_challan),
     url(r'^generate_dc/$', generate_dc),
+    url(r'^generate_mr_dc/$', generate_mr_dc),
     url(r'^get_customer_types/$', get_customer_types),
 
 

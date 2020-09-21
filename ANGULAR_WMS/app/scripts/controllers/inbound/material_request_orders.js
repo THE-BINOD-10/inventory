@@ -150,7 +150,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var url = "get_stock_transfer_order_details/";
 
       vm.service.apiCall(url, "GET", params).then(function(data){
-
+        vm.current_page = 'MR';
         vm.items_dict = data.data.data_dict;
         vm.order_id = data.data.data_dict[0].order_id;
         vm.customer_name = data.data.wh_details.name;
@@ -176,7 +176,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     $('td:not(td:first)', nRow).unbind('click');
     $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
-          var data = {order_id: aData['Stock Transfer ID']};
+          var data = {order_id: aData['Stock Transfer ID'], warehouse_id: aData['warehouse_id']};
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
           vm.get_order_data(data);
        })

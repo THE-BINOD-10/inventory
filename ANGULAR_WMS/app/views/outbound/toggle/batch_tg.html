@@ -68,7 +68,7 @@
                   <th> Batch No </th>
                   <th> Manufactured Date </th>
                   <th> Expiry Date </th>
-                  <th> MRP </th>
+                  <th class="hidden"> MRP </th>
                   <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                   <th> Reserved Quantity </th>
                   <th> Picked Quantity </th>
@@ -104,7 +104,7 @@
                  <td>
                     <input ng-model="data.expiry_date" class="form-control" size="20" type="text" readonly>
                  </td>
-                 <td>
+                 <td class="hidden">
                     <input ng-model="data.mrp" class="form-control" type="text" readonly>
                  </td>
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="data.pallet_number" class="form-control" type="text" readonly></td>

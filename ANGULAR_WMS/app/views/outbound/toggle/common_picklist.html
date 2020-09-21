@@ -147,7 +147,7 @@
                   <th ng-if ="pop.industry_type=='FMCG'">Batch No</th>
                   <th ng-if ="pop.industry_type=='FMCG'">Mfg Date</th>
                   <th ng-if ="pop.industry_type=='FMCG'">Exp Date</th>
-                  <th ng-if ="pop.industry_type=='FMCG'">MRP</th>
+                  <th class="hidden" ng-if ="pop.industry_type=='FMCG'">MRP</th>
                   <th class="w10" ng-if="pop.permissions.pallet_switch"> Pallet Code </th>
                   <th class="w10"> Reserved Quantity </th>
                   <th class="w10"> Picked Quantity </th>
@@ -192,7 +192,7 @@
                   <td ng-if="pop.industry_type=='FMCG'">
                     <input name="expiry_date_{{data.id}}" ng-model="data.expiry_date" class="form-control" size="20" value="{{data.expiry_date}}" type="text" readonly>
                   </td>
-		              <td ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
+		              <td class="hidden" ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td>
                     <input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly>

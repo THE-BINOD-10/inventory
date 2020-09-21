@@ -16933,7 +16933,7 @@ def generate_mr_dc(request , user = ''):
         invoice_data['company_name'] = user_profile.company.company_name
         invoice_data['company_address'] = user_profile.address
         invoice_data['company_number'] = user_profile.phone_number
-        invoice_data['order_no'] = order['order_id']
+        invoice_data['order_no'] = "%s/%s"%(order['order_id'], order['pick_number'])
         invoice_data['total_quantity'] = round(total_qty, 2)
         invoice_data['iterator'] = iterator
     return render(request, 'templates/toggle/mr_transfer_doc.html', invoice_data)

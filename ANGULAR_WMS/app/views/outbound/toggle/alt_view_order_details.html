@@ -3,9 +3,8 @@
     <div class="container-fluid">
       <div class="left">
         <h4>
-          <span class="go-back" ng-click="showCase.back_button()">
-          <i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>
-        Stock Transfer Orders</span>
+          <span ng-if="showCase.current_page == 'ST'" class="go-back" ng-click="showCase.back_button()"><i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>Stock Transfer Orders</span>
+          <span ng-if="showCase.current_page == 'MR'" class="go-back" ng-click="showCase.back_button()"><i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>Material Transfer Orders</span>
           <span> / </span>
           <span>Order Details</span>
         <span><b>&nbsp;#{{showCase.order_id}}</b></span>
@@ -17,7 +16,8 @@
   <hr>
   <div class="container-fluid">
     <div class="row">
-      <h5><b>DESTINATION WAREHOUS DETAILS</b></h5>
+      <h5 ng-if="showCase.current_page == 'ST'"><b>DESTINATION WAREHOUS DETAILS</b></h5>
+      <h5 ng-if="showCase.current_page == 'MR'"><b>Source Plant Details</b></h5>
       <div class="col-md-5">
         <div class="row">
           <div class="col-xs-4">
@@ -110,15 +110,15 @@
           <tr>
             <th>ITEM CODE</th>
             <th>PRODUCT TITLE</th>
-            <th>OPENING STOCK</th>
-            <th>RECEIVED</th>
-            <th>TOTAL STOCK</th>
-            <th>ADJUSTED</th>
-            <th>CONSUMED</th>
-            <th>CLOSING</th>
+            <th ng-if="showCase.current_page != 'MR'">OPENING STOCK</th>
+            <th ng-if="showCase.current_page != 'MR'">RECEIVED</th>
+            <th ng-if="showCase.current_page != 'MR'">TOTAL STOCK</th>
+            <th ng-if="showCase.current_page != 'MR'">ADJUSTED</th>
+            <th ng-if="showCase.current_page != 'MR'">CONSUMED</th>
+            <th ng-if="showCase.current_page != 'MR'">CLOSING</th>
             <th>QUANTITY</th>
-            <th>UNIT PRICE</th>
-            <th>INVOICE AMT (&#8377;)</th>
+            <th ng-if="showCase.current_page != 'MR'">UNIT PRICE</th>
+            <th ng-if="showCase.current_page != 'MR'">INVOICE AMT (&#8377;)</th>
             <th ng-if="!showCase.input_status" class="plus"></th>
           </tr>
         </thead>
@@ -134,31 +134,31 @@
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="opening_stock" ng-model="data.opening_stock" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="received" ng-model="data.received" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="total_stock" ng-model="data.total_stock" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="adjusted" ng-model="data.adjusted" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="consumed" ng-model="data.consumed" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="closing" ng-model="data.closing_stock" ng-readonly="data.default_status">
             </td>
             <td>
               <input type="text" class="form-control" name="quantity" ng-class="service.get_decimal_perm()" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="data.default_status">
             </td>
-            <td>
+            <td ng-if="showCase.current_page != 'MR'">
               <input type="text" class="form-control" ng-model="data.invoice_amount" disabled="disabled">
               <input type="hidden" class="form-control" name="invoice_amount" value="{{data.quantity * data.unit_price}}">
             </td>

@@ -1347,7 +1347,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
     po_liss = ['po_number', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
     po_lis = ['sellerposummary__creation_date', 'sellerposummary__grn_number', 'po_number', 'open_po__supplier__id', 'open_po__supplier__name', 'po_number', 'po_number']
-    st_lis = ['order_id', 'order_id', 'stpurchaseorder__open_st__warehouse__id',
+    st_lis = ['po_number', 'order_id', 'stpurchaseorder__open_st__warehouse__id',
               'stpurchaseorder__open_st__warehouse__username', 'order_id', 'order_id']
     rw_lis = ['order_id', 'order_id', 'rwpurchase__rwo__vendor__id', 'rwpurchase__rwo__vendor__name', 'order_id',
               'order_id']
@@ -1375,10 +1375,10 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                     .values('order_id', 'prefix').distinct().order_by(po_col, st_col, rw_col)
     st_dict =  PurchaseOrder.objects.filter(st_search_query, stpurchaseorder__open_st__sku__user__in=user_ids,polocation__status=1,
                                             polocation__quantity__gt=0).\
-                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'],order_id__in = po_ids).\
-                                    exclude(order_id__in=po_ids)\
-                                     .values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
+                                    exclude(status__in=['', 'confirmed-putaway', 'stock-transfer']).\
+                                     values('order_id', 'prefix', 'po_number', 'sellerposummary__grn_number',
                                      'sellerposummary__receipt_number').distinct().order_by(po_col, st_col, rw_col)
+    resultant_grns = list(chain(resultant_grns, st_dict.values_list('sellerposummary__grn_number',flat = True)))
     results = list(chain(po_dict,rwo_dict,st_dict))
     results = verify_putaway_data(results)
     temp_data['recordsTotal'] = len(results)
@@ -1394,6 +1394,7 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
             order_type = 'Returnable Work Order'
         elif st_dict.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix']).exists():
             supplier = PurchaseOrder.objects.filter(order_id=result['order_id'], stpurchaseorder__open_st__sku__user__in=user_ids, prefix=result['prefix'])[0]
+            grn_time_date = resultant_grns.filter(receipt_number=result['sellerposummary__receipt_number'], grn_number=result['sellerposummary__grn_number']).order_by('-creation_date')[0].creation_date
             order_type = 'Stock Transfer'
         order_data = get_purchase_order_data(supplier)
 

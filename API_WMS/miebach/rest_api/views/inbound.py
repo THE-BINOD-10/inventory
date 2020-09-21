@@ -16156,8 +16156,11 @@ def get_material_request_orders(start_index, stop_index, temp_data, search_term,
 
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
+        source_name = User.objects.get(id=data['st_po__open_st__warehouse__id'])
         warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
+                                    'warehouse_label': "%s %s" % (warehouse.first_name, warehouse.last_name),
+                                    'source_label': "%s %s" % (source_name.first_name, source_name.last_name),
                                     'Stock Transfer ID': data['order_id'], 'warehouse_id': data['st_po__open_st__warehouse__id'],
                                     'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results', 'source_wh': data['st_po__open_st__warehouse__username'],

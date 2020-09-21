@@ -96,7 +96,7 @@ vm.changeUnitPrice = function(data){
   if (parseFloat(data.order_quantity) > 0) {
     data.conversion = parseFloat(data.order_quantity) * parseFloat(data.temp_conversion);
   }
-  if (parseFloat(data.capacity) < parseFloat(data.order_quantity)) {
+  if (parseFloat(data.capacity) < parseFloat(data.conversion)) {
     data.total_qty = 0;
     data.order_quantity = 0;
     colFilters.showNoty("Total Qty Should be less then available Quantity");
@@ -146,7 +146,15 @@ vm.changeUnitPrice = function(data){
       }
     }
   });
-
+  vm.validate_sku = function(elem){
+    var status_flag = true;
+    angular.forEach(elem, function(dat){
+      if (dat['name'] == 'order_quantity' &&  (dat['value'] == '' || dat['value'] == 0)) {
+        status_flag= false;
+      }
+    })
+    return status_flag;
+  }
   vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
@@ -154,15 +162,19 @@ vm.changeUnitPrice = function(data){
       var elem = angular.element(form);
       elem = $(elem).serializeArray();
       elem.push ({'name': 'order_typ', 'value': 'MR'})
-      vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
-        if(data.message) {
-          if("Confirmed Successfully" == data.data) {
-            angular.copy(empty_data, vm.model_data);
+      if (vm.validate_sku(elem)) {
+        vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
+          if(data.message) {
+            if("Confirmed Successfully" == data.data) {
+              angular.copy(empty_data, vm.model_data);
+            }
+            colFilters.showNoty(data.data);
+            vm.bt_disable = false;
           }
-          colFilters.showNoty(data.data);
-          vm.bt_disable = false;
-        }
-      })
+        })
+      } else {
+        colFilters.showNoty("Please Fill Quantity ! ");  
+      }
     } else {
       colFilters.showNoty("Fill Required Fields");
     }
@@ -198,7 +210,7 @@ vm.changeUnitPrice = function(data){
           record.mrp = data.mrp;
           // record["price"] = data.mrp;
             if(!(record.order_quantity)) {
-              record.order_quantity = 0
+              record.order_quantity = 1
             }
             if(!(record.price)) {
               record.price = data.cost_price;

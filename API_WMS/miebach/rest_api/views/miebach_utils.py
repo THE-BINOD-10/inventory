@@ -10648,13 +10648,10 @@ def get_material_request_report_data(request, search_params, user, sub_user):
     #     search_parameters['stocktransfersummary__full_invoice_number'] = search_params['invoice_number']
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
-
     users = [user.id]
     users = check_and_get_plants(request, users)
     user_ids = list(users.values_list('id', flat=True))
     sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
-
-
     search_parameters['sku_id__in'] = sku_master_ids
     search_parameters['sku__user__in'] = user_ids
     search_parameters['st_type'] = 'MR'
@@ -10669,7 +10666,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]
-        destination = destination.username
+        destination = "%s %s" % (destination.first_name, destination.last_name)
         cgst = data.st_po.open_st.cgst_tax
         sgst = data.st_po.open_st.sgst_tax
         igst = data.st_po.open_st.igst_tax
@@ -10713,7 +10710,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
 
                 ord_dict = OrderedDict(
                     (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                     ('Source Plant', user.username), ('Destination Department', destination),
+                     ('Source Plant', user.first_name), ('Destination Department', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity),
                      ('Pick Quantity', invoice_quantity),
@@ -10741,7 +10738,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                     "%d %b, %Y")
             ord_dict = OrderedDict(
                 (('Date', date), ('Order ID', data.order_id), ('Invoice Number', invoice_number),
-                 ('Source Plant', user.username), ('Destination Department', destination),
+                 ('Source Plant', "%s %s" % (user.first_name, user.last_name)), ('Destination Department', destination),
                  ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                  ('Order Quantity', quantity),
                  ('Pick Quantity', invoice_quantity),

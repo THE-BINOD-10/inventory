@@ -11308,7 +11308,7 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
         get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
         if inc_status:
             return HttpResponse("Prefix not defined")
-        st_po_id = get_st_purchase_order_id(user)
+        st_po_id = po_id#get_st_purchase_order_id(user)
         order_id = full_po_number
         # prefix = get_misc_value('st_po_prefix', user.id)
         if not prefix:
@@ -11325,9 +11325,10 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
             user_profile = UserProfile.objects.filter(user_id=user.id)
             po_dict = {'order_id': st_po_id, 'received_quantity': 0, 'saved_quantity': 0,
                        'po_date': datetime.datetime.now(), 'ship_to': '',
-                       'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+                       'status': 'stock-transfer', 'prefix': prefix, 'creation_date': datetime.datetime.now(),
+                       'po_number': full_po_number}
             po_order = PurchaseOrder(**po_dict)
-            po_order.po_number = get_po_reference(po_order)
+            #po_order.po_number = get_po_reference(po_order)
             po_order.save()
             st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
                                 'creation_date': datetime.datetime.now()}
@@ -11602,6 +11603,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                         temp_json['batch_no'] = batch_detail.batch_no
                         temp_json['buy_price'] = batch_detail.buy_price
                         temp_json['tax_percent'] = batch_detail.tax_percent
+                        temp_json['quantity'] = update_picked/batch_detail.pcf
                         datum = get_warehouses_list_states(user)
                         compare_user = User.objects.get(id=st_po.open_st.sku.user).username
                         current_user = user.username

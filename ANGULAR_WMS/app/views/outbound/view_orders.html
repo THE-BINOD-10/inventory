@@ -114,8 +114,8 @@
       <tab heading="Order Category View">
         <div ng-include="'views/outbound/view_orders/order_category_view.html'"></div>
       </tab>-->
-      <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
-        <div class="panel" ng-controller="StockTransferOrders as showCase">
+      <tab heading="Intra Stock Transfer" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
+        <div class="panel" ng-controller="StockTransferOrdersIntra as showCase">
           <div class="panel-header">
             <div class="row">
               <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
@@ -167,6 +167,24 @@
       </div>
 
 
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Inter Transfer Sale">
+        <div class="panel" ng-controller="StockTransferOrdersInter as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
             <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
           </div>
         </div>

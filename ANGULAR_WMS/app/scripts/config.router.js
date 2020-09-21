@@ -1799,7 +1799,8 @@ var app = angular.module('urbanApp')
                        'scripts/controllers/outbound/view_orders/create_central_orders.js',
               ]).then( function() {
                 return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
+                    'scripts/controllers/outbound/view_orders/stock_transfer/intra_st.js',
+                    'scripts/controllers/outbound/view_orders/stock_transfer/inter_st.js',
                   ])
               }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/inbound/material_request_orders.js');

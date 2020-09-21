@@ -10701,7 +10701,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                                                     stock_transfer=data.id).values(
                     'picklist__stock__batch_detail__batch_no',
                     'picklist__stock__batch_detail__manufactured_date',
-                    'picklist__stock__batch_detail__expiry_date')
+                    'picklist__stock__batch_detail__expiry_date', 'picklist__stock__batch_detail__pcf')
                 if batch_data.exists():
                     qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']

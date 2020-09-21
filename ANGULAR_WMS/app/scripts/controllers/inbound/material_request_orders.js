@@ -95,8 +95,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   vm.selected[meta.row] = vm.selectAll;
                   return vm.service.frontHtml + meta.row + vm.service.endHtml;
               }).notSortable(),
-          DTColumnBuilder.newColumn('source_wh').withTitle('Source Warehouse'),
-          DTColumnBuilder.newColumn('Warehouse Name').withTitle('Destination Warehouse'),
+          DTColumnBuilder.newColumn('source_label').withTitle('Source Warehouse'),
+          DTColumnBuilder.newColumn('warehouse_label').withTitle('Destination Warehouse'),
           DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Material Request ID'),
           DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
           DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),

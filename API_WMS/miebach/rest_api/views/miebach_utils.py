@@ -10613,11 +10613,10 @@ def print_sku_wise_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_material_request_report_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
+def get_material_request_report_data(request, search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date, check_and_get_plants
     from miebach_admin.models import *
     temp_data = copy.deepcopy(AJAX_DATA)
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'st_po__open_st__sku__user', 'st_po__open_st__sku__user',
            'st_po__open_st__sku__user', 'st_po__open_st__sku__user', 'sku__sku_code', 'sku__sku_desc', \
            'quantity', 'st_po__open_st__price', 'st_po__open_st__sku__user', 'st_po__open_st__cgst_tax',
@@ -10650,8 +10649,14 @@ def get_material_request_report_data(search_params, user, sub_user):
     if 'order_id' in search_params:
         search_parameters['order_id'] = search_params['order_id']
 
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    sku_master, sku_master_ids = get_sku_master(user_ids, sub_user, is_list=True)
+
+
     search_parameters['sku_id__in'] = sku_master_ids
-    search_parameters['sku__user'] = user.id
+    search_parameters['sku__user__in'] = user_ids
     search_parameters['st_type'] = 'MR'
     stock_transfer_data = StockTransfer.objects.filter(**search_parameters). \
         order_by(order_data).select_related('sku', 'st_po__open_st__sku')
@@ -10660,6 +10665,7 @@ def get_material_request_report_data(search_params, user, sub_user):
     time = str(datetime.datetime.now())
     attributes_list = ['Manufacturer', 'Searchable', 'Bundle']
     for data in (stock_transfer_data[start_index:stop_index]):
+        user = data.st_po.open_st.warehouse
         date = get_local_date(user, data.creation_date)
         destination = User.objects.get(id=data.st_po.open_st.sku.user)
         status = status_map[data.status]

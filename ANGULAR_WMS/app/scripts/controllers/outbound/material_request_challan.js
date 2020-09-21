@@ -87,6 +87,7 @@ var vm = this;
           var row_data = vm.dtInstance.DataTable.context[0].aoData[key]._aData
           var order_id = row_data ['Material Request ID']
           var pick_id = row_data ['pick_number']
+          var source_wh = row_data ['source_wh']
           if (selected_order_ids.length == 1)
            {
                valid = false
@@ -95,7 +96,7 @@ var vm = this;
           {
             selected_order_ids.push(order_id)
             var elem = {}
-            elem = {'order_id' :order_id , 'pick_number': pick_id}
+            elem = {'order_id' :order_id , 'pick_number': pick_id, 'source_wh': source_wh}
             selected_rows.push(elem)
 
           }

@@ -5870,7 +5870,7 @@ def create_stock_transfer(request, user=''):
     status = validate_st(all_data, warehouse)
     if not status:
         all_data = insert_st_gst(all_data, warehouse)
-        status = confirm_stock_transfer_gst(all_data, user.username)
+        status = confirm_stock_transfer_gst(all_data, user.username, order_typ = order_typ)
         #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
@@ -11258,14 +11258,17 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
 def get_material_request_challan_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
     summary_params = {'status':2}
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     summary_term = st_list[col_num]
     if order_term == 'desc':
         summary_term = '-%s' % summary_term
     if search_term :
         summary_params['order_id__icontains'] = search_term
-    stock_transfer_summary = StockTransfer.objects.filter(sku__user=user.id, st_type='MR', **summary_params).select_related('st_po__open_st').order_by(summary_term)
+    stock_transfer_summary = StockTransfer.objects.filter(sku__user__in=user_ids, st_type='MR', **summary_params).select_related('st_po__open_st').order_by(summary_term)
     stock_transfer_summary_values = stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0).values('order_id', 'st_po__open_st__sku__user',
-                                                'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number').\
+                                                'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number', ).\
                                                 distinct()
     if user.username in MILKBASKET_USERS:
         data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0)\
@@ -11288,6 +11291,7 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
         order_quantity = 0
         current_material_tns = stock_transfer_summary.filter(order_id=stock_transfer['order_id'])
         if current_material_tns.exists():
+            source_wh = current_material_tns[0].st_po.open_st.warehouse_id
             creation_date = current_material_tns.latest('creation_date').creation_date
             try:
                 order_quantitys = current_material_tns.annotate(total_qty=Sum('quantity')).values('total_qty')
@@ -11308,6 +11312,7 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
         data_dict = {'Material Request ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': picked_quantity,
              'Total Amount': "%.2f"% float(summary_price), 'Material Request Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
              'Invoice Number': invoice_number,#value['full_invoice_number'],
+             'source_wh': source_wh,
              'Destination Department': warehouse_name}
         temp_data['aaData'].append(data_dict)
     return temp_data
@@ -16868,6 +16873,7 @@ def generate_mr_dc(request , user = ''):
     if orders :
         order = json.loads(orders)[0]
         datum = []
+        user = User.objects.get(id=order['source_wh'])
         stock_transfer_data = StockTransfer.objects.filter(st_type='MR', sku__user=user.id, order_id=order['order_id'], status=2).select_related('sku', 'st_po__open_st__sku')
         for data in stock_transfer_data:
             date = get_local_date(user, data.creation_date)
@@ -16901,6 +16907,7 @@ def generate_mr_dc(request , user = ''):
                             "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                         manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
                             "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                    total_qty += float(invoice_no.quantity)
                     temp_dict = {}
                     temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code
                     temp_dict['desc'] = invoice_no.stock_transfer.sku.sku_desc
@@ -16918,6 +16925,7 @@ def generate_mr_dc(request , user = ''):
         invoice_data['company_address'] = user_profile.address
         invoice_data['company_number'] = user_profile.phone_number
         invoice_data['order_no'] = order['order_id']
+        invoice_data['total_quantity'] = round(total_qty, 2)
         invoice_data['iterator'] = iterator
     return render(request, 'templates/toggle/mr_transfer_doc.html', invoice_data)
 

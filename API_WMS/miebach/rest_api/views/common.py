@@ -11297,19 +11297,22 @@ def insert_st_gst(all_data, user):
     return all_data
 
 
-def confirm_stock_transfer_gst(all_data, warehouse_name):
+def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
     warehouse = User.objects.get(username__iexact=warehouse_name)
+    incremental_prefix = 'st_prefix'
+    if order_typ == 'MR':
+        incremental_prefix = 'mr_prefix'
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
         po_id, prefix, full_po_number, check_prefix, inc_status = \
-        get_user_prefix_incremental_st(warehouse, 'st_prefix', dest_code=user.userprofile.stockone_code)
+        get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
         if inc_status:
             return HttpResponse("Prefix not defined")
         st_po_id = get_st_purchase_order_id(user)
-        prefix = get_misc_value('st_po_prefix', user.id)
-        if prefix == 'false':
-            prefix = 'STPO'
         order_id = full_po_number
+        # prefix = get_misc_value('st_po_prefix', user.id)
+        if not prefix:
+            prefix = 'STPO'
         # stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         # if stock_transfer_obj:
         #     order_id = int(stock_transfer_obj[0].order_id) + 1

@@ -16912,6 +16912,10 @@ def generate_mr_dc(request , user = ''):
                             "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
                         manufactured_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
                             "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
+                    try:
+                        invoice_no.quantity = float(invoice_no.quantity) / float(invoice_no.picklist.stock.batch_detail.pcf)
+                    except Exception as e:
+                        pass
                     total_qty += float(invoice_no.quantity)
                     temp_dict = {}
                     temp_dict['sku_code'] = invoice_no.stock_transfer.sku.sku_code

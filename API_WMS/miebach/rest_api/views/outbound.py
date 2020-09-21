@@ -11313,7 +11313,7 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
         if stock_transfer['stocktransfersummary__pick_number']:
             pick_number = stock_transfer['stocktransfersummary__pick_number']
         warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user'])
-        data_dict = {'Material Request ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': picked_quantity,
+        data_dict = {'Material Request ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': round(picked_quantity, 2),
              'Total Amount': "%.2f"% float(summary_price), 'Material Request Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
              'Invoice Number': invoice_number,#value['full_invoice_number'],
              'source_wh': source_wh,

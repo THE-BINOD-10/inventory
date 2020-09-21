@@ -10715,7 +10715,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                      ('Source Plant', user.first_name), ('Destination Department', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity),
-                     ('Pick Quantity', round(float(invoice_quantity) * float(qty_conversion), 2),
+                     ('Pick Quantity', round(float(invoice_quantity) * float(qty_conversion), 2)),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                      ('Expiry Date', expiry_date)))

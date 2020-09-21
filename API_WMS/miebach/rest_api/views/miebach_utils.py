@@ -10684,6 +10684,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
         manufacturer, searchable, bundle = '', '', ''
         if data.stocktransfersummary_set.filter():
             for invoice_no in data.stocktransfersummary_set.filter():
+                qty_conversion = 1
                 invoice_number = invoice_no.full_invoice_number
                 # invoice_data = StockTransferSummary.objects.filter(full_invoice_number=invoice_number,
                 #                                                    stock_transfer__sku__sku_code=data.sku.sku_code).values(
@@ -10702,6 +10703,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                     'picklist__stock__batch_detail__manufactured_date',
                     'picklist__stock__batch_detail__expiry_date')
                 if batch_data.exists():
+                    qty_conversion = batch_data[0]['picklist__stock__batch_detail__pcf']
                     batch_number = batch_data[0]['picklist__stock__batch_detail__batch_no']
                     expiry_date = batch_data[0]['picklist__stock__batch_detail__expiry_date'].strftime(
                         "%d %b, %Y") if batch_data[0]['picklist__stock__batch_detail__expiry_date'] else ''
@@ -10713,7 +10715,7 @@ def get_material_request_report_data(request, search_params, user, sub_user):
                      ('Source Plant', user.first_name), ('Destination Department', destination),
                      ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
                      ('Order Quantity', quantity),
-                     ('Pick Quantity', invoice_quantity),
+                     ('Pick Quantity', round(float(invoice_quantity) * float(qty_conversion), 2),
                      ('HSN Code', data.sku.hsn_code), ('Status', status),
                      ('Batch Number', batch_number), ('Manufactured Date', manufactured_date),
                      ('Expiry Date', expiry_date)))

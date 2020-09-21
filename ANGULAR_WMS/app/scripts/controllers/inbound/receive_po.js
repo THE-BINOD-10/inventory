@@ -882,7 +882,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = elem[0];
       elem = $(elem).serializeArray();
       var form_data = new FormData();
-      var files = $(".grn-form").find('[name="files"]')[0].files;
+      var files = [];//$(".grn-form").find('[name="files"]')[0].files;
       $.each(files, function(i, file) {
         form_data.append('files-' + i, file);
       });

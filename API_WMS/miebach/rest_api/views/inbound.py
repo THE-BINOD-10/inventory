@@ -7316,7 +7316,7 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                 if _open.sku.sku_code in check_batch_dict:
                     if not check_batch_dict[_open.sku.sku_code] == batch_number:
                         for row_line in grn_data['items']:
-                            if float(row_line["unit_price"])==float(data.price) and row_line["sku_code"]==_open.sku.sku_code:
+                            if float(row_line["unit_price"])==float(data.price) and row_line["sku_code"]==_open.sku.sku_code and row_line["open_po_id"]==_open.id :
                                 if row_line["exp_date"]:
                                     if(exp_date):
                                         new_exp_date=DP.parse(exp_date)
@@ -7333,10 +7333,18 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
                                     "batch_no": str(row_line["batch_no"])+ ", "+str(batch_number),
                                     "received_quantity": float(data.quantity)+float(row_line["received_quantity"])})
                                 check_batch=True
+                    else:
+                        for row_line in grn_data['items']:
+                            if float(row_line["unit_price"])==float(data.price) and row_line["sku_code"]== _open.sku.sku_code and row_line["open_po_id"]==_open.id :
+                                row_line.update({
+                                        "batch_no": str(row_line["batch_no"])+ ", "+str(batch_number),
+                                        "received_quantity": float(data.quantity)+float(row_line["received_quantity"])
+                                        })
+                                check_batch=True
                 else:
                     check_batch_dict[_open.sku.sku_code]= batch_number
                 if not check_batch:
-                    item = { 'sku_code': _open.sku.sku_code, 'sku_desc':_open.sku.sku_desc, "order_idx": idx,
+                    item = { 'sku_code': _open.sku.sku_code, 'sku_desc':_open.sku.sku_desc, "order_idx": idx, 'open_po_id': _open.id,
                                 'quantity': (_open.order_quantity - data.purchase_order.received_quantity) + data.quantity, 'unit_price': data.price,
                                 'mrp':_open.mrp,'sgst_tax':_open.sgst_tax, 'igst_tax':_open.igst_tax, 'cess_tax': data.cess_tax,
                                 'cgst_tax': _open.cgst_tax, 'utgst_tax':_open.utgst_tax, 'received_quantity': data.quantity,

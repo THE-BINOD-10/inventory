@@ -169,6 +169,7 @@
                   <input type="hidden" name="picklist_status_{{data.id}}" value="{{pop.model_data.order_status}}">
                   <input type="hidden" name="passed_serial_number_{{data.id}}" value="{{record.passed_serial_number}}">
                   <input type="hidden" name="failed_serial_number_{{data.id}}" value="{{record.failed_serial_number}}">
+                  <input name="conversion_value_{{data.id}}" value="{{data.conversion_value}}" type="hidden">
                   <td ng-if="pop.permissions.show_image"><img ng-src="{{pop.service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
                   <td ng-if="pop.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>
                   <td ng-if="pop.model_data.data[0].is_combo_picklist && pop.model_data.order_status == 'open'"><input name="combo_sku_{{data.id}}" ng-init="data.combo_sku = data.parent_sku_code" ng-model="data.combo_sku"  class="form-control" type="text" value="{{data.combo_sku}}" title="{{data.combo_sku}}" size="35" readonly></td>
@@ -193,7 +194,9 @@
                   </td>
 		              <td ng-if="pop.industry_type=='FMCG'"><input name="mrp_{{data.id}}" ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
-                  <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
+                  <td>
+                    <input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly>
+                  </td>
                   <td><input name="picked_quantity_{{data.id}}"
                      ng-model="record.picked_quantity"
                      class="form-control"

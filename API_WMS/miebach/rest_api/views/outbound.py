@@ -404,8 +404,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     else:
         master_data = all_picks
 
-    total_reserved_quantity = master_data.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
-    total_picked_quantity = master_data.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+    total_reserved_quantity = master_data.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
+    total_picked_quantity = master_data.aggregate(total_pick=Sum(F('picked_quantity')/F('stock__batch_detail__pcf')))['total_pick']
     master_data = master_data.values('picklist_number').distinct()
     if order_term:
         master_data = [key for key, _ in groupby(master_data)]
@@ -433,10 +433,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         order_type = 'Sales Order'
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
-        reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+        reserved_quantity_sum_value = picklist_obj.aggregate(total_res=Sum(F('reserved_quantity')/F('stock__batch_detail__pcf')))['total_res']
         if not reserved_quantity_sum_value:
             reserved_quantity_sum_value = 0
-        picked_quantity_sum_value = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        picked_quantity_sum_value = picklist_obj.aggregate(total_pick=Sum(F('picked_quantity')/F('stock__batch_detail__pcf')))['total_pick']
         if not picked_quantity_sum_value:
             picked_quantity_sum_value = 0
         if picklist_obj:
@@ -1014,7 +1014,9 @@ def get_picklist_data(data_id, user_id):
                         expiry_date = datetime.datetime.strftime(stock_id.batch_detail.expiry_date, "%d/%m/%Y")
                     except:
                         expiry_date =''
-            reserved_quantity = order.reserved_quantity
+            uom_dict = get_uom_with_sku_code(User.objects.get(id=user_id), wms_code, uom_type='purchase')
+            conversion_value = uom_dict.get('sku_conversion', 1)
+            reserved_quantity = order.reserved_quantity/conversion_value
             if use_imei == 'true':
                 sku_filtered_imei_number = imei_qs.filter(sku__wms_code=wms_code).values_list(*dict_list).order_by('creation_date')
                 for sku_code, imei_number in sku_filtered_imei_number:
@@ -1053,7 +1055,8 @@ def get_picklist_data(data_id, user_id):
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
                                                'batchno':batch_no, "batch_ref":batch_ref, 'is_combo_picklist': is_combo_picklist, 'sku_imeis_map': sku_imeis_map,
-                                               'sku_brand': sku_brand}
+                                               'sku_brand': sku_brand,
+                                               'conversion_value': conversion_value}
             else:
                 batch_data[match_condition]['reserved_quantity'] += reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += reserved_quantity
@@ -2091,6 +2094,7 @@ def picklist_confirmation(request, user=''):
                 if not val['picked_quantity']:
                     continue
                 else:
+                    val['picked_quantity'] = float(val['picked_quantity']) * float(val['conversion_value'])
                     count = float(val['picked_quantity'])
                 if picklist_order_id:
                     picklist_batch = list(set([picklist]))
@@ -3745,6 +3749,10 @@ def mr_generate_picklist(request, user=''):
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
                 'receipt_date')
             stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+        elif user.userprofile.industry_type == 'FMCG':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).\
+                                    order_by('batch_detail__expiry_date')
+            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
         else:
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
                 'location_id__pick_sequence')
@@ -11272,19 +11280,13 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
     stock_transfer_summary_values = stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0).values('order_id', 'st_po__open_st__sku__user',
                                                 'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number', ).\
                                                 distinct()
-    if user.username in MILKBASKET_USERS:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0)\
-                                                    .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct()\
-                                                    .annotate(Sum('quantity'),
-                                                    amount=Sum(F('quantity')*F('picklist__stock__batch_detail__buy_price')+(F('quantity')*F('picklist__stock__batch_detail__buy_price')/100)*F('picklist__stock__batch_detail__tax_percent')),
-                                                    grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number', output_field=CharField()))
-    else:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
+    
+    data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
                                                 .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
-                                                .annotate(Sum('quantity'),
+                                                .annotate(total_sm=Sum(F('quantity')/F('picklist__stock__batch_detail__pcf')),
                                                 amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
                                                 grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number',output_field=CharField()))
-    qty_dict = dict(data_dict.values_list('grouping_key', 'quantity__sum'))
+    qty_dict = dict(data_dict.values_list('grouping_key', 'total_sm'))
     amount_dict = dict(data_dict.values_list('grouping_key', 'amount'))
     temp_data['recordsTotal'] = stock_transfer_summary_values.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -11310,12 +11312,12 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
         pick_number = ''
         if stock_transfer['stocktransfersummary__pick_number']:
             pick_number = stock_transfer['stocktransfersummary__pick_number']
-        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user']).username
+        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user'])
         data_dict = {'Material Request ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': picked_quantity,
              'Total Amount': "%.2f"% float(summary_price), 'Material Request Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
              'Invoice Number': invoice_number,#value['full_invoice_number'],
              'source_wh': source_wh,
-             'Destination Department': warehouse_name}
+             'Destination Department': "%s %s" %(warehouse_name.first_name, warehouse_name.last_name)}
         temp_data['aaData'].append(data_dict)
     return temp_data
 

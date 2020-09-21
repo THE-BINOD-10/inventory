@@ -11280,19 +11280,13 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
     stock_transfer_summary_values = stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0).values('order_id', 'st_po__open_st__sku__user',
                                                 'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number', ).\
                                                 distinct()
-    if user.username in MILKBASKET_USERS:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0)\
-                                                    .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct()\
-                                                    .annotate(Sum('quantity'),
-                                                    amount=Sum(F('quantity')*F('picklist__stock__batch_detail__buy_price')+(F('quantity')*F('picklist__stock__batch_detail__buy_price')/100)*F('picklist__stock__batch_detail__tax_percent')),
-                                                    grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number', output_field=CharField()))
-    else:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
+    
+    data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
                                                 .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
-                                                .annotate(Sum('quantity'),
+                                                .annotate(total_sm=Sum(F('quantity')/F('picklist__stock__batch_detail__pcf')),
                                                 amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
                                                 grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number',output_field=CharField()))
-    qty_dict = dict(data_dict.values_list('grouping_key', 'quantity__sum'))
+    qty_dict = dict(data_dict.values_list('grouping_key', 'total_sm'))
     amount_dict = dict(data_dict.values_list('grouping_key', 'amount'))
     temp_data['recordsTotal'] = stock_transfer_summary_values.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -11318,12 +11312,12 @@ def get_material_request_challan_data(start_index, stop_index, temp_data, search
         pick_number = ''
         if stock_transfer['stocktransfersummary__pick_number']:
             pick_number = stock_transfer['stocktransfersummary__pick_number']
-        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user']).username
+        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user'])
         data_dict = {'Material Request ID': stock_transfer['order_id'], 'Order Quantity': order_quantity, 'Picked Quantity': picked_quantity,
              'Total Amount': "%.2f"% float(summary_price), 'Material Request Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
              'Invoice Number': invoice_number,#value['full_invoice_number'],
              'source_wh': source_wh,
-             'Destination Department': warehouse_name}
+             'Destination Department': "%s %s" %(warehouse_name.first_name, warehouse_name.last_name)}
         temp_data['aaData'].append(data_dict)
     return temp_data
 

@@ -12297,7 +12297,7 @@ def auto_putaway_stock_detail(warehouse, purchase_data, po_data, quantity, recei
             conv_value = uom_dict.get('sku_conversion', 1)
     if not conv_value:
         conv_value = 1
-    quantity = quantity * conv_value
+    quantity = quantity
     put_zone = purchase_data['zone']
     if not put_zone:
         put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=warehouse.id)

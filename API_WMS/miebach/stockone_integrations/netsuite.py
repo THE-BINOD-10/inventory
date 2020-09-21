@@ -375,10 +375,10 @@ class netsuiteIntegration(object):
                 purorder.billAddressList = ns.ListOrRecordRef(internalId=po_data.get("address_id"))
 
             po_custom_field_list =  []
-            #if po_data.get('nexus', None):
-            #    purorder.nexus=ns.ListOrRecordRef(internalId=po_data["nexus"])
-                #purorder.taxRegOverride = "T"
-                #purorder.taxDetailsOverride = True
+            if po_data.get('nexus', None):
+                purorder.nexus=ns.ListOrRecordRef(internalId=po_data["nexus"])
+                purorder.taxRegOverride = "T"
+                # purorder.taxDetailsOverride = True
             #po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_process_grn', value='T'))
             if(po_data.get('supplier_id',None)):
                 po_custom_field_list.append(ns.StringCustomFieldRef(scriptId='custbody_mhl_po_supplierhubid', value=po_data['supplier_id']))
@@ -415,13 +415,26 @@ class netsuiteIntegration(object):
                         item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_po_mrp', value=data['mrp']))
                     if(po_data.get('full_pr_number',None)):
                         item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_mhl_pr_external_id', value=ns.ListOrRecordRef(externalId=po_data['full_pr_number'])))
+                    cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax=[0]*5
+                    if data.get('cgst_tax', 0):
+                        cgst_tax= float(data["cgst_tax"])
+                    if data.get('sgst_tax', 0):
+                        sgst_tax= float(data["sgst_tax"])
+                    if data.get('igst_tax', 0):
+                        igst_tax= float(data["igst_tax"])
+                    if data.get('utgst_tax', 0):
+                        utgst_tax= float(data['utgst_tax'])
+                    if data.get('cess_tax', 0):
+                        cess_tax = float(data['cess_tax'])
+                    total_tax=igst_tax+ sgst_tax + cgst_tax+ utgst_tax + cess_tax
                     if(data.get('hsn_code',None)):
-                        temp_hsn =str(data["hsn_code"]).split("_")[-1]
-                        if temp_hsn=="KL":
-                            item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=data['hsn_code'])))
-                        else:
-                            item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
-                        item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
+                        if total_tax:
+                            temp_hsn =str(data["hsn_code"]).split("_")[-1]
+                            if temp_hsn=="KL":
+                                item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=data['hsn_code'])))
+                            else:
+                                item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(internalId=data['hsn_code'])))
+                            item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_nature_of_item', value=ns.ListOrRecordRef(internalId=1)))
                     if (data.get("document_number", None)):
                         item_custom_list.append(ns.StringCustomFieldRef(scriptId='custcol_mhl_grn_document_number', value=data["document_number"]))
                     line_item = {

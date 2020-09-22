@@ -8442,6 +8442,8 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == "true":
         order_by = 'receipt_date'
+    elif user.userprofile.industry_type == 'FMCG':
+        order_by = 'batch_detail__expiry_date'
     else:
         order_by = 'location_id__pick_sequence'
     if add_mrp_filter and needed_mrp_filter:

@@ -428,7 +428,7 @@ class netsuiteIntegration(object):
                         cess_tax = float(data['cess_tax'])
                     total_tax=igst_tax+ sgst_tax + cgst_tax+ utgst_tax + cess_tax
                     if(data.get('hsn_code',None)):
-                        if total_tax:
+                        if total_tax and data.get('unit_price',None):
                             temp_hsn =str(data["hsn_code"]).split("_")[-1]
                             if temp_hsn=="KL":
                                 item_custom_list.append(ns.SelectCustomFieldRef(scriptId='custcol_in_hsn_code', value=ns.ListOrRecordRef(externalId=data['hsn_code'])))

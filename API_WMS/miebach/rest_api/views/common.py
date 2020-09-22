@@ -11575,7 +11575,7 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
                 if order_typ == 'MR':
                     auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
-                elif inbound_automate == 'true' and order_typ == 'ST':
+                elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
                     auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 if po.status == 'stock-transfer':
                     po.status = ''

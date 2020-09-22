@@ -13,7 +13,7 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   if (items['order_typ'] == 'Material Request') {
     vm.order_typ = 'MR'
   } else if (items['order_typ'] == 'Stock Transfer') {
-    vm.order_typ = 'ST'
+    vm.order_typ = 'ST_INTRA'
   }
   vm.record_serial_data = [];
   vm.record_serial_dict= {}

@@ -322,7 +322,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='ST').order_by(order_data)
+        master_data = StockTransfer.objects.filter(sku__user__in=user_ids, status=1, st_type='ST_INTRA').order_by(order_data)
     if search_term:
         master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
                                                Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
@@ -330,7 +330,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
                                                Q(st_seller__seller_id__icontains=search_term) |
                                                Q(st_seller__name__icontains=search_term),
                                                sku__user__in=user_ids,
-                                               status=1, st_type='ST').order_by(order_data)
+                                               status=1, st_type='ST_INTRA').order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
@@ -458,7 +458,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 if st_order:
                     if st_order[0].stock_transfer.st_type == 'MR':
                         order_type = 'Material Request'
-                    elif st_order[0].stock_transfer.st_type == 'ST':
+                    elif st_order[0].stock_transfer.st_type == 'ST_INTRA':
                         order_type = 'Stock Transfer'
                     try:
                         source_wh = st_order[0].stock_transfer.st_po.open_st.warehouse.first_name
@@ -3874,7 +3874,7 @@ def st_generate_picklist(request, user=''):
         order_status = data[0]['status']
 
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status, 'current_user': '', 'order_typ': 'ST'}))
+                                    'order_status': order_status, 'current_user': '', 'order_typ': 'ST_INTRA'}))
 
 
 @csrf_exempt
@@ -5844,7 +5844,7 @@ def create_stock_transfer(request, user=''):
         if cur_user == warehouse_name:
             return HttpResponse("Source and Destination should be different")
     all_data = {}
-    order_typ = request.POST.get('order_typ', 'ST')
+    order_typ = request.POST.get('order_typ', 'ST_INTRA')
     source_seller_id = request.POST.get('source_seller_id', '')
     dest_seller_id = request.POST.get('dest_seller_id', '')
     data_dict = dict(request.POST.iterlists())
@@ -11218,23 +11218,19 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
     summary_params = {'status':2}
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
     summary_term = st_list[col_num]
     if order_term == 'desc':
         summary_term = '-%s' % summary_term
     if search_term :
         summary_params['order_id__icontains'] = search_term
-    stock_transfer_summary = StockTransfer.objects.filter(sku__user=user.id, st_type='ST', **summary_params).select_related('st_po__open_st').order_by(summary_term)
+    stock_transfer_summary = StockTransfer.objects.filter(sku__user__in=user_ids, st_type='ST_INTRA', **summary_params).select_related('st_po__open_st').order_by(summary_term)
     stock_transfer_summary_values = stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0).values('order_id', 'st_po__open_st__sku__user',
                                                 'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number').\
                                                 distinct()
-    if user.username in MILKBASKET_USERS:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0)\
-                                                    .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct()\
-                                                    .annotate(Sum('quantity'),
-                                                    amount=Sum(F('quantity')*F('picklist__stock__batch_detail__buy_price')+(F('quantity')*F('picklist__stock__batch_detail__buy_price')/100)*F('picklist__stock__batch_detail__tax_percent')),
-                                                    grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number', output_field=CharField()))
-    else:
-        data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
+    data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
                                                 .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
                                                 .annotate(Sum('quantity'),
                                                 amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),

@@ -487,15 +487,6 @@
       </a>
     </li>  -->
 
-    <!-- ready pages -->
-    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
-      <a ui-sref="app.uploads">
-        <i class="fa fa-cloud-upload"></i>
-        <span>Uploads</span>
-      </a>
-    </li>
-    <!-- /ready pages -->
-
     <!-- uploaded pages -->
     <li ui-sref-active="active" ng-show="(show_tab('add_orderuploads') && (permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'))">
       <a ui-sref="app.uploadedPOs">
@@ -835,6 +826,14 @@
         </li>
       </ul>
     </li>
+    <!-- ready pages -->
+    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
+      <a ui-sref="app.uploads">
+        <i class="fa fa-cloud-upload"></i>
+        <span>Uploads</span>
+      </a>
+    </li>
+    <!-- /ready pages -->
     <!-- /extras -->
     <li ng-show="show_tab('pos_switch')" ui-sref-active="active">
       <a href="{{session.pos_host}}#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">

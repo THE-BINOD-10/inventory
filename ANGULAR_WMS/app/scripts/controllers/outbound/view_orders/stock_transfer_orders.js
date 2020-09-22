@@ -218,7 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var url = "get_stock_transfer_order_details/";
 
       vm.service.apiCall(url, "GET", params).then(function(data){
-        vm.current_page = 'ST';
+        vm.current_page = 'ST_INTRA';
         vm.items_dict = data.data.data_dict;
         vm.order_id = data.data.data_dict[0].order_id;
         vm.customer_name = data.data.wh_details.name;

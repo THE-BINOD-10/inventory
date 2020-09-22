@@ -7832,7 +7832,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
             continue
         if order_mapping.has_key('st_type'):
             tmp_st_type = str(get_cell_data(row_idx, order_mapping['st_type'], reader, file_type))
-            if not tmp_st_type or tmp_st_type not in ['MR', 'ST']:
+            if not tmp_st_type or tmp_st_type not in ['MR', 'ST_INTRA']:
                 index_status.setdefault(count, set()).add('Invalid Type')
         if order_mapping.has_key('warehouse_name') :
             try:
@@ -7917,7 +7917,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         print 'Saving : %s' % str(row_idx)
         mrp =0
-        st_type = 'ST'
+        st_type = 'ST_INTRA'
         for key, value in order_mapping.iteritems():
             if key == 'source_warehouse':
                 source_warehouse = str(get_cell_data(row_idx, value, reader, file_type))

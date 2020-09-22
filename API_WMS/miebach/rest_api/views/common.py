@@ -8522,6 +8522,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
             add_mrp_filter = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
+    elif user.userprofile.industry_type == 'FMCG':
+        order_by = 'batch_detail__expiry_date'
     else:
         order_by = 'location_id__pick_sequence'
     no_stock_switch = False

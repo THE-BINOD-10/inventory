@@ -186,7 +186,7 @@ vm.changeUnitPrice = function(data){
       sku_data["capacity"] = 0
       if(data.message) {
         if(data.data.available_quantity) {
-          sku_data["capacity"] = (parseFloat(data.data.available_quantity) - parseFloat(data.data.intransit_quantity)).toFixed(2);
+          sku_data["capacity"] = (parseFloat(data.data.available_quantity)).toFixed(2);
         }
         if (vm.industry_type == 'FMCG') {
           sku_data['price'] = data.data.data[Object.keys(data.data.data)[0]]['buy_price'];

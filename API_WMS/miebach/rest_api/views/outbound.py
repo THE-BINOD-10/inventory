@@ -16884,7 +16884,7 @@ def generate_mr_dc(request , user = ''):
             date = get_local_date(user, data.creation_date)
             destination = User.objects.get(id=data.st_po.open_st.sku.user)
             dest_up = destination.userprofile
-            invoice_data['destination_dept_name'] = "%s - %s%s" %(destination.username, destination.first_name, destination.last_name)
+            invoice_data['destination_dept_name'] = "%s %s" %(destination.first_name, destination.last_name)
             invoice_data['destination_dept_address'] = dest_up.address
             invoice_data['destination_dept_gst_number'] = dest_up.gst_number
             if dest_up.phone_number != '0':

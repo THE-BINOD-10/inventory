@@ -3601,9 +3601,10 @@ def approve_pr(request, user=''):
             if is_purchase_approver and validation_type != 'rejected':
                 supplier_id = myDict['supplier_id'][i]
                 store_user = get_admin(pr_user)
-                supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
-                if not supp_obj.exists():
-                    return HttpResponse("Invalid Supplier found %s" % supplier_id)
+                if supplier_id:
+                    supp_obj = SupplierMaster.objects.filter(supplier_id=supplier_id, user=store_user.id)
+                    if not supp_obj.exists():
+                        return HttpResponse("Invalid Supplier found %s" % supplier_id)
 
     reqConfigName, lastLevel = findLastLevelToApprove(pr_user, pr_number, totalAmt,
                                 purchase_type=purchase_type, product_category=product_category,

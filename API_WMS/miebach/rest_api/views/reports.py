@@ -605,9 +605,9 @@ def get_supplier_details_data(search_params, user, sub_user):
             search_parameters['status'] = 'location-assigned'
         elif status == 'putaway_completed':
             search_parameters['status'] = 'confirmed-putaway'
-    if 'order_id' in search_params:
-        order_id = search_params.get('order_id')
-        search_parameters['order_id'] = order_id
+    if 'po_number' in search_params:
+        order_id = search_params.get('po_number')
+        search_parameters['po_number'] = order_id
     if supplier_name:
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
@@ -2121,6 +2121,7 @@ def print_purchase_order_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     sub_user= request.user
+    users=[user.id]
     if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
         users = get_related_users_filters(user.id)
     else:

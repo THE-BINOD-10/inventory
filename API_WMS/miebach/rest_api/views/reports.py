@@ -619,8 +619,8 @@ def get_supplier_details_data(search_params, user, sub_user):
         total_received=Sum('received_quantity')). \
         order_by(order_val)
 
-    supplier_data['recordsTotal'] = suppliers.count()
-    supplier_data['recordsFiltered'] = suppliers.count()
+    supplier_data['recordsTotal'] = purchase_orders.count()
+    supplier_data['recordsFiltered'] = purchase_orders.count()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -2120,10 +2120,18 @@ def print_purchase_order_form(request, user=''):
     pending_po_line_entries = ''
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
+    sub_user= request.user
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix)
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
+        po_user_id= purchase_orders[0].open_po.sku.user
+        if po_user_id:
+            user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
             if pending_po_data.pending_polineItems.filter().exists():

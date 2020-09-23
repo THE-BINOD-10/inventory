@@ -2117,6 +2117,7 @@ def print_purchase_order_form(request, user=''):
     po_prefix = request.GET.get('prefix', '')
     total_qty = 0
     total = 0
+    remarks = ''
     pending_po_line_entries = ''
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
@@ -2135,6 +2136,7 @@ def print_purchase_order_form(request, user=''):
             user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
+            remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
@@ -2319,6 +2321,7 @@ def print_purchase_order_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'remarks': remarks,
         'order_date': order_date,
         'total': round(total),
         'total_qty': total_qty,

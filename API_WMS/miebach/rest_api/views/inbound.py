@@ -4054,8 +4054,8 @@ def convert_pr_to_po(request, user=''):
         skuQtyMap = {}
         supplierPrIdsMap = {}
         prIdSkusMap = {}
+        pr_ids = []
         supplyObj = None
-
         for i in range(0, len(myDict['sku_code'])):
             sku_code = myDict['sku_code'][i]
             supplier = myDict['supplier'][i]
@@ -4069,6 +4069,12 @@ def convert_pr_to_po(request, user=''):
             supplierPrIdsMap.setdefault(supplier, []).extend(pr_ids)
             for pr_id in pr_ids:
                 prIdSkusMap.setdefault(pr_id, []).append(sku_code)
+        if len(pr_ids) > 0:
+            all_stats = PendingPR.objects.filter(id__in=pr_ids)
+            for rec in prIdSkusMap:
+                temp_dat = all_stats.get(id=rec)
+                if 'pr_converted_to_po' == temp_dat.final_status or (len(prIdSkusMap[rec]) != all_stats.filter(id=rec, pending_prlineItems__sku__sku_code__in=prIdSkusMap[rec]).count()):
+                    return HttpResponse("PR Already Converted to PR, Please Refresh & Check !")
         for supplier, all_skus in supplierSKUMapping.items():
             sku_code = all_skus[0]
             pr_ids = supplierPrIdsMap.get(supplier)

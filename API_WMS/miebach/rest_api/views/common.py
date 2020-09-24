@@ -11306,6 +11306,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
         incremental_prefix = 'mr_prefix'
+    elif order_typ == 'ST_INTER':
+        incremental_prefix = 'so_prefix'
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
         po_id, prefix, full_po_number, check_prefix, inc_status = \

@@ -6614,6 +6614,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'expiry_date': expiry_date,
                 'manufactured_date': manufactured_date,
                 'tax_percent': tax_percent,
+                'cess_percent': sku_row_cess_percent,
                 'mrp': mrp,
                 'buy_price': buy_price,
                 'weight': weight,
@@ -6738,6 +6739,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
+    update_sku_avg_from_grn(user, grn_number)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):

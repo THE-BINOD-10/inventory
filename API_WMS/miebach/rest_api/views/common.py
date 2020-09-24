@@ -13353,3 +13353,39 @@ def get_kerala_cess_tax(tax, supplier):
         cess_tax = 1
     return cess_tax
 
+
+def update_sku_avg_from_grn(user, grn_number):
+    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
+        return
+    main_user = get_company_admin_user(user)
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    sku_amt = {}
+    for sp in sps:
+        price,tax = [0]*2
+        if sp.batch_detail:
+            price = sp.batch_detail.buy_price
+            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        amt = sp.quantity * price
+        total = amt + ((amt/100)*tax)
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt[sku_code]['amount'] += total
+        sku_amt[sku_code]['qty'] += sp.quantity
+    for sku_code, value in sku_amt.items():
+        sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
+                                    aggregate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))['total_qty']
+        if not stock_qty:
+            stock_qty = 0
+        stock_value = stock_qty * sku.average_price
+        total_qty = value['qty'] + stock_qty
+        total_amount = stock_value + value['amount']
+        new_avg = float('%.2f' % (total_amount/total_qty))
+        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
+        dept_user_ids = list(dept_users.values_list('id', flat=True))
+        sku.average_price = new_avg
+        log.info("WH: %s, SKU: %s, New Avg: %s" % (str(user.username), str(sku.sku_code), str(new_avg)))
+        sku.save()
+        SKUMaster.objects.filter(user__in=dept_user_ids, sku_code=sku.sku_code).update(average_price=new_avg)

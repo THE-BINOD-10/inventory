@@ -1062,7 +1062,11 @@ def get_aging_bracket(age_days):
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
     users = [user.id]
-    users = check_and_get_plants_depts(request, users)
+    if request.user.is_staff and request.user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'])
+    else:
+        users = check_and_get_plants_depts(request, users)
+    #users = check_and_get_plants_depts(request, users)
     user_ids = list(users.values_list('id', flat=True))
     user_ids.append(user.id)
     sku_master, sku_master_ids = get_sku_master(user_ids, request.user, is_list = True)

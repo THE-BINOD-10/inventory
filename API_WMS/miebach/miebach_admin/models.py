@@ -130,6 +130,7 @@ class SKUMaster(models.Model):
     substitutes = models.ManyToManyField("self", blank=True)
     batch_based = models.IntegerField(default=0)
     gl_code = models.PositiveIntegerField(default=0)
+    average_price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -928,6 +929,7 @@ class BatchDetail(models.Model):
     manufactured_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     tax_percent = models.FloatField(default=0)
+    cess_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
     receipt_number = models.PositiveIntegerField(default=0)

@@ -2815,6 +2815,20 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     return return_status, stock_stats_objs
 
 
+def save_adjustment_type_info(mapping_obj, stock, data_dict, quantity):
+    if mapping_obj:
+        transact_type = 'consumption'
+        stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+        mapping_obj.stock_mapping.add(stock_mapping)
+        dat = mapping_obj
+    else:
+        data_dict['location_id'] = stock.location_id
+        dat = CycleCount(**data_dict)
+        dat.save()
+        transact_type = 'inventory-adjustment'
+    return dat, transact_type
+
+
 def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
                           seller_master_id='', weight='', receipt_number=1, receipt_type='', price ='',
                           stock_increase=False, manufactured_date='', expiry_date=''):
@@ -2862,6 +2876,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             stock_dict['unit_price'] = float(price)
     total_stock_quantity = 0
     dest_stocks = ''
+    consumption_data = None
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
@@ -2875,18 +2890,24 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
         stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
         uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
         remaining_quantity = quantity * uom_dict['sku_conversion']
+        if 'Consumption' in reason:
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku[0].id,
+                quantity=remaining_quantity,
+            )
         for stock in stocks:
             if stock_increase:
                 stock.quantity += abs(remaining_quantity)
-                data_dict['location_id'] = stock.location_id
-                dat = CycleCount(**data_dict)
-                dat.save()
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
+                dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                  abs(remaining_quantity))
+                if transact_type == 'inventory-adjustment':
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
                 change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
-                adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason,
-                                                                     [stock.location], now, pallet_present,
-                                                   stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
                 break
             else:
                 stock_quantity = float(stock.quantity)
@@ -2896,30 +2917,31 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                     break
                 elif stock_quantity >= remaining_quantity:
                     setattr(stock, 'quantity', stock_quantity - remaining_quantity)
-                    data_dict['location_id'] = stock.location_id
-                    dat = CycleCount(**data_dict)
-                    dat.save()
-                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                      remaining_quantity)
+                    if transact_type == 'inventory-adjustment':
+                        adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
-                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
-                                                                         [stock.location], now, pallet_present,
-                                                       stock=stock, seller_id=seller_master_id,
-                                                        adjustment_objs=adjustment_objs)
                     remaining_quantity = 0
                 elif stock_quantity < remaining_quantity:
                     setattr(stock, 'quantity', 0)
-                    data_dict['location_id'] = stock.location_id
-                    dat = CycleCount(**data_dict)
-                    dat.save()
-                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                      stock_quantity)
+                    if transact_type == 'inventory-adjustment':
+                        adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
                     stock.save()
                     change_seller_stock(seller_master_id, stock, user, stock_quantity,
                                         'dec')
                     remaining_quantity = remaining_quantity - stock_quantity
-                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason,
-                                                                         [stock.location], now, pallet_present,
-                                                       stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
         if not stocks:
             batch_dict = {}
             stock_dict1 = copy.deepcopy(stock_dict)
@@ -2985,18 +3007,20 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             stock_dict['location_id'] = location[0].id
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
-            data_dict['location_id'] = dest_stocks.location_id
-            dat = CycleCount(**data_dict)
-            dat.save()
-            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
+            dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                           dest_stocks.quantity)
+            if transact_type == 'inventory-adjustment':
+                adjustment_objs = create_invnetory_adjustment_record(user, dat, dest_stocks.quantity, reason,
+                                                                     location, now, pallet_present,
+                                                                     stock=dest_stocks, seller_id=seller_master_id,
+                                                                     adjustment_objs=adjustment_objs)
+            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
             change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
-            adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
-                                               stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
 
     if adjustment_objs:
         InventoryAdjustment.objects.bulk_create(adjustment_objs)
-    else:
+    elif not consumption_data:
         return_status = 'Failed'
     return return_status, stock_stats_objs
 

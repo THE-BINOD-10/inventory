@@ -64,7 +64,7 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Department *</label>
-                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" required>
+                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.update_sku_data()" required>
                     <option ng-repeat="dept in showCase.department_list" value="{{dept.username}}">{{dept.name}}</option>
                   </select>
                 </div>
@@ -73,7 +73,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Reason *</label>
-                <select class="show-menu-arrow form-control" ng-model="showCase.model_data.reason" name="reason" required>
+                <select class="show-menu-arrow form-control" ng-model="showCase.model_data.reason" name="reason" ng-change="showCase.update_sku_data()" required>
                   <option ng-repeat="reason in showCase.reasons_list" value="{{reason}}">{{reason}}</option>
                 </select>
               </div>

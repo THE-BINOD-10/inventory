@@ -314,5 +314,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
+  vm.update_sku_data = function(){
+    angular.forEach(vm.model_data.data, function(sku_data){
+      vm.update_final_stock(sku_data);
+    });
+  }
+
 }
 

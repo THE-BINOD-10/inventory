@@ -2871,125 +2871,127 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
-    stocks = StockDetail.objects.filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
-    uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
-    remaining_quantity = quantity * uom_dict['sku_conversion']
-    for stock in stocks:
-        if stock_increase:
-            stock.quantity += abs(remaining_quantity)
-            data_dict['location_id'] = stock.location_id
-            dat = CycleCount(**data_dict)
-            dat.save()
-            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
-            stock.save()
-            change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
-            adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason,
-                                                                 [stock.location], now, pallet_present,
-                                               stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
-            break
-        else:
-            stock_quantity = float(stock.quantity)
-            if not stock_quantity:
-                continue
-            if remaining_quantity == 0:
-                break
-            elif stock_quantity >= remaining_quantity:
-                setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+    with transaction.atomic('default'):
+        stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
+        uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+        remaining_quantity = quantity * uom_dict['sku_conversion']
+        for stock in stocks:
+            if stock_increase:
+                stock.quantity += abs(remaining_quantity)
                 data_dict['location_id'] = stock.location_id
                 dat = CycleCount(**data_dict)
                 dat.save()
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
                 stock.save()
-                change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
-                adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
-                                                                     [stock.location], now, pallet_present,
-                                                   stock=stock, seller_id=seller_master_id,
-                                                    adjustment_objs=adjustment_objs)
-                remaining_quantity = 0
-            elif stock_quantity < remaining_quantity:
-                setattr(stock, 'quantity', 0)
-                data_dict['location_id'] = stock.location_id
-                dat = CycleCount(**data_dict)
-                dat.save()
-                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
-                stock.save()
-                change_seller_stock(seller_master_id, stock, user, stock_quantity,
-                                    'dec')
-                remaining_quantity = remaining_quantity - stock_quantity
-                adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason,
+                change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
+                adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason,
                                                                      [stock.location], now, pallet_present,
                                                    stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
-    if not stocks:
-        batch_dict = {}
-        stock_dict1 = copy.deepcopy(stock_dict)
-        del stock_dict1['quantity__gt']
-        if batch_no:
-            batch_dict = {'batch_no': batch_no}
-            del stock_dict["batch_detail__batch_no"]
-        if mrp:
-            batch_dict['mrp'] = mrp
-            del stock_dict["batch_detail__mrp"]
-        if weight:
-            batch_dict['weight'] = weight
-            del stock_dict["batch_detail__weight"]
-        if manufactured_date:
-            batch_dict['manufactured_date'] = manufactured_date
-            del stock_dict["batch_detail__manufactured_date"]
-        if expiry_date:
-            batch_dict['expiry_date'] = expiry_date
-            del stock_dict["batch_detail__expiry_date"]
-        if 'sellerstock__seller_id' in stock_dict.keys():
-            del stock_dict['sellerstock__seller_id']
-        if price == '':
-            price = sku[0].average_price
-            stock_dict['unit_price'] = price
-        else:
-            stock_dict['unit_price'] = price
-        batch_dict['pcf'] = uom_dict['sku_conversion']
-        batch_dict['pquantity'] = quantity
-        batch_dict['puom'] = uom_dict['measurement_unit']
-        if user.userprofile.industry_type == 'FMCG':
-            if 'batch_detail__buy_price' in stock_dict.keys():
-                del stock_dict['batch_detail__buy_price']
-            batch_dict['buy_price'] = sku[0].average_price
-            add_ean_weight_to_batch_detail(sku[0], batch_dict)
-
-            if price:
-                batch_dict['buy_price'] = price
-            if batch_dict.keys():
-                batch_obj = create_update_batch_data(batch_dict)
-                stock_dict["batch_detail_id"] = batch_obj.id
-        if pallet:
-            del stock_dict['pallet_detail_id']
-        del stock_dict["sku__user"]
-        stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type,
-                           "quantity": remaining_quantity, "status": 1, "creation_date": now_date,
-                           "updation_date": now_date
-                          })
-        del stock_dict['quantity__gt']
-        if sku[0].zone:
-            put_zone = sku[0].zone
-        else:
-            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
-            if not put_zone:
-                create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
-                put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                break
             else:
-                put_zone = put_zone[0]
+                stock_quantity = float(stock.quantity)
+                if not stock_quantity:
+                    continue
+                if remaining_quantity == 0:
+                    break
+                elif stock_quantity >= remaining_quantity:
+                    setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+                    data_dict['location_id'] = stock.location_id
+                    dat = CycleCount(**data_dict)
+                    dat.save()
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    stock.save()
+                    change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
+                                                                         [stock.location], now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id,
+                                                        adjustment_objs=adjustment_objs)
+                    remaining_quantity = 0
+                elif stock_quantity < remaining_quantity:
+                    setattr(stock, 'quantity', 0)
+                    data_dict['location_id'] = stock.location_id
+                    dat = CycleCount(**data_dict)
+                    dat.save()
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    stock.save()
+                    change_seller_stock(seller_master_id, stock, user, stock_quantity,
+                                        'dec')
+                    remaining_quantity = remaining_quantity - stock_quantity
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason,
+                                                                         [stock.location], now, pallet_present,
+                                                       stock=stock, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
+        if not stocks:
+            batch_dict = {}
+            stock_dict1 = copy.deepcopy(stock_dict)
+            del stock_dict1['quantity__gt']
+            if batch_no:
+                batch_dict = {'batch_no': batch_no}
+                del stock_dict["batch_detail__batch_no"]
+            if mrp:
+                batch_dict['mrp'] = mrp
+                del stock_dict["batch_detail__mrp"]
+            if weight:
+                batch_dict['weight'] = weight
+                del stock_dict["batch_detail__weight"]
+            if manufactured_date:
+                batch_dict['manufactured_date'] = manufactured_date
+                del stock_dict["batch_detail__manufactured_date"]
+            if expiry_date:
+                batch_dict['expiry_date'] = expiry_date
+                del stock_dict["batch_detail__expiry_date"]
+            if 'sellerstock__seller_id' in stock_dict.keys():
+                del stock_dict['sellerstock__seller_id']
+            if price == '':
+                price = sku[0].average_price
+                stock_dict['unit_price'] = price
+            else:
+                stock_dict['unit_price'] = price
+            batch_dict['pcf'] = uom_dict['sku_conversion']
+            batch_dict['pquantity'] = quantity
+            batch_dict['puom'] = uom_dict['measurement_unit']
+            if user.userprofile.industry_type == 'FMCG':
+                if 'batch_detail__buy_price' in stock_dict.keys():
+                    del stock_dict['batch_detail__buy_price']
+                batch_dict['buy_price'] = sku[0].average_price
+                add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
-            put_zone = put_zone.zone
+                if price:
+                    batch_dict['buy_price'] = price
+                if batch_dict.keys():
+                    batch_obj = create_update_batch_data(batch_dict)
+                    stock_dict["batch_detail_id"] = batch_obj.id
+                    #stock_dict["batch_detail__buy_price"] = batch_obj.price
+            if pallet:
+                del stock_dict['pallet_detail_id']
+            del stock_dict["sku__user"]
+            stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type,
+                               "quantity": remaining_quantity, "status": 1, "creation_date": now_date,
+                               "updation_date": now_date
+                              })
+            del stock_dict['quantity__gt']
+            if sku[0].zone:
+                put_zone = sku[0].zone
+            else:
+                put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                if not put_zone:
+                    create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                    put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                else:
+                    put_zone = put_zone[0]
 
-        location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone.zone)
-        stock_dict['location_id'] = location[0].id
-        dest_stocks = StockDetail(**stock_dict)
-        dest_stocks.save()
-        data_dict['location_id'] = dest_stocks.location_id
-        dat = CycleCount(**data_dict)
-        dat.save()
-        stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
-        change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
-        adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
-                                           stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
+                put_zone = put_zone.zone
+
+            location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone.zone)
+            stock_dict['location_id'] = location[0].id
+            dest_stocks = StockDetail(**stock_dict)
+            dest_stocks.save()
+            data_dict['location_id'] = dest_stocks.location_id
+            dat = CycleCount(**data_dict)
+            dat.save()
+            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
+            change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
+            adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason, location, now, pallet_present,
+                                               stock=dest_stocks, seller_id=seller_master_id, adjustment_objs=adjustment_objs)
 
 
     if adjustment_objs:

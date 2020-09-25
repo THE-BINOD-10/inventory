@@ -3959,7 +3959,6 @@ def insert_inventory_adjust(request, user=''):
             stock_increase = True
         else:
             stock_increase = False
-        sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
         receipt_number = get_stock_receipt_number(user)
         stock_stats_objs = []
         status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
@@ -3970,6 +3969,4 @@ def insert_inventory_adjust(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     #update_filled_capacity([loc], user.id)
-    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
-    check_and_update_stock([wmscode], user)
     return HttpResponse(status)

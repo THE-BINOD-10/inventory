@@ -3951,7 +3951,7 @@ def insert_inventory_adjust(request, user=''):
     for i in range(0, len(request_data['wms_code'])):
         wmscode = request_data['wms_code'][i]
         quantity = request_data['quantity'][i]
-        reason = request_data['reason'][i]
+        reason = request_data['reason'][0]
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]

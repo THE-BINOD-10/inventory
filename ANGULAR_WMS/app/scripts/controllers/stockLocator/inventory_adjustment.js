@@ -101,7 +101,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.message = "";
     vm.sku_empty = {'wms_code': '', 'description': '', 'batch_no': '', 'manufactured_date': '', 'expiry_date': '',
-                    'uom': '', 'mfg_readonly': true, 'available_stock': 0}
+                    'uom': '', 'quantity': 1, 'mfg_readonly': true, 'available_stock': 0}
     vm.empty_data = {
                       'wms_code':'',
                       'location': '',
@@ -246,6 +246,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
     data.wms_code = selected.wms_code;
     data.description = selected.sku_desc;
+    data.uom = selected.measurement_unit;
+    if(!vm.batch_mandatory){
+      vm.update_availabe_stock(data);
+    }
   }
 
    vm.get_batch_details = function(data, selected) {
@@ -257,6 +261,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.check_selected_batch = function(data) {
+    if(!vm.batch_mandatory){
+      return
+    }
     var batch_check = {'wms_code': data.wms_code, 'warehouse': vm.model_data.warehouse, 'q': data.batch_no}
     vm.service.apiCall("search_batch_data/", "GET", batch_check).then(function(result) {
       if(result.message) {
@@ -271,6 +278,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       }
     });
+  }
+
+    vm.update_availabe_stock = function(sku_data) {
+     var send = {sku_code: sku_data.wms_code, location: "", source: vm.model_data.warehouse}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      sku_data["available_stock"] = 0
+      if(data.message) {
+        if(data.data.available_quantity) {
+          sku_data["available_stock"] = data.data.available_quantity;
+          vm.update_final_stock(sku_data);
+        }
+      }
+    });
+  }
+
+  vm.update_final_stock = function(sku_data){
+    var temp_qty = 0;
+    if(sku_data.quantity!=''){
+      temp_qty = parseFloat(sku_data.quantity);
+    }
+    if((['Pooling', 'Consumption Addition']).indexOf(vm.model_data.reason) != -1){
+      sku_data.final_stock = temp_qty + sku_data.available_stock;
+    }
+    else{
+      sku_data.final_stock = sku_data.available_stock - temp_qty;
+    }
+  }
+
+  vm.add_new_row = function(sku_data){
+    if(sku_data.wms_code){
+      var sku_empty={};
+      angular.copy(vm.sku_empty, sku_empty);
+      vm.model_data.data.push(sku_empty);
+    }
   }
 
 }

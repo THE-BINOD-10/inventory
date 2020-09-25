@@ -1139,6 +1139,7 @@ class InventoryAdjustment(models.Model):
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     stock = models.ForeignKey(StockDetail, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

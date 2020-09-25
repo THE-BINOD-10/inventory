@@ -473,7 +473,7 @@ urlpatterns = [
     url(r'^generate_dc/$', generate_dc),
     url(r'^generate_mr_dc/$', generate_mr_dc),
     url(r'^get_customer_types/$', get_customer_types),
-
+    url(r'^search_batch_data/$', search_batch_data),
 
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),

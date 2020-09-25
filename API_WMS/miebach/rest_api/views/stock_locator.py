@@ -3929,3 +3929,47 @@ def stock_detail_update(request, user=''):
         log.info('Batch Detail Stock Updation  failed for %s and error statement is %s' % (
             str(user.username), str(e)))
         return HttpResponse(json.dumps({'status': 0, 'message': 'Something Went Wrong'}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@reversion.create_revision(atomic=False, using='reversion')
+def insert_inventory_adjust(request, user=''):
+    reversion.set_user(request.user)
+    reversion.set_comment("insert_inv_adj")
+    warehouse = request.POST['warehouse']
+    user = User.objects.get(username=warehouse)
+    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not cycle_count:
+        cycle_id = 1
+    else:
+        cycle_id = cycle_count + 1
+    request_data = dict(request.POST.iterlists())
+    for i in range(0, len(request_data['wms_code'])):
+        wmscode = request_data['wms_code'][i]
+        quantity = request_data['quantity'][i]
+        reason = request_data['reason'][i]
+        batch_no = request_data['batch_no'][i]
+        manufactured_date = request_data['manufactured_date'][i]
+        expiry_date = request_data['expiry_date'][i]
+        if reason in ['Pooling', 'Consumption Addition']:
+            stock_increase = True
+        else:
+            stock_increase = False
+        sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
+        receipt_number = get_stock_receipt_number(user)
+        stock_stats_objs = []
+        status, stock_stats_objs = adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs,
+                                                             batch_no=batch_no, receipt_number=receipt_number,
+                                       receipt_type='inventory-adjustment', stock_increase=stock_increase,
+                                                manufactured_date=manufactured_date, expiry_date=expiry_date)
+    #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
+    if stock_stats_objs:
+        SKUDetailStats.objects.bulk_create(stock_stats_objs)
+    #update_filled_capacity([loc], user.id)
+    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
+    check_and_update_stock([wmscode], user)
+    return HttpResponse(status)

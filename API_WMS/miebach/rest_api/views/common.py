@@ -2832,6 +2832,7 @@ def save_adjustment_type_info(mapping_obj, stock, data_dict, quantity):
 def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
                           seller_master_id='', weight='', receipt_number=1, receipt_type='', price ='',
                           stock_increase=False, manufactured_date='', expiry_date=''):
+    from inbound import create_default_zones
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
@@ -2991,23 +2992,24 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                                "updation_date": now_date
                               })
             del stock_dict['quantity__gt']
+            location = []
             if sku[0].zone:
                 put_zone = sku[0].zone
             else:
                 put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
                 if not put_zone:
-                    create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
-                    put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                    location = create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                    #put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+
                 else:
                     put_zone = put_zone[0]
-
-                put_zone = put_zone.zone
-
-            location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone.zone)
+                    put_zone = put_zone.zone
+            if not location:
+                location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone.zone)
             stock_dict['location_id'] = location[0].id
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
-            dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+            dat, transact_type = save_adjustment_type_info(consumption_data, dest_stocks, data_dict,
                                                            dest_stocks.quantity)
             if transact_type == 'inventory-adjustment':
                 adjustment_objs = create_invnetory_adjustment_record(user, dat, dest_stocks.quantity, reason,
@@ -13438,6 +13440,27 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
             if parent_company_id == staff_obj[0].company_id:
                 company_id = ''
             users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE'],
+                                              company_id=company_id)
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
+
+def check_and_get_plants_depts_wo_request(request_user, user, req_users):
+    users = []
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+    if staff_obj.exists():
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        if not users:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
+                company_id = ''
+            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
                                               company_id=company_id)
     if users:
         req_users = users

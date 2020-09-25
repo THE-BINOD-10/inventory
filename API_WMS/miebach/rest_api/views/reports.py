@@ -893,7 +893,14 @@ def print_sales_returns(request, user=''):
 
 def get_adjust_filter_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_utc_start_date
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    #sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     warehouse_users = {}
@@ -936,8 +943,8 @@ def get_adjust_filter_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     order_term = search_params.get('order_term', 'asc')
     order_index = search_params.get('order_index', 0)
-    search_parameters['cycle__sku__user'] = user.id
-    search_parameters['cycle__sku_id__in'] = sku_master_ids
+    search_parameters['cycle__sku__user__in'] = user_ids
+    #search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
     grouping_data = OrderedDict()
@@ -1056,6 +1063,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
             quantity = data.adjusted_quantity
+            user_obj = User.objects.get(id=data.cycle.sku.user)
             temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),
@@ -1064,8 +1072,9 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Quantity', quantity),
                                                     ('Pallet Code',
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),
-                                                    ('Date', str(data.creation_date).split('+')[0]),
-                                                    ('Remarks', data.reason)
+                                                    ('Date', get_local_date(user, data.creation_date)),
+                                                    ('Remarks', data.reason),
+                                                    ('Warehouse', user_obj.first_name)
                                                     )))
 
     return temp_data

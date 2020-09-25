@@ -62,7 +62,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
       DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'),
       DTColumnBuilder.newColumn('Date').withTitle('Date'),
-      DTColumnBuilder.newColumn('Remarks').withTitle('Remarks')
+      DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
+      DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
     ];
 
   }

@@ -7842,9 +7842,9 @@ def create_return_order(data, user, credit_note_number):
 
 def create_default_zones(user, zone, location, sequence, segregation='sellable'):
     try:
-        new_zone, created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone, segregation=segregation,
+        new_zone = ZoneMaster.objects.create(user=user.id, zone=zone, segregation=segregation,
                                                              creation_date=datetime.datetime.now())
-        locations, loc_created = LocationMaster.objects.get_or_create(location=location, max_capacity=100000,
+        locations = LocationMaster.objects.create(location=location, max_capacity=100000,
                                                                       fill_sequence=sequence,
                                                                       pick_sequence=sequence, status=1,
                                                                       zone_id=new_zone.id,

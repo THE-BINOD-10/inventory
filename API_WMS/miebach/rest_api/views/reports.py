@@ -1062,7 +1062,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
             adjustments = adjustments[start_index:stop_index]
         for data in adjustments:
             #quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-            quantity = data.adjusted_quantity
+            base_quantity = data.adjusted_quantity
+            pcf = 1
+            if data.stock.batch_detail:
+                pcf = data.stock.batch_detail.pcf
+            quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
             temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
@@ -1070,6 +1074,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                     ('Location', data.cycle.location.location),
                                                     ('Quantity', quantity),
+                                                    ('Base Uom Quantity', base_quantity),
                                                     ('Pallet Code',
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),
                                                     ('Date', get_local_date(user, data.creation_date)),

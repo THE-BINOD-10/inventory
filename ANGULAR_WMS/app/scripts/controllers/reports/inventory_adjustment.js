@@ -60,6 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
       DTColumnBuilder.newColumn('Location').withTitle('Location'),
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+      DTColumnBuilder.newColumn('Base Uom Quantity').withTitle('Base Uom Quantity'),
       DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'),
       DTColumnBuilder.newColumn('Date').withTitle('Date'),
       DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),

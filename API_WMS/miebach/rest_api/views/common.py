@@ -2896,6 +2896,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 sku_id=sku[0].id,
                 quantity=remaining_quantity,
             )
+        remaining_quantity = abs(remaining_quantity)
         for stock in stocks:
             if stock_increase:
                 stock.quantity += abs(remaining_quantity)

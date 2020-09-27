@@ -3955,7 +3955,7 @@ def insert_inventory_adjust(request, user=''):
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
-        if reason in ['Pooling', 'Consumption Addition']:
+        if reason in ['Pooling']:
             stock_increase = True
         else:
             stock_increase = False

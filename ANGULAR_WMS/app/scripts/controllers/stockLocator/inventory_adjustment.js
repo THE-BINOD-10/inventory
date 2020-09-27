@@ -20,7 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.weights = {};
     vm.wh_type = 'Store';
     vm.wh_type_list = ['Store', 'Department'];
-    vm.reasons_list = ['Pooling', 'Breakdown', 'Consumption Addition', 'Consumption Reduction', 'Manual Test',
+    vm.reasons_list = ['Pooling', 'Breakdown', 'Consumption', 'Caliberation',
                        'Damaged/Disposed']
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -298,7 +298,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if(sku_data.quantity!=''){
       temp_qty = parseFloat(sku_data.quantity);
     }
-    if((['Pooling', 'Consumption Addition']).indexOf(vm.model_data.reason) != -1){
+    if((['Pooling']).indexOf(vm.model_data.reason) != -1){
       sku_data.final_stock = temp_qty + sku_data.available_stock;
     }
     else{

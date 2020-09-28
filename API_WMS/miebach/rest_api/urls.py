@@ -843,6 +843,7 @@ urlpatterns += [
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
     url(r'^pos_mrp_discount/$', pos_mrp_discount),
     url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
+    url(r'^stock_transfer_inter_invoice_data/$', stock_transfer_inter_invoice_data),
     url(r'^pos_send_mail/$', pos_send_mail),
     url(r'^update_customer_orders/$', update_customer_orders),
 

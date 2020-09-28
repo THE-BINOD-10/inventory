@@ -965,6 +965,7 @@ var app = angular.module('urbanApp')
       })
       .state('app.inbound.TransferOrder', {
         url: '/TransferOrder',
+        permission: 'multi_warehouse',
         // permission: 'add_openst',
         templateUrl: 'views/inbound/main_transfer_order.html',
         resolve: {
@@ -2109,6 +2110,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/inter_stock_sale_invoice.js',
                   ])
                 }).then( function() {
             return $ocLazyLoad.load([

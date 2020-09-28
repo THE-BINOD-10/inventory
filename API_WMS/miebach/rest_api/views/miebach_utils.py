@@ -2984,6 +2984,9 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Financial Year', 'Customer Name', 'Order Qua
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time',
                                   'Invoice Number', 'Total Amount']
 
+STOCK_TRANSFER_INTER_INVOICE_HEADERS = ['Sale Order ID', 'Warehouse Name', 'Picked Quantity', 'Sale Order Date&Time',
+                                  'Invoice Number', 'Total Amount']
+
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time']
 

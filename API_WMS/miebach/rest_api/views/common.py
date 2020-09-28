@@ -669,6 +669,7 @@ data_datatable = {  # masters
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
+    'StockInterInvoice' : 'get_stock_transfer_inter_invoice_data',
     'MaterialRequestChallan' : 'get_material_request_challan_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
     'PicklistDeliveryChallan':'get_picklist_delivery_challan',

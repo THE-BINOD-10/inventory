@@ -268,7 +268,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var flag = 1
   	  angular.forEach(vm.selected, function(obj, idx) {
     		if (obj) {
-    		  var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Stock Transfer ID'];
+    		  var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Sale Order ID'];
     		  var invoice = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['Invoice Number'];
     		  var pick_number = vm.dtInstance.DataTable.context[0].aoData[parseInt(idx)]['_aData']['pick_number'];
     		  if(checkbox_valid.length < 1){

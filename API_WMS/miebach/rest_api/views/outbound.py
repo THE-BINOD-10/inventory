@@ -11232,10 +11232,10 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
                                                 distinct()
     data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
                                                 .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
-                                                .annotate(Sum('quantity'),
+                                                .annotate(total_sm=Sum(F('quantity')/F('picklist__stock__batch_detail__pcf')),
                                                 amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
                                                 grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number',output_field=CharField()))
-    qty_dict = dict(data_dict.values_list('grouping_key', 'quantity__sum'))
+    qty_dict = dict(data_dict.values_list('grouping_key', 'total_sm'))
     amount_dict = dict(data_dict.values_list('grouping_key', 'amount'))
     temp_data['recordsTotal'] = stock_transfer_summary_values.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -11259,6 +11259,50 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
         temp_data['aaData'].append(data_dict)
     return temp_data
 
+@csrf_exempt
+def get_stock_transfer_inter_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    st_list=['order_id','order_id','order_id','quantity','order_id','stocktransfersummary__invoice_number','quantity']
+    summary_params = {'status':2}
+    users = [user.id]
+    users = check_and_get_plants(request, users)
+    user_ids = list(users.values_list('id', flat=True))
+    summary_term = st_list[col_num]
+    if order_term == 'desc':
+        summary_term = '-%s' % summary_term
+    if search_term :
+        summary_params['order_id__icontains'] = search_term
+    stock_transfer_summary = StockTransfer.objects.filter(sku__user__in=user_ids, st_type='ST_INTER', **summary_params).select_related('st_po__open_st').order_by(summary_term)
+    stock_transfer_summary_values = stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0).values('order_id', 'st_po__open_st__sku__user',
+                                                'stocktransfersummary__full_invoice_number', 'stocktransfersummary__pick_number').\
+                                                distinct()
+    data_dict = StockTransferSummary.objects.filter(stock_transfer_id__in=stock_transfer_summary.filter(storder__picklist__picked_quantity__gt=0) \
+                                                .values_list('id', flat=True)).values('stock_transfer__order_id', 'pick_number').distinct() \
+                                                .annotate(total_sm=Sum(F('quantity')/F('picklist__stock__batch_detail__pcf')),
+                                                amount=Sum(F('quantity') * F('stock_transfer__st_po__open_st__price') + (F('quantity') * F('stock_transfer__st_po__open_st__price')/100) * (F('stock_transfer__st_po__open_st__igst_tax')+F('stock_transfer__st_po__open_st__cgst_tax')+F('stock_transfer__st_po__open_st__sgst_tax'))),
+                                                grouping_key=Concat('stock_transfer__order_id', Value(':'), 'pick_number',output_field=CharField()))
+    qty_dict = dict(data_dict.values_list('grouping_key', 'total_sm'))
+    amount_dict = dict(data_dict.values_list('grouping_key', 'amount'))
+    temp_data['recordsTotal'] = stock_transfer_summary_values.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for stock_transfer in stock_transfer_summary_values[start_index:stop_index]:
+        summary_price =0
+        creation_date = stock_transfer_summary.filter(order_id=stock_transfer['order_id']).latest('creation_date').creation_date
+        group_key = "{}{}{}".format(str(stock_transfer['order_id']), ':', str(stock_transfer['stocktransfersummary__pick_number']))
+        picked_quantity = qty_dict.get(group_key,0)
+        summary_price = amount_dict.get(group_key,0)
+        invoice_number = ''
+        if stock_transfer['stocktransfersummary__full_invoice_number']:
+            invoice_number = stock_transfer['stocktransfersummary__full_invoice_number']
+        pick_number = ''
+        if stock_transfer['stocktransfersummary__pick_number']:
+            pick_number = stock_transfer['stocktransfersummary__pick_number']
+        warehouse_name = User.objects.get(id=stock_transfer['st_po__open_st__sku__user']).username
+        data_dict = {'Sale Order ID': stock_transfer['order_id'], 'Order Quantity': 0, 'Picked Quantity': picked_quantity,
+             'Total Amount': "%.2f"% float(summary_price), 'Sale Order Date&Time': get_local_date(user, creation_date),'pick_number': pick_number,
+             'Invoice Number': invoice_number,#value['full_invoice_number'],
+             'Warehouse Name': warehouse_name}
+        temp_data['aaData'].append(data_dict)
+    return temp_data
 
 @csrf_exempt
 def get_material_request_challan_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -12325,7 +12369,7 @@ def generate_stock_transfer_invoice(request, user=''):
     total_invoice_amount, total_taxable_amount, total_tax, total_cgst_amt, total_sgst_amt, total_igst_amt,total_quantity,invoice_number,full_invoice_number = 0,0,0,0,0,0,0,0,0
     order_id=data['order_id']
     cess_amt,total_cess_amt = 0 ,0
-    get_stock_transfer = StockTransfer.objects.filter(sku__user=user.id, order_id=order_id)
+    get_stock_transfer = StockTransfer.objects.filter(order_id=order_id)
     warehouse_id = get_stock_transfer[0].st_po.open_st.sku.user
     order_date = get_stock_transfer[0].creation_date
     invoice_date = ''
@@ -12366,8 +12410,7 @@ def generate_stock_transfer_invoice(request, user=''):
                  'destination_company_number': to_warehouse.phone_number,
                  'destination_email': warehouse_obj.email}
     pick_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=get_stock_transfer.values_list('id', flat=True)).\
-        annotate(group_key=Concat('stock_transfer__order_id', Value('<<>>'), 'stock_transfer__sku__sku_code', output_field=CharField())).values_list('group_key').annotate(tot_sum=Sum('picklist__picked_quantity')))
-
+        annotate(group_key=Concat('stock_transfer__order_id', Value('<<>>'), 'stock_transfer__sku__sku_code', output_field=CharField())).values_list('group_key').annotate(tot_sum=Sum(F('picklist__picked_quantity')/F('picklist__stock__batch_detail__pcf'))))
     for stock_transfer in get_stock_transfer:
         if mb_user:
             st_order_list=STOrder.objects.filter(stock_transfer_id=stock_transfer.id)
@@ -12401,7 +12444,8 @@ def generate_stock_transfer_invoice(request, user=''):
                         stock_transfer_summary.update(invoice_number=invoice_number,
                                                       full_invoice_number=full_invoice_number, invoice_date=invoice_date)
                     if not mb_user:
-                        total_picked_quantity = stock_transfer_summary.aggregate(tot_quantity=Sum('quantity'))['tot_quantity']
+                        total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
+                        #total_picked_quantity = stock_transfer_summary.aggregate(tot_quantity=Sum('quantity'))['tot_quantity']
                     if stock_transfer_summary[0].invoice_number:
                         invoice_number = stock_transfer_summary[0].invoice_number
                         full_invoice_number = stock_transfer_summary[0].full_invoice_number
@@ -13029,6 +13073,12 @@ def stock_transfer_invoice_data(request, user=''):
     headers = STOCK_TRANSFER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_inter_invoice_data(request, user=''):
+    headers = STOCK_TRANSFER_INTER_INVOICE_HEADERS
+    return HttpResponse(json.dumps({'headers': headers}))
 
 @csrf_exempt
 @login_required

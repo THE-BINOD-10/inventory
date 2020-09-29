@@ -568,10 +568,17 @@ def print_sku_wise_purchase(request, user=''):
 
 def get_supplier_details_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    users = [user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
     order_term = search_params.get('order_term', 'asc')
     order_index = search_params.get('order_index', 0)
-    search_parameters = {'open_po__sku_id__in': sku_master_ids}
+    # search_parameters = {'open_po__sku_id__in': sku_master_ids}
+    search_parameters = {}
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier_id')
     lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
@@ -598,23 +605,22 @@ def get_supplier_details_data(search_params, user, sub_user):
             search_parameters['status'] = 'location-assigned'
         elif status == 'putaway_completed':
             search_parameters['status'] = 'confirmed-putaway'
-    if 'order_id' in search_params:
-        order_id = search_params.get('order_id')
-        search_parameters['order_id'] = order_id
+    if 'po_number' in search_params:
+        order_id = search_params.get('po_number')
+        search_parameters['po_number'] = order_id
     if supplier_name:
         search_parameters['open_po__supplier__supplier_id'] = supplier_name
         suppliers = PurchaseOrder.objects.select_related('open_po').filter(
-            open_po__sku__user=user.id, **search_parameters)
+            open_po__sku__user__in=user_ids, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.select_related('open_po').filter(
-            open_po__sku__user=user.id, **search_parameters)
+        suppliers = PurchaseOrder.objects.select_related('open_po').filter(open_po__sku__user__in=user_ids, **search_parameters)
     purchase_orders = suppliers.values('order_id', 'status', 'prefix').distinct().annotate(
         total_ordered=Sum('open_po__order_quantity'),
         total_received=Sum('received_quantity')). \
         order_by(order_val)
 
-    supplier_data['recordsTotal'] = suppliers.count()
-    supplier_data['recordsFiltered'] = suppliers.count()
+    supplier_data['recordsTotal'] = purchase_orders.count()
+    supplier_data['recordsFiltered'] = purchase_orders.count()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
@@ -2133,15 +2139,26 @@ def print_purchase_order_form(request, user=''):
     po_prefix = request.GET.get('prefix', '')
     total_qty = 0
     total = 0
+    remarks = ''
     pending_po_line_entries = ''
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id, prefix=po_prefix)
+    sub_user= request.user
+    users=[user.id]
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = check_and_get_plants_wo_request(sub_user, user, users)
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user__in=users, order_id=po_id, prefix=po_prefix)
     supplier_currency, supplier_payment_terms, delivery_date = '', '', ''
     if purchase_orders.exists():
         pm_order = purchase_orders[0]
+        po_user_id= purchase_orders[0].open_po.sku.user
+        if po_user_id:
+            user=User.objects.get(id=po_user_id)
         if PendingPO.objects.filter(full_po_number=pm_order.po_number).exists():
             pending_po_data = PendingPO.objects.filter(full_po_number=pm_order.po_number)[0]
+            remarks = pending_po_data.remarks
             if pending_po_data.pending_polineItems.filter().exists():
                 pending_po_line_entries=pending_po_data.pending_polineItems.filter()
             if pending_po_data.supplier_payment:
@@ -2202,7 +2219,7 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp, amount,
                             open_po.sgst_tax, total_sgst, open_po.cgst_tax, total_cgst, open_po.igst_tax, total_igst, total_sku_amt]
                 po_data.append(po_temp_data)
-            
+
         else:
             total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
                          + open_po.utgst_tax + open_po.apmc_tax) * (amount / 100)
@@ -2326,6 +2343,7 @@ def print_purchase_order_form(request, user=''):
         'order_id': order_id,
         'telephone': str(telephone),
         'name': name,
+        'remarks': remarks,
         'order_date': order_date,
         'total': round(total),
         'total_qty': total_qty,

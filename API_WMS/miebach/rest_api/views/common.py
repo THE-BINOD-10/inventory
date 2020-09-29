@@ -551,7 +551,7 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status',
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -669,6 +669,7 @@ data_datatable = {  # masters
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
+    'StockInterInvoice' : 'get_stock_transfer_inter_invoice_data',
     'MaterialRequestChallan' : 'get_material_request_challan_data',
     'StockTransferShipment' : 'get_stock_transfer_shipment_data',
     'PicklistDeliveryChallan':'get_picklist_delivery_challan',
@@ -11523,6 +11524,8 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
     incremental_prefix = 'st_prefix'
     if order_typ == 'MR':
         incremental_prefix = 'mr_prefix'
+    elif order_typ == 'ST_INTER':
+        incremental_prefix = 'so_prefix'
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
         po_id, prefix, full_po_number, check_prefix, inc_status = \

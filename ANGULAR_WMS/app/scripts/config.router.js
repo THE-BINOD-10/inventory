@@ -960,8 +960,32 @@ var app = angular.module('urbanApp')
           }]
         },
         data: {
-          title: 'Material Request ( Plant - Dept )',
+          title: 'Material Request',
         }
+      })
+      .state('app.inbound.TransferOrder', {
+        url: '/TransferOrder',
+        permission: 'multi_warehouse',
+        // permission: 'add_openst',
+        templateUrl: 'views/inbound/main_transfer_order.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                'scripts/controllers/inbound/raise_po/raise_stock_transfer.js'
+              ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/raise_inter_st.js'
+                ])
+              })
+          }]
+        },
+        data: {
+          title: 'Transfer Order',
+        }
+      })
+      .state('app.inbound.TransferOrder.StockTransfer', {
+        url: '/StockTransfer',
+        templateUrl: 'views/inbound/toggle/raise_stock.html'
       })
       .state('app.inbound', {
           template: '<div ui-view></div>',
@@ -2101,6 +2125,10 @@ var app = angular.module('urbanApp')
                 }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/stock_transfer_invoice.js',
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/inter_stock_sale_invoice.js',
                   ])
                 }).then( function() {
             return $ocLazyLoad.load([

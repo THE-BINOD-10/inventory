@@ -1,6 +1,6 @@
 'use strict';
 
-function CreateStockOrdersIntra($scope, $http, $q, $state, Session, colFilters, Service) {
+function RaiseStockOrdersInter($scope, $http, $q, $state, Session, colFilters, Service) {
 
   $scope.msg = "start";
   var vm = this;
@@ -103,30 +103,42 @@ vm.changeUnitPrice = function(data){
       }
     }
   });
-
+  vm.validate = function (elem) {
+    angular.forEach(elem, function(wh, index){
+      if (wh['name'] == 'source_plant') {
+        wh['value'] = vm.model_data['warehouse_name'];
+      } else if (wh['name'] == 'warehouse_name') {
+        wh['value'] = vm.model_data['selected'];
+      }
+      if (elem.length == index+1) {
+        vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
+          if(data.message) {
+            if("Confirmed Successfully" == data.data) {
+              vm.close();
+              vm.reloadData();
+              angular.copy(empty_data, vm.model_data);
+            }
+            colFilters.showNoty(data.data);
+            vm.bt_disable = false;
+          }
+        })
+      }
+    })
+  }
   vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;
-      var elem = angular.element($('form#add_st_intra'));
+      var elem = angular.element($('form#add_st_inter'));
       elem = $(elem).serializeArray();
-      vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
-        if(data.message) {
-          if("Confirmed Successfully" == data.data) {
-            angular.copy(empty_data, vm.model_data);
-          }
-          colFilters.showNoty(data.data);
-          vm.bt_disable = false;
-        }
-      })
+      vm.validate(elem);
     } else {
-      vm.bt_disable = false;
       colFilters.showNoty("Fill Required Fields");
     }
   }
 
   vm.update_availabe_stock = function(sku_data) {
-     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.selected}
+     var send = {sku_code: sku_data.sku_id, location: "", source: vm.model_data.warehouse_name}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
@@ -142,7 +154,7 @@ vm.changeUnitPrice = function(data){
   vm.get_sku_data = function(record, item, index) {
     if (!vm.model_data.selected || !vm.model_data.warehouse_name) {
       record.sku_id ='';
-      colFilters.showNoty("Please select Source and Destination Plant");
+      colFilters.showNoty("Please select Request To and Request From");
       return
     }
     record.sku_id = item.wms_code;
@@ -198,11 +210,11 @@ vm.changeUnitPrice = function(data){
     } else if (!vm.warehouse_list_states[vm.model_data.selected]){
         temp_ware_name = vm.model_data.selected;
         vm.model_data.selected = '';
-        colFilters.showNoty(temp_ware_name +" - Please update state in Source Plant");
+        colFilters.showNoty(temp_ware_name +" - Please update state in Request To Plant");
     } else if (!vm.warehouse_list_states[vm.model_data.warehouse_name]){
         temp_ware_name = vm.model_data.warehouse_name;
-        vm.model_data.selected = '';
-        colFilters.showNoty(temp_ware_name +" - Please update state in Destination Plant");
+        vm.model_data.warehouse_name = '';
+        colFilters.showNoty(temp_ware_name +" - Please update state in Request From Plant");
     }
   }
 
@@ -219,25 +231,41 @@ vm.changeUnitPrice = function(data){
     });
   }
 
-  vm.changeDestWarehouse = function() {
+  vm.company_list = [];
+  vm.get_company_list = function() {
+    vm.company_list = [];
+    vm.service.apiCall("get_company_list/", "GET", {'send_parent': false}).then(function(data) {
+      if(data.message) {
+        //vm.company_list = data.data.company_list;
+        angular.forEach(data.data.company_list, function(company){
+          if(company.id!=vm.model_data.company_id){
+            vm.company_list.push(company)
+          }
+        });
+      }
+    });
+  }
+
+  vm.changeDestCompany = function() {
     console.log(vm.model_data);
     angular.forEach(vm.warehouse_dict, function(wh){
-      console.log(wh);
       if(wh.username == vm.model_data.selected){
         vm.model_data.company_id = wh['userprofile__company_id'];
       }
     });
-    if(vm.model_data.company_id){
+    vm.get_company_list();
+  }
+
+  vm.changeDestWarehouse = function(){
       var wh_data = {};
       vm.dest_wh_list = {};
-      wh_data['company_id'] = vm.model_data.company_id;
+      wh_data['company_id'] = vm.model_data.dest_company_id;
       wh_data['warehouse_type'] = 'STORE,SUB_STORE';
       vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
         if(data.message) {
         vm.dest_wh_list = data.data.warehouse_list;
       }
     });
-    }
   }
 
   vm.get_customer_sku_prices = function(sku) {
@@ -261,4 +289,4 @@ vm.changeUnitPrice = function(data){
 
 angular
   .module('urbanApp')
-  .controller('CreateStockOrdersIntra', ['$scope', '$http', '$q', '$state', 'Session', 'colFilters', 'Service', CreateStockOrdersIntra]);
+  .controller('RaiseStockOrdersInter', ['$scope', '$http', '$q', '$state', 'Session', 'colFilters', 'Service', RaiseStockOrdersInter]);

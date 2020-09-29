@@ -10,12 +10,26 @@
       <tab heading="Material Request Document">
         <div ng-include="'views/outbound/customer_invoices_tab_mr.html'"></div>
       </tab>
-      <tab heading="Stock Transfer Invoice">
+      <tab heading="Intra Stock Transfer Invoice">
         <div ng-include="'views/outbound/customer_invoices_tab2.html'"></div>
       </tab>
-      <tab heading="Picklist Delivery Challan">
-        <div ng-include="'views/outbound/piclist_delivery_challan.html'"></div>
+      <tab heading="Inter Sale Transfer Invoice">
+        <div ng-controller="StockTransferInterInvoiceCtrl as showCase">
+          <div class="page-layout">
+            <div class="layout-body">
+              <div class="panel">
+                <div ng-if="showCase.display" ng-include="'views/common/no-onclick-table.html'"></div>
+                <div class="panel-footer">
+                  <button type="button" class="btn btn-primary pull-right" ng-click="showCase.generate_invoice('generate')">Generate Invoice</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </tab>
+      <!-- <tab heading="Picklist Delivery Challan">
+        <div ng-include="'views/outbound/piclist_delivery_challan.html'"></div>
+      </tab> -->
     </tabset>
   </div>
 </div>

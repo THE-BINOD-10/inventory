@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 'sample_order': (aData['Order Type'] == 'Sample Order') ? 1 : 0,
                 'prefix': aData['prefix'],
                 "doa_model_id": aData["doa_id"],
+                'po_number': aData['po_no'],
                 "warehouse_id": aData["warehouse_id"]
               }
               vm.form = 'grn_doa_form';

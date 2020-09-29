@@ -597,6 +597,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', '
 GRN_DICT = {'filters': [{'label': 'PO From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'PO To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+                        {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
                         {'label': 'GRN From Date', 'name': 'grn_from_date', 'type': 'date'},
                         {'label': 'GRN To Date', 'name': 'grn_to_date', 'type': 'date'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
@@ -652,6 +653,7 @@ SKU_WISE_GRN_DICT = {'filters': [
     {'label': 'GRN From Date', 'name': 'from_date', 'type': 'date'},
     {'label': 'GRN To Date', 'name': 'to_date', 'type': 'date'},
     {'label': 'PO Number', 'name': 'po_number', 'type': 'input'},
+    {'label': 'GRN Number', 'name': 'grn_number', 'type': 'input'},
     {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
     {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
     {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
@@ -4579,7 +4581,7 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
                      'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
                      'user': 'purchase_order__open_po__sku__user__in',
                      'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix',
-                     'po_number': 'purchase_order__po_number',
+                     'po_number': 'purchase_order__po_number', 'grn_number': 'grn_number',
                      'sku_category': 'purchase_order__open_po__sku__sku_category__iexact',
                      'sub_category': 'purchase_order__open_po__sku__sub_category__iexact',
                      'sku_brand': 'purchase_order__open_po__sku__sku_brand__iexact',
@@ -4638,6 +4640,8 @@ def get_sku_wise_po_filter_data(request,search_params, user, sub_user):
             del search_parameters[field_mapping['to_date'] + '__lte']
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
+    if 'grn_number' in search_params:
+        search_parameters[field_mapping['grn_number']] = search_params['grn_number']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if 'invoice_number' in search_params:
@@ -5338,6 +5342,7 @@ def get_po_filter_data(request, search_params, user, sub_user):
     field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date', 'order_id': 'purchase_order__order_id',
                      'wms_code': 'purchase_order__open_po__sku__wms_code__iexact', 'user': 'purchase_order__open_po__sku__user__in',
                      'sku_id__in': 'purchase_order__open_po__sku_id__in', 'prefix': 'purchase_order__prefix','po_number':'purchase_order__po_number',
+                     'grn_number': 'grn_number',
                      'supplier_id': 'purchase_order__open_po__supplier__supplier_id', 'supplier_name': 'purchase_order__open_po__supplier__name'}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__supplier_id', 'purchase_order__open_po__supplier__name', 'purchase_order__prefix',
                      'receipt_number', 'grn_number', 'invoice_date', 'challan_date','invoice_number', 'challan_number',
@@ -5373,6 +5378,8 @@ def get_po_filter_data(request, search_params, user, sub_user):
             del search_parameters[field_mapping['to_date'] + '__lte']
     if 'po_number' in search_params:
         search_parameters[field_mapping['po_number']] = search_params['po_number']
+    if 'grn_number' in search_params:
+        search_parameters[field_mapping['grn_number']] = search_params['grn_number']
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if 'invoice_number' in search_params:
@@ -14903,6 +14910,7 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
         pr_plant, pr_department, pr_number, pr_date, pr_user = '', '', '', '', ''
         product_category, category, final_status= '', '', ''
         pr_quantity = ''
+        user_id= ''
         open_po_data = PurchaseOrder.objects.filter(po_number=result['po_number'],open_po__isnull=False).\
                                             values('open_po__price', 'open_po__order_quantity', 'open_po__cgst_tax',
                                             'open_po__sgst_tax', 'open_po__igst_tax', 'open_po__supplier__supplier_id',
@@ -14996,7 +15004,11 @@ def get_metropolis_po_report_data(search_params, user, sub_user):
             updated_user_name = last_updated_by[0].validated_by
         if result['expected_date']:
             delivery_date = result['expected_date'].strftime("%d-%b-%y")
-
+        if not pr_plant and user_id:
+            req_user = User.objects.filter(id=user_id)
+            if req_user:
+                req_user=req_user[0]
+                pr_department, pr_plant = get_plant_and_department(req_user)
         ord_dict = OrderedDict((
             # ('PO Created Date', po_date),
             ('PR Number', pr_number),

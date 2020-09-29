@@ -14,7 +14,8 @@ from stockone_integrations.netsuite import netsuiteIntegration
 from stockone_integrations.models import IntegrationMaster
 import json,os
 from miebach_admin.models import Integrations as integmodel
-# Create your views here.
+from utils import init_logger
+log_err = init_logger('logs/netsuite_integration_View_errors.log')
 
 Batched = True
 TEMPFOLDER = '/tmp'
@@ -342,13 +343,6 @@ class Integrations():
         else:
             result = []
             if not is_multiple:
-                if action  == 'upsert':
-                    if grnData.get('items',[]):
-                        if int(grnData["grn_date"].split('-')[1])==9:
-                            grnData.update({"grn_date": '2020-08-31T19:33:52+05:30'})
-                        recordDict_items = self.remove_duplicate_dictionary(grnData.get('items',[]))
-                        if recordDict_items:
-                            grnData.update({"items": recordDict_items})
                 recordDict = grnData #self.gatherSkuData(skuObject)
                 record = self.connectionObject.netsuite_create_grn(recordDict)
                 if action  == 'upsert':
@@ -358,13 +352,6 @@ class Integrations():
             else:
                 records = []
                 for row in grnData:
-                    if action  =='upsert':
-                        if row.get('items',[]):
-                            if int(row["grn_date"].split('-')[1])==9:
-                                row.update({"grn_date": '2020-08-31T19:33:52+05:30'})
-                            recordDict_items = self.remove_duplicate_dictionary(row.get('items',[]))
-                            if recordDict_items:
-                                row.update({"items": recordDict_items})
                     recordDict = row
                     record = self.connectionObject.netsuite_create_grn(recordDict)
                     records.append(record)
@@ -458,30 +445,45 @@ class Integrations():
         try:
             final_GRN_data=[]
             for row in GRN_data:
-                if str(row.createdFrom.externalId) in po_initialize:
-                    indx_list=[]
-                    for indx, grn_line_item in enumerate(row.itemList['item']):
-                        check_sku_code=False
+                try:
+                    if str(row.createdFrom.externalId) in po_initialize:
+                        indx_list=[]
+                        total_item_length=0
+                        price_mismatch_ckeck=0
                         for line_item in po_initialize[str(row.createdFrom.externalId)]:
-                            if grn_line_item["item"]["externalId"]== line_item["itemName"]:
-                                grn_line_item.update({'orderLine': line_item['orderLine']})
-                                check_sku_code=True
-                        if not check_sku_code:
-                            indx_list.append(grn_line_item)
-                    for indx in indx_list:
-                        row.itemList['item'].remove(indx)
-                final_GRN_data.append(row)
+                            check_sku_code=False
+                            if row.itemList.get("item", None):
+                                item_length=len(row.itemList['item'])
+                                for indx, grn_line_item in enumerate(row.itemList['item']):
+                                    if grn_line_item["item"]["externalId"]== line_item["itemName"] and grn_line_item["itemReceive"]:
+                                        if not grn_line_item.get("duplicate_sku_flag",False):
+                                        #if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]) and float(grn_line_item["sku_PO_quantity"])==float(line_item["quantity"]) and float(grn_line_item["rate"])==float(line_item["rate"]):
+                                            if float(grn_line_item["quantity"])<=float(line_item["quantityRemaining"]):
+                                                grn_line_item.update({'orderLine': line_item['orderLine'], "duplicate_sku_flag":True})
+                                                check_sku_code=True
+                                                price_mismatch_ckeck+=1
+                                                break
+                                            else:
+                                                print("price or quantity mismatch", "GRN",float(grn_line_item["quantity"]), "Initialigelist", float(line_item["quantityRemaining"]))
+                                if not check_sku_code:
+                                    row.itemList['item'].append({
+                                                                'item': {
+                                                                'name': None,
+                                                                'internalId': None,
+                                                                'externalId': line_item["itemName"],
+                                                                'type': None
+                                                        },
+                                                        'orderLine': line_item['orderLine'],
+                                                        'itemReceive': False
+                                                })
+                    final_GRN_data.append(row)
+                except Exception as e:
+                    import traceback
+                    log_err.debug(traceback.format_exc())
+                    log_err.info('po_initialize GRN data failed for %s and error was %s' % (str(row), str(e)))
             return final_GRN_data
         except Exception as e:
-            print(e)
+            import traceback
+            log_err.debug(traceback.format_exc())
+            log_err.info('po_initialize GRN data failed for %s and error was %s' % (str(GRN_data), str(e)))
             return GRN_data
-    def remove_duplicate_dictionary(self, lst):
-        res_list=[]
-        seen = set()
-        for dic in lst:
-            key = (dic['sku_code'])
-            if key in seen:
-                continue
-            res_list.append(dic)
-            seen.add(key)
-        return res_list

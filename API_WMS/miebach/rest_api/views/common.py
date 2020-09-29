@@ -551,7 +551,7 @@ def get_search_params(request, user=''):
                     'destination_sku_category': 'destination_sku_category','warehouse':'warehouse',
                     'source_sku_category': 'source_sku_category', 'level': 'level', 'project_name':'project_name',
                     'customer':'customer', 'plant_code':'plant_code','product_category':'product_category', 'final_status':'final_status',
-                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status',
+                    'priority_type': 'priority_type','pr_number': 'pr_number', 'po_number': 'po_number', 'po_status': 'po_status', 'grn_number':'grn_number'
                     }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
@@ -13355,4 +13355,3 @@ def get_kerala_cess_tax(tax, supplier):
     if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
         cess_tax = 1
     return cess_tax
-

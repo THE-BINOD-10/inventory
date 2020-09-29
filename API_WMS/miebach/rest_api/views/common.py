@@ -13614,6 +13614,8 @@ def update_sku_avg_from_grn(user, grn_number):
     if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
         return
     main_user = get_company_admin_user(user)
+    if not grn_number:
+        return
     sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
                                    Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
                                    grn_number=grn_number)
@@ -13635,6 +13637,8 @@ def update_sku_avg_from_rtv(user, rtv_number):
     if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
         return
     main_user = get_company_admin_user(user)
+    if not rtv_number:
+        return
     rtvs = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
                                          rtv_number=rtv_number)
     sku_amt = {}

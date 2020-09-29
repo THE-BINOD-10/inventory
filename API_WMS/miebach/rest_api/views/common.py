@@ -3000,13 +3000,12 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
                 if not put_zone:
                     location = create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
-                    #put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
 
                 else:
                     put_zone = put_zone[0]
                     put_zone = put_zone.zone
             if not location:
-                location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone.zone)
+                location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone)
             stock_dict['location_id'] = location[0].id
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
@@ -3462,6 +3461,7 @@ def search_wms_codes(request, user=''):
     instanceName = SKUMaster
     if sku_type == 'Test':
         instanceName = TestMaster
+        user = get_company_admin_user(user)
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     extra_filter = {}
     data_exact = sku_master.filter(Q(wms_code__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
@@ -5253,6 +5253,7 @@ def search_wms_data(request, user=''):
     if master_data:
         master_data = master_data[0]
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
+        ccf, cuom, c_base_uom = get_uom_data(user, master_data, 'consumption')
         tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
         temp_tax=0
         if tax_values.exists():
@@ -5263,7 +5264,7 @@ def search_wms_data(request, user=''):
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
-                        "temp_cess_tax": tax_values[0]['cess_tax']}
+                        "temp_cess_tax": tax_values[0]['cess_tax'], "ccf": ccf, "cuom": cuom}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5509,6 +5510,7 @@ def build_search_data(user, to_data, from_data, limit):
         for data in from_data:
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
+            ccf, cuom, c_base_uom = get_uom_data(user, data, 'consumption')
             sku_conversion = 0
             base_uom = ''
             if sku_uom.exists():
@@ -5530,7 +5532,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
-                         "temp_cess_tax": temp_cess_tax}
+                         "temp_cess_tax": temp_cess_tax, "ccf": ccf, "cuom": cuom}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -13590,25 +13592,7 @@ def get_kerala_cess_tax(tax, supplier):
     return cess_tax
 
 
-def update_sku_avg_from_grn(user, grn_number):
-    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
-        return
-    main_user = get_company_admin_user(user)
-    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
-                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
-                                   grn_number=grn_number)
-    sku_amt = {}
-    for sp in sps:
-        price,tax = [0]*2
-        if sp.batch_detail:
-            price = sp.batch_detail.buy_price
-            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
-        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else stpurchaseorder_set.filter()[0].open_st.sku.sku_code
-        amt = sp.quantity * price
-        total = amt + ((amt/100)*tax)
-        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
-        sku_amt[sku_code]['amount'] += total
-        sku_amt[sku_code]['qty'] += sp.quantity
+def update_sku_avg_main(sku_amt, user, main_user):
     for sku_code, value in sku_amt.items():
         sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
         stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
@@ -13626,6 +13610,47 @@ def update_sku_avg_from_grn(user, grn_number):
         sku.save()
         SKUMaster.objects.filter(user__in=dept_user_ids, sku_code=sku.sku_code).update(average_price=new_avg)
 
+def update_sku_avg_from_grn(user, grn_number):
+    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
+        return
+    main_user = get_company_admin_user(user)
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    sku_amt = {}
+    for sp in sps:
+        price,tax = [0]*2
+        if sp.batch_detail:
+            price = sp.batch_detail.buy_price
+            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        amt = sp.quantity * price
+        total = amt + ((amt/100)*tax)
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt[sku_code]['amount'] += total
+        sku_amt[sku_code]['qty'] += sp.quantity
+    update_sku_avg_main(sku_amt, user, main_user)
+
+def update_sku_avg_from_rtv(user, rtv_number):
+    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
+        return
+    main_user = get_company_admin_user(user)
+    rtvs = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
+                                         rtv_number=rtv_number)
+    sku_amt = {}
+    for rtv in rtvs:
+        price,tax = [0]*2
+        sp = rtv.seller_po_summary
+        if sp.batch_detail:
+            price = sp.batch_detail.buy_price
+            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        amt = rtv.quantity * price
+        total = amt + ((amt/100)*tax)
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt[sku_code]['amount'] += total
+        sku_amt[sku_code]['qty'] += rtv.quantity
+    update_sku_avg_main(sku_amt, user, main_user)
 
 @get_admin_user
 def search_batch_data(request, user=''):

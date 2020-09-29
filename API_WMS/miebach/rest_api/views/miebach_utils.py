@@ -1746,7 +1746,7 @@ CONSUMPTION_REPORT_DICT = {
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
-    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
+    'dt_headers': ['Date', 'Warehouse', 'Test Code', 'SKU Code', 'SKU Description', 'Location', 'Quantity', 'Purchase Uom Quantity','Batch Number', 'MRP', 'Manufactured Date', 'Expiry Date'],
     'dt_url': 'get_sku_wise_consumption_report', 'excel_name': 'get_sku_wise_consumption_report',
     'print_url': 'get_sku_wise_consumption_report',
 }
@@ -2587,6 +2587,7 @@ PERMISSION_DICT = OrderedDict((
                         ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
                         ("Customer Invoices", "add_sellerordersummary"), ("Manual Orders", "add_manualenquiry"),
                         ("Shipment Info", "add_shipmentinfo"), ("Create Stock Transfer", "add_stocktransfer"),
+                        ('Create Manual Test', 'add_consumptiondata')
                         )),
 
     # Shipment Info
@@ -15362,8 +15363,8 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
                     'quantity', 'stock_mapping__stock__batch_detail__batch_no', 'stock_mapping__stock__batch_detail__mrp',
                     'stock_mapping__stock__batch_detail__manufactured_date', 'stock_mapping__stock__batch_detail__expiry_date',
                     'quantity']
-    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).\
-                        annotate(Sum('stock_mapping__quantity'))
+    model_data = ConsumptionData.objects.filter(**search_parameters).values(*values_list).distinct().\
+                        annotate(pquantity=Sum(F('stock_mapping__quantity')/F('stock_mapping__stock__batch_detail__pcf')))
 
     if order_term:
         results = model_data.order_by(order_data)
@@ -15396,6 +15397,7 @@ def get_sku_wise_consumption_report_data(search_params, user, sub_user):
             ('SKU Description', result['sku__sku_desc']),
             ('Location', result['stock_mapping__stock__location__location']),
             ('Quantity', result['quantity']),
+            ('Purchase Uom Quantity', result['pquantity']),
             ('Batch Number', result['stock_mapping__stock__batch_detail__batch_no']),
             ('MRP', result['stock_mapping__stock__batch_detail__mrp']),
             ('Manufactured Date', mfg_date),

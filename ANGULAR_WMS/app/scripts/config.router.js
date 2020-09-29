@@ -2041,6 +2041,21 @@ var app = angular.module('urbanApp')
             title: 'Create Stock Transfer',
           }
         })
+        .state('app.outbound.CreateManualTest', {
+          url: '/CreateManualTest',
+          permission: 'add_consumptiondata',
+          templateUrl: 'views/outbound/create_manual_test_main.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_manual_test.js'
+                  ])
+              }]
+          },
+          data: {
+            title: 'Create Manual Test',
+          }
+        })
         .state('app.outbound.CustomerInvoices', {
           url: '/CustomerInvoices',
           templateUrl: 'views/outbound/customer_invoices.html',

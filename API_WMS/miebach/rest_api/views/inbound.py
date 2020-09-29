@@ -14059,6 +14059,10 @@ def create_rtv(request, user=''):
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)
+            try:
+                update_sku_avg_from_rtv(user, rtv_number)
+            except Exception as e:
+                log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

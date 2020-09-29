@@ -484,6 +484,7 @@ urlpatterns = [
     url(r'^get_previous_order_data/$', get_previous_order_data),
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
     url(r'^print_descrepancy_note/$', print_descrepancy_note),
+    url(r'^create_manual_test/$', create_manual_test),
 
 
 

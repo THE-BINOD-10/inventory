@@ -101,7 +101,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.message = "";
     vm.sku_empty = {'wms_code': '', 'description': '', 'batch_no': '', 'manufactured_date': '', 'expiry_date': '',
-                    'uom': '', 'quantity': 1, 'mfg_readonly': true, 'available_stock': 0}
+                    'uom': '', 'quantity': '', 'mfg_readonly': true, 'available_stock': 0}
     vm.empty_data = {
                       'wms_code':'',
                       'location': '',
@@ -244,6 +244,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
       return
     }
+    if(!vm.model_data.reason){
+      data.wms_code = '';
+      colFilters.showNoty("Please Select Reason");
+      return
+    }
     data.wms_code = selected.wms_code;
     data.description = selected.sku_desc;
     data.uom = selected.measurement_unit;
@@ -287,8 +292,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(data.message) {
         if(data.data.available_quantity) {
           sku_data["available_stock"] = data.data.available_quantity;
-          vm.update_final_stock(sku_data);
+          sku_data.quantity = 1;
         }
+        else {
+          sku_data.quantity = 0;
+        }
+        vm.update_final_stock(sku_data);
       }
     });
   }
@@ -318,6 +327,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     angular.forEach(vm.model_data.data, function(sku_data){
       vm.update_final_stock(sku_data);
     });
+  }
+
+    vm.check_quantity = function(sku_data){
+    if(vm.model_data.reason != 'Pooling'){
+      var qty = sku_data.quantity;
+      if(!qty){
+        qty = 0;
+      }
+      else {
+        qty = parseFloat(qty);
+      }
+      if(qty > parseFloat(sku_data.available_stock)){
+        sku_data.quantity = 0;
+        colFilters.showNoty("Entered Quantity is more than available stock");
+      }
+
+    }
   }
 
 }

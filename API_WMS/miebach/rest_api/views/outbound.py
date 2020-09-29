@@ -17332,6 +17332,7 @@ def create_manual_test(request, user=''):
         data_dict = {}
         test_code = request_data['test_code'][i]
         test_obj = TestMaster.objects.filter(test_code=test_code, user=main_user.id)
+        data_dict['remarks'] = request_data.get('remarks', '')[i]
         if not test_obj.exists():
             return HttpResponse("Invalid Test Code %s" % test_code)
         else:
@@ -17362,22 +17363,26 @@ def create_manual_test(request, user=''):
         group_data[test_code].append(data_dict)
 
     for key, value in group_data.items():
-        with transaction.atomic('default'):
-            consumption_dict = {'user_id': user.id, 'test_id': value[0]['test'].id, 'total_test': 1,
-                                'consumption_type': 'manual'}
-            consumption = Consumption.objects.create(**consumption_dict)
-            for val in value:
-                sku = val['sku']
-                quantity = val['needed_quantity']
-                sku_stocks = StockDetail.objects.using('default').select_for_update().\
-                    exclude(location__zone__zone='DAMAGED_ZONE').\
-                    filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
-                consumption_data = ConsumptionData.objects.create(
-                    sku_id=sku.id,
-                    quantity=quantity,
-                    consumption_id=consumption.id
-                )
-                update_stock_detail(sku_stocks, quantity, user,
-                                    consumption_data.id, transact_type='consumption',
-                                    mapping_obj=consumption_data, inc_type='dec')
+        try:
+            with transaction.atomic('default'):
+                consumption_dict = {'user_id': user.id, 'test_id': value[0]['test'].id, 'total_test': 1,
+                                    'consumption_type': 'manual', 'remarks': value[0]['remarks']}
+                consumption = Consumption.objects.create(**consumption_dict)
+                for val in value:
+                    sku = val['sku']
+                    quantity = val['needed_quantity']
+                    sku_stocks = StockDetail.objects.using('default').select_for_update().\
+                        exclude(location__zone__zone='DAMAGED_ZONE').\
+                        filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
+                    consumption_data = ConsumptionData.objects.create(
+                        sku_id=sku.id,
+                        quantity=quantity,
+                        consumption_id=consumption.id
+                    )
+                    update_stock_detail(sku_stocks, quantity, user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='dec')
+        except Exception as e:
+            log.info(e)
+            return HttpResponse("Creation Failed")
     return HttpResponse("Confirmed Successfully")

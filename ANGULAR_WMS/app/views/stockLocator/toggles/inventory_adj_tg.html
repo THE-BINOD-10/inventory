@@ -190,7 +190,7 @@
                         <input type="text" class="form-control" ng-model="data.expiry_date" name="expiry_date" ng-if="data.mfg_readonly" readonly>
                       </td>
                       <td>
-                        <input type="number" class="form-control" ng-model="data.quantity" name="quantity" autocomplete="off" ng-change="showCase.update_final_stock(data)">
+                        <input type="number" class="form-control" ng-model="data.quantity" name="quantity" autocomplete="off" ng-change="[showCase.check_quantity(data), showCase.update_final_stock(data)]">
                       </td>
                       <td>
                         <input type="text" class="form-control" ng-model="data.uom" name="uom" readonly>

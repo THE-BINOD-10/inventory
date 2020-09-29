@@ -107,6 +107,11 @@ function CreateManualTest($scope, $http, $q, $state, Session, colFilters, Servic
   }
 
   vm.get_product_data = function(item, sku_data, index) {
+    if(!vm.model_data.warehouse){
+      colFilters.showNoty("Please select Department First");
+      sku_data.test_code = '';
+      return
+    }
     console.log(vm.model_data);
     check_exist(sku_data, index).then(function(data){
       if(data) {

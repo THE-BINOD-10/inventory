@@ -2892,6 +2892,11 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
         stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
         uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
         remaining_quantity = quantity * uom_dict['sku_conversion']
+        if not stock_increase:
+            stock_qty = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            stock_qty = stock_qty if stock_qty else 0
+            if stock_qty < remaining_quantity:
+                return 'Quantity exceeding available stock'
         if 'Consumption' in reason:
             consumption_data = ConsumptionData.objects.create(
                 sku_id=sku[0].id,
@@ -5227,6 +5232,9 @@ def get_uom_data(user, master_data, uom_type):
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
     product_type = request.GET.get('type')
+    warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        user = User.objects.get(username=warehouse)
     sku_catg = request.GET.get('sku_catg', '')
     sku_brand = request.GET.get('sku_brand', '')
     base_uom = ''

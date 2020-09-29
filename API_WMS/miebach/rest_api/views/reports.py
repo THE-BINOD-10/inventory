@@ -1080,6 +1080,7 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                     ('Sub Category', data.cycle.sku.sub_category),
                                                     ('Location', data.cycle.location.location),
                                                     ('Quantity', quantity),
+                                                    ('Adjustment Value', '%.2f' % float(quantity*data.cycle.sku.average_price)),
                                                     ('Base Uom Quantity', base_quantity),
                                                     ('Pallet Code',
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),

@@ -808,9 +808,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           inv_match_qty += parseFloat(record[0].value);
         }
         if (index+1 == vm.model_data.data.length) {
+          var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+          var date_cnf = vm.model_data.grn_date ? new Date(vm.model_data.grn_date) : new Date();
+          var grn_msg = 'This GRN being allocated for the month ' + ' : ' + months[date_cnf.getMonth()];
           if (parseInt(vm.model_data.invoice_value) == vm.model_data.round_off_total) {
-            vm.total_grn_quantity = inv_match_qty;
-            vm.confirm_grn_api()
+            vm.service.alert_msg(grn_msg).then(function(msg) {
+              if (msg == "true") {
+                vm.total_grn_quantity = inv_match_qty;
+                vm.confirm_grn_api()
+              }
+            })
           } else {
             var temp_str = "Invoice "
             // if (inv_match_qty != parseInt(vm.model_data.invoice_quantity)) {
@@ -820,7 +827,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               temp_str = temp_str + " - Value"
             }
             if (temp_str.includes('Value')) {
-              vm.service.alert_msg(temp_str + " Mismatch").then(function(msg) {
+              vm.service.alert_msg(temp_str + " Mismatch", grn_msg).then(function(msg) {
                 if (msg == "true") {
                   vm.total_grn_quantity = inv_match_qty;
                   vm.confirm_grn_api()

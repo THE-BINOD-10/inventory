@@ -26,7 +26,7 @@
                   ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"
                 >
                 <input name="supplier_id" class="form-control" type="hidden" ng-model="showCase.model_data.supplier_id" value="{{showCase.model_data.supplier_id}}">
-                <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}" ng-readonly="showCase.update">
+                <input name="supplier_id_name" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id_name" value="{{showCase.model_data.supplier_id_name}}">
               </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
@@ -54,8 +54,8 @@
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
-                  <label class="control-label">Purchase Order ID</label>
-                  <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.order_id">
+                  <label class="control-label">PO Number</label>
+                  <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.po_number">
                 </div>
               </div>
             </div>

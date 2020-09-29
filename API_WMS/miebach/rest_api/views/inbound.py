@@ -5161,6 +5161,7 @@ def get_supplier_data(request, users=''):
     invoice_number = ''
     lr_number = ''
     carrier_name = ''
+    grn_date = ''
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
@@ -5346,7 +5347,7 @@ def get_supplier_data(request, users=''):
             temp_json = MastersDOA.objects.filter(model_name='SellerPOSummary', model_id=purchase_order.id, doa_status="pending")
         else:
             temp_json = TempJson.objects.filter(model_id=purchase_order.id, model_name='PO')
-        invoice_date = ''
+        invoice_date, grn_date = '', ''
         dc_number = ''
         dc_date = ''
         dc_level_grn = ''
@@ -5358,6 +5359,7 @@ def get_supplier_data(request, users=''):
                 temp_json = json.loads(temp_json[0].model_json)
             invoice_number = temp_json.get('invoice_number', '')
             invoice_date = temp_json.get('invoice_date', '')
+            grn_date = temp_json.get('grn_date', '')
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
@@ -5380,7 +5382,7 @@ def get_supplier_data(request, users=''):
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
                                     'supplier_name': supplier_name, 'order_date': order_date, \
-                                    'expected_date': expected_date, 'remarks': remarks,
+                                    'expected_date': expected_date, 'remarks': remarks, 'grn_date': grn_date,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,'discrepancy_reasons':discrepancy_reasons,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn, 'carrier_name': carrier_name,
@@ -5415,7 +5417,7 @@ def update_putaway(request, user=''):
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date','scan_pack','send_admin_mail',
                            'display_approval_button', 'invoice_value', 'overall_discount', 'invoice_quantity',
-                           'warehouse_id', 'product_category']
+                           'warehouse_id', 'product_category', 'grn_date']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -6110,7 +6112,14 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
 def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
+    from pytz import timezone
     try:
+        utc_tz=timezone("UTC")
+        grn_date = datetime.datetime.now()
+        if myDict.get('grn_date', ''):
+            grn_date = myDict.get('grn_date', '')[0]
+            grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+        grn_date = utc_tz.localize(grn_date)
         if not receipt_id:
             return
         if not batch_dict:
@@ -6211,7 +6220,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                quantity=value,
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
-                                                                               creation_date=datetime.datetime.now(),
+                                                                               creation_date=grn_date,
                                                                                invoice_date=invoice_date,
                                                                                challan_number=challan_number,
                                                                                challan_date=challan_date,
@@ -6227,6 +6236,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                invoice_quantity=invoice_quantity,
                                                                                credit_status=status,
                                                                                remarks = remarks)
+            seller_po_summary.creation_date = grn_date
+            seller_po_summary.save()
             temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
                                     'remarks': remarks}
             if po_type == 'st':
@@ -6280,7 +6291,7 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    quantity=value,
                                                                                    putaway_quantity=value,
                                                                                    purchase_order_id=data.id,
-                                                                                   creation_date=datetime.datetime.now(),
+                                                                                   creation_date=grn_date,
                                                                                    discount_percent=discount_percent,
                                                                                    challan_number=challan_number,
                                                                                    challan_date=challan_date,
@@ -6297,6 +6308,8 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    invoice_quantity=invoice_quantity,
                                                                                    credit_status=status,
                                                                                    remarks = remarks)
+                seller_po_summary.creation_date = grn_date
+                seller_po_summary.save()
                 seller_received_list.append(
                     {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                      'id': seller_po_summary.id, 'remarks': remarks})
@@ -7133,8 +7146,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             order_id = data.order_id
             grn_po_number = data.po_number
             warehouse_store = User.objects.get(id=warehouse_id).first_name
-            if data.sellerposummary_set.filter().exists():
-                seller_po_summary_date = data.sellerposummary_set.filter().order_by('-creation_date')[0].creation_date
+            if data.sellerposummary_set.filter(grn_number=grn_number).exists():
+                seller_po_summary_date = data.sellerposummary_set.filter(grn_number=grn_number)[0].creation_date
                 order_date = get_local_date(request.user, seller_po_summary_date)
             else:
                 order_date = get_local_date(request.user, data.creation_date)
@@ -7283,7 +7296,10 @@ def netsuite_grn(user, data_dict, po_number, grn_number, dc_level_grn, grn_param
             remarks=""
             if "remarks" in myDict:
                 remarks= str(myDict["remarks"][0])
-
+            if s_po_s[0].creation_date:
+                grn_date_string= s_po_s[0].creation_date.strftime("%d-%m-%Y")
+                grn_date= datetime.strptime(grn_date_string, '%d-%m-%Y')
+                grn_date= grn_date.isoformat()
             grn_data = {'po_number': po_number,
                         'department': department,
                         "subsidiary": subsidary,

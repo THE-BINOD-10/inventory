@@ -2547,6 +2547,7 @@ PERMISSION_DICT = OrderedDict((
                        ('Cluster SKU Mapping', 'add_clusterskumapping'),
                        ("Asset Master Edit", "add_assetmaster"), ("Service Master Edit", "add_servicemaster"),
                        ("Otheritems Master Edit", "add_otheritemsmaster"),
+                       ("Test Master Edit", "add_testmaster"),
                        )),
 
     # Inbound
@@ -2645,7 +2646,9 @@ PERMISSION_DICT = OrderedDict((
                             ('Customer Master View', 'view_customermaster'),
                             ('Asset Master View', 'view_assetmaster'),
                             ('Service Master View', 'view_servicemaster'),
-                            ('OtherItems Master View', 'view_otheritemsmaster'),)),
+                            ('OtherItems Master View', 'view_otheritemsmaster'),
+                            ('Test Master View', 'view_testmaster')
+                            )),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),

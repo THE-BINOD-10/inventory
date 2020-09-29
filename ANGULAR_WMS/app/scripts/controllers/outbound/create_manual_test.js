@@ -31,6 +31,12 @@ function CreateManualTest($scope, $http, $q, $state, Session, colFilters, Servic
       vm.model_data.data.push(temp_row);
   }
 
+  vm.remove_test_row = function(index){
+      var temp_row = {};
+      angular.copy(rows_data, temp_row);
+      vm.model_data.data.splice(index,1);
+  }
+
   vm.update_data = update_data;
   function update_data(index, data, last) {
     console.log(data);

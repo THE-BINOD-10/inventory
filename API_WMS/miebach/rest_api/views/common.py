@@ -2599,6 +2599,7 @@ def create_invnetory_adjustment_record(user, dat, quantity, reason, location, no
                       'cycle__sku__user': user.id}
     if stock:
         inv_adj_filter['stock_id'] = stock.id
+        inv_adj_filter['price'] = stock.sku.average_price
         data['stock_id'] = stock.id
     if seller_id:
         inv_adj_filter['seller_id'] = seller_id
@@ -2813,6 +2814,224 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_
     else:
         return_status = 'Failed'
     return return_status, stock_stats_objs
+
+
+def save_adjustment_type_info(mapping_obj, stock, data_dict, quantity):
+    if mapping_obj:
+        transact_type = 'consumption'
+        stock_mapping = StockMapping.objects.create(stock_id=stock.id, quantity=quantity)
+        mapping_obj.stock_mapping.add(stock_mapping)
+        dat = mapping_obj
+    else:
+        data_dict['location_id'] = stock.location_id
+        dat = CycleCount(**data_dict)
+        dat.save()
+        transact_type = 'inventory-adjustment'
+    return dat, transact_type
+
+
+def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_stats_objs, pallet='', batch_no='', mrp='',
+                          seller_master_id='', weight='', receipt_number=1, receipt_type='', price ='',
+                          stock_increase=False, manufactured_date='', expiry_date=''):
+    from inbound import create_default_zones
+    now_date = datetime.datetime.now()
+    now = str(now_date)
+    adjustment_objs = []
+    return_status = 'Added Successfully'
+    if wmscode:
+        sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
+        if not sku:
+            return 'Invalid WMS Code' ,[]
+        sku_id = sku[0].id
+    if quantity == '':
+        return 'Quantity should not be empty'
+    quantity = float(quantity)
+    stock_dict = {'sku_id': sku_id, 'sku__user': user.id, 'quantity__gt': 0}
+    pallet_present = ''
+    if pallet:
+        pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
+        if not pallet_present:
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet,
+                quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        else:
+            pallet_present.update(quantity = quantity)
+            pallet_present = pallet_present[0]
+
+        stock_dict['pallet_detail_id'] = pallet_present.id
+
+    if batch_no:
+        stock_dict["batch_detail__batch_no"] =  batch_no
+    if mrp:
+        stock_dict["batch_detail__mrp"] = mrp
+    if weight:
+        stock_dict["batch_detail__weight"] = weight
+    if manufactured_date:
+        stock_dict['batch_detail__manufactured_date'] = datetime.datetime.strptime(manufactured_date, '%m/%d/%Y').date()
+    if expiry_date:
+        stock_dict['batch_detail__expiry_date'] = datetime.datetime.strptime(expiry_date, '%m/%d/%Y').date()
+    if seller_master_id:
+        stock_dict['sellerstock__seller_id'] = seller_master_id
+    if price != '':
+        if user.userprofile.industry_type == 'FMCG':
+            stock_dict['batch_detail__buy_price'] = float(price)
+        else:
+            stock_dict['unit_price'] = float(price)
+    total_stock_quantity = 0
+    dest_stocks = ''
+    consumption_data = None
+
+    data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+    data_dict['cycle'] = cycle_id
+    data_dict['sku_id'] = sku_id
+    data_dict['quantity'] = total_stock_quantity
+    data_dict['seen_quantity'] = quantity
+    data_dict['status'] = 0
+    data_dict['creation_date'] = now
+    data_dict['updation_date'] = now
+    with transaction.atomic('default'):
+        stocks = StockDetail.objects.using('default').select_for_update().filter(**stock_dict).distinct().order_by('batch_detail__expiry_date')
+        uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, uom_type='purchase')
+        remaining_quantity = quantity * uom_dict['sku_conversion']
+        if not stock_increase:
+            stock_qty = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            stock_qty = stock_qty if stock_qty else 0
+            if stock_qty < remaining_quantity:
+                return 'Quantity exceeding available stock'
+        if 'Consumption' in reason:
+            consumption_data = ConsumptionData.objects.create(
+                sku_id=sku[0].id,
+                quantity=remaining_quantity,
+            )
+        remaining_quantity = abs(remaining_quantity)
+        for stock in stocks:
+            if stock_increase:
+                stock.quantity += abs(remaining_quantity)
+                dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                  abs(remaining_quantity))
+                if transact_type == 'inventory-adjustment':
+                    adjustment_objs = create_invnetory_adjustment_record(user, dat, abs(remaining_quantity), reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, abs(remaining_quantity), stock, stock_stats_objs, bulk_insert=True)
+                stock.save()
+                change_seller_stock(seller_master_id, stock, user, abs(remaining_quantity), 'inc')
+                break
+            else:
+                stock_quantity = float(stock.quantity)
+                if not stock_quantity:
+                    continue
+                if remaining_quantity == 0:
+                    break
+                elif stock_quantity >= remaining_quantity:
+                    setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+                    dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                      remaining_quantity)
+                    if transact_type == 'inventory-adjustment':
+                        adjustment_objs = create_invnetory_adjustment_record(user, dat, -remaining_quantity, reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, -remaining_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    stock.save()
+                    change_seller_stock(seller_master_id, stock, user, remaining_quantity, 'dec')
+                    remaining_quantity = 0
+                elif stock_quantity < remaining_quantity:
+                    setattr(stock, 'quantity', 0)
+                    dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
+                                                                      stock_quantity)
+                    if transact_type == 'inventory-adjustment':
+                        adjustment_objs = create_invnetory_adjustment_record(user, dat, -stock_quantity, reason,
+                                                                             [stock.location], now, pallet_present,
+                                                                             stock=stock, seller_id=seller_master_id,
+                                                                             adjustment_objs=adjustment_objs)
+                    stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, -stock_quantity, stock, stock_stats_objs, bulk_insert=True)
+                    stock.save()
+                    change_seller_stock(seller_master_id, stock, user, stock_quantity,
+                                        'dec')
+                    remaining_quantity = remaining_quantity - stock_quantity
+        if not stocks:
+            batch_dict = {}
+            stock_dict1 = copy.deepcopy(stock_dict)
+            del stock_dict1['quantity__gt']
+            if batch_no:
+                batch_dict = {'batch_no': batch_no}
+                del stock_dict["batch_detail__batch_no"]
+            if mrp:
+                batch_dict['mrp'] = mrp
+                del stock_dict["batch_detail__mrp"]
+            if weight:
+                batch_dict['weight'] = weight
+                del stock_dict["batch_detail__weight"]
+            if manufactured_date:
+                batch_dict['manufactured_date'] = manufactured_date
+                del stock_dict["batch_detail__manufactured_date"]
+            if expiry_date:
+                batch_dict['expiry_date'] = expiry_date
+                del stock_dict["batch_detail__expiry_date"]
+            if 'sellerstock__seller_id' in stock_dict.keys():
+                del stock_dict['sellerstock__seller_id']
+            if price == '':
+                price = sku[0].average_price
+                stock_dict['unit_price'] = price
+            else:
+                stock_dict['unit_price'] = price
+            batch_dict['pcf'] = uom_dict['sku_conversion']
+            batch_dict['pquantity'] = quantity
+            batch_dict['puom'] = uom_dict['measurement_unit']
+            if user.userprofile.industry_type == 'FMCG':
+                if 'batch_detail__buy_price' in stock_dict.keys():
+                    del stock_dict['batch_detail__buy_price']
+                batch_dict['buy_price'] = sku[0].average_price
+                add_ean_weight_to_batch_detail(sku[0], batch_dict)
+
+                if price:
+                    batch_dict['buy_price'] = price
+                if batch_dict.keys():
+                    batch_obj = create_update_batch_data(batch_dict)
+                    stock_dict["batch_detail_id"] = batch_obj.id
+                    #stock_dict["batch_detail__buy_price"] = batch_obj.price
+            if pallet:
+                del stock_dict['pallet_detail_id']
+            del stock_dict["sku__user"]
+            stock_dict.update({"receipt_number": receipt_number, "receipt_date": now_date, "receipt_type": receipt_type,
+                               "quantity": remaining_quantity, "status": 1, "creation_date": now_date,
+                               "updation_date": now_date
+                              })
+            del stock_dict['quantity__gt']
+            location = []
+            if sku[0].zone:
+                put_zone = sku[0].zone
+            else:
+                put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                if not put_zone:
+                    location = create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+
+                else:
+                    put_zone = put_zone[0]
+                    put_zone = put_zone.zone
+            if not location:
+                location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone)
+            stock_dict['location_id'] = location[0].id
+            dest_stocks = StockDetail(**stock_dict)
+            dest_stocks.save()
+            dat, transact_type = save_adjustment_type_info(consumption_data, dest_stocks, data_dict,
+                                                           dest_stocks.quantity)
+            if transact_type == 'inventory-adjustment':
+                adjustment_objs = create_invnetory_adjustment_record(user, dat, dest_stocks.quantity, reason,
+                                                                     location, now, pallet_present,
+                                                                     stock=dest_stocks, seller_id=seller_master_id,
+                                                                     adjustment_objs=adjustment_objs)
+            stock_stats_objs = save_sku_stats(user, sku_id, dat.id, transact_type, dest_stocks.quantity, dest_stocks, stock_stats_objs, bulk_insert=True)
+            change_seller_stock(seller_master_id, dest_stocks, user, abs(remaining_quantity), 'create')
+
+
+    if adjustment_objs:
+        InventoryAdjustment.objects.bulk_create(adjustment_objs)
+    elif not consumption_data:
+        return_status = 'Failed'
+    return return_status, stock_stats_objs
+
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
     for pic_loc in pick_loc:
@@ -3248,6 +3467,7 @@ def search_wms_codes(request, user=''):
     instanceName = SKUMaster
     if sku_type == 'Test':
         instanceName = TestMaster
+        user = get_company_admin_user(user)
     sku_master, sku_master_ids = get_sku_master(user, request.user, instanceName=instanceName)
     extra_filter = {}
     data_exact = sku_master.filter(Q(wms_code__iexact=data_id) | Q(sku_desc__iexact=data_id), user=user.id).order_by(
@@ -5012,6 +5232,9 @@ def get_uom_data(user, master_data, uom_type):
 def search_wms_data(request, user=''):
     instanceName = SKUMaster
     product_type = request.GET.get('type')
+    warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        user = User.objects.get(username=warehouse)
     sku_catg = request.GET.get('sku_catg', '')
     sku_brand = request.GET.get('sku_brand', '')
     base_uom = ''
@@ -5039,6 +5262,7 @@ def search_wms_data(request, user=''):
     if master_data:
         master_data = master_data[0]
         sku_conversion, measurement_unit, base_uom = get_uom_data(user, master_data, 'Purchase')
+        ccf, cuom, c_base_uom = get_uom_data(user, master_data, 'consumption')
         tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
         temp_tax=0
         if tax_values.exists():
@@ -5049,7 +5273,7 @@ def search_wms_data(request, user=''):
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
-                        "temp_cess_tax": tax_values[0]['cess_tax']}
+                        "temp_cess_tax": tax_values[0]['cess_tax'], "ccf": ccf, "cuom": cuom}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -5295,6 +5519,7 @@ def build_search_data(user, to_data, from_data, limit):
         for data in from_data:
             company_id = get_company_id(user)
             sku_uom = UOMMaster.objects.filter(sku_code=data.sku_code, uom_type='Purchase', company_id=company_id)
+            ccf, cuom, c_base_uom = get_uom_data(user, data, 'consumption')
             sku_conversion = 0
             base_uom = ''
             if sku_uom.exists():
@@ -5316,7 +5541,7 @@ def build_search_data(user, to_data, from_data, limit):
                         'style_name': data.style_name, 'conversion': sku_conversion, 'base_uom': base_uom,
                         'enable_serial_based': data.enable_serial_based,
                         'sku_brand': data.sku_brand, 'hsn_code': data.hsn_code, "temp_tax": temp_tax,
-                         "temp_cess_tax": temp_cess_tax}
+                         "temp_cess_tax": temp_cess_tax, "ccf": ccf, "cuom": cuom}
             if isinstance(data, ServiceMaster):
                 gl_code = data.gl_code
                 if data.service_start_date:
@@ -13236,6 +13461,27 @@ def check_and_get_plants_wo_request(request_user, user, req_users):
         req_users = User.objects.filter(id__in=req_users)
     return req_users
 
+
+def check_and_get_plants_depts_wo_request(request_user, user, req_users):
+    users = []
+    company_list = get_companies_list(user, send_parent=True)
+    company_list = map(lambda d: d['id'], company_list)
+    staff_obj = StaffMaster.objects.filter(email_id=request_user.username, company_id__in=company_list)
+    if staff_obj.exists():
+        users = User.objects.filter(username__in=list(staff_obj.values_list('plant__name', flat=True)))
+        if not users:
+            parent_company_id = get_company_id(user)
+            company_id = staff_obj[0].company_id
+            if parent_company_id == staff_obj[0].company_id:
+                company_id = ''
+            users = get_related_users_filters(user.id, warehouse_types=['STORE', 'SUB_STORE', 'DEPT'],
+                                              company_id=company_id)
+    if users:
+        req_users = users
+    else:
+        req_users = User.objects.filter(id__in=req_users)
+    return req_users
+
 def get_all_department_data(user):
     linked_whs = get_related_users_filters(user.id, send_parent=True)
     final_dict = {}
@@ -13355,3 +13601,99 @@ def get_kerala_cess_tax(tax, supplier):
     if tax > 5 and supplier.state.lower() == 'kerala' and supplier.tax_type == 'intra_state':
         cess_tax = 1
     return cess_tax
+
+
+def update_sku_avg_main(sku_amt, user, main_user):
+    for sku_code, value in sku_amt.items():
+        sku = SKUMaster.objects.get(user=user.id, sku_code=sku_code)
+        stock_qty = StockDetail.objects.filter(sku_id=sku.id, quantity__gt=0).\
+                                    aggregate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))['total_qty']
+        if not stock_qty:
+            stock_qty = 0
+        stock_value = stock_qty * sku.average_price
+        total_qty = value['qty'] + stock_qty
+        total_amount = stock_value + value['amount']
+        new_avg = float('%.2f' % (total_amount/total_qty))
+        dept_users = get_related_users_filters(main_user.id, warehouse_types=['DEPT'], warehouse=[user.username])
+        dept_user_ids = list(dept_users.values_list('id', flat=True))
+        sku.average_price = new_avg
+        log.info("WH: %s, SKU: %s, New Avg: %s" % (str(user.username), str(sku.sku_code), str(new_avg)))
+        sku.save()
+        SKUMaster.objects.filter(user__in=dept_user_ids, sku_code=sku.sku_code).update(average_price=new_avg)
+
+def update_sku_avg_from_grn(user, grn_number):
+    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
+        return
+    main_user = get_company_admin_user(user)
+    if not grn_number:
+        return
+    sps = SellerPOSummary.objects.filter(Q(purchase_order__open_po__sku__user=user.id) |
+                                   Q(purchase_order__stpurchaseorder__open_st__sku__user=user.id),
+                                   grn_number=grn_number)
+    sku_amt = {}
+    for sp in sps:
+        price,tax = [0]*2
+        if sp.batch_detail:
+            price = sp.batch_detail.buy_price
+            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        amt = sp.quantity * price
+        total = amt + ((amt/100)*tax)
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt[sku_code]['amount'] += total
+        sku_amt[sku_code]['qty'] += sp.quantity
+    update_sku_avg_main(sku_amt, user, main_user)
+
+def update_sku_avg_from_rtv(user, rtv_number):
+    if user.userprofile.warehouse_type not in ['STORE', 'SUB_STORE']:
+        return
+    main_user = get_company_admin_user(user)
+    if not rtv_number:
+        return
+    rtvs = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
+                                         rtv_number=rtv_number)
+    sku_amt = {}
+    for rtv in rtvs:
+        price,tax = [0]*2
+        sp = rtv.seller_po_summary
+        if sp.batch_detail:
+            price = sp.batch_detail.buy_price
+            tax = sp.batch_detail.tax_percent + sp.batch_detail.cess_percent
+        sku_code = sp.purchase_order.open_po.sku.sku_code if sp.purchase_order.open_po else sp.purchase_order.stpurchaseorder_set.filter()[0].open_st.sku.sku_code
+        amt = rtv.quantity * price
+        total = amt + ((amt/100)*tax)
+        sku_amt.setdefault(sku_code, {'amount': 0, 'qty': 0})
+        sku_amt[sku_code]['amount'] += total
+        sku_amt[sku_code]['qty'] += rtv.quantity
+    update_sku_avg_main(sku_amt, user, main_user)
+
+@get_admin_user
+def search_batch_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    wms_code = request.GET.get('wms_code', '')
+    warehouse = request.GET.get('warehouse', '')
+    user = User.objects.get(username=warehouse)
+    total_data = []
+    limit = 10
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    master_data = StockDetail.objects.filter(sku__sku_code=wms_code, sku__user=user.id,
+                                             batch_detail__batch_no__icontains=search_key).\
+                                    values('batch_detail__batch_no', 'batch_detail__manufactured_date',
+                                           'batch_detail__expiry_date',
+                                           'sku__sku_code', 'batch_detail__puom').distinct().\
+        annotate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))
+    for dat in master_data[:limit]:
+        mfg_date = ''
+        if dat['batch_detail__manufactured_date']:
+            mfg_date = datetime.datetime.strftime(dat['batch_detail__manufactured_date'], "%m/%d/%Y")
+        exp_date = ''
+        if dat['batch_detail__expiry_date']:
+            exp_date = datetime.datetime.strftime(dat['batch_detail__expiry_date'], "%m/%d/%Y")
+        total_data.append({'sku_code': dat['sku__sku_code'], 'batch_no': dat['batch_detail__batch_no'],
+                           'manufactured_date': mfg_date,
+                           'expiry_date': exp_date, 'quantity': dat['total_qty'],
+                           'uom': dat['batch_detail__puom']})
+
+    return HttpResponse(json.dumps(total_data))

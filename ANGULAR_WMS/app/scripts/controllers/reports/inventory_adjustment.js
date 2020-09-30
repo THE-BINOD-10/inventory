@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('InventoryAdjustmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('InventoryAdjustmentReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
@@ -60,9 +60,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
       DTColumnBuilder.newColumn('Location').withTitle('Location'),
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+      DTColumnBuilder.newColumn('Base Uom Quantity').withTitle('Base Uom Quantity'),
+      DTColumnBuilder.newColumn('Adjustment Value').withTitle('Adjustment Value'),
       DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'),
       DTColumnBuilder.newColumn('Date').withTitle('Date'),
-      DTColumnBuilder.newColumn('Remarks').withTitle('Remarks')
+      DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
+      DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
     ];
 
   }

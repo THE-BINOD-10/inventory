@@ -806,7 +806,8 @@ def confirm_job_order(all_data, user, jo_reference, job_code):
 @get_admin_user
 def get_material_codes(request, user=''):
     sku_code = request.POST.get('sku_code', '')
-    all_data = [];
+    all_data = []
+    user = get_company_admin_user(user)
     bom_master = BOMMaster.objects.filter(product_sku__sku_code=sku_code, product_sku__user=user.id)
     if not bom_master:
         return HttpResponse("No Data Found")
@@ -817,7 +818,8 @@ def get_material_codes(request, user=''):
             material_quantity = float(bom.material_quantity) + (
                 (float(bom.material_quantity) / 100) * float(bom.wastage_percent))
         all_data.append({'material_quantity': material_quantity, 'material_code': cond,
-                         'measurement_type': (bom.unit_of_measurement).upper()})
+                         'measurement_type': (bom.unit_of_measurement).upper(),
+                         'material_desc': bom.material_sku.sku_desc})
     product_data = {'sku_code': bom_master[0].product_sku.sku_code, 'description': bom_master[0].product_sku.sku_desc}
     return HttpResponse(json.dumps({'product': product_data, 'materials': all_data}), content_type='application/json')
 

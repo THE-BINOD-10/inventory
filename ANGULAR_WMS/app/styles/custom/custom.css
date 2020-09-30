@@ -749,7 +749,7 @@ select.error {
   width: 170px;
 }
 .sidebar-panel > nav .open > ul.sub-menu {
-  max-height: 1500px;
+  max-height: 1700px;
 }
 .reports .dataTables_filter {
   display: none;

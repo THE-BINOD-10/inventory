@@ -18,6 +18,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.batches = {};
     vm.weight_list = [];
     vm.weights = {};
+    vm.wh_type = 'Store';
+    vm.wh_type_list = ['Store', 'Department'];
+    vm.reasons_list = ['Pooling', 'Breakdown', 'Consumption', 'Caliberation',
+                       'Damaged/Disposed']
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -96,12 +100,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.message = "";
+    vm.sku_empty = {'wms_code': '', 'description': '', 'batch_no': '', 'manufactured_date': '', 'expiry_date': '',
+                    'uom': '', 'quantity': '', 'mfg_readonly': true, 'available_stock': 0}
     vm.empty_data = {
                       'wms_code':'',
                       'location': '',
                       'quantity': '',
                       'price': '',
-                      'reason': ''
+                      'reason': '',
+                      'data': [vm.sku_empty]
                     }
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
@@ -111,7 +118,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-        vm.service.apiCall('insert_inventory_adjust/', 'GET', elem, true).then(function(data){
+        vm.service.apiCall('insert_inventory_adjust/', 'POST', elem, true).then(function(data){
           if(data.message) {
             if (data.data == "Added Successfully") {
               angular.extend(vm.model_data, vm.empty_data);
@@ -182,7 +189,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if (key) {
       var send = {'key': 'sales_return_reasons'};
       vm.service.apiCall('inventory_adj_reasons/', 'POST', send).then(function(resp) {
-        
+
         if (resp.message) {
 
           vm.reasons = resp.data.data.reasons;
@@ -204,5 +211,140 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
+  vm.warehouse_dict = {};
+  var wh_filter = {'warehouse_type': 'STORE'};
+  vm.service.apiCall('get_warehouses_list/', 'GET',wh_filter).then(function(data){
+    if(data.message) {
+      vm.warehouse_dict = data.data.warehouse_mapping;
+      vm.warehouse_list_states = data.data.states;
+    }
+  });
+
+  vm.get_warehouse_department_list = get_warehouse_department_list;
+  function get_warehouse_department_list() {
+    var wh_data = {};
+    vm.department_list = [];
+    wh_data['warehouse'] = vm.model_data.plant;
+    wh_data['warehouse_type'] = 'DEPT';
+    vm.service.apiCall("get_company_warehouses/", "GET", wh_data).then(function(data) {
+      if(data.message) {
+        vm.department_list = data.data.warehouse_list;
+      }
+    });
   }
+
+  vm.get_sku_details = function(data, selected) {
+    if(!vm.model_data.warehouse){
+      data.wms_code = '';
+      if(vm.wh_type == 'Store'){
+        colFilters.showNoty("Please select Store first");
+      }
+      else {
+        colFilters.showNoty("Please select Department first");
+      }
+      return
+    }
+    if(!vm.model_data.reason){
+      data.wms_code = '';
+      colFilters.showNoty("Please Select Reason");
+      return
+    }
+    data.wms_code = selected.wms_code;
+    data.description = selected.sku_desc;
+    data.uom = selected.measurement_unit;
+    if(!vm.batch_mandatory){
+      vm.update_availabe_stock(data);
+    }
+  }
+
+   vm.get_batch_details = function(data, selected) {
+    data.batch_no = selected.batch_no;
+    data.manufactured_date = selected.manufactured_date;
+    data.expiry_date = selected.expiry_date;
+    data.available_stock = selected.quantity;
+    data.uom = selected.uom;
+  }
+
+  vm.check_selected_batch = function(data) {
+    if(!vm.batch_mandatory){
+      return
+    }
+    var batch_check = {'wms_code': data.wms_code, 'warehouse': vm.model_data.warehouse, 'q': data.batch_no}
+    vm.service.apiCall("search_batch_data/", "GET", batch_check).then(function(result) {
+      if(result.message) {
+        if(result.data.length){
+          data.mfg_readonly = true;
+        }
+        else {
+          data.mfg_readonly = false;
+          data.manufactured_date = '';
+          data.expiry_date = '';
+          data.available_stock = 0;
+        }
+      }
+    });
+  }
+
+    vm.update_availabe_stock = function(sku_data) {
+     var send = {sku_code: sku_data.wms_code, location: "", source: vm.model_data.warehouse}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      sku_data["available_stock"] = 0
+      if(data.message) {
+        if(data.data.available_quantity) {
+          sku_data["available_stock"] = data.data.available_quantity;
+          sku_data.quantity = 1;
+        }
+        else {
+          sku_data.quantity = 0;
+        }
+        vm.update_final_stock(sku_data);
+      }
+    });
+  }
+
+  vm.update_final_stock = function(sku_data){
+    var temp_qty = 0;
+    if(sku_data.quantity!=''){
+      temp_qty = parseFloat(sku_data.quantity);
+    }
+    if((['Pooling']).indexOf(vm.model_data.reason) != -1){
+      sku_data.final_stock = temp_qty + sku_data.available_stock;
+    }
+    else{
+      sku_data.final_stock = sku_data.available_stock - temp_qty;
+    }
+  }
+
+  vm.add_new_row = function(sku_data){
+    if(sku_data.wms_code){
+      var sku_empty={};
+      angular.copy(vm.sku_empty, sku_empty);
+      vm.model_data.data.push(sku_empty);
+    }
+  }
+
+  vm.update_sku_data = function(){
+    angular.forEach(vm.model_data.data, function(sku_data){
+      vm.update_final_stock(sku_data);
+    });
+  }
+
+    vm.check_quantity = function(sku_data){
+    if(vm.model_data.reason != 'Pooling'){
+      var qty = sku_data.quantity;
+      if(!qty){
+        qty = 0;
+      }
+      else {
+        qty = parseFloat(qty);
+      }
+      if(qty > parseFloat(sku_data.available_stock)){
+        sku_data.quantity = 0;
+        colFilters.showNoty("Entered Quantity is more than available stock");
+      }
+
+    }
+  }
+
+}
 

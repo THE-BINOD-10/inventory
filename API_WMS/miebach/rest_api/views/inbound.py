@@ -6109,6 +6109,22 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
                     primary_seg_dict['seller_po_summary_id'] = sps_id
                 segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
+
+def get_grn_date(in_month):
+    import calendar
+    now = datetime.datetime.now()
+    months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
+    if in_month in months:
+        temp_year = now.year
+        if in_month == 'December':
+            temp_year = temp_year -1
+        c_date = calendar.monthrange(temp_year, months.index(in_month)+1)[1]
+        c_month = months.index(in_month)+1
+        c_year = temp_year
+        final_date = "%s/%s/%s" % (c_month, c_date, c_year)
+        return final_date
+
+
 def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
@@ -6117,8 +6133,12 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         utc_tz=timezone("UTC")
         grn_date = datetime.datetime.now()
         if myDict.get('grn_date', ''):
-            grn_date = myDict.get('grn_date', '')[0]
-            grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+            try:
+                grn_date = myDict.get('grn_date', '')[0]
+                grn_date = get_grn_date(grn_date)
+                grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+            except Exception as e:
+                grn_date = datetime.datetime.now()
         grn_date = utc_tz.localize(grn_date)
         if not receipt_id:
             return
@@ -14870,7 +14890,7 @@ def update_existing_grn(request, user=''):
 def cancel_existing_grn(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''
-    warehouse = User.objects.get(id=request.POST['warehouse_id'])
+    user = User.objects.get(id=request.POST['warehouse_id'])
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
     'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
@@ -14923,16 +14943,19 @@ def cancel_existing_grn(request, user=''):
                     stock_location_id = polocation_record[0].location.id
                 if stock_location_id:
                     purchase_order_receipt = get_purchase_order_data(model_obj.purchase_order)
+                    sku_conversion, measurement_unit, base_uom = get_uom_data(user, purchase_order_receipt['sku'], 'Purchase')
+                    if sku_conversion == 0:
+                        sku_conversion = 1
                     stock_check_params = {'location_id': stock_location_id, 'receipt_number':model_obj.purchase_order.order_id,
-                                    'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'quantity': value, 'grn_number': model_obj.grn_number,
+                                    'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'quantity': value*sku_conversion, 'grn_number': model_obj.grn_number,
                                     'unit_price': purchase_order_receipt['price'], 'receipt_type': purchase_order_receipt['order_type']}
                     stock_dict_data = StockDetail.objects.filter(**stock_check_params)
                     if stock_dict_data.exists():
                         for stock_dict in stock_dict_data:
-                            if stock_dict.quantity >= value:
-                                stock_dict.quantity = stock_dict.quantity - value
+                            if stock_dict.quantity >= value*sku_conversion:
+                                stock_dict.quantity = stock_dict.quantity - value*sku_conversion
                                 stock_dict.save()
-                                save_sku_stats(user, stock_dict.sku_id, model_obj.purchase_order.id, 'cancel-grn', value, stock_dict)
+                                save_sku_stats(user, stock_dict.sku_id, model_obj.purchase_order.id, 'cancel-grn', value*sku_conversion, stock_dict)
                 grn_data = {
                     "grn_number": model_obj.grn_number,
                 }

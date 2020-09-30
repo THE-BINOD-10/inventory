@@ -844,8 +844,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
               })
             } else {
-              vm.total_grn_quantity = inv_match_qty;
-              vm.confirm_grn_api()
+              vm.service.alert_msg(grn_msg).then(function(msg) {
+                if (msg == "true") {
+                  vm.total_grn_quantity = inv_match_qty;
+                  vm.confirm_grn_api()
+                }
+              })
             }
           }
         }

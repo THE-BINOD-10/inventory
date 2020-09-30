@@ -14870,7 +14870,7 @@ def update_existing_grn(request, user=''):
 def cancel_existing_grn(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''
-    warehouse = User.objects.get(id=request.POST['warehouse_id'])
+    user = User.objects.get(id=request.POST['warehouse_id'])
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
     'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
@@ -14923,16 +14923,19 @@ def cancel_existing_grn(request, user=''):
                     stock_location_id = polocation_record[0].location.id
                 if stock_location_id:
                     purchase_order_receipt = get_purchase_order_data(model_obj.purchase_order)
+                    sku_conversion, measurement_unit, base_uom = get_uom_data(user, purchase_order_receipt['sku'], 'Purchase')
+                    if sku_conversion == 0:
+                        sku_conversion = 1
                     stock_check_params = {'location_id': stock_location_id, 'receipt_number':model_obj.purchase_order.order_id,
-                                    'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'quantity': value, 'grn_number': model_obj.grn_number,
+                                    'sku_id': purchase_order_receipt['sku_id'], 'sku__user': user.id, 'quantity': value*sku_conversion, 'grn_number': model_obj.grn_number,
                                     'unit_price': purchase_order_receipt['price'], 'receipt_type': purchase_order_receipt['order_type']}
                     stock_dict_data = StockDetail.objects.filter(**stock_check_params)
                     if stock_dict_data.exists():
                         for stock_dict in stock_dict_data:
-                            if stock_dict.quantity >= value:
-                                stock_dict.quantity = stock_dict.quantity - value
+                            if stock_dict.quantity >= value*sku_conversion:
+                                stock_dict.quantity = stock_dict.quantity - value*sku_conversion
                                 stock_dict.save()
-                                save_sku_stats(user, stock_dict.sku_id, model_obj.purchase_order.id, 'cancel-grn', value, stock_dict)
+                                save_sku_stats(user, stock_dict.sku_id, model_obj.purchase_order.id, 'cancel-grn', value*sku_conversion, stock_dict)
                 grn_data = {
                     "grn_number": model_obj.grn_number,
                 }

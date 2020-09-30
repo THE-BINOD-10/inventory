@@ -6109,6 +6109,22 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None,
                     primary_seg_dict['seller_po_summary_id'] = sps_id
                 segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
+
+def get_grn_date(in_month):
+    import calendar
+    now = datetime.datetime.now()
+    months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
+    if in_month in months:
+        temp_year = now.year
+        if in_month == 'December':
+            temp_year = temp_year -1
+        c_date = calendar.monthrange(temp_year, months.index(in_month)+1)[1]
+        c_month = months.index(in_month)+1
+        c_year = temp_year
+        final_date = "%s/%s/%s" % (c_month, c_date, c_year)
+        return final_date
+
+
 def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0,
                      batch_dict=None, po_type='po', update_mrp_on_grn='false', grn_number=''):
@@ -6117,8 +6133,12 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         utc_tz=timezone("UTC")
         grn_date = datetime.datetime.now()
         if myDict.get('grn_date', ''):
-            grn_date = myDict.get('grn_date', '')[0]
-            grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+            try:
+                grn_date = myDict.get('grn_date', '')[0]
+                grn_date = get_grn_date(grn_date)
+                grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+            except Exception as e:
+                grn_date = datetime.datetime.now()
         grn_date = utc_tz.localize(grn_date)
         if not receipt_id:
             return

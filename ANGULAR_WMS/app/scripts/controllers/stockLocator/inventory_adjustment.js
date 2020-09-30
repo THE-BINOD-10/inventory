@@ -302,16 +302,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     });
   }
 
-  vm.update_final_stock = function(sku_data){
-    var temp_qty = 0;
-    if(sku_data.quantity!=''){
-      temp_qty = parseFloat(sku_data.quantity);
+  vm.update_qty_on_final_qty = function(sku_data){
+        var final_qty = 0;
+      if(sku_data.final_stock != ''){
+        final_qty = parseFloat(sku_data.final_stock);
+      }
+      if((['Pooling']).indexOf(vm.model_data.reason) != -1){
+        if(final_qty < sku_data.available_stock){
+          sku_data.final_stock = sku_data.available_stock;
+          colFilters.showNoty("Final Stock should be more than or equal to available stock");
+          return
+        }
+        sku_data.quantity = parseFloat((final_qty - sku_data.available_stock).toFixed(3));
+      }
+      else{
+        if(sku_data.available_stock < final_qty){
+          colFilters.showNoty("Entered Final stock is less than available stock");
+          sku_data.final_stock = sku_data.available_stock - sku_data.quantity;
+          return
+        }
+        sku_data.quantity = parseFloat((sku_data.available_stock - final_qty).toFixed(3));
+      }
+  }
+
+  vm.update_final_stock = function(sku_data, key){
+    if(key == 'final_stock'){
+      vm.update_qty_on_final_qty(sku_data);
     }
-    if((['Pooling']).indexOf(vm.model_data.reason) != -1){
-      sku_data.final_stock = temp_qty + sku_data.available_stock;
-    }
-    else{
-      sku_data.final_stock = sku_data.available_stock - temp_qty;
+    else {
+      var temp_qty = 0;
+      if(sku_data.quantity!=''){
+        temp_qty = parseFloat(sku_data.quantity);
+      }
+      if((['Pooling']).indexOf(vm.model_data.reason) != -1){
+        sku_data.final_stock = temp_qty + sku_data.available_stock;
+      }
+      else{
+        sku_data.final_stock = sku_data.available_stock - temp_qty;
+      }
     }
   }
 

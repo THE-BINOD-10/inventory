@@ -2837,6 +2837,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
     now_date = datetime.datetime.now()
     now = str(now_date)
     adjustment_objs = []
+    sku_amt = {}
     return_status = 'Added Successfully'
     if wmscode:
         sku = SKUMaster.objects.filter(user=user.id, sku_code=wmscode)
@@ -2903,8 +2904,21 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 quantity=remaining_quantity,
             )
         remaining_quantity = abs(remaining_quantity)
+        if reason == 'Pooling':
+            stocks = []
         for stock in stocks:
             if stock_increase:
+                # if user.userprofile.warehouse_type == 'DEPT':
+                #     sku_price, sku_tax = 0,0
+                #     if stock.batch_detail:
+                #         sku_price = stock.batch_detail.buy_price
+                #         sku_tax = stock.batch_detail.tax_percent + stock.batch_detail.cess_percent
+                #     temp_amount = quantity * sku_price
+                #     temp_total = temp_amount + ((temp_amount/100)*sku_tax)
+                #     sku_amt[stock.sku.sku_code] = {'qty': quantity, 'amount': temp_total}
+                #     main_user = get_company_admin_user(user)
+                #     store_user = get_admin(user)
+                #     update_sku_avg_main(sku_amt, store_user, main_user)
                 stock.quantity += abs(remaining_quantity)
                 dat, transact_type = save_adjustment_type_info(consumption_data, stock, data_dict,
                                                                   abs(remaining_quantity))
@@ -2951,6 +2965,7 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                                         'dec')
                     remaining_quantity = remaining_quantity - stock_quantity
         if not stocks:
+            batch_obj = None
             batch_dict = {}
             stock_dict1 = copy.deepcopy(stock_dict)
             del stock_dict1['quantity__gt']
@@ -2971,18 +2986,20 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
                 del stock_dict["batch_detail__expiry_date"]
             if 'sellerstock__seller_id' in stock_dict.keys():
                 del stock_dict['sellerstock__seller_id']
-            if price == '':
-                price = sku[0].average_price
-                stock_dict['unit_price'] = price
-            else:
-                stock_dict['unit_price'] = price
+            # if price == '':
+            #     price = sku[0].average_price
+            #     stock_dict['unit_price'] = price
+            # else:
+            #     stock_dict['unit_price'] = price
+            batch_dict['buy_price'] = 0
             batch_dict['pcf'] = uom_dict['sku_conversion']
             batch_dict['pquantity'] = quantity
             batch_dict['puom'] = uom_dict['measurement_unit']
             if user.userprofile.industry_type == 'FMCG':
                 if 'batch_detail__buy_price' in stock_dict.keys():
                     del stock_dict['batch_detail__buy_price']
-                batch_dict['buy_price'] = sku[0].average_price
+                if reason != 'Pooling':
+                    batch_dict['buy_price'] = sku[0].average_price
                 add_ean_weight_to_batch_detail(sku[0], batch_dict)
 
                 if price:
@@ -3013,6 +3030,11 @@ def adjust_location_stock_new(cycle_id, wmscode, quantity, reason, user, stock_s
             if not location:
                 location = LocationMaster.objects.filter(zone__user=user.id, zone__zone=put_zone)
             stock_dict['location_id'] = location[0].id
+            if user.userprofile.warehouse_type == 'DEPT':
+                sku_amt[sku[0].sku_code] = {'qty': quantity, 'amount': 0}
+                main_user = get_company_admin_user(user)
+                store_user = get_admin(user)
+                update_sku_avg_main(sku_amt, store_user, main_user)
             dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
             dat, transact_type = save_adjustment_type_info(consumption_data, dest_stocks, data_dict,

@@ -6134,9 +6134,10 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
         grn_date = datetime.datetime.now()
         if myDict.get('grn_date', ''):
             try:
-                grn_date = myDict.get('grn_date', '')[0]
-                grn_date = get_grn_date(grn_date)
-                grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
+                if myDict.get('grn_date', '')[0]:
+                    grn_date = myDict.get('grn_date', '')[0]
+                    grn_date = get_grn_date(grn_date)
+                    grn_date = datetime.datetime.strptime(grn_date, "%m/%d/%Y")
             except Exception as e:
                 grn_date = datetime.datetime.now()
         grn_date = utc_tz.localize(grn_date)
@@ -6240,7 +6241,6 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                quantity=value,
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
-                                                                               creation_date=grn_date,
                                                                                invoice_date=invoice_date,
                                                                                challan_number=challan_number,
                                                                                challan_date=challan_date,
@@ -6256,8 +6256,12 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                invoice_quantity=invoice_quantity,
                                                                                credit_status=status,
                                                                                remarks = remarks)
-            seller_po_summary.creation_date = grn_date
-            seller_po_summary.save()
+            try:
+                if myDict.get('grn_date', '')[0]:
+                    seller_po_summary.creation_date = grn_date
+                    seller_po_summary.save()
+            except Exception as e:
+                pass
             temp_seller_rec_dict = {'seller_id': '', 'quantity': value, 'id': seller_po_summary.id,
                                     'remarks': remarks}
             if po_type == 'st':
@@ -6311,7 +6315,6 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    quantity=value,
                                                                                    putaway_quantity=value,
                                                                                    purchase_order_id=data.id,
-                                                                                   creation_date=grn_date,
                                                                                    discount_percent=discount_percent,
                                                                                    challan_number=challan_number,
                                                                                    challan_date=challan_date,
@@ -6328,8 +6331,12 @@ def update_seller_po(data, value, user, myDict, i, invoice_datum, receipt_id='',
                                                                                    invoice_quantity=invoice_quantity,
                                                                                    credit_status=status,
                                                                                    remarks = remarks)
-                seller_po_summary.creation_date = grn_date
-                seller_po_summary.save()
+                try:
+                    if myDict.get('grn_date', '')[0]:
+                        seller_po_summary.creation_date = grn_date
+                        seller_po_summary.save()
+                except Exception as e:
+                    pass
                 seller_received_list.append(
                     {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                      'id': seller_po_summary.id, 'remarks': remarks})

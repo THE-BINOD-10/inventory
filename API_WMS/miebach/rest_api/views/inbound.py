@@ -5446,7 +5446,10 @@ def update_putaway(request, user=''):
                 if key in zero_index_keys:
                     po_data[key] = data_dict[key][0]
                 else:
-                    po_data[key] = data_dict[key][i]
+                    try:
+                        po_data[key] = data_dict[key][i]
+                    except:
+                        pass
             if po_data.get('remarks', '') != po.remarks:
                 po.remarks = remarks
             if expected_date:

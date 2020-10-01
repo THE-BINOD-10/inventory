@@ -1,7 +1,7 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block;">
   <!-- Modal -->
   <form name="form" role="form" ui-jq="validate">
-    <div class="modal fade in" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block;">
+    <div class="modal fade in" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: auto;display: block;">
       <div class="modal-dialog modal-lg" style="width: 1300px;">
         <div class="modal-content">
           <div ng-include="'views/common/loader.html'"></div>
@@ -42,6 +42,7 @@
                 <select class="show-menu-arrow form-control" ng-model="showCase.wh_type">
                   <option ng-repeat="opt in showCase.wh_type_list" ng-selected="opt==showCase.wh_type">{{opt}}</option>
                 </select>
+                <input type="hidden" name="data_id" ng-model="showCase.model_data.data_id" value="{{showCase.model_data.data_id}}">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.wh_type=='Store'">
@@ -56,17 +57,20 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Store *</label>
-                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.plant" ng-change="showCase.get_warehouse_department_list()" required>
+                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.plant" ng-change="showCase.get_warehouse_department_list()" ng-if="!showCase.update" required>
                     <option ng-repeat="wh in showCase.warehouse_dict" value="{{wh.username}}">{{wh.first_name}}:{{wh.userprofile__stockone_code}}</option>
                   </select>
+                  <input type="text" class="form-control" ng-model="showCase.model_data.plant_name" ng-if="showCase.update" readonly>
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Department *</label>
-                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.update_sku_data()" required>
+                  <select class="show-menu-arrow form-control" ng-model="showCase.model_data.warehouse" name="warehouse" ng-change="showCase.update_sku_data()" ng-if="!showCase.update" required>
                     <option ng-repeat="dept in showCase.department_list" value="{{dept.username}}">{{dept.name}}</option>
                   </select>
+                  <input type="text" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-if="showCase.update" readonly>
+                  <input type="hidden" ng-model="showCase.model_data.warehouse" name="warehouse" ng-if="showCase.update" value="{{showCase.model_data.warehouse}}">
                 </div>
               </div>
             </div>
@@ -74,7 +78,7 @@
               <div class="form-group">
                 <label class="control-label"> Reason *</label>
                 <select class="show-menu-arrow form-control" ng-model="showCase.model_data.reason" name="reason" ng-change="showCase.update_sku_data()" required>
-                  <option ng-repeat="reason in showCase.reasons_list" value="{{reason}}">{{reason}}</option>
+                  <option ng-repeat="reason in showCase.reasons_list" value="{{reason}}" ng-selected="reason==showCase.model_data.reason">{{reason}}</option>
                 </select>
               </div>
             </div>
@@ -199,7 +203,7 @@
                         <input type="text" class="form-control" ng-model="data.available_stock" name="available_stock" readonly>
                       </td>
                       <td>
-                        <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-change="showCase.update_final_stock(data)" readonly>
+                        <input type="text" class="form-control" ng-model="data.final_stock" name="final_stock" ng-blur="showCase.update_final_stock(data, 'final_stock')">
                       </td>
                       <td>
                         <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.data.splice($index, 1);" ng-if="!$first"></i>
@@ -216,7 +220,8 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="(showCase.wh_type=='Department' && showCase.permissions.approve_inventory_adjustment)|| showCase.wh_type!='Department'">Save</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.send_for_approval(form)" style="background: green;color: white;" ng-if="showCase.wh_type=='Department' && !showCase.permissions.approve_inventory_adjustment">Send For Approval</button>
           </div>
         </div>
       </div>

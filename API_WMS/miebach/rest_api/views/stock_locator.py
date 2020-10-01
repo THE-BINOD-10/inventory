@@ -3953,6 +3953,7 @@ def insert_inventory_adjust(request, user=''):
         wmscode = request_data['wms_code'][i]
         quantity = request_data['quantity'][i]
         reason = request_data['reason'][0]
+        data_id = request_data['data_id'][0]
         batch_no = request_data['batch_no'][i]
         manufactured_date = request_data['manufactured_date'][i]
         expiry_date = request_data['expiry_date'][i]
@@ -3969,5 +3970,111 @@ def insert_inventory_adjust(request, user=''):
     #netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
+    if data_id and 'success' in status.lower():
+        MastersDOA.objects.filter(id=data_id).update(doa_status='approved')
     #update_filled_capacity([loc], user.id)
     return HttpResponse(status)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_inventory_adjust_approval(request, user=''):
+    request_data = dict(request.POST)
+    user = User.objects.get(username=request.POST['warehouse'])
+    MastersDOA.objects.create(requested_user=request.user, wh_user=user, model_id=0,model_name='InventoryAdjustment',
+                              json_data=json.dumps(request_data))
+    return HttpResponse("Added Successfully")
+
+
+@csrf_exempt
+def get_inventory_adjustment_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['requested_user_id', 'sku_desc', 'sku_group', 'sku_brand', 'sku_type',
+           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
+           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
+           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
+           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
+           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
+           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
+    #order_data = lis[col_num]
+    #filter_params = get_filtered_params(filters, lis)
+    # if order_term == 'desc':
+    #     order_data = '-%s' % order_data
+    users = []
+    if get_permission(request.user, 'approve_inventory_adjustment'):
+        users = check_and_get_plants_depts(request, users)
+    if search_term:
+        mapping_results = MastersDOA.objects.filter(requested_user__in=users,
+                    model_name="InventoryAdjustment",
+                    doa_status__in=["pending", "rejected"])#.order_by(order_data)
+    else:
+        mapping_results = MastersDOA.objects.filter(wh_user__in=users,
+                    model_name="InventoryAdjustment",
+                    doa_status__in=["pending", "rejected"])#.order_by(order_data)
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for row in mapping_results[start_index: stop_index]:
+        result = json.loads(row.json_data)
+        dept_user = row.wh_user
+        store_user = get_admin(dept_user)
+        wms_codes = ','.join(result['wms_code'])
+        total_qty = reduce(lambda x,y: float(x)+float(y), result['quantity'])
+        temp_data['aaData'].append(OrderedDict((('Requested User', row.requested_user.first_name),
+                                                ('Store', store_user.first_name),
+                                                ('Department', dept_user.first_name),
+                                                ('SKU Code', wms_codes),
+                                                ('Adjustment Quantity', total_qty),
+                                                ('Reason', result.get('reason', '')),
+                                                ('DT_RowId', row.id),
+                                                ('DT_RowAttr', {'data-id': row.id}),
+                                                ('model_id', row.model_id))))
+    return temp_data
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_inventory_adjustment_doa_record(request, user=''):
+    data_dict = {}
+    master_doa = MastersDOA.objects.filter(id=request.GET['id'])
+    if master_doa:
+        doa = master_doa[0]
+        json_data = json.loads(doa.json_data)
+        sku_data = []
+        reason = json_data.get('reason', '')[0]
+        mfg_readonly = True
+        batch_mandatory = json_data.get('batch_mandatory')[0]
+        if json_data.get('batch_mandatory')[0] == 'true':
+            mfg_readonly = False
+            batch_mandatory = True
+        for i in range(0, len(json_data['wms_code'])):
+            wms_code = json_data['wms_code'][i]
+            stock_filter = {'sku__user': doa.wh_user.id, 'sku__sku_code': wms_code, 'quantity__gt': 0}
+            batch_no = json_data['batch_no'][i]
+            if batch_no:
+                stock_filter['batch_detail__batch_no'] = batch_no
+            total_qty = StockDetail.objects.filter(**stock_filter).\
+                aggregate(total_qty=Sum(F('quantity')/F('batch_detail__pcf')))['total_qty']
+            total_qty = total_qty if total_qty else 0
+            quantity = float(json_data['quantity'][i])
+            if reason.lower() == 'pooling':
+                final_stock = total_qty + quantity
+            else:
+                final_stock = total_qty - quantity
+            sku_dict = {'wms_code': wms_code, 'description': json_data['description'][i],
+                        'batch_no': batch_no, 'manufactured_date': json_data['manufactured_date'][i],
+                        'expiry_date': json_data['expiry_date'][i],
+                        'uom': json_data['uom'][i], 'quantity': quantity,
+                        'available_stock': total_qty,
+                        'final_stock': final_stock,
+                        'mfg_readonly': mfg_readonly}
+            sku_data.append(sku_dict)
+        data_dict = {'id': doa.id, 'reason': reason,
+                     'batch_mandatory': batch_mandatory,
+                     'data': sku_data}
+        dept = doa.wh_user
+        store = get_admin(dept)
+        return HttpResponse(json.dumps({'id': doa.id, 'plant': store.username, 'plant_name': store.first_name,
+                                       'warehouse': dept.username, 'warehouse_name': dept.first_name,
+                                        'data': data_dict}))
+    return HttpResponse("No Data Found")

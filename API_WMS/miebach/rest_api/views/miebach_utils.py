@@ -2569,6 +2569,7 @@ PERMISSION_DICT = OrderedDict((
                        ("Approve Asset Master DOA", "approve_asset_master_doa"),
                        ("Approve Service Master DOA", "approve_service_master_doa"),
                        ("Approve Otheritems Master DOA", "approve_otheritems_master_doa"),
+                       ("Approve Inventory Adjustment", "approve_inventory_adjustment"),
                        )),
 
     # Production

@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.batches = {};
     vm.weight_list = [];
     vm.weights = {};
+    vm.update = false;
     vm.wh_type = 'Store';
     vm.wh_type_list = ['Store', 'Department'];
     vm.reasons_list = ['Pooling', 'Breakdown', 'Consumption', 'Caliberation',
@@ -38,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        })
        .withOption('processing', true)
        .withOption('serverSide', true)
+       .withOption('rowCallback', rowCallback)
        .withOption('createdRow', function(row, data, dataIndex) {
             $compile(angular.element(row).contents())($scope);
         })
@@ -50,19 +52,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withPaginationType('full_numbers');
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                }
-                vm.selected[meta.row] = vm.selectAll;
-                return vm.service.frontHtml + meta.row + vm.service.endHtml+full[""];
-            }).notSortable(),
-        DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('Description').withTitle('Description'),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
-        DTColumnBuilder.newColumn('Physical Quantity').withTitle('Physical Quantity'),
+//        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+//            .renderWith(function(data, type, full, meta) {
+//                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+//                  vm.selected = {};
+//                }
+//                vm.selected[meta.row] = vm.selectAll;
+//                return vm.service.frontHtml + meta.row + vm.service.endHtml;//+full[""];
+//            }).notSortable(),
+        DTColumnBuilder.newColumn('Requested User').withTitle('Requested User'),
+        DTColumnBuilder.newColumn('Store').withTitle('Store'),
+        DTColumnBuilder.newColumn('Department').withTitle('Department'),
+        DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('Adjustment Quantity').withTitle('Adjustment Quantity'),
         DTColumnBuilder.newColumn('Reason').withTitle('Reason'),
     ];
 
@@ -88,7 +90,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
-
+      vm.update = false;
       $state.go('app.stockLocator.InventoryAdjustment');
     }
 
@@ -97,6 +99,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.copy(vm.dtColumns,colFilters.headers);
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
+    }
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+            $scope.$apply(function() {
+                console.log(aData);
+                var inv_data = {id: aData['DT_RowId']}
+                vm.service.apiCall('get_inventory_adjustment_doa/', "GET", inv_data).then(function(data){
+                if(data.message) {
+                  angular.copy(data.data.data, vm.model_data);
+                  vm.wh_type = 'Department';
+                  vm.model_data.data_id = data.data.id;
+                  //vm.model_data.reason = data.data.data.reason;
+                  vm.model_data.plant = data.data.plant;
+                  vm.model_data.plant_name = data.data.plant_name;
+                  vm.model_data.warehouse = data.data.warehouse;
+                  vm.model_data.warehouse_name = data.data.warehouse_name;
+                  vm.batch_mandatory = data.data.data.batch_mandatory;
+                  vm.mfg_readonly = data.data.data.mfg_readonly;
+                  //if(data.data.data.batch_mandatory == 'true'){
+                  //  vm.batch_mandatory = true;
+                  //}
+                  vm.update = true;
+                  $state.go('app.stockLocator.InventoryAdjustment.Adjustment');
+                }
+              });
+            });
+        });
     }
 
     vm.message = "";
@@ -108,6 +139,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       'quantity': '',
                       'price': '',
                       'reason': '',
+                      'data_id': '',
                       'data': [vm.sku_empty]
                     }
     vm.model_data = {};
@@ -373,6 +405,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     }
   }
+
+      vm.send_for_approval = send_for_approval;
+    function send_for_approval(data) {
+      if(data.$valid) {
+        var elem = angular.element($('form'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('insert_inventory_adjust_approval/', 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if (data.data == "Added Successfully") {
+              angular.extend(vm.model_data, vm.empty_data);
+              reloadData();
+              vm.close();
+            } else {
+              pop_msg(data.data);
+            }
+          }
+        });
+      }
+    }
 
 }
 

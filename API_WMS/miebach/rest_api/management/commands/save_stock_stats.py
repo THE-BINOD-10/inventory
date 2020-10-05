@@ -74,7 +74,7 @@ class Command(BaseCommand):
                     stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
                                       distinct().annotate(in_stock=Sum('quantity')))
                     stock_value_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
-                                      distinct().annotate(stock_value=Sum(F('quantity') * F('unit_price'))))
+                                      distinct().annotate(stock_value=Sum(F('quantity') * F('sku__average_price'))))
                     adjust_objs = dict(all_sku_stats.filter(transact_type='inventory-adjustment').\
                                                         values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
                     return_objs = dict(all_sku_stats.filter(transact_type='return').\
@@ -139,7 +139,7 @@ class Command(BaseCommand):
                 else:
                     if non_transact_process == 'true':
                         stock_stat = StockStats.objects.filter(sku_id=sku.id, creation_date__startswith=today)
-                        current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price')))
+                        current_stock =StockDetail.objects.filter(sku__user=user.id, quantity__gt=0, sku_id=sku.id).aggregate(Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__average_price')))
                         stock_object = StockStats.objects.filter(sku_id=sku.id, sku__user=user.id).exclude(creation_date__startswith=today)
                         quantity = current_stock['quantity__sum']
                         closing_stock_value = current_stock['stock_value'] or 0

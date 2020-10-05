@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        })
        .withOption('processing', true)
        .withOption('serverSide', true)
+       .withOption('order', [0, 'desc'])
        .withOption('rowCallback', rowCallback)
        .withOption('createdRow', function(row, data, dataIndex) {
             $compile(angular.element(row).contents())($scope);
@@ -60,12 +61,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 //                vm.selected[meta.row] = vm.selectAll;
 //                return vm.service.frontHtml + meta.row + vm.service.endHtml;//+full[""];
 //            }).notSortable(),
+        DTColumnBuilder.newColumn('Created Date').withTitle('Created Date'),
         DTColumnBuilder.newColumn('Requested User').withTitle('Requested User'),
         DTColumnBuilder.newColumn('Store').withTitle('Store'),
         DTColumnBuilder.newColumn('Department').withTitle('Department'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Adjustment Quantity').withTitle('Adjustment Quantity'),
         DTColumnBuilder.newColumn('Reason').withTitle('Reason'),
+        DTColumnBuilder.newColumn('Status').withTitle('Status'),
     ];
 
     vm.dtInstance = {};
@@ -113,6 +116,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   vm.wh_type = 'Department';
                   vm.model_data.data_id = data.data.id;
                   //vm.model_data.reason = data.data.data.reason;
+                  vm.model_data.action_buttons = false;
+                  if(aData['Status'] == 'Rejected'){
+                    vm.model_data.action_buttons = true;
+                  }
                   vm.model_data.plant = data.data.plant;
                   vm.model_data.plant_name = data.data.plant_name;
                   vm.model_data.warehouse = data.data.warehouse;
@@ -406,7 +413,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
-      vm.send_for_approval = send_for_approval;
+    vm.send_for_approval = send_for_approval;
     function send_for_approval(data) {
       if(data.$valid) {
         var elem = angular.element($('form'));
@@ -415,6 +422,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.apiCall('insert_inventory_adjust_approval/', 'POST', elem, true).then(function(data){
           if(data.message) {
             if (data.data == "Added Successfully") {
+              angular.extend(vm.model_data, vm.empty_data);
+              reloadData();
+              vm.close();
+            } else {
+              pop_msg(data.data);
+            }
+          }
+        });
+      }
+    }
+
+    vm.reject_adjustment = reject_adjustment;
+    function reject_adjustment(data) {
+      if(data.$valid) {
+        var elem = angular.element($('form'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('reject_inventory_adjustment/', 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if (data.data == "Updated Successfully") {
               angular.extend(vm.model_data, vm.empty_data);
               reloadData();
               vm.close();

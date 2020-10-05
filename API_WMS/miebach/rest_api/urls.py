@@ -47,6 +47,7 @@ urlpatterns = [
     url(r'^insert_sku_doa/$', insert_sku_doa),
     url(r'^send_supplier_doa/$', send_supplier_doa),
     url(r'^get_sku_master_doa_record/$', get_sku_master_doa_record),
+    url(r'^get_inventory_adjustment_doa/$', get_inventory_adjustment_doa_record),
     url(r'^get_sku_mapping_doa/$', get_sku_mapping_doa),
     url(r'^change_status_sku_doa/$', change_status_sku_doa),
     url(r'^sku_rejected_sku_doa/$', sku_rejected_sku_doa),
@@ -158,6 +159,8 @@ urlpatterns = [
     url(r'^get_suppllier_sku_mapping_id/$', get_suppllier_sku_mapping_id),
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
+    url(r'^insert_inventory_adjust_approval/$', insert_inventory_adjust_approval),
+    url(r'^reject_inventory_adjustment/$', reject_inventory_adjustment),
     url(r'^delete_po/$', delete_po),
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_wh_supplier/$', search_wh_supplier),
@@ -473,7 +476,7 @@ urlpatterns = [
     url(r'^generate_dc/$', generate_dc),
     url(r'^generate_mr_dc/$', generate_mr_dc),
     url(r'^get_customer_types/$', get_customer_types),
-
+    url(r'^search_batch_data/$', search_batch_data),
 
     url(r'^remove_customer_profile_image/$', remove_customer_profile_image),
     url(r'^print_pdf_my_orders_swiss/$', print_pdf_my_orders_swiss),
@@ -484,6 +487,7 @@ urlpatterns = [
     url(r'^get_previous_order_data/$', get_previous_order_data),
     url(r'^get_discrepancy_report/$', get_discrepancy_report),
     url(r'^print_descrepancy_note/$', print_descrepancy_note),
+    url(r'^create_manual_test/$', create_manual_test),
 
 
 

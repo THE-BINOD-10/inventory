@@ -5019,63 +5019,63 @@ def submit_pending_approval_enquiry(request, user=''):
         return HttpResponse('Enquiry Submission for pending purchase is failed')
     return HttpResponse("Submitted Successfully")
 
-@csrf_exempt
-@login_required
-@get_admin_user
-@reversion.create_revision(atomic=False, using='reversion')
-def insert_inventory_adjust(request, user=''):
-    reversion.set_user(request.user)
-    reversion.set_comment("insert_inv_adj")
-    unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
-    cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
-    #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-    if not cycle_count:
-        cycle_id = 1
-    else:
-        cycle_id = cycle_count + 1
-    wmscode = request.GET['wms_code']
-    quantity = request.GET['quantity']
-    reason = request.GET['reason']
-    loc = request.GET['location']
-    price = request.GET.get('price', '')
-    pallet_code = request.GET.get('pallet', '')
-    batch_no = request.GET.get('batch_number', '')
-    mrp = request.GET.get('mrp', '')
-    weight = request.GET.get('weight', '')
-    seller_id = request.GET.get('seller_id', '')
-    reduce_stock = request.GET.get('inv_shrinkage', 'false')
-    seller_master_id = ''
-    sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
-    receipt_number = get_stock_receipt_number(user)
-    stock_stats_objs = []
-    if user.username in MILKBASKET_USERS :
-        if not mrp or not weight :
-            return HttpResponse("MRP and Weight are Mandatory")
-        if unique_mrp == 'true' and quantity not in ['0', 0]:
-            location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
-            data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
-            status =  validate_mrp_weight(data_dict,user)
-            if status:
-                return HttpResponse(status)
-    if seller_id:
-        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
-        if not seller_master:
-            return HttpResponse("Invalid Seller ID")
-        seller_master_id = seller_master[0].id
-    if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
-                                       seller_master_id=seller_master_id, weight=weight)
-    else:
-        status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
-                                       seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
-                                       receipt_type='inventory-adjustment',price=price)
-        netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
-    if stock_stats_objs:
-        SKUDetailStats.objects.bulk_create(stock_stats_objs)
-    update_filled_capacity([loc], user.id)
-    if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
-    check_and_update_stock([wmscode], user)
-    return HttpResponse(status)
+# @csrf_exempt
+# @login_required
+# @get_admin_user
+# @reversion.create_revision(atomic=False, using='reversion')
+# def insert_inventory_adjust(request, user=''):
+#     reversion.set_user(request.user)
+#     reversion.set_comment("insert_inv_adj")
+#     unique_mrp = get_misc_value('unique_mrp_putaway', user.id)
+#     cycle_count = CycleCount.objects.filter(sku__user=user.id).only('cycle').aggregate(Max('cycle'))['cycle__max']
+#     #CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+#     if not cycle_count:
+#         cycle_id = 1
+#     else:
+#         cycle_id = cycle_count + 1
+#     wmscode = request.GET['wms_code']
+#     quantity = request.GET['quantity']
+#     reason = request.GET['reason']
+#     loc = request.GET['location']
+#     price = request.GET.get('price', '')
+#     pallet_code = request.GET.get('pallet', '')
+#     batch_no = request.GET.get('batch_number', '')
+#     mrp = request.GET.get('mrp', '')
+#     weight = request.GET.get('weight', '')
+#     seller_id = request.GET.get('seller_id', '')
+#     reduce_stock = request.GET.get('inv_shrinkage', 'false')
+#     seller_master_id = ''
+#     sku_stock_quantity=StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).filter(sku__user=user.id, sku__sku_code=wmscode).aggregate(Sum('quantity'))['quantity__sum']
+#     receipt_number = get_stock_receipt_number(user)
+#     stock_stats_objs = []
+#     if user.username in MILKBASKET_USERS :
+#         if not mrp or not weight :
+#             return HttpResponse("MRP and Weight are Mandatory")
+#         if unique_mrp == 'true' and quantity not in ['0', 0]:
+#             location_obj = LocationMaster.objects.filter(zone__user=user.id, location=loc)
+#             data_dict = {'sku_code':wmscode, 'mrp':mrp, 'weight':weight, 'seller_id':seller_id, 'location':location_obj[0].location}
+#             status =  validate_mrp_weight(data_dict,user)
+#             if status:
+#                 return HttpResponse(status)
+#     if seller_id:
+#         seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+#         if not seller_master:
+#             return HttpResponse("Invalid Seller ID")
+#         seller_master_id = seller_master[0].id
+#     if reduce_stock == 'true':
+#         status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,price=price,
+#                                        seller_master_id=seller_master_id, weight=weight)
+#     else:
+#         status, stock_stats_objs = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, stock_stats_objs, pallet_code, batch_no, mrp,
+#                                        seller_master_id=seller_master_id, weight=weight, receipt_number=receipt_number,
+#                                        receipt_type='inventory-adjustment',price=price)
+#         netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price , sku_stock_quantity, user)
+#     if stock_stats_objs:
+#         SKUDetailStats.objects.bulk_create(stock_stats_objs)
+#     update_filled_capacity([loc], user.id)
+#     if user.username in MILKBASKET_USERS: check_and_update_marketplace_stock([wmscode], user)
+#     check_and_update_stock([wmscode], user)
+#     return HttpResponse(status)
 
 def netsuite_inventory_adjust(wmscode, loc, quantity, reason, stock_stats_objs, pallet_code, batch_no, mrp, weight,receipt_number, price ,sku_stock_quantity, user=''):
     from datetime import datetime
@@ -6623,6 +6623,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                 'expiry_date': expiry_date,
                 'manufactured_date': manufactured_date,
                 'tax_percent': tax_percent,
+                'cess_percent': sku_row_cess_percent,
                 'mrp': mrp,
                 'buy_price': buy_price,
                 'weight': weight,
@@ -6747,6 +6748,7 @@ def generate_grn(myDict, request, user, failed_qty_dict={}, passed_qty_dict={}, 
                         purchase_data['order_quantity'],
                         value, price))
     create_file_po_mapping(request, user, seller_receipt_id, myDict)
+    update_sku_avg_from_grn(user, grn_number)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id, created_qc_ids, po_new_data, send_discrepencey, grn_number
 
 def invoice_datum(request, user, purchase_order, seller_receipt_id):
@@ -7864,9 +7866,9 @@ def create_return_order(data, user, credit_note_number):
 
 def create_default_zones(user, zone, location, sequence, segregation='sellable'):
     try:
-        new_zone, created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone, segregation=segregation,
+        new_zone = ZoneMaster.objects.create(user=user.id, zone=zone, segregation=segregation,
                                                              creation_date=datetime.datetime.now())
-        locations, loc_created = LocationMaster.objects.get_or_create(location=location, max_capacity=100000,
+        locations = LocationMaster.objects.create(location=location, max_capacity=100000,
                                                                       fill_sequence=sequence,
                                                                       pick_sequence=sequence, status=1,
                                                                       zone_id=new_zone.id,
@@ -14081,6 +14083,10 @@ def create_rtv(request, user=''):
                 intObj.IntegrateRTV(show_data_invoice, "rtv_number", is_multiple=False)
             except Exception as e:
                 print(e)
+            try:
+                update_sku_avg_from_rtv(user, rtv_number)
+            except Exception as e:
+                log.info("Update SKU Avergae Failed for rtv number %s" % rtv_number)
             return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

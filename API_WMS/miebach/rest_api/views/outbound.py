@@ -17318,3 +17318,71 @@ def get_auth_signature(request, user, inv_date):
         if len(master_docs_obj) == 1 or (not auth_signature):
             auth_signature = url+master_docs_obj[0].uploaded_file.url
     return auth_signature
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def create_manual_test(request, user=''):
+    user = User.objects.get(username=request.POST['warehouse'])
+    main_user = get_company_admin_user(user)
+    request_data = dict(request.POST.iterlists())
+    group_data = {}
+    for i in range(0, len(request_data['test_code'])):
+        data_dict = {}
+        test_code = request_data['test_code'][i]
+        test_obj = TestMaster.objects.filter(test_code=test_code, user=main_user.id)
+        data_dict['remarks'] = request_data.get('remarks', '')[i]
+        if not test_obj.exists():
+            return HttpResponse("Invalid Test Code %s" % test_code)
+        else:
+            data_dict['test'] = test_obj[0]
+        data_dict['test_code'] = test_code
+        data_dict['wms_code'] = request_data['wms_code'][i]
+        try:
+            data_dict['sku_quantity'] = float(request_data['sku_quantity'][i])
+        except:
+            return HttpResponse("Invalid Quantity")
+        sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['wms_code'])
+        if not sku:
+            return HttpResponse("Invalid SKU Code %s" % data_dict['wms_code'])
+        else:
+            data_dict['sku'] = sku[0]
+            uom_dict = get_uom_with_sku_code(user, sku[0].sku_code, 'consumption',
+                                             uom=request_data['uom'][i])
+            pcf = uom_dict['sku_conversion']
+            if data_dict.get('sku_quantity', 0):
+                sku_stocks = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE'). \
+                    filter(sku_id=sku[0].id, quantity__gt=0).order_by('batch_detail__expiry_date')
+                total_qty = sku_stocks.aggregate(Sum('quantity'))['quantity__sum']
+                total_qty = total_qty if total_qty else 0
+                data_dict['needed_quantity'] = data_dict['sku_quantity'] * pcf
+                if total_qty < data_dict['needed_quantity']:
+                    return HttpResponse("Insufficient Stock for SKU Code %s" % data_dict['wms_code'])
+        group_data.setdefault(data_dict['test_code'], [])
+        group_data[test_code].append(data_dict)
+
+    for key, value in group_data.items():
+        try:
+            with transaction.atomic('default'):
+                consumption_dict = {'user_id': user.id, 'test_id': value[0]['test'].id, 'total_test': 1,
+                                    'consumption_type': 'manual', 'remarks': value[0]['remarks']}
+                consumption = Consumption.objects.create(**consumption_dict)
+                for val in value:
+                    sku = val['sku']
+                    quantity = val['needed_quantity']
+                    sku_stocks = StockDetail.objects.using('default').select_for_update().\
+                        exclude(location__zone__zone='DAMAGED_ZONE').\
+                        filter(sku_id=sku.id, quantity__gt=0).order_by('batch_detail__expiry_date')
+                    consumption_data = ConsumptionData.objects.create(
+                        sku_id=sku.id,
+                        quantity=quantity,
+                        consumption_id=consumption.id
+                    )
+                    update_stock_detail(sku_stocks, quantity, user,
+                                        consumption_data.id, transact_type='consumption',
+                                        mapping_obj=consumption_data, inc_type='dec')
+        except Exception as e:
+            log.info(e)
+            return HttpResponse("Creation Failed")
+    return HttpResponse("Confirmed Successfully")

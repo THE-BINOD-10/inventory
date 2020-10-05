@@ -4402,6 +4402,9 @@ def get_tax_data(request, user=''):
         return HttpResponse(response)
 
     admin_user = get_priceband_admin_user(user)
+    normal_user_check= True
+    if user.userprofile.warehouse_type in ['ADMIN']:
+        normal_user_check= False
     if admin_user:
         taxes = TaxMaster.objects.filter(user=admin_user.id, product_type__exact=product_type)
     else:
@@ -4412,6 +4415,8 @@ def get_tax_data(request, user=''):
 
     resp = {'data': []}
     resp['product_type'] = taxes[0].product_type
+    resp['reference_id'] = taxes[0].reference_id
+    resp['admin_check'] = normal_user_check
     for tax in taxes:
         temp = tax.json()
         tax_type = 'inter_state'
@@ -4489,12 +4494,18 @@ def get_network_data(request):
 
 def save_tax_master(tax_data, user):
     columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt', 'apmc_tax']
+    reference_id=''
+    if tax_data.get('reference_id', ''):
+        reference_id = tax_data.get('reference_id', '')
     for data in tax_data['data']:
         product_type = data['product_type']
-        reference_id = data.get('reference_id', '')
+        if not reference_id:
+            reference_id = data.get('reference_id', '')
         data_dict = {'user_id': user.id}
         if data.get('id', ''):
             data_dict = {}
+            if reference_id:
+                data_dict.update({'reference_id':reference_id})
             tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
             for key in columns:
                 try:
@@ -4505,8 +4516,6 @@ def save_tax_master(tax_data, user):
                 data_dict[key] = data_key
                 # setattr(tax_master, key, data_key)
             filter_dict = {'product_type': product_type, 'user_id': user.id, 'inter_state': tax_master.inter_state}
-            if reference_id:
-                filter_dict.update({'reference_id':reference_id})
             sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
             # tax_master.save()
         else:
@@ -4526,7 +4535,7 @@ def save_tax_master(tax_data, user):
             filter_dict = {'product_type': product_type, 'user_id': user.id,
                            'inter_state': data_dict['inter_state']}
             if reference_id:
-                filter_dict.update({'reference_id':reference_id})
+                data_dict.update({'reference_id':reference_id})
             sync_masters_data(user, TaxMaster, data_dict, filter_dict, 'tax_master_sync')
                 # tax_master = TaxMaster(**data_dict)
                 # tax_master.save()

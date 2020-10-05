@@ -196,6 +196,7 @@ class MastersDOA(models.Model):
     model_name = models.CharField(max_length=256, default='')
     json_data = models.TextField()
     doa_status = models.CharField(max_length=64, default='pending')
+    validated_by = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

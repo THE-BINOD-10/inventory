@@ -3971,7 +3971,7 @@ def insert_inventory_adjust(request, user=''):
     if stock_stats_objs:
         SKUDetailStats.objects.bulk_create(stock_stats_objs)
     if data_id and 'success' in status.lower():
-        MastersDOA.objects.filter(id=data_id).update(doa_status='approved')
+        MastersDOA.objects.filter(id=data_id).update(doa_status='approved', validated_by=request.user.username)
     #update_filled_capacity([loc], user.id)
     return HttpResponse(status)
 
@@ -3989,28 +3989,22 @@ def insert_inventory_adjust_approval(request, user=''):
 
 @csrf_exempt
 def get_inventory_adjustment_doa(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['requested_user_id', 'sku_desc', 'sku_group', 'sku_brand', 'sku_type',
-           'sku_category', 'sku_class', 'style_name', 'sku_size', 'product_type', 'zone', 'price',
-           'threshold_quantity','max_norm_quantity', 'online_percentage', 'discount_percentage',
-           'cost_price', 'mrp', 'image_url', 'qc_check', 'sequence', 'status', 'relation_type',
-           'measurement_type', 'sale_through', 'mix_sku', 'color', 'ean_number', 'load_unit_handle',
-           'hsn_code', 'sub_category', 'primary_category', 'shelf_life', 'youtube_url', 'enable_serial_based',
-           'block_options', 'substitutes', 'batch_based', 'creation_date', 'updation_date', 'user']
-    #order_data = lis[col_num]
-    #filter_params = get_filtered_params(filters, lis)
-    # if order_term == 'desc':
-    #     order_data = '-%s' % order_data
+    lis = ['creation_date', 'requested_user__username', 'wh_user__username', 'wh_user__username', 'id', 'id', 'id',
+           'doa_status']
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
     users = []
     if get_permission(request.user, 'approve_inventory_adjustment'):
         users = check_and_get_plants_depts(request, users)
     if search_term:
         mapping_results = MastersDOA.objects.filter(requested_user__in=users,
                     model_name="InventoryAdjustment",
-                    doa_status__in=["pending", "rejected"])#.order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
     else:
         mapping_results = MastersDOA.objects.filter(wh_user__in=users,
                     model_name="InventoryAdjustment",
-                    doa_status__in=["pending", "rejected"])#.order_by(order_data)
+                    doa_status__in=["pending", "rejected"]).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -4020,12 +4014,14 @@ def get_inventory_adjustment_doa(start_index, stop_index, temp_data, search_term
         store_user = get_admin(dept_user)
         wms_codes = ','.join(result['wms_code'])
         total_qty = reduce(lambda x,y: float(x)+float(y), result['quantity'])
-        temp_data['aaData'].append(OrderedDict((('Requested User', row.requested_user.first_name),
+        temp_data['aaData'].append(OrderedDict((('Created Date', get_local_date(user, row.creation_date)),
+                                                ('Requested User', row.requested_user.first_name),
                                                 ('Store', store_user.first_name),
                                                 ('Department', dept_user.first_name),
                                                 ('SKU Code', wms_codes),
                                                 ('Adjustment Quantity', total_qty),
                                                 ('Reason', result.get('reason', '')),
+                                                ('Status', row.doa_status.capitalize()),
                                                 ('DT_RowId', row.id),
                                                 ('DT_RowAttr', {'data-id': row.id}),
                                                 ('model_id', row.model_id))))
@@ -4078,3 +4074,12 @@ def get_inventory_adjustment_doa_record(request, user=''):
                                        'warehouse': dept.username, 'warehouse_name': dept.first_name,
                                         'data': data_dict}))
     return HttpResponse("No Data Found")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def reject_inventory_adjustment(request, user=''):
+    data_id = request.POST['data_id']
+    MastersDOA.objects.filter(id=data_id).update(doa_status='rejected', validated_by=request.user.username)
+    return HttpResponse("Updated Successfully")

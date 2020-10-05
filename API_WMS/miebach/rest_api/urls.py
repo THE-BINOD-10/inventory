@@ -160,6 +160,7 @@ urlpatterns = [
     url(r'^add_po/$', add_po),
     url(r'^insert_inventory_adjust/$', insert_inventory_adjust),
     url(r'^insert_inventory_adjust_approval/$', insert_inventory_adjust_approval),
+    url(r'^reject_inventory_adjustment/$', reject_inventory_adjustment),
     url(r'^delete_po/$', delete_po),
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_wh_supplier/$', search_wh_supplier),

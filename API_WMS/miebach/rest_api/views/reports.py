@@ -1074,6 +1074,11 @@ def get_adjust_filter_data(search_params, user, sub_user):
                 pcf = data.stock.batch_detail.pcf
             quantity = base_quantity/pcf
             user_obj = User.objects.get(id=data.cycle.sku.user)
+            dept_name = ''
+            store_name = user_obj.first_name
+            if user_obj.userprofile.warehouse_type == 'DEPT':
+                dept_name = user_obj.first_name
+                store_name = get_admin(user_obj).first_name
             temp_data['aaData'].append(OrderedDict((('SKU Code', data.cycle.sku.sku_code),
                                                     ('Brand', data.cycle.sku.sku_brand),
                                                     ('Category', data.cycle.sku.sku_category),
@@ -1086,7 +1091,8 @@ def get_adjust_filter_data(search_params, user, sub_user):
                                                      data.pallet_detail.pallet_code if data.pallet_detail else ''),
                                                     ('Date', get_local_date(user, data.creation_date)),
                                                     ('Remarks', data.reason),
-                                                    ('Warehouse', user_obj.first_name)
+                                                    ('Store', store_name),
+                                                    ('Department', dept_name)
                                                     )))
 
     return temp_data

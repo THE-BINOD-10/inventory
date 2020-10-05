@@ -814,7 +814,7 @@ STOCK_LEDGER_REPORT_DICT = {
         {'label': 'Sub Category', 'name': 'sub_category', 'type': 'input'},
         {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'input'},
     ],
-    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
+    'dt_headers': ['Date', 'Store', 'Department', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category', 'Sub Category',
                    'Size', 'Opening Stock', 'Opening Stock Value', 'Receipt Quantity', 'Produced Quantity',
                    'Dispatch Quantity',
                    'RTV Quantity', 'Cancelled Quantity',
@@ -7675,14 +7675,21 @@ def get_rm_picklist_data(search_params, user, sub_user):
 
 
 def get_stock_ledger_data(search_params, user, sub_user):
-    from rest_api.views.common import get_local_date
+    from rest_api.views.common import get_local_date, get_related_users_filters, check_and_get_plants_depts_wo_request,\
+        get_admin
     from django.db.models import F
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    stock_stats = StockStats.objects.filter(sku__user=user.id)
+    if sub_user.is_staff and user.userprofile.warehouse_type == 'ADMIN':
+        users = get_related_users_filters(user.id)
+    else:
+        users = [user.id]
+        users = check_and_get_plants_depts_wo_request(sub_user, user, users)
+    user_ids = list(users.values_list('id', flat=True))
+    stock_stats = StockStats.objects.filter(sku__user__in=user_ids)
     if 'from_date' in search_params:
         status_filter['creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -7742,7 +7749,13 @@ def get_stock_ledger_data(search_params, user, sub_user):
                 if attribute.attribute_name == 'Bundle':
                     bundle = attribute.attribute_value
         date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
-        ord_dict = OrderedDict((('Date', date),
+        user_obj = User.objects.get(id=obj.sku.user)
+        dept_name = ''
+        store_name = user_obj.first_name
+        if user_obj.userprofile.warehouse_type == 'DEPT':
+            dept_name = user_obj.first_name
+            store_name = get_admin(user_obj).first_name
+        ord_dict = OrderedDict((('Date', date), ('Store', store_name), ('Department', dept_name),
                                 ('SKU Code', obj.sku.sku_code), ('SKU Description', obj.sku.sku_desc),
                                 ('Style Name', obj.sku.style_name),
                                 ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),

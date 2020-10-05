@@ -210,13 +210,21 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     sku_type_qty = dict(OrderDetail.objects.filter(user__in=user_ids, quantity__gt=0, status=1).values_list(
         'sku__sku_code').distinct().annotate(Sum('quantity')))
-    putaway_qty_objs = POLocation.objects.filter(purchase_order__open_po__sku__user__in=user_ids, status=1).\
-                        values_list('purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__user').distinct().annotate(Sum('quantity'))
+    putaway_qty_objs = POLocation.objects.filter(Q(purchase_order__open_po__sku__user__in=user_ids)|
+                                                 Q(purchase_order__stpurchaseorder__open_st__sku__user__in=user_ids),
+                                                 status=1).\
+                        values_list('purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__user',
+                                    'purchase_order__stpurchaseorder__open_st__sku__sku_code',
+                                    'purchase_order__stpurchaseorder__open_st__sku__user').distinct().\
+                        annotate(Sum('quantity'))
     putaway_qty_dict = {}
     for putaway_qty_obj in putaway_qty_objs:
-        cond = (putaway_qty_obj[0], putaway_qty_obj[1])
+        if putaway_qty_obj[0]:
+            cond = (putaway_qty_obj[0], putaway_qty_obj[1])
+        else:
+            cond = (putaway_qty_obj[2], putaway_qty_obj[3])
         putaway_qty_dict.setdefault(cond, 0)
-        putaway_qty_dict[cond] += putaway_qty_obj[2]
+        putaway_qty_dict[cond] += putaway_qty_obj[4]
 
     sku_pack_config = get_misc_value('sku_pack_config', user.id)
     for ind, data in enumerate(master_data[start_index:stop_index]):

@@ -6535,9 +6535,9 @@ def get_pr_related_stock(user, sku_code, search_params, includeStoreStock=False)
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
     avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
     total_sum = sum(map(lambda x:x['total_amount'],zones_data.values()))
-    avg_price = 0
-    if avail_qty:
-        avg_price = total_sum/avail_qty
+    avg_price = SKUMaster.objects.get(user=user.id, sku_code=sku_code).average_price
+    # if avail_qty:
+    #     avg_price = total_sum/avail_qty
     return stock_data, st_avail_qty, intransitQty, openpr_qty, avail_qty, skuPack_quantity, sku_pack_config, zones_data,\
            avg_price
 
@@ -13724,18 +13724,17 @@ def search_batch_data(request, user=''):
 
 def get_stock_summary_intransit_data(sku):
     user = User.objects.get(id=sku.user)
-
     po_ids = PurchaseOrder.objects.filter(stpurchaseorder__stocktransfer__sku_id=sku.id, status='',
                                           stpurchaseorder__stocktransfer__st_type__in=['ST_INTRA', 'MR']).\
         values_list('id', flat=True)
     temp_jsons = TempJson.objects.filter(model_name='PO', model_id__in=po_ids)
     total_qty, total_amt = [0] * 2
-    uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
-    pcf = uom_dict['sku_conversion']
+    # uom_dict = get_uom_with_sku_code(user, sku.sku_code, uom_type='purchase')
+    # pcf = uom_dict['sku_conversion']
     for temp_json in temp_jsons:
         json_data = json.loads(temp_json.model_json)
         try:
-            qty = float(json_data['quantity'])/pcf
+            qty = float(json_data['quantity'])
         except:
             qty = 0
         try:

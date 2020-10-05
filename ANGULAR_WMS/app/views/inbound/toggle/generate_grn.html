@@ -99,7 +99,6 @@
                 <input type="text" name="scan_pack"  ng-model="showCase.model_data.pack_id" class="form-control detectTab"  ng-keydown="showCase.check_sku_pack($event, showCase.model_data.pack_id)" >
               </div>
             </div>
-
             <div class="col-md-3 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label for="remainder_mail" class="control-label"> Remainder Mail Duration </label>
@@ -173,6 +172,16 @@
               <div class="form-group">
                 <label for="remarks" class="control-label"> Remarks </label>
                 <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="grn_date" class="bg-red control-label" style="padding-left: 10px; padding-right: 10px;">BOOKING MONTH</label>
+                <select name="grn_date" class="form-control" ng-model="showCase.model_data.grn_date" style="border-color: #ff0000 !important;">
+                  <option value="">{{showCase.current_month}}</option>
+                  <option ng-repeat="item in showCase.last_two_months" value="{{item}}" ng-selected="item==showCase.model_data.grn_date">{{item}}</option>
+                </select>
+                <!-- <input name="grn_date" ui-jq="datepicker" ng-model="showCase.model_data.grn_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true"> -->
               </div>
             </div>
             <div class="col-md-3 col-sm-6 col-xs-6" ng-if="showCase.model_data.payment_received != 0">
@@ -437,7 +446,7 @@
             </center>
           </div>
           <div class="row mr10 ml10 mb10">
-            <div class="col-md-12">
+            <div class="col-md-12 hide">
               <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: 0})">Add Other Charges(+)</a>
             </div>
             <div class="col-md-12">

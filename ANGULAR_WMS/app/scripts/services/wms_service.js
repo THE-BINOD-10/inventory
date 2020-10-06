@@ -131,10 +131,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       var send = {dtOptions: '', dtColumns: '', empty_data: {}};
 
       angular.forEach(data.filters, function(data){
-
         send.empty_data[data.name] = ""
       });
-
+      if (Object.keys(data).includes('special_key')) {
+        send.empty_data['special_key'] = data['special_key'];
+      }
       var report_name = Object.keys(vm.reports)
       if (report_name.includes('financial_report')){
         send.empty_data.from_date = ''

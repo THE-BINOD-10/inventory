@@ -635,6 +635,7 @@ data_datatable = {  # masters
     'PendingPREnquiries': 'get_approval_pending_enquiry_results',
     'CreditNote': 'get_credit_note_data',
     'MaterialRequestOrders': 'get_material_request_orders',
+    'PendingMaterialRequest' : 'get_pending_material_request_data',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -5287,15 +5288,17 @@ def search_wms_data(request, user=''):
         ccf, cuom, c_base_uom = get_uom_data(user, master_data, 'consumption')
         tax_values = TaxMaster.objects.filter(product_type=master_data.hsn_code, user=user.id).values()
         temp_tax=0
+        temp_cess_tax =0
         if tax_values.exists():
             temp_tax= tax_values[0]['igst_tax'] + tax_values[0]['sgst_tax'] + tax_values[0]['cgst_tax']
+            temp_cess_tax = tax_values[0]['cess_tax']
         data_dict = {'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc,
                        'sku_class': master_data.sku_class, 'measurement_unit': measurement_unit,
                        'load_unit_handle': master_data.load_unit_handle,
                        'mrp': master_data.mrp, 'conversion': sku_conversion, 'base_uom': base_uom,
                        'enable_serial_based': master_data.enable_serial_based,
                        'sku_brand': master_data.sku_brand, 'hsn_code': master_data.hsn_code, "temp_tax": temp_tax,
-                        "temp_cess_tax": tax_values[0]['cess_tax'], "ccf": ccf, "cuom": cuom}
+                        "temp_cess_tax": temp_cess_tax, "ccf": ccf, "cuom": cuom}
         if instanceName == ServiceMaster:
             gl_code = master_data.gl_code
             service_start_date = master_data.service_start_date
@@ -11824,7 +11827,24 @@ def update_stock_transfer_po_batch(user, stock_transfer, stock, update_picked, o
                 destination_warehouse = User.objects.get(id=st_po.open_st.sku.user)
                 inbound_automate = get_misc_value('stock_auto_receive', destination_warehouse.id)
                 if order_typ == 'MR':
-                    auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
+                    mr_doa_obj = {}
+                    mr_doa_obj['destination_warehouse'] = destination_warehouse.id
+                    mr_doa_obj['po'] = po.id
+                    mr_doa_obj['type'] = 'st'
+                    mr_doa_obj['update_picked'] = update_picked
+                    mr_doa_obj['data'] = stock.id
+                    mr_doa_obj['order_typ'] = order_typ
+                    doa_dict = {
+                        'requested_user': user,
+                        'wh_user': destination_warehouse,
+                        'reference_id': stock_transfer.order_id,
+                        'model_name': 'mr_doa',
+                        'json_data': json.dumps(mr_doa_obj),
+                        'doa_status': 'pending'
+                    }
+                    doa_obj = MastersDOA(**doa_dict)
+                    doa_obj.save()
+                    # auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 elif inbound_automate == 'true' and order_typ == 'ST_INTRA':
                     auto_receive(destination_warehouse, po, 'st', update_picked, data=stock, order_typ=order_typ)
                 if po.status == 'stock-transfer':

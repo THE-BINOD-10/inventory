@@ -161,6 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(data.message) {
             if (data.data == "Added Successfully") {
               angular.extend(vm.model_data, vm.empty_data);
+              reloadData();
               vm.close();
             } else {
               pop_msg(data.data);
@@ -319,6 +320,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.manufactured_date = '';
           data.expiry_date = '';
           data.available_stock = 0;
+          vm.update_final_stock(data);
         }
       }
     });

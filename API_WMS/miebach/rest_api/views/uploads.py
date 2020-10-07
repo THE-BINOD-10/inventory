@@ -11291,7 +11291,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             else:
                 try:
                     user_obj = dept_users.get(userprofile__stockone_code=dept_mapping_res[cell_data])
-                    data_dict['warehouse'] = user
+                    data_dict['warehouse'] = user_obj
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -11305,6 +11305,10 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
             if not sku_master:
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
             else:
+                st_check = StockTransfer.objects.filter(order_id=data_dict['order_id'], sku__user=user.id,
+                                                        sku__sku_code=wms_code)
+                if st_check.exists():
+                    index_status.setdefault(count, set()).add('Material Request exists already')
                 if user_obj:
                     wh_id = user_obj.id
                     sku_master_id = sku_master[0].id
@@ -11370,6 +11374,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         quantity = final_data['quantity']
         batch_no = final_data.get('batch_no', '')
         creation_date = final_data['date']
+        creation_date = creation_date - datetime.timedelta(hours=1)
         order_id = final_data['order_id']
         # for key, value in order_mapping.iteritems():
         #     if key == 'source_warehouse':

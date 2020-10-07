@@ -112,9 +112,11 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params['sku__user__in'] = user_ids
     search_params1['product_code__user__in'] = user_ids
 
-    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_ids).values_list(
-        'stock__sku__wms_code'). \
-                             distinct().annotate(reserved=Sum('reserved')))
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user__in=user_ids).
+                             annotate(sku_code_user=Concat('stock__sku__wms_code', Value('<<>>'),
+                                                                    'stock__sku__user', output_field=CharField())).\
+                            values_list('sku_code_user').\
+                             distinct().annotate(reserved=Sum(F('reserved')/F('stock__batch_detail__pcf'))))
     raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=user_ids). \
                         values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
                         annotate(rm_reserved=Sum('reserved')))
@@ -238,8 +240,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                     total = data[5]
 
         sku = sku_master.get(user=data[4], sku_code=data[0])
-        if data[0] in picklist_reserved.keys():
-            reserved += float(picklist_reserved[data[0]])
+        sku_grp_key = '%s<<>>%s' % (str(data[0]), str(data[4]))
+        if sku_grp_key in picklist_reserved.keys():
+            reserved += float(picklist_reserved[sku_grp_key])
         if data[0] in raw_reserved.keys():
             reserved += float(raw_reserved[data[0]])
         quantity = total - reserved

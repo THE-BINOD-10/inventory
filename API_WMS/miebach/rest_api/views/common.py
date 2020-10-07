@@ -678,6 +678,7 @@ data_datatable = {  # masters
     'MyOrdersTbl' : 'get_customer_orders',\
     'MarketEnqTbl': 'get_enquiry_data', 'CustomOrdersTbl': 'get_manual_enquiry_data',\
     'OrderAllocations': 'get_order_allocation_data',
+    'ViewManualTest': 'view_manual_test_entries',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -8697,6 +8698,8 @@ def get_sku_stock(sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_fil
         order_by = 'location_id__pick_sequence'
     if add_mrp_filter and needed_mrp_filter:
         data_dict['batch_detail__mrp'] = needed_mrp_filter
+    if val_dict.get('batch_detail__batch_no', ''):
+        data_dict['batch_detail__batch_no'] = val_dict.get('batch_detail__batch_no', '')
     stock_detail = sku_stocks.filter(**data_dict).order_by(order_by).distinct()
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
@@ -8809,6 +8812,12 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
         needed_mrp_filter = 0
+        batch_no = ''
+        if 'st_po' in dir(order):
+            temp_json = TempJson.objects.filter(model_id=order.id, model_name='STOCK_TRANSFER_BATCH_NO')
+            if temp_json.exists():
+                batch_no = json.loads(temp_json[0].model_json)['batch_no']
+                sku_id_stock_filter['batch_detail__batch_no'] = batch_no
         if order.sku.relation_type == 'combo':
             add_mrp_filter = False
         if add_mrp_filter:
@@ -8839,6 +8848,8 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
         val_dict = {'sku_ids': map(lambda d: d['sku_id'], sku_id_stocks),
                     'stock_ids': map(lambda d: d['id'], sku_id_stocks),
                     'stock_totals': map(lambda d: d['total'], sku_id_stocks)}
+        if batch_no:
+            val_dict['batch_detail__batch_no'] = batch_no
         pc_loc_filter = OrderedDict()
         pc_loc_filter['picklist__order__user'] = user.id
         #if is_seller_order or add_mrp_filter:
@@ -11559,10 +11570,17 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
         incremental_prefix = 'so_prefix'
     for key, value in all_data.iteritems():
         user = User.objects.get(id=key[1])
+        creation_date = None
+        batch_no = ''
         po_id, prefix, full_po_number, check_prefix, inc_status = \
-        get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
+            get_user_prefix_incremental_st(warehouse, incremental_prefix, dest_code=user.userprofile.stockone_code)
         if inc_status:
             return HttpResponse("Prefix not defined")
+        if len(value[0]) > 11:
+            prefix = ''
+            full_po_number = value[0][10]
+            creation_date = value[0][11]
+            batch_no = value[0][12]
         st_po_id = po_id#get_st_purchase_order_id(user)
         order_id = full_po_number
         # prefix = get_misc_value('st_po_prefix', user.id)
@@ -11600,6 +11618,12 @@ def confirm_stock_transfer_gst(all_data, warehouse_name, order_typ=''):
                 st_dict['st_seller_id'] = key[2].id
             stock_transfer = StockTransfer(**st_dict)
             stock_transfer.save()
+            if creation_date:
+                stock_transfer.creation_date = creation_date
+                stock_transfer.save()
+            if batch_no:
+                TempJson.objects.create(model_id=stock_transfer.id, model_name='STOCK_TRANSFER_BATCH_NO',
+                                        model_json=json.dumps({'batch_no': batch_no}))
             open_st.status = 0
             open_st.save()
         check_purchase_order_created(user, st_po_id, prefix)
@@ -13753,3 +13777,7 @@ def get_stock_summary_intransit_data(sku):
         amt = qty * price
         total_amt += amt + ((amt / 100) * (tax + cess_tax))
     return total_qty, total_amt
+
+def log_message(log,request, user, message, data):
+    log.info("%s for request User %s Login %s and Data is %s" % (message, request.user.username,
+                                                                 user.username, data))

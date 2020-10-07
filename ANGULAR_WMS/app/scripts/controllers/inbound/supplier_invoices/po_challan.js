@@ -100,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
-            var grn_no = temp['GRN NO'];
+            var grn_no = temp['GRN NOs'];
             grn_no = grn_no.split('/');
 
             if(click_type == 'edit'){

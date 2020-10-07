@@ -11374,7 +11374,7 @@ def material_request_xls_upload(request, reader, user, no_of_rows, fname, file_t
         quantity = final_data['quantity']
         batch_no = final_data.get('batch_no', '')
         creation_date = final_data['date']
-        creation_date = creation_date - datetime.timedelta(hours=1)
+        creation_date = creation_date + datetime.timedelta(hours=6)
         order_id = final_data['order_id']
         # for key, value in order_mapping.iteritems():
         #     if key == 'source_warehouse':

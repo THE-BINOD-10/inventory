@@ -298,12 +298,12 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                 Q(sku__sku_code__icontains=search_term), **search_params)
     if order_term:
         results = results.filter(**search_params).order_by(order_data)
-    resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
     count = 0
     for result in results[start_index: stop_index]:
-        pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
+        pr_created_date = resultsWithDate.get(result['pending_pr__full_pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         pr_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']

@@ -298,12 +298,12 @@ def get_pending_pr_suggestions(start_index, stop_index, temp_data, search_term, 
                                 Q(sku__sku_code__icontains=search_term), **search_params)
     if order_term:
         results = results.filter(**search_params).order_by(order_data)
-    resultsWithDate = dict(results.values_list('pending_pr__pr_number', 'creation_date'))
+    resultsWithDate = dict(results.values_list('pending_pr__full_pr_number', 'creation_date'))
     temp_data['recordsTotal'] = results.count()
     temp_data['recordsFiltered'] = results.count()
     count = 0
     for result in results[start_index: stop_index]:
-        pr_created_date = resultsWithDate.get(result['pending_pr__pr_number'])
+        pr_created_date = resultsWithDate.get(result['pending_pr__full_pr_number'])
         pr_date = pr_created_date.strftime('%d-%m-%Y')
         pr_delivery_date = result['pending_pr__delivery_date'].strftime('%d-%m-%Y')
         requested_user = result['pending_pr__requested_user']
@@ -12189,7 +12189,6 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
 def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                          filters):
     ''' Supplier Invoice datatable code '''
-
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     users = [user.id]
@@ -12201,7 +12200,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            'challan_number', 'challan_number', 'challan_number', 'challan_number', 'challan_number']
     filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user__in': user_ids, 'order_status_flag': 'po_challans', 'status':0}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id',
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__po_number',
                      'purchase_order__open_po__supplier__name', 'purchase_order__prefix', 'grn_number',
                      'purchase_order__open_po__sku__user']
                      #'purchase_order__creation_date', 'id']
@@ -12253,13 +12252,17 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
 
-        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'],
+        po = PurchaseOrder.objects.filter(order_id=data['purchase_order__order_id'], prefix=data['purchase_order__prefix'], po_number=data['purchase_order__po_number'],
                                           open_po__sku__user=data['purchase_order__open_po__sku__user'])[0]
         grn_number = "%s/%s" %(po.po_number, data['receipt_number'])
         full_grn_number = data['grn_number']
         po_date = str(data['date_only'])
+        total_qtys = PurchaseOrder.objects.filter(po_number=data['purchase_order__po_number']).values('po_number').distinct().annotate(total_ordered=Sum('open_po__order_quantity'))
+        if total_qtys.exists():
+            data['total_ordered'] = total_qtys[0]['total_ordered']
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'], purchase_order__prefix=data['purchase_order__prefix'],\
+                                            purchase_order__po_number=data['purchase_order__po_number'], grn_number=data['grn_number'],
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'],
                                             purchase_order__open_po__sku__user=data['purchase_order__open_po__sku__user'])
 
@@ -12271,7 +12274,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
                 temp_qty -= processed_val
-            rem_quantity += temp_qty
+            rem_quantity += float(seller_sum.quantity)
             price = seller_sum.purchase_order.open_po.price
             quantity = rem_quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
@@ -12291,14 +12294,15 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
                                  ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
-                                 ('Received Quantity', quantity),
+                                 ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', tot_amt), ('id', data.get('id', 0)),
+                                 ('Total Amount', round(tot_amt, 2)), ('id', data.get('id', 0)),
                                  ('Challan ID', data['challan_number']),
                                  ('receipt_number', data['receipt_number']),
                                  ('prefix', data['purchase_order__prefix']),
                                  ('Store', warehouse.first_name),
                                  ('warehouse_id', warehouse.id),
+                                 ('full_po_number', data['purchase_order__po_number']),
                                  ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
         temp_data['aaData'].append(data_dict)
@@ -12619,9 +12623,11 @@ def generate_supplier_invoice(request, user=''):
                 if inv_no:
                     sell_summary_param['invoice_number'] = inv_no
                 else:
+                    sell_summary_param['purchase_order__po_number'] = req_data.get('full_po_number', '')
                     sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
                     sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
                     sell_summary_param['challan_number'] = req_data.get('challan_id', '')
+                    sell_summary_param['grn_number']=req_data.get('grn_no', '')
                 #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
                 seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
                 if seller_summary:

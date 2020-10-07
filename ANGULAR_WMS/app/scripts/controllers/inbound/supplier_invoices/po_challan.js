@@ -119,13 +119,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
             } else {
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: temp['GRN NO'], 
                 seller_summary_name: temp['Supplier Name'], 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
                 challan_id: temp['Challan ID'],
-                warehouse_id: temp['warehouse_id']
+                warehouse_id: temp['warehouse_id'],
+                full_po_number: temp['full_po_number']
               });
             }
 

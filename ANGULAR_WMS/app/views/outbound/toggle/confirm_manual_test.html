@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block;">
   <!-- Modal -->
-  <form name="form" role="form" ui-jq="validate">
+  <form name="form" id="confirm_manual_test"role="form" ui-jq="validate">
     <div class="modal fade in" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: auto;display: block;">
       <div class="modal-dialog modal-lg" style="width: 1300px;">
         <div class="modal-content">
@@ -42,6 +42,7 @@
                     <label class="control-label"> Department *</label>
                     <input type="text" name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" value="{{showCase.model_data.warehouse_name}}" readonly>
                     <input type="hidden" name="warehouse" class="form-control" ng-model="showCase.model_data.warehouse" value="{{showCase.model_data.warehouse}}">
+                    <input type="hidden" name="data_id" class="form-control" ng-model="showCase.model_data.data_id" value="{{showCase.model_data.data_id}}">
                   </div>
                 </div>
               </div>
@@ -105,9 +106,8 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-show="((showCase.wh_type=='Department' && showCase.permissions.approve_inventory_adjustment)|| showCase.wh_type!='Department')  && !showCase.model_data.action_buttons">Save</button>
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.send_for_approval(form)" style="background: green;color: white;" ng-if="showCase.wh_type=='Department' && !showCase.permissions.approve_inventory_adjustment && !showCase.model_data.action_buttons">Send For Approval</button>
-            <button type="button" class="btn pop pop-normal pull-left ng-click-active" ng-click="showCase.reject_adjustment(form)" style="background: red;color: white;" ng-if="showCase.update && !showCase.model_data.action_buttons">Reject</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.insert_test_data(showCase.model_data)" ng-show="showCase.permissions.approve_manual_test && !showCase.model_data.action_buttons">Confirm</button>
+            <button type="button" class="btn pop pop-normal pull-left ng-click-active" ng-click="showCase.reject_adjustment(form)" style="background: red;color: white;" ng-show="showCase.permissions.approve_manual_test && !showCase.model_data.action_buttons">Reject</button>
           </div>
         </div>
       </div>

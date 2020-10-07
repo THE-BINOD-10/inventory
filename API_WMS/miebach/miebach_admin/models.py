@@ -209,6 +209,8 @@ class MastersDOA(models.Model):
             ('approve_service_master_doa', 'Approve Service Master Doa'),
             ('approve_otheritems_master_doa', 'Approve Otheritems Master Doa'),
             ('approve_inventory_adjustment', 'Approve Inventory Adjustment'),
+            ('approve_manual_test', 'Approve Manual Test'),
+            ('view_manual_test_approval', 'View Manual Test Approval'),
         ]
 
 

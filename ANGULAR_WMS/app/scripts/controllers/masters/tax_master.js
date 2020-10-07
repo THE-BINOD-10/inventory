@@ -60,6 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var empty_data = {
                        product_type: "",
+                       reference_id : "",
                        data: [{tax_type: "intra_state", min_amt: "", max_amt: "", sgst_tax: "", cgst_tax: "", igst_tax: "", cess_tax:"", apmc_tax: "", new_tax: true}]
                      }
     vm.update = false;

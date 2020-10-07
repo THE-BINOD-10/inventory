@@ -3352,7 +3352,7 @@ def sendMailforPendingPO(purchase_id, user, level, subjectType, mailId=None, url
     try:
         from mail_server import send_mail
         subject = ''
-        urlPath = 'http://mi.stockone.in'
+        urlPath = 'https://mi.stockone.in'
         desclaimer = '<p style="color:red;"> Please do not forward or share this link with ANYONE. \
             Make sure that you do not reply to this email or forward this email to anyone within or outside the company.</p>'
         filtersMap = {}#{'wh_user': user.id}
@@ -9761,7 +9761,7 @@ def confirm_add_po(request, sales_data='', user=''):
         company_details = {}
         company_logo=""
         if profile.company.logo:
-            company_logo = 'http://' + request.get_host() +'/'+ profile.company.logo.url
+            company_logo = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], profile.company.logo.url.lstrip("/")])
         if profile.company:
             company_details['company_address'] = ''
             if profile.company.address:

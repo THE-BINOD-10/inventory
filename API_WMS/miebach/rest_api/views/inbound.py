@@ -9722,6 +9722,13 @@ def confirm_add_po(request, sales_data='', user=''):
                 company_address = user.userprofile.address
         else:
             ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+        try:
+            wh_ship_to = UserAddresses.objects.filter(address_type = 'Shipment Address', user=user.id).order_by('creation_date')
+            if wh_ship_to.exists():
+                wh_ship_to = wh_ship_to[0]
+                ship_to_address = "%s - %s" % (wh_ship_to.address, wh_ship_to.pincode)
+        except Exception as e:
+            pass
         wh_telephone = user.userprofile.wh_phone_number
         ship_to_address = '\n'.join(ship_to_address.split(','))
         vendor_name = ''
